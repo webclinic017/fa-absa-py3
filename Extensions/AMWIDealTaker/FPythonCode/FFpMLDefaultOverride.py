@@ -1,0 +1,60 @@
+"""------------------------------------------------------------------------
+MODULE
+    FFpMLDefaultOverride
+DESCRIPTION:
+    This file is provided to the user to customize and provide any overrides on the existing defaults that are being used during deal export
+VERSION: 1.0.30
+RESTRICTIONS/ LIMITATIONS:
+    1.This module is customizable
+--------------------------------------------------------------------------"""
+import base64, zlib, imp, marshal
+if imp.get_magic() == '\x03\xf3\r\n':
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+eNrVGul6G7cRlGxdlu3EzuHEacocTpzDjOSmbu0oB0WKDh1RpEn5iJvWhRYgudJylwawEpnaTZqkTY8H6N9+X1+g39eX6J++Q9+g
+j9DODHbJpURJlKIkXyhxZzE7FzADzABLh0Wfcfh+AF/97zHGBGP3GHPXmEgxMcauIBi34JgFxwFMMDEJYIqJaduaAXCCiVmLPGkp
+TwE4zcRjtvU4gDNMnAXwBBNPWvAUgKeZOAfgGSaeBXCeiecs5Y8syfMAfsxEGsALTLxoFb0E4GUmLtjWK1bRqwAuMvGa5XvdCnvD
+PnvTgktWWMayv2XZ56zV85bhsn32E/vsbfvsp/bZFQA/Y+LnAK4ycc0qesf2bwHAu0y8ZzW8D+ADJrK2tQggx0Teil6yfAXbo+u2
+9aHVULTgBoCPmFi2UkoWuWJbZQAVJm5a9iqAGhOrAG4xcdtafcdafdfyfWzBPcvwC2vuJwB+ycSvANxn4tfWCA4AXO9YSmFJpAV1
+AA0mmrZHLoB1JjYAeEy0APhMBBa0ATxgQgHQTBgAIRObALaY6Fj2rpX5qUX+BsBDJh4B+C0TnwH4nInfWQ1fWOSXdui+suD3AP7A
+xNd2JP7IrtyDHv2Z/v/Evhpj98bxvnbxLxjWf00xdumIPjOlcv7W8tJMGj6FQru0nJd1HnqmvCmVcoWcyS/VctViZbVYXrlGVKtN
+V6frrifTANsq2AQqkTZB2jRlOtRS4b0TahO03E9lmvsipoL7bjqIBOt04BOL7LjauH4jLaxmDVhu0lzJ9JpEPMgUaREqS8M94GgH
+yszcXqrW0Kr0heqFmepSbbVazKGZtbfSy8VScTVLDWv0fIbMbgUitIbHBvI1T85cOrKPmQUHwZAWysvL5TvFlev6Fnpsi7drRkne
+yjjcc0KPGzfwK1K5gchzI3VG1uvSMe6mxGZGwCUr1sHElvSNzqyF2vWl1nnezQX+JuCAXd8ZSbKRquX6hD6A7I9Hkj0cvb/0pUHp
+bd5Faisz2dhXkjkHknLbrVjyrSEX9lZTlci0KVcDMwWUi5ECPT+KdV1drte1NDCe3dVue4cyJeGh5aHbhDKYvSyvL+5KX3c7EOqR
+PuqQfm0k4tiU7N6mjDi00yClH8Y5aHEhXHzEvYodhuTYjBhYHsgJ2lbKElded7Ufn5k1uA8FX+pI5bhaZmCiu6ofupyk44w9gEJ0
+7dzVa3Nz8K9fgoYEra7UJtay6rZkphmEquT6oaEmMc3PR0w3DmKyh4O7p+zC4UZgiCjzHIjK6lpbOm7dlaLol7iG+Z5tKClpTN7f
+S1di9mYb6M3tiApXpmuwmiq5Qhf3lqWbNWmMR3qpWVGuI0vSNAOReRAGhgirMDwYo+YYSFspryzpdbhxuO/A/ADHVjBTaJQoQxW0
+Jfd7Q+EELZDtyF7AHSocPhxV3ShhsjiysD3deBzE1LmnJS0KwwTWA88Ltm61oSN1V7VIEg1hsZbP6jPIr3gGvnlXO0HoYz7trbK7
+OajfrCSmsYoWKmrY5YdWrDmdH1nebe6F/WlrhZQgtbttGFKlr30jQfoqsLeVbLlh6+ALkDmFS0DkF5suyI2HsQcV9td1/d7BxWyL
+Bn39UC4bHunvJmVtW0lHmyvvD1izffqNJuPytmQKVZzjtmEF6ThN7jcgJ7k+lihSuCCvh1X71B/ZFkZ5Ep+pd5Zdf0OKlcCuUTVH
+YrGX2eSqC9MhRhd2ZNdEZDa/Q7Xa/U6UxUXB1neibXgQfPGt6S5i8LitOG4qA7Xadu92vkczdPd7UR57/+vvRfvwFXgSbKlKWO6U
+1ubo7Kp3au3AYIFRgwXVkbjWtMDWBEb1binnFu4WinePMioOZEKFwzq39i0qt1sDKlSc5Eq+vcbc1rauGyyu9IjJ9Ry5ti4VZory
+muc2yGZd9r2ufpnydmBwowupD7TqTNCngU4a2QhUV78FhFB/SsU9S6VikUW/HkTlT4Z73vWQKw7xB2UaFkNGhVLfxBJKQToxS5tk
+aaKBQ4ZeCUGr43Wzm9ylQispFjrtC65EhYjsUGr9PNre7GoXPNFPwtY6GF4VbFFEZbXLfY2j0DO5wl2VweExdibOjdS5PjtW0bRr
+kttq7n51eJCqfP8ihALmBVAoAidEQiurNbi1oL5giSEfhNC1clRmUOMAmyG+j4SjKfrv76PlCPaZdPAT7cQc6trb+ymNmsmdAY1q
+usfYo+WhCTAynBijl4dLrxy2LqZTj0GBHaN4oAQEk+pGc6kOEyZUUOzmpQdFr9K4OZzPzNEBxQB3vVOQ3AAt7P1gigaAqNL2AkMi
+vzv1gZZQ2s/npT3ikiK91qUTxcSBUJo2svr13RUKmTghs9tV2u9c3unAPtOQTVKiznj9QIz6jRHJ41x+dUT63Qvy0bQNbG6u4B6z
+E7NYBgglrhT0GGr43tK100kfJVkHDzoPNdPwYGrRC4IWJK4GeWmnYRwX4r0rAMwY1xeXy3r1G9uXk1gE7WjP72FaPzlvPw3A4Jun
+PeluvNiJ8pqWajPKhDAToZjAbt6RbqOJu/8Cd0ygyNv1Tt5tuIZ7kTQThE5zb5d9TGw1kOPJZdnI+LAy2hmPY5FIKbYbB5y1tYMX
+PWCt1ztAyg08ELITefSxwcNgO/X7q2khUFuQ2DMtmuTlesKTl3cQjbL60bFxLaoX6OxGSfCTX4O+ZeytHTybnhP6zEksFtZ04KHX
+sQygrf9QdvJ2vUpt6K5rXO5RVZDxpbE3bbxCJoEQwYKASpGcF0CauDuS1M24FCBxUUXfx1ahvNT9Zi9R3T6E8AIMqLevaBofzP0B
+lG7dRQ49eTqJyQw8I8f3MJAPwE9aPzucIXpM0x+Dlqq1Pp2OD1PJWqIi/1xOUkUTKXbsTcxwyPwguikoCCYoW2wpu2vs1qGEXePO
+xmLgi2wbcoeDs0s/hbUmVZ9RLdifOS8mytDdtdIO65a/4QdbPoWl62uojalsU1zIaAjiSZrVMIQ5j8NubAKIl8EayBOYWtdCz0PH
+RRrRtcKGfnc5sNZRrC3CWG1oPI2GuQXRmaAnREY3OcTLHgQNtIvW8h0EsUbIAPb1g95hBJ0ojsJoAtMfuNXAg/UMikv9zojsNmHv
+4DcYmzCyvoaiXd9xTbPq6o1yfTnQmiqjkUxzYU2l0oF2B64D9b0IHZMJYYWDuh6yrIz22L1CysHyawa+NOFxVW2MMfYQZuVz7OEY
+m0XA2DpjXzL2aIz58CzF1D9S+LqcMS/FHo2zh+NsPUUExxD56DjSrI8jRpxjGxNMtdnDY2z9WB//ZYp9MoaUjyZI5nGmP2NiAjFW
+hdW4fpyETLKNMab+xsRUTHCcQaCJabaA+iYT+p4hff/ZRd9krG+S6f+SvsmoaegHGwuImiK2SWRTT6RQ5xTzbzJxApn7mp5lG5NM
+3UgN1zRFms4n6E9TJ2QsELROkdbH2EJ09zjc9YRNJYRNk+Zppv9O3NPEPU08Z9iC/0/0lHLG4BoN2FnSZTHTiYF8IoGfIfwJwj/J
+nrFWosin2EJ3jg0jmaX2SbqeismfZgt3HjhjqVRqd5YkMdDe9elHNbWL5/EVjvs/+Nh3hfSOAl884BF7KRCZdA9FBLA3cWArniTo
+oar4ux3Kp7lQKUwnVVzEfphvzw11BudmsVQiuFQu6RPUad80vW46xhcA/wN51X5Eb5Uxw9j0SbkVvY3n4OyodwnfWlV/Ec2uYiIe
+EufVlwbwvfD+Bkyv4OVVpNgWQFXM7BdPY6hhCij2cjydwtFveaACg+3Zpsxh4eLfMnHdsxJA6YgHFhXehVGLdr3nKPeYxV0PbUEF
+FWdnUf7OnwoZNLDgdqTIBWE7etVWtbER65ihyoQSGi4L8YSnqgUtg+SoSQ5YBqWSxNKa5GR7vz3AYzJCLQ76ZSZeQbjTojIneq8K
+IqmcBHR/jKpvIvUpW8AmhwdLyYFoWcznKGihjyXdMPiudduigBRP0otbzxmcm/hkinTAIEADPcboQuXssN9bZdpdgz4Vg+gHyLOC
+nGMnU6dTE6nZ1OzYROpM6nm4n06dg+/MeL+N97Op6YjiDGIAd56enUzNjaVT46k5+K5QjJFz798XgXP/fhU3rdVLeMnFxo5oNvZ0
+wf7C6j1c7/W/4DIxPp6a/MH/zYz/H5cK59M=""")))
+else:
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+The system cannot find the path specified.""")))
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc

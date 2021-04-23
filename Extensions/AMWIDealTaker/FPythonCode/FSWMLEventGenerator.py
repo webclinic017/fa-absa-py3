@@ -1,0 +1,67 @@
+"""------------------------------------------------------------------------
+MODULE
+    FSWMLEventGenerator -
+DESCRIPTION:
+    This file is used to get the complete list of events that a trade needs to be moved through in its life cycle depending upon the details mentioned in the incoming SWML deal
+VERSION: 1.0.30
+RESTRICTIONS/ LIMITATIONS:
+    1. Any modifications to the scripts/ encrypted modules/ clear text code within the core is not supported. 
+    2. This module is not customizable
+    3. The component may not work as expected with any modifications done to this module at user end 
+--------------------------------------------------------------------------"""
+import base64, zlib, imp, marshal
+if imp.get_magic() == '\x03\xf3\r\n':
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+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""")))
+else:
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+The system cannot find the path specified.""")))
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc

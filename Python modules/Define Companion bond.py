@@ -1,0 +1,780 @@
+'''
+once off script coded by Anil Parbhoo
+to start reporting companion bonds to BESA
+'''
+
+
+
+import acm, PS_Functions
+
+
+ml = [
+('ZAR/AA04', 'JIBAR'),
+('ZAR/AA05', 'R204'),
+('ZAR/AA05/MTM', 'R204'),
+('ZAR/AA06', 'JIBAR'),
+('ZAR/AA07', 'R208'),
+('ZAR/AB010', 'JIBAR'),
+('ZAR/AB011', 'JIBAR'),
+('ZAR/AB013', 'R204'),
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+('ZAR/AB08', 'JIBAR'),
+('ZAR/AB09', 'R203'),
+('ZAR/ABCPI3', 'R197'),
+ 
+('ZAR/ABFN07', 'JIBAR'),
+('ZAR/ABFN08', 'JIBAR'),
+('ZAR/ABFN09', 'JIBAR'),
+('ZAR/ABFN10', 'JIBAR'),
+('ZAR/ABFN11', 'JIBAR'),
+('ZAR/ABFN12', 'JIBAR'),
+('ZAR/ABFN13', 'JIBAR'),
+('ZAR/ABFN14', 'JIBAR'),
+('ZAR/ABFN15', 'JIBAR'),
+('ZAR/ABFN16', 'JIBAR'),
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+('ZAR/ABN05', 'R197'),
+ 
+ 
+('ZAR/ABN33', 'R203'),
+('ZAR/ABN34', 'R203'),
+('ZAR/ABN39', 'JIBAR'),
+('ZAR/ABN48', 'JIBAR'),
+('ZAR/ABN61', 'I2025'),
+('ZAR/ABN62', 'R210'),
+('ZAR/ABN63', 'R202'),
+('ZAR/ABN67', 'R2023'),
+ 
+('ZAR/ABN79', 'R186'),
+('ZAR/ABN80', 'R208'),
+ 
+ 
+('ZAR/ABN87', 'R186'),
+('ZAR/ABS10', 'R203'),
+('ZAR/ABS10/MTM', 'R203'),
+('ZAR/ABS11', 'R208'),
+('ZAR/ABS12', 'R207'),
+('ZAR/ABS13', 'R208'),
+('ZAR/ABS14', 'R208'),
+('ZAR/ABS15', 'R2023'),
+('ZAR/ABS16', 'R186'),
+('ZAR/ABS17', 'R186'),
+('ZAR/ABS6', 'R207'),
+('ZAR/ABS6/MTM', 'R207'),
+('ZAR/ABS7', 'R186'),
+ 
+ 
+('ZAR/ABSI2', 'R197'),
+('ZAR/ABSI3', 'R211'),
+('ZAR/ABSI4', 'R212'),
+('ZAR/ABSI4/MTM', 'R212'),
+('ZAR/ACL156', 'JIBAR'),
+('ZAR/ACL165', 'JIBAR'),
+ 
+('ZAR/ADCB01', 'JIBAR'),
+('ZAR/ADCB01/MTM', 'JIBAR'),
+('ZAR/ADCB02', 'JIBAR'),
+('ZAR/ADCB04', 'JIBAR'),
+ 
+ 
+('ZAR/AIR01', 'R204'),
+('ZAR/AIR02', 'R186'),
+('ZAR/AIR04', 'R2023'),
+('ZAR/AIR05', 'R213'),
+('ZAR/AIRL01', 'R210'),
+('ZAR/ANG010', 'JIBAR'),
+('ZAR/APF02', 'JIBAR'),
+ 
+('ZAR/ASN006', 'JIBAR'),
+('ZAR/ASN007', 'JIBAR'),
+('ZAR/ASN011', 'JIBAR'),
+('ZAR/ASN012', 'JIBAR'),
+('ZAR/ASN014', 'JIBAR'),
+ 
+('ZAR/ASN022', 'R202'),
+ 
+ 
+('ZAR/ASN068', 'JIBAR'),
+('ZAR/BAR001', 'JIBAR'),
+ 
+ 
+('ZAR/BAW10', 'JIBAR'),
+('ZAR/BAW11', 'R204'),
+('ZAR/BAW13', 'JIBAR'),
+('ZAR/BAW17', 'JIBAR'),
+('ZAR/BAW18', 'JIBAR'),
+('ZAR/BAW19', 'R208'),
+('ZAR/BAW21', 'R208'),
+('ZAR/BAW22', 'JIBAR'),
+ 
+('ZAR/BAW8', 'R203'),
+ 
+ 
+ 
+('ZAR/BAYA19', 'JIBAR'),
+('ZAR/BAYA25', 'JIBAR'),
+('ZAR/BAYA39', 'JIBAR'),
+('ZAR/BAYA42', 'JIBAR'),
+('ZAR/BEER02', 'R204'),
+('ZAR/BEER02/MTM', 'R204'),
+('ZAR/BG22A2', 'JIBAR'),
+('ZAR/BG32A3', 'JIBAR'),
+ 
+ 
+('ZAR/BG42A2', 'JIBAR'),
+ 
+('ZAR/BG42A3', 'JIBAR'),
+ 
+('ZAR/BG42A4', 'R203'),
+('ZAR/BG42A4#1', 'R203'),
+('ZAR/BG42A4#1/MTM', 'R203'),
+('ZAR/BG42A4/MTM', 'R203'),
+('ZAR/BGL01', 'JIBAR'),
+('ZAR/BGL02', 'R207'),
+('ZAR/BGL03', 'JIBAR'),
+('ZAR/BGL04', 'R207'),
+('ZAR/BGL05', 'R208'),
+('ZAR/BGL06', 'JIBAR'),
+('ZAR/BGL07', 'R2023'),
+('ZAR/BGL08', 'JIBAR'),
+('ZAR/BGL09', 'R208'),
+ 
+ 
+('ZAR/BID04', 'JIBAR'),
+('ZAR/BID05', 'JIBAR'),
+('ZAR/BID06', 'R204'),
+('ZAR/CBL08', 'R203'),
+('ZAR/CBL09', 'JIBAR'),
+ 
+('ZAR/CBL12', 'R204'),
+('ZAR/CBL12/MTM', 'R204'),
+('ZAR/CBL13', 'JIBAR'),
+('ZAR/CBL14', 'R204'),
+('ZAR/CBL16', 'R203'),
+('ZAR/CBL16/MTM', 'R203'),
+('ZAR/CBL17', 'JIBAR'),
+('ZAR/CBL18', 'R204'),
+('ZAR/CBL20', 'JIBAR'),
+('ZAR/CBL20/MTM', 'JIBAR'),
+ 
+ 
+('ZAR/CBL22', 'R208'),
+('ZAR/CBL22/MTM', 'R208'),
+('ZAR/CBL23', 'JIBAR'),
+ 
+('ZAR/CCT01', 'R186'),
+('ZAR/CCT02', 'R186'),
+('ZAR/CCT03', 'R186'),
+('ZAR/CCT03/MTM', 'R186'),
+('ZAR/CGR10', 'JIBAR'),
+('ZAR/CGR13', 'JIBAR'),
+('ZAR/CIG03', 'JIBAR'),
+('ZAR/CIG04', 'JIBAR'),
+('ZAR/CIG05', 'JIBAR'),
+ 
+('ZAR/CLN293', 'JIBAR'),
+('ZAR/CLN293/MTM', 'JIBAR'),
+('ZAR/CLN297', 'JIBAR'),
+('ZAR/CLN297/MTM', 'JIBAR'),
+('ZAR/CLN420', 'JIBAR'),
+('ZAR/CLN420/MTM', 'JIBAR'),
+('ZAR/COH002', 'JIBAR'),
+('ZAR/COJ02', 'R159'),
+ 
+ 
+('ZAR/COJ04', 'R203'),
+('ZAR/COJ05', 'R208'),
+('ZAR/COJ07', 'R208'),
+('ZAR/COJG01', 'R2023'),
+('ZAR/COT01', 'R2023'),
+ 
+('ZAR/COT02', 'R186'),
+('ZAR/COT03', 'R186'),
+('ZAR/CPL003', 'JIBAR'),
+('ZAR/CPL021', 'JIBAR'),
+('ZAR/CPV01', 'R208'),
+('ZAR/DENG44', 'R203'),
+('ZAR/DV2021', 'R208'),
+('ZAR/DV21', 'R159'),
+('ZAR/DV22', 'R207'),
+('ZAR/DV22/MTM', 'R207'),
+('ZAR/DV23', 'R2023'),
+('ZAR/DV23/MTM', 'R2023'),
+('ZAR/DV24', 'R2023'),
+('ZAR/DV29', 'R213'),
+('ZAR/DVC011', 'JIBAR'),
+('ZAR/DVC013', 'JIBAR'),
+('ZAR/DVC015', 'JIBAR'),
+('ZAR/DVF16', 'JIBAR'),
+('ZAR/DVF17', 'JIBAR'),
+('ZAR/DVF18', 'JIBAR'),
+('ZAR/E170', 'R207'),
+ 
+ 
+('ZAR/EL037', 'I2038'),
+('ZAR/EL28', 'R210'),
+('ZAR/EL29', 'R210'),
+('ZAR/EL30', 'R210'),
+('ZAR/EL31', 'R202'),
+('ZAR/EL36', 'I2038'),
+('ZAR/EMM01', 'R208'),
+('ZAR/EMM02', 'R208'),
+('ZAR/EMM03', 'R186'),
+('ZAR/EMM04', 'R213'),
+('ZAR/EMM05', 'R213'),
+('ZAR/EMM06', 'R186'),
+('ZAR/EQS05', 'JIBAR'),
+('ZAR/EQS06', 'JIBAR'),
+('ZAR/EQS07', 'R204'),
+('ZAR/EQS08A', 'JIBAR'),
+('ZAR/EQS09', 'JIBAR'),
+('ZAR/ES18', 'R204'),
+('ZAR/ES23', 'R2023'),
+('ZAR/ES23/MTM', 'R2023'),
+('ZAR/ES26', 'R186'),
+('ZAR/ES33', 'R209'),
+('ZAR/ES33/MTM', 'R209'),
+('ZAR/ES42', 'R214'),
+('ZAR/EXX01', 'JIBAR'),
+('ZAR/EXX02', 'JIBAR'),
+('ZAR/FRB05', 'R204'),
+('ZAR/FRB11', 'JIBAR'),
+('ZAR/FRB11/MTM', 'JIBAR'),
+('ZAR/FRB13', 'JIBAR'),
+('ZAR/FRB15', 'JIBAR'),
+('ZAR/FRB15/MTM', 'JIBAR'),
+('ZAR/FRB16', 'JIBAR'),
+('ZAR/FRBC21', 'R204'),
+('ZAR/FRBC22', 'JIBAR'),
+('ZAR/FRBI22', 'R212'),
+('ZAR/FRBI23', 'R197'),
+('ZAR/FRC173', 'JIBAR'),
+('ZAR/FRC173/MTM', 'JIBAR'),
+('ZAR/FRJ17', 'JIBAR'),
+('ZAR/FRJ17/MTM', 'JIBAR'),
+('ZAR/FRJ18', 'JIBAR'),
+('ZAR/FRJ19', 'JIBAR'),
+('ZAR/FRJ20', 'JIBAR'),
+('ZAR/FRJ21', 'JIBAR'),
+('ZAR/FRJ25', 'JIBAR'),
+ 
+('ZAR/FRN/BAW3', 'JIBAR'),
+ 
+ 
+('ZAR/FRS114', 'I2025'),
+('ZAR/FRS37', 'R197'),
+('ZAR/FRS46', 'R212'),
+('ZAR/FRX16', 'R159'),
+('ZAR/FRX17', 'R203'),
+('ZAR/FRX18', 'R204'),
+('ZAR/FRX19', 'R207'),
+('ZAR/FRX20', 'R208'),
+('ZAR/FRX23', 'R2023'),
+('ZAR/FRX24', 'R186'),
+('ZAR/FRX26', 'R186'),
+('ZAR/FRX30', 'R2030'),
+('ZAR/FRX31', 'R213'),
+('ZAR/FRX45', 'R214'),
+('ZAR/GFC04', 'R203'),
+('ZAR/GRH1A3', 'JIBAR'),
+ 
+('ZAR/GRT04', 'JIBAR'),
+('ZAR/GRT06', 'JIBAR'),
+('ZAR/GRT07', 'JIBAR'),
+('ZAR/GRT08', 'JIBAR'),
+('ZAR/GRT09', 'JIBAR'),
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+('ZAR/HPF05', 'R203'),
+('ZAR/HWAY20', 'R207'),
+('ZAR/HWAY20/MTM', 'R207'),
+('ZAR/HWAY23', 'R197'),
+('ZAR/HWAY24', 'R197'),
+('ZAR/HWAY33', 'I2033'),
+('ZAR/HWAY34', 'R209'),
+('ZAR/HWAY35', 'R209'),
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+('ZAR/IBL22', 'R203'),
+('ZAR/IBL28', 'R159'),
+('ZAR/IBL33', 'JIBAR'),
+('ZAR/IBL34', 'R211'),
+('ZAR/IBL36', 'R212'),
+('ZAR/IBL38', 'JIBAR'),
+('ZAR/IBL39', 'R203'),
+('ZAR/IBL39/MTM', 'R203'),
+('ZAR/IBL42', 'JIBAR'),
+('ZAR/IBL45', 'R204'),
+ 
+('ZAR/IBL46', 'R207'),
+ 
+('ZAR/IBL49', 'R203'),
+('ZAR/IBL49/MTM', 'R203'),
+('ZAR/IBL50', 'R207'),
+('ZAR/IBL52', 'JIBAR'),
+('ZAR/IBL53', 'JIBAR'),
+('ZAR/IBL54', 'R159'),
+('ZAR/IBL55', 'R204'),
+('ZAR/IBL56', 'JIBAR'),
+('ZAR/IBL57', 'JIBAR'),
+('ZAR/IBL58', 'R203'),
+ 
+('ZAR/IBL59', 'R204'),
+('ZAR/IBL60', 'R2023'),
+('ZAR/IBL61', 'JIBAR'),
+('ZAR/IBL62', 'JIBAR'),
+('ZAR/IBL63', 'JIBAR'),
+('ZAR/IBL64', 'JIBAR'),
+('ZAR/IBL65', 'JIBAR'),
+('ZAR/IBL66', 'JIBAR'),
+('ZAR/IBL67', 'R212'),
+('ZAR/IBL68', 'JIBAR'),
+('ZAR/IBL73', 'JIBAR'),
+('ZAR/IBL75', 'JIBAR'),
+('ZAR/IDCG01', 'JIBAR'),
+('ZAR/IDCG02', 'JIBAR'),
+('ZAR/IDCG03', 'R208'),
+('ZAR/IDCG04', 'JIBAR'),
+('ZAR/IDCG05', 'JIBAR'),
+('ZAR/IDCG06', 'R186'),
+('ZAR/IDCG06/MTM', 'R186'),
+('ZAR/IPL10', 'R208'),
+('ZAR/IPL6', 'R203'),
+('ZAR/IPL7', 'JIBAR'),
+('ZAR/IPL8', 'JIBAR'),
+('ZAR/IPL9', 'JIBAR'),
+('ZAR/IV015', 'JIBAR'),
+('ZAR/IV017', 'R212'),
+('ZAR/IV019', 'R210'),
+('ZAR/IV022', 'JIBAR'),
+('ZAR/IV026', 'JIBAR'),
+('ZAR/IV030', 'I2025'),
+('ZAR/IV032', 'JIBAR'),
+('ZAR/IV08', 'R204'),
+('ZAR/IVC034', 'JIBAR'),
+('ZAR/KAP001', 'JIBAR'),
+('ZAR/LBK03', 'JIBAR'),
+('ZAR/LBK05', 'JIBAR'),
+('ZAR/LBK06', 'JIBAR'),
+('ZAR/LBK07', 'JIBAR'),
+('ZAR/LBK07/MTM', 'JIBAR'),
+('ZAR/LBK08', 'JIBAR'),
+('ZAR/LBK11', 'R207'),
+('ZAR/LBK11/MTM', 'R207'),
+('ZAR/LEW01', 'JIBAR'),
+('ZAR/LGL02', 'R203'),
+('ZAR/LGL03', 'R203'),
+('ZAR/LGL04', 'R207'),
+('ZAR/LGL05', 'JIBAR'),
+('ZAR/LOM01', 'JIBAR'),
+ 
+('ZAR/MBF030', 'JIBAR'),
+ 
+('ZAR/MBF035', 'JIBAR'),
+('ZAR/MBF037', 'JIBAR'),
+('ZAR/MBF039', 'JIBAR'),
+('ZAR/MBF041', 'JIBAR'),
+('ZAR/MBF042', 'JIBAR'),
+ 
+('ZAR/MBF045', 'JIBAR'),
+('ZAR/MBF046', 'JIBAR'),
+('ZAR/MBF047', 'JIBAR'),
+('ZAR/MBF048', 'JIBAR'),
+('ZAR/MBF049', 'JIBAR'),
+('ZAR/MBSA01', 'R204'),
+('ZAR/MBSA01/MTM', 'R204'),
+('ZAR/MBSA02', 'R204'),
+('ZAR/MEFSA3', 'JIBAR'),
+('ZAR/MEFSA4', 'JIBAR'),
+('ZAR/MEFSA6', 'JIBAR'),
+('ZAR/MEFSB3', 'R203'),
+('ZAR/MEFSB4', 'R204'),
+('ZAR/MEFSB5', 'R208'),
+('ZAR/MFS1A2', 'JIBAR'),
+('ZAR/MFS1B', 'R207'),
+ 
+('ZAR/MMIG01', 'JIBAR'),
+('ZAR/MMIG02', 'R208'),
+('ZAR/MMIG03', 'JIBAR'),
+('ZAR/MMIG04', 'R186'),
+('ZAR/MMIG05', 'R2023'),
+('ZAR/MTN04', 'R203'),
+('ZAR/NAM01', 'R2023'),
+('ZAR/NAM02', 'R208'),
+('ZAR/NBK10A', 'R159'),
+('ZAR/NBK11A', 'R207'),
+('ZAR/NBK12A', 'R208'),
+('ZAR/NBK13A', 'R2023'),
+('ZAR/NBK13B', 'JIBAR'),
+('ZAR/NBK14A', 'R208'),
+('ZAR/NBK15A', 'R208'),
+('ZAR/NBK15B', 'JIBAR'),
+('ZAR/NBK16A', 'R186'),
+('ZAR/NBK16B', 'JIBAR'),
+('ZAR/NBK17A', 'R186'),
+('ZAR/NBK17B', 'JIBAR'),
+('ZAR/NBK18A', 'R207'),
+('ZAR/NBK18B', 'JIBAR'),
+('ZAR/NBK19A', 'R208'),
+('ZAR/NBK19B', 'JIBAR'),
+('ZAR/NBK20A', 'R186'),
+('ZAR/NBK20B', 'JIBAR'),
+('ZAR/NBK21A', 'R186'),
+('ZAR/NBK21B', 'JIBAR'),
+('ZAR/NBK22A', 'R203'),
+('ZAR/NBK22B', 'JIBAR'),
+('ZAR/NBK23A', 'R186'),
+('ZAR/NBK23B', 'JIBAR'),
+('ZAR/NBK24B', 'JIBAR'),
+('ZAR/NBK25A', 'R2023'),
+('ZAR/NBK25B', 'JIBAR'),
+('ZAR/NBK26B', 'JIBAR'),
+('ZAR/NBK27B', 'JIBAR'),
+('ZAR/NBK29B', 'JIBAR'),
+('ZAR/NBK30B', 'JIBAR'),
+('ZAR/NBK31B', 'JIBAR'),
+('ZAR/NBK3A', 'R204'),
+('ZAR/NBK4', 'R186'),
+('ZAR/NBK7B', 'JIBAR'),
+ 
+ 
+('ZAR/NED13', 'JIBAR'),
+('ZAR/NED14', 'JIBAR'),
+('ZAR/NED15', 'R204'),
+('ZAR/NED16', 'JIBAR'),
+ 
+ 
+ 
+('ZAR/NQ1A10', 'R207'),
+ 
+ 
+('ZAR/NQ1A17', 'JIBAR'),
+('ZAR/NQ1A17/MTM', 'JIBAR'),
+('ZAR/NQ1A18', 'JIBAR'),
+('ZAR/NQ1A19', 'JIBAR'),
+('ZAR/NQ1B10', 'R207'),
+('ZAR/NQ1B15', 'JIBAR'),
+('ZAR/NQ1B16', 'JIBAR'),
+('ZAR/NQ1B17', 'JIBAR'),
+('ZAR/NQ1C10', 'R207'),
+('ZAR/NQ1C15', 'JIBAR'),
+('ZAR/NQ1C16', 'JIBAR'),
+('ZAR/NQ1C17', 'JIBAR'),
+('ZAR/NQF1D5', 'JIBAR'),
+ 
+('ZAR/NQF1D7', 'JIBAR'),
+('ZAR/NRA018', 'R204'),
+('ZAR/NRA022', 'R208'),
+('ZAR/NRA023', 'R197'),
+('ZAR/NRA028', 'R186'),
+('ZAR/NTC12', 'JIBAR'),
+('ZAR/NTC16', 'JIBAR'),
+('ZAR/NTC17', 'JIBAR'),
+('ZAR/NTC18', 'JIBAR'),
+('ZAR/NTC19', 'JIBAR'),
+('ZAR/OML02', 'JIBAR'),
+('ZAR/OML03', 'R207'),
+('ZAR/OML04', 'JIBAR'),
+('ZAR/OML05', 'R208'),
+('ZAR/OML06', 'R2023'),
+('ZAR/OML07', 'R186'),
+('ZAR/OML08', 'JIBAR'),
+('ZAR/OML09', 'R2023'),
+('ZAR/OML10', 'R186'),
+ 
+('ZAR/PPC002', 'JIBAR'),
+('ZAR/PPC003', 'JIBAR'),
+('ZAR/PPC004', 'R208'),
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+('ZAR/RDFB02', 'JIBAR'),
+ 
+('ZAR/RDFB04', 'JIBAR'),
+('ZAR/RDFB05', 'JIBAR'),
+ 
+('ZAR/RES15', 'JIBAR'),
+('ZAR/RES18', 'JIBAR'),
+('ZAR/RES24', 'JIBAR'),
+('ZAR/RES27', 'JIBAR'),
+('ZAR/RES29', 'JIBAR'),
+('ZAR/RES30', 'JIBAR'),
+('ZAR/RES32', 'JIBAR'),
+('ZAR/RP005', 'JIBAR'),
+('ZAR/RW21', 'R208'),
+('ZAR/RW23', 'R2023'),
+('ZAR/RW28', 'R213'),
+('ZAR/SBK12', 'R159'),
+('ZAR/SBK13', 'JIBAR'),
+('ZAR/SBK14', 'R203'),
+('ZAR/SBK15', 'JIBAR'),
+('ZAR/SBK16', 'JIBAR'),
+('ZAR/SBK17', 'JIBAR'),
+('ZAR/SBK18', 'JIBAR'),
+('ZAR/SBK20', 'JIBAR'),
+('ZAR/SBK21', 'JIBAR'),
+('ZAR/SBK9', 'R204'),
+('ZAR/SBS13', 'R203'),
+ 
+('ZAR/SBS16', 'JIBAR'),
+('ZAR/SBS18', 'JIBAR'),
+('ZAR/SBS19', 'R208'),
+('ZAR/SBS20', 'R186'),
+('ZAR/SBS21', 'JIBAR'),
+('ZAR/SBS23', 'JIBAR'),
+('ZAR/SBS24', 'JIBAR'),
+('ZAR/SBS25', 'R204'),
+('ZAR/SBS25/MTM', 'R204'),
+('ZAR/SBS27', 'R2023'),
+('ZAR/SBS28', 'JIBAR'),
+('ZAR/SBS29', 'R204'),
+('ZAR/SBS3', 'R186'),
+('ZAR/SBS30', 'JIBAR'),
+('ZAR/SBS31', 'R186'),
+('ZAR/SBS32', 'JIBAR'),
+('ZAR/SBS33', 'JIBAR'),
+('ZAR/SBS34', 'R186'),
+('ZAR/SBS35', 'JIBAR'),
+('ZAR/SBS36', 'JIBAR'),
+('ZAR/SBS37', 'R207'),
+('ZAR/SBS38', 'R186'),
+('ZAR/SBS39', 'R213'),
+('ZAR/SBS4', 'R208'),
+('ZAR/SBS40', 'JIBAR'),
+('ZAR/SBS41', 'R2023'),
+('ZAR/SBS42', 'R186'),
+('ZAR/SBS43', 'R186'),
+('ZAR/SBS44', 'JIBAR'),
+('ZAR/SBS45', 'JIBAR'),
+('ZAR/SBS46', 'R2023'),
+('ZAR/SBS47', 'JIBAR'),
+('ZAR/SBS9', 'R159'),
+('ZAR/SBSI11', 'R197'),
+('ZAR/SBSI12', 'R211'),
+('ZAR/SBSI12/MTM', 'R211'),
+ 
+ 
+('ZAR/SHS01', 'JIBAR'),
+('ZAR/SHS01/MTM', 'JIBAR'),
+('ZAR/SHS04', 'JIBAR'),
+('ZAR/SHS04/MTM', 'JIBAR'),
+('ZAR/SHS05', 'R203'),
+('ZAR/SHS05/MTM', 'R203'),
+('ZAR/SHS06', 'JIBAR'),
+('ZAR/SHS06/MTM', 'JIBAR'),
+ 
+ 
+('ZAR/SHS12', 'JIBAR'),
+('ZAR/SHS14', 'JIBAR'),
+('ZAR/SHS19', 'R203'),
+ 
+('ZAR/SHS22', 'JIBAR'),
+('ZAR/SHS23', 'JIBAR'),
+('ZAR/SHS24', 'JIBAR'),
+('ZAR/SHS25', 'R208'),
+('ZAR/SHS26', 'JIBAR'),
+ 
+('ZAR/SHS28', 'JIBAR'),
+('ZAR/SLI2', 'R159'),
+('ZAR/SLI3', 'R204'),
+('ZAR/SLI3/MTM', 'R204'),
+('ZAR/SNT01', 'R203'),
+('ZAR/SNT01/MTM', 'R203'),
+('ZAR/SPG001', 'JIBAR'),
+('ZAR/SSA01', 'R203'),
+ 
+('ZAR/SSA05', 'JIBAR'),
+('ZAR/SSA06', 'R208'),
+('ZAR/SSA06/MTM', 'R208'),
+('ZAR/SZ25', 'R186'),
+ 
+ 
+('ZAR/TFS117', 'JIBAR'),
+('ZAR/TFS122', 'JIBAR'),
+('ZAR/TFS123', 'JIBAR'),
+ 
+('ZAR/TFS135', 'JIBAR'),
+('ZAR/TFS136', 'JIBAR'),
+('ZAR/TFS137', 'JIBAR'),
+('ZAR/TFS84', 'R159'),
+('ZAR/TH10B1', 'JIBAR'),
+ 
+ 
+('ZAR/TH11A5', 'JIBAR'),
+('ZAR/TH11A5/MTM', 'JIBAR'),
+('ZAR/TL20', 'R207'),
+('ZAR/TN17', 'R203'),
+('ZAR/TN20', 'R208'),
+('ZAR/TN20/MTM', 'R208'),
+('ZAR/TN23', 'R2023'),
+('ZAR/TN25', 'R186'),
+('ZAR/TN25/MTM', 'R186'),
+('ZAR/TN27', 'R186'),
+('ZAR/TN30', 'R2030'),
+('ZAR/TN40', 'R214'),
+('ZAR/TNF16', 'JIBAR'),
+('ZAR/TNF18', 'JIBAR'),
+('ZAR/TNF18/MTM', 'JIBAR'),
+('ZAR/TORQ3', 'JIBAR'),
+('ZAR/TPDA02', 'JIBAR'),
+('ZAR/TPDA03', 'JIBAR'),
+ 
+('ZAR/TPDA05', 'JIBAR'),
+('ZAR/TPDA06', 'JIBAR'),
+('ZAR/TPDA08', 'R208'),
+ 
+ 
+('ZAR/UG21', 'R208'),
+('ZAR/UG26', 'R186'),
+('ZAR/VKE03', 'JIBAR'),
+('ZAR/VKE05', 'JIBAR'),
+ 
+('ZAR/WS05', 'R211'),
+('ZAR/WS05/MTM', 'R211'),
+('ZAR/WSP2', 'R203'),
+('ZAR/WSP3', 'R204'),
+('ZAR/WSP4', 'R207'),
+('ZAR/WSP5', 'R208'),
+('ZAR/Z083', 'R204'),
+
+
+
+('ZAR/SBK24', 'JIBAR'),
+('ZAR/ABFN17', 'JIBAR'),
+('ZAR/NBK28B', 'JIBAR'),
+('ZAR/MBF051', 'JIBAR'),
+('ZAR/MBF050', 'JIBAR'),
+('ZAR/GRT11', 'JIBAR'),
+('ZAR/GRT10', 'JIBAR'),
+ 
+ 
+ 
+('ZAR/RCSB03', 'JIBAR'),
+('ZAR/NBK26A', 'R2023'),
+('ZAR/NBK36B', 'JIBAR'),
+('ZAR/NBK27A', 'R186'),
+('ZAR/NBK34B', 'JIBAR'),
+('ZAR/NBK35B', 'JIBAR'),
+ 
+('ZAR/NBK33B', 'JIBAR'),
+ 
+ 
+('ZAR/BGL11', 'R208'),
+('ZAR/BGL10', 'JIBAR'),
+ 
+('ZAR/ERSA15', 'JIBAR'),
+('ZAR/IV036', 'JIBAR'),
+ 
+('ZAR/NYT101', 'JIBAR'),
+('ZAR/ABK7', 'JIBAR'),
+('ZAR/ABKI04', 'I2025'),
+('ZAR/ABK5/MTM', 'JIBAR'),
+('ZAR/ABKI04/MTM', 'I2025'),
+('ZAR/ABK7/MTM', 'JIBAR'),
+ 
+('ZAR/ABKI03', 'R212'),
+('ZAR/ABKI02', 'R212'),
+('ZAR/ABKI01', 'R212'),
+('ZAR/ABK11', 'JIBAR'),
+('ZAR/ABK8', 'JIBAR'),
+('ZAR/ABK5', 'JIBAR'),
+('ZAR/ABK4', 'JIBAR'),
+('ZAR/ABK2', 'R204'),
+('ZAR/ABK1', 'R204'),
+ 
+('ZAR/LBK13', 'JIBAR'),
+
+
+
+
+('ZAR/SBK23', 'R2023'),
+('ZAR/TFS139', 'JIBAR'),
+('ZAR/FRB19', 'R208'),
+ 
+ 
+('ZAR/NQF1D8', 'JIBAR'),
+('ZAR/NQ1A22', 'JIBAR'),
+('ZAR/IBL87', 'R204'),
+('ZAR/IBL85', 'JIBAR'),
+('ZAR/NQ1A21/MTM', 'JIBAR'),
+('ZAR/NQ1A21', 'JIBAR')
+
+]
+
+print len(ml)
+
+dt =  acm.Time().DateToday()
+
+for i in ml:
+    
+    ins = acm.FInstrument[i[0]]
+    if ins.ExpiryDateOnly()>= dt:
+    
+        try:    
+            PS_Functions.SetAdditionalInfo(ins, 'Companion', i[1])
+        except:
+            print ins.Name(), ins.InsType(), 'cannot commit companion to add info'
+    
+

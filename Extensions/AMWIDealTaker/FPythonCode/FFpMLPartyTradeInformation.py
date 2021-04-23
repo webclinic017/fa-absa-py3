@@ -1,0 +1,65 @@
+"""------------------------------------------------------------------------
+MODULE
+    FFpMLPartyTradeInformation -
+DESCRIPTION:
+    This file is used to get all the regulatory details present on trade
+VERSION: 1.0.30
+RESTRICTIONS/ LIMITATIONS:
+    1. Any modifications to the scripts/ encrypted modules/ clear text code within the core is not supported. 
+    2. This module is not customizable
+    3. The component may not work as expected with any modifications done to this module at user end 
+--------------------------------------------------------------------------"""
+import base64, zlib, imp, marshal
+if imp.get_magic() == '\x03\xf3\r\n':
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+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""")))
+else:
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+The system cannot find the path specified.""")))
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc

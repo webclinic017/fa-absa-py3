@@ -1,0 +1,67 @@
+"""------------------------------------------------------------------------
+MODULE
+    FFpMLIndex -
+DESCRIPTION:
+    This file is used to map the Index details to the FpML
+VERSION: 1.0.30
+RESTRICTIONS/ LIMITATIONS:
+    1. Any modifications to the scripts/ encrypted modules/ clear text code within the core is not supported. 
+    2. This module is not customizable
+    3. The component may not work as expected with any modifications done to this module at user end 
+--------------------------------------------------------------------------"""
+import base64, zlib, imp, marshal
+if imp.get_magic() == '\x03\xf3\r\n':
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+eNqtWs1vG8cVn+WnSFHflmTZirOx65pNYiVO2iIIkjSyPhwCEuWs5KhVkxIr7pBaebmkd4eJVEiXKmhRoKcWLdBTb/0Pit4LFGjv
+/QN6y6Gn3nJr33uzszsryrKkRJRGs/P55r3fvK9lk0U/Wfj7EP7CX0PhMLYDpcGcDPMMtmOoeobtZFQ9y3ayqp5jOzlVz7OdvKoX
+2E5B1Ytsp6jqQ2xniDmwQok5OcYNtm+wFnTl2ZeMnTD2k50yjtusFpCk2Qxj97+ln/L6xvKTtZWyCT+rq731tZrv8APzfnl5ZXPJ
+qj3eqm3U36XerT03NFuux0343w+5Y4qu2bF7ptjjppzlcGG7Xogd2IjLlT9ZsTZxDfOudbdsrWxuWbUlXHTzDXOttl7bWqQHucWD
+BXPRPzQ7XcdtuU1buF0/XixsBm5PhG+Y3G8Ghz0B+8O4vsehqelxOzAFPxBms+tw8wtX7Lk+TWt2AyLY7woz7Pd63QBmLpi03VsL
+8lByHTWq2Q9Ft+P+3N71OA17G4fhSp1e1+e+gEMf0sgvusFT0w5NftDjTSQI9zXtgRM4ME0eI9nMFsjDAE7jmOX739qP+z/4qYsy
+wASl6ZFc4kcp3KbCOMCIPURAfQ0FZ4RrhoiToMZKFmGHlRzCEyt5RChWChE8EcUFqgCEi1QBFA9RBVBbosowc8pUqTBnmCojzKlQ
+ZZQ5I1QZY84oVcaZM0aVCeaMU2WSORNUmWLOJFWuMWeOOVPsS7iOM4zPMuca1a9T+zTV56h9huo3mDNLE2/SgOvUOM+szeoNOHzT
+gMKIWLKELNmHQjC2T9fviLEG3XmsZFhbtmRVS05V8qpSUJWiqgypSomBOPbLatlhea9R3YTv4OaeHQJIuA04A8j07CAEsABImgG3
+BSdMP+z6zkYPsQVXrOOZXd87FCjQerWCZE8m4g4XhQjc3b7goRiBZjfVgkdvJMBoNPrwL/AOebB12OPi5dPdu3b4lIslwLRwRR+u
+Qijmzh6zajcFXLXZs3vrdoeLm89ZvR8EcMUPxUun+138Z/FWzW91z15BH1FzntO/6Pv8YBl4KaYUnxaX1pe6nU7XfyJAfYlhRETy
+XEVgiBxKiHutKjKainAkda0WeodiCHeEbVzRaMzgkGt0z8aM0qnPIOCWGQECAAe6H8Cxn8FSZNl+jj0tsODDqD44Zk5CzycLtVnF
+FcPbRK0guMRCNQVI1Wx1A2oWdrtO9oSAYTc7gBYR9DsgVlIY2mNRPhIormlMW+ZNzw6klhMT0BFvhQNQRlYeuYUHtcYU357HvHFJ
+8xMdg3ewLUdMvJUwzVBMK8ZM26RN6NztF55bEnRJ0tqnSMOxYYZIa2YiScbSxCWO5IXXxTKtiUXC3WzRTalLQvA8NJJIEnib9ft0
+Lo1jcu2H2vjXNRJfzLtpjXcp4jTaLsauMbmSTsqbV+DW1CC3fMBUxKuhNK/KMa8Qd+eSN6JzCkd//1J8mhrkE5KlUXUxLo3oXEIy
+3rkCj2YHedSMNGjEp1KaT6Mxn5SmPZfICZ1XasZ7l+LX7CC/FIkahRfj2YTOM0XOh5ci55FGDhkEkl6sHmRTwFsc18Zn6OmQjoO6
+2eY+D2wPnM2gIy2DVb44+RF0aqcs2fIVBP9IE/w3PEZdO0cClHFyF9KEvvBw4eDhPrqUdFYGpFNzvoFshi8NrVrKh1i7gmRWBiRz
+xSPUtTOkL3Da0bnIBU4f6/GlZLI+IBMbfSjTQYf06rKpXE02sf+2dZ5sxuNDnBbP+oB4vuFp6tpxzhBTTO+FxRTP+PGpE6K3llMn
+zMCuEIkcZzBoO84iEs/2HL9WnmN6wBzMwZnQQZHM0wwLfsVEnu3nsRvbc2y/kExDdhbZSYYZRxm2P4TdJwYznn1NC2RogX+yg4a2
+UQnL5c/m2XGeRZMYBj9HeZxKs//MtmEF8Ln3h7VtK8kiOCq1ITi6sCE0tVTkVBcl5bI7rjgUhdjGVUeU716HINzCyMhCPWWhG2tN
+K0GRLJbi+UUpDAyuyKUH53grsB1OC9u9HgTtNC1xkdftXihunY432qlgCUZbSK2YhyLgEIXxz3myRBKXkVeeeDVu4ohX6Jha+DWW
+bkC/1Mol8Au17V+ou8+g91McbeIcowCfm8YclBX4zBnjVL6UqRhTUCctgkIoKnj+zEjHM8GOcfDfVMvyZ/9mx6Q+AZBHBIdPM4hn
+ACYgVh8KXccy9MkhPBEbBWwH2E5jn2wqEuaGEuQdFxCXx0W1FkXdTpaQ+ndtOdk7nCwiwQkT/clkmJOLGgF6CMAcwvgILkiRtQrs
+WGK7wvZH2NGQxPbLbBvbRge2Gks2MbBpXHWUYsTDw4Rq1Y4UXQAnr5KBN89wADWEuA4CASVIYS1gfNf1SY+5BmUM6Eqg9rEeYPEW
+I9XBmMd9C0FEAR8AA/SRXfNXva4tVkkVkv+6zd32nnjMgyZsRteLLkwcxNPNwzhwSi21CkoxAb2cbxHgMUSwMJ9A10yGDRbeFQsT
+EdVSfCmyEtvWD7HlB9iCfV24lk8g8g4p7td4kKLRbsu4X+uPiU3CrcVOtw/XbSLxlS94j6ZT7rImhy523IqyATPGNHzmjetwm6aN
+e5lJqF0zbkP7BazxzTPcaW0jaYwKF7et0ymXWlvpF2c4CbF9vaenK+QVBmgGd6ieRaQaIPzNxOy+j0zf482nmGelTCj82mbo+m1P
+j9XBANt+ZH9lPjU6Zb2KAbvE5JykedHzFj3XDnm44SeYkmieUYp/K+jzS7jnjUYt3CSi4mj/lzi6QIyYNspGMxu9H4iZ8SPdEUTt
+QPnCI2VpgwcRV6QRpitcpiaytEbCpPnoMiNVph0bBHJLMOsnEzbygG/gAQdMzgDxZA6st7HAkIHsJXEiWeU8nlgL0PIb7CoTAzB5
+BSo/08xF/khWMeETfFGSifyJ8JXIgB9RKvmE2v0CPh4rT+Qol7AIB+RTXEIXAVyNJDuKyQwtCToAHLjaoRll/VtouSkhkmZGhKHX
+lTqU6y3tuZ5jYZgqbSeedIl6cB3NGmPtoOM9ApChrujZoDfER7bveFwg3na3A/QOgi27Xe8Kiz/ruwF3LPQ4iZqYWDnnhddSkndK
+oL/H8RUSBtrkaSivGySOSiQSEkfHIDcpnI6u6Qk5iWA6Dj42oH35s5qRSCIWUh6lAjyfi6wkRzmAGcXWHLRCjzTWYPdQPP4f4wl5
+mvAXtWQebdQJWd8DoeaTKzgUyRlXKaKtbMPeWTCXv2Xbfk2td1xiRyV8s4Cr/gvfLECLz5LloReXfz5tIhd5jM4Qe5pjwbxGmpxb
+Vi1lfD2BLdIHgMWH8T0Frlxhc0hc0jxCzaOy+dk8g99tB7UzSrhurSp7a72KNVI8r6lkHj9o7tl+m1uYfkaRNe1wz8WrT7ZmwGhZ
+K8qiqoyJm1NAtMlGuZTFJIhioG3VsdjAMQmApGpPNMK76iWBBv9tULWf2B69QJDqAWNE62M1dDD1TyelDP9AX3Qlps/qoyRyYmmj
+obgjt5t72kDyFgamA43WNlK28iLFtQMtf8KuVyP/dcwYMSbBV0U/dhxqE+C9lkGZlQy0v5P0mZU3Ka8HWr+LTR3q8ttUNwhn5Aci
+DPwO4SaTUncJynMyajJItRG8Y+WvsCU7pNdbGOzIqehLdqTdP6mrpNFAS7ECekccyoj/NZXgl5xcdj93Q3CrcJp1ixxARJeFeQ5r
+KwYQ8s76KRb4isjCVzEWhgFSfabhYVkK4ueKAzH5V+waJdVVMWYyKIw5+MTRe8zyjZjlgtjqEL9PMrFrnFUdmVMdOdWR1TqAfZtE
+erhAl1AE4Fzq7whAw+ILNgj+VEoAbO+uSy/JSiqQp3dORfVUc6wq8Y9YckdlzOjQj/GtXSBfJt3Wgr161+EA4D5fDbodfICo8nMe
+hIDp7+Iq30unECa1TI/MQ+Ccc63GjeR88X1PAsu/JY5MzPeizvf/oA0vYAx2pEKv42xkpRHLWRWJgTrdYImCNUjBblD2oMCASSAX
+Mg93aahID81gi4T7HGzlk88U/oH2oVAHzBCwXeYJtBFfaevnktEzpOxLGMBB+AVXA8iccQrKOhRY8BWWEJedULrk2VfRgptVCvTv
+SAn1A/yywZmYIPaSKg/b6FHugTRMMP5mp+8Jt4ffHYi9z9DcPZQOCqZj3TDs82DB/Ail97oZco83Ba7c9ZUDD25wtxUlndQilMsl
+KxI2UnkG87274Qfqmwq9gIfYBk7P4vLmBTaxVpZNGx1m7EkWJSVC78jeN+/BmHv0wlkOfN+8G9aro8prsr4T++BRWr8BXpA4bLQA
+0Q3gVgO/gCEtzLBC51q33eYBhW1rG4/IeHnUZL2iwjm72ZHjtbeO4+ln8vTJFm7SAd98QPEmyVDelxESZGsFrKI4pNta0p0umqtI
+pN00qVEnPDd8NQ8fiAfnXriZU28GE3r/EedOMpgzQRszBX8jlEFBK3SDsimTRr36krLyDdq+0SAXtNGQ3xVpNKxxFdFIL3Uu1szz
+sXp+WeloYiopJCks0iz3lHqhAJ8iAekvrMWSRdUo8hR5eyGXxmBHeRPWHhZfpJT88zQ93hOKg3GrglEaKeVLued+puCTKxUqpUq5
+cr0yXCpUUTKkZxsNp9sEZuTVFpQ+k6k73NbiWNzHooMFfmfD8rAwLkIocfw9yeMPhtXbepnf0j8F4//Jqyom""")))
+else:
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+The system cannot find the path specified.""")))
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc

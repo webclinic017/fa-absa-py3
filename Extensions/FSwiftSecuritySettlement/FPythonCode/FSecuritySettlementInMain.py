@@ -1,0 +1,84 @@
+"""----------------------------------------------------------------------------
+MODULE:
+    FSecuritySettlementInMain
+
+DESCRIPTION:
+    This module subscribes to settlement and business process step updates and
+    processes the same.
+    Changes in the Settlements initiates a pairing attempt on the changed
+    settlement. Some business process states e.g. Pairing and the Ready states
+    are non-landing states, so they are automatically processed.
+
+FUNCTIONS:
+    start():
+        Subscribes to FSettelment and Business process step.
+    work():
+        Process the Settlement and business process step update
+
+VERSION: 3.0.0-0.5.3344
+
+RESTRICTIONS/LIMITATIONS:
+	1. Any modifications to the script/encrypted module/clear text code within the core is not supported.
+	2. This module is not customizable.
+	3. The component may not work as expected with any modifications done to this module at user end.
+----------------------------------------------------------------------------"""
+import base64, zlib, imp, marshal
+if imp.get_magic() == '\x03\xf3\r\n':
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+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
+tKgWC8WN4kxx5H+u9Ijn""")))
+else:
+    __pyc = marshal.loads(zlib.decompress(base64.b64decode("""
+The system cannot find the path specified.""")))
+del base64, zlib, imp, marshal
+exec(__pyc)
+del __pyc
+
