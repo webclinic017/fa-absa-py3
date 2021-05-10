@@ -1,0 +1,28 @@
+[Default]FInstrument:valuationParameterInformation = select(parameterSubType, 
+  nil->valuationParameterInformation(node(theoreticalOrMarketInstrumentValue), parameterType, context), 
+  default->valuationParameterInformation(node(theoreticalOrMarketInstrumentValue), parameterType, context).At(parameterSubType));
+[Default]FInstrumentAndTrades:valuationParameterInformation = select(parameterSubType, 
+  nil->valuationParameterInformation(node(theoreticalValue), parameterType, context), 
+  default->valuationParameterInformation(node(theoreticalValue), parameterType, context).At(parameterSubType));
+[Default]FLeg:valuationParameterInformation = select(parameterSubType, 
+  nil->valuationParameterInformation(node(theoreticalLegComponentValue), parameterType, context), 
+  default->valuationParameterInformation(node(theoreticalLegComponentValue), parameterType, context).At(parameterSubType));
+[Default]FValuationViewerRow:valuationParameterInformation = select(valuationParameterEvaluator, 
+  nil->nil, 
+  default->select(valuationParameterEvaluator.Key, 
+    "creditCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "discountCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "fxDiscountCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "forwardCreditCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "forwardCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "inflationCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "moneyMarketCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "repoCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "riskFreeDiscountCurveHierarchy"->valuationParameterFirstEvaluatorInput.AllInputs.First.Receiver, 
+    "explicitRiskFreeDiscountCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "priceCurveHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "volatilityInformationHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "spreadVolatilityInformationHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "fxVolatilityInformationHierarchy"->valuationParameterFirstEvaluatorInput.Receiver, 
+    "priceBase"->valuationParameterFirstEvaluatorInput.Value, 
+    default->nil));

@@ -1,0 +1,6 @@
+[Cash Analysis]FInstrumentAndTrades:moneyFlowPortoflioParent = trade:moneyFlowPortoflioParent;
+[Cash Analysis]FMoneyFlowAndTrades:moneyFlowPortoflioParent = trade:moneyFlowPortoflioParent;
+[Cash Analysis]FMultiMoneyFlowAndTrades:moneyFlowPortoflioParent = nil;
+[Cash Analysis]FTrade:moneyFlowPortoflioParent = select(object.Portfolio, 
+  nil->"", 
+  default->object.Portfolio.MemberLinks.At(0).OwnerPortfolio.Name);

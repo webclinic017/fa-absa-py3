@@ -1,0 +1,13 @@
+[Automated Trading]QuoteAndHedge:quoteLegCalculatedPrice = max(hedgeLegMarketPrice * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0);
+[Automated Trading]QuoteAndHedgeBasketSpread:quoteLegCalculatedPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegMarketPrice, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegMarketPrice * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeDeltaNeutral:quoteLegCalculatedPrice = max(delta(quoteLegTheoreticalPrice, quoteAndHedgePriceSpread), 0.0);
+[Automated Trading]QuoteAndHedgePriceSpread:quoteLegCalculatedPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegMarketPrice, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegMarketPrice * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeRightIssue:quoteLegCalculatedPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegMarketPrice, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegMarketPrice * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeTotalPrice:quoteLegCalculatedPrice = max(delta(quoteAndHedgeTotalPrice, -(hedgeLegMarketPrice * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio)), 0.0);
+[Automated Trading]QuoteAndHedgeYieldSpread:quoteLegCalculatedPrice = quoteLegOrderBook :* "theoreticalPriceFromSpread" [yieldValue = quoteLegCalculatedYTM];

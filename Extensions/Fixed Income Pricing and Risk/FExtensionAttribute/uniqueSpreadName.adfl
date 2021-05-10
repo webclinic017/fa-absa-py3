@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FInstrument:uniqueSpreadName = select(isGenericCouponOrSpreadQuoted, 
+  true->select(isBasisSwap, 
+    true->"parSpread", 
+    false->"uniqueSpread"), 
+  false->"uniqueSpread");
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:uniqueSpreadName = openInstrumentOrInstrument :* "uniqueSpreadName";

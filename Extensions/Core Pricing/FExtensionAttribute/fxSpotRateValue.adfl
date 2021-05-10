@@ -1,0 +1,5 @@
+[Core Pricing]FFxRate:fxSpotRateValue = setDateTimePart(select(isBaseRateCell(fxBaseCurrency, foreignCurrency, domesticCurrency, isLiquidCrossRateCurrencyPair), 
+  true->perturbedfxSpotRateFromMatrix, 
+  false->shunt[liveOrSnapshotFXMatrixDate, fxPriceFindingPriceType, priceSource](fxMatrixSpotDatesAreEqual, 
+    true->perturbedfxSpotRateFromMatrix, 
+    false->(domesticCurrency:fxDiscountCurve).DiscountValue(fxSpotRateAtBaseDomesticSpotDate, instrumentSpotDate) * (foreignCurrency:fxDiscountCurve).Discount(fxBaseDomesticSpotDate, instrumentSpotDate))), instrumentSpotDate);

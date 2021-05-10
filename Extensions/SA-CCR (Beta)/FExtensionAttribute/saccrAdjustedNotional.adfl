@@ -1,0 +1,8 @@
+[SA-CCR (Beta)]FCashFlow:saccrAdjustedNotional = saccrAdjustedNotional(object, "Interest Rates", saccrNotionalAmountAccountingCurr);
+[SA-CCR (Beta)]FFxRate:saccrAdjustedNotional = saccrNotionalAmountAccountingCurr;
+[SA-CCR (Beta)]FInstrument:saccrAdjustedNotional = select(saccrIsInterestRates(object) or saccrIsCredit(object), 
+  true->saccrAdjustedNotional(object, saccrAssetClass, saccrNotionalAmountAccountingCurr), 
+  false->saccrNotionalAmountAccountingCurr);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrAdjustedNotional = select(isOpenPosition and saccrAssetClassDefined, 
+  true->openInstrument :* "saccrAdjustedNotionals" [positionObject], 
+  false->nil);

@@ -1,0 +1,179 @@
+/*------------------------------------------------------------------
+    DCRM_CT_Trade
+
+    This query supplies information of the DCRM credit hedge trades, 
+    done with CDSs and CLNs instruments.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_Trade') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_Trade' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})             'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	CDS DATA
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    cr.issuer_ptynbr,
+    ael_s(i,'DCRM_CDS.getCreditCurve')                              'CreditCurve',
+    display_id(i,'curr')                                            'Currency',
+    c.nominal_factor * t.quantity * 1000000                         'Notional',
+    'CDS'								                            'ProductType',
+    c.start_day = '0000-01-01'? '1900-01-01' : c.start_day          'EffectiveDate',
+    c.end_day   = '0000-01-01'? '1900-01-01' : c.end_day            'ExpityDate',
+    period_rate(c,c.start_day,c.end_day)                            'CouponRate'
+into 
+    getCreditCurves
+from     
+    instrument i,
+    trade t,
+    leg l,
+    cashflow c,
+    party iss,
+    instrument cr,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and i.exp_day  >= m.ValueDate
+
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = c.legnbr
+and c.type    = 'Credit Default'
+
+and cr.issuer_ptynbr = iss.ptynbr
+and l.credit_ref = cr.insaddr
+
+
+/*------------------------------------------------------------------
+    CLN DATA - Combinations on CDS
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    cr.issuer_ptynbr,
+    ael_s(und,'DCRM_CDS.getCreditCurve')                            'CreditCurve',
+    display_id(und,'curr')                                          'Currency',
+    c.nominal_factor * t.quantity/i.index_factor * 1000000          'Notional',
+    'CLN'								                            'ProductType',
+    c.start_day = '0000-01-01'? '1900-01-01' : c.start_day          'EffectiveDate',
+    c.end_day   = '0000-01-01'? '1900-01-01' : c.end_day            'ExpityDate',
+    period_rate(c,c.start_day,c.end_day)                            'CouponRate'
+into 
+    getCreditCurves
+from     
+    instrument i,
+    instrument und,
+    CombinationLink cl,
+    trade t,
+    leg l,
+    cashflow c,
+    party iss,
+    instrument cr,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day  >= m.ValueDate
+
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.legnbr  = c.legnbr
+and c.type    = 'Credit Default'
+
+and cr.issuer_ptynbr = iss.ptynbr
+and l.credit_ref = cr.insaddr
+
+
+/*------------------------------------------------------------------
+    FINAL DATA
+------------------------------------------------------------------*/
+select
+    m.ValueDate                     'BusinessDate',
+    display_id(t,'prfnbr')          'TradeBook',
+    t.trdnbr                        'TradeID',
+    t.prfnbr                        'TradePortfolioID',
+    '-'                             'SummitID',
+    cp.fullname                     'CpartyName',
+    add_info(cp,'BarCap_Eagle_SDSID')               'CpartySDSID',
+    time_to_day(t.time)                             'TradeDate',
+    display_id(attrib,'seniority_chlnbr')           'ObligStructure',
+    add_info(iss,'BarCap_Eagle_SDSID')              'UnderlyingSDS',
+    iss.ptyid                                       'UnderlyingName',
+    present_value(t)                'NPV',
+    gc.Notional                     'Notional',
+    m.ValueDate                     'ValuationDate',
+    gc.ExpityDate                   'MaturityDate',
+    attrib.recovery_rate/100        'Recovery',
+    gc.Currency                     'Currency',
+    '-'                             'Industry',
+    gc.EffectiveDate                'Effective_Date',
+    u.name                          'TraderName',
+    'NULL'                          'FirstFlowDate',
+    gc.CouponRate                   'Coupon',
+    0                               'Carry',
+    display_id(yc,'curr')           'CDSCurveCCY',
+    '-'                             'IndexOffTheRunFlag',
+    t.status = 'Simulated' ? 1
+    : t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed') ? 2
+    : t.status = 'Void' ? 3
+    : t.status = 'Terminated' ? 7
+    : 0                             'TradeState', 
+    1                               'ProductTypeID',
+    gc.ProductType                  'ProductType',
+    0                               'IsOption',
+    ael_f(,'DCRM_CDS.recovery_shift',yc.yield_curve_name,10,t.trdnbr,iss.ptyid)  'RecoveryBumpUp',
+    ael_f(,'DCRM_CDS.recovery_shift',yc.yield_curve_name,-10,t.trdnbr,iss.ptyid) 'RecoveryBumpDown',  
+    0                               'GPV',
+    0                               'RecoveryGamma',
+    attrib.seqnbr                   'CreditRiskCurveId'
+from 
+    getCreditCurves gc,
+    macros m,
+    trade t,
+    party cp,
+    party iss,
+    user  u,
+    yieldcurve yc,
+    YCattribute attrib
+where
+    t.trdnbr = gc.trdnbr
+and t.trader_usrnbr = u.usrnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and gc.CreditCurve = yc.yield_curve_name
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.issuer_ptynbr = gc.issuer_ptynbr
+and gc.issuer_ptynbr = iss.ptynbr

@@ -1,0 +1,148 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_IR_FXSpot_FWD') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_FXSpot_FWD' and p.type = 'SQL Query' 
+/*	Coded by PG
+
+2003-07-30 AP changed report to reflect all portfolios not just IRP and IRP_FX
+hence all the decimax trades get selected as well, as required by ERM
+
+
+*/
+
+
+
+
+
+
+/*-------SINGLE CASHFLOW TRADES  ----------------*/
+select
+	t.trdnbr                                    'DealRef',
+ 	time_to_day(t.time)			                'DealDate',
+	display_id(t, 'counterparty_ptynbr')	    'CounterParty',
+    display_id(t, 'trader_usrnbr')		        'Dealer',  
+    'FWD'					                    'ContractType',
+	display_id(t, 'prfnbr')			            'ProfitCentre',
+	'Ccy_Pair'	                                'Ccy_Pair',
+	t.value_day				                    'MaturityDate',	
+	present_value(t)                            'MtM_CCY',
+	display_id(c,'curr')	                    'CCY',
+	Today				                        'DATE_LAST_UPDATED',
+	t.optional_key				                'DevRef',
+    t.quantity >=0 ? i.insid : c.insid          'RecCurr',
+    t.quantity >=0 ? t.quantity : t.premium     'Rec',
+    t.quantity >=0 ? c.insid : i.insid          'PayCurr',
+    t.quantity >=0 ? t.premium : t.quantity   'Pay',
+	t.status			                        'Status',
+	t.value_day                                 'Cf_pay_day'
+
+into
+	dataS
+
+from
+	instrument	i,
+	trade	t,
+	instrument c
+	
+where
+	t.insaddr = i.insaddr
+    and	i.instype ='Curr'
+    AND t.trade_process in (4096,8192)
+    and t.curr=c.insaddr             
+    and t.value_day>Today
+    and t.status not in ('Simulated',  'Terminated', 'Void')
+
+
+
+/*-------NEAR LEG TRADES  ----------------*/
+select
+	t.connected_trdnbr                          'DealRef',
+ 	time_to_day(t.time)			                'DealDate',
+	display_id(t, 'counterparty_ptynbr')	    'CounterParty',
+    display_id(t, 'trader_usrnbr')		        'Dealer',  
+    'FWD'					                    'ContractType',
+	display_id(t, 'prfnbr')			            'ProfitCentre',
+	'Ccy_Pair'	                                'Ccy_Pair',
+	t.value_day				                    'MaturityDate',	
+	present_value(t)                            'MtM_CCY',
+	display_id(c,'curr')	                    'CCY',
+	Today				                        'DATE_LAST_UPDATED',
+	t.optional_key				                'DevRef',
+    t.quantity >=0 ? i.insid : c.insid          'RecCurr',
+    t.quantity >=0 ? t.quantity : t.premium     'Rec',
+    t.quantity >=0 ? c.insid : i.insid          'PayCurr',
+    t.quantity >=0 ? t.premium : t.quantity   'Pay',
+	t.status			                        'Status',
+	t.value_day                                 'Cf_pay_day'
+
+into
+	dataM
+
+from
+	instrument	i,
+	trade	t,
+	instrument c
+	
+where
+	t.insaddr = i.insaddr
+    and	i.instype ='Curr'
+    and t.trade_process = 16384    
+    and t.curr=c.insaddr             
+    and t.value_day>Today
+    and t.status not in ('Simulated',  'Terminated', 'Void')
+
+
+
+/*-------FAR LEG TRADES  ----------------*/
+select
+	t.connected_trdnbr                          'DealRef',
+ 	time_to_day(t.time)			                'DealDate',
+	display_id(t, 'counterparty_ptynbr')	    'CounterParty',
+    display_id(t, 'trader_usrnbr')		        'Dealer',  
+    'FWD'					                    'ContractType',
+	display_id(t, 'prfnbr')			            'ProfitCentre',
+	'Ccy_Pair'	                                'Ccy_Pair',
+	t.value_day				                    'MaturityDate',	
+	present_value(t)                            'MtM_CCY',
+	display_id(c,'curr')	                    'CCY',
+	Today				                        'DATE_LAST_UPDATED',
+	t.optional_key				                'DevRef',
+    t.quantity >=0 ? i.insid : c.insid          'RecCurr',
+    t.quantity >=0 ? t.quantity : t.premium     'Rec',
+    t.quantity >=0 ? c.insid : i.insid          'PayCurr',
+    t.quantity >=0 ? t.premium : t.quantity   'Pay',
+	t.status			                        'Status',
+	t.value_day                                 'Cf_pay_day'
+
+into
+	dataM
+
+from
+	instrument	i,
+	trade	t,
+	instrument c
+	
+where
+	t.insaddr = i.insaddr
+    and	i.instype ='Curr'
+    and t.trade_process = 32768    
+    and t.curr=c.insaddr             
+    and t.value_day>Today
+    and t.status not in ('Simulated',  'Terminated', 'Void')
+
+
+
+
+select DealRef, DealDate, CounterParty, Dealer, ContractType, ProfitCentre,  Ccy_Pair, MaturityDate, MtM_CCY, CCY, DATE_LAST_UPDATED, DevRef, RecCurr, Rec, PayCurr, Pay, Status, Cf_pay_day
+from dataS
+
+union
+
+select DealRef, DealDate, CounterParty, Dealer, ContractType, ProfitCentre,  Ccy_Pair, MaturityDate, MtM_CCY, CCY, DATE_LAST_UPDATED, DevRef, RecCurr, Rec, PayCurr, Pay, Status, Cf_pay_day
+from dataM
+
+
+
+

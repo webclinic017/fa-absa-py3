@@ -1,0 +1,89 @@
+/*------------------------------------------------------------------------------------------------------*/
+/*Get FX rates*/
+/*------------------------------------------------------------------------------------------------------*/
+SELECT
+	to_date(@StartDay{today})	'RepDay',
+	
+    date_add_banking_day(@StartDay{today},@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay'
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+/*---------------------------------------------------------------------------------------------------------------
+Select
+        fx.curr 'curr1',
+        1/fx.fxRepDay 'fxRep',
+        1/fx.fxPrevRepDay 'fxPrevRep'
+into 
+fxtemp        
+from
+   fxrates fx
+where fx.curr in ('ZAR','USD','EUR','GBP',NZD)   
+/*--------------------------------------------------------------------------------------------------------------*/         
+Select
+	to_date(@StartDay{today})	                            'RunDay',
+	m.PrevRepDay                                            'RepDay',
+	cf.end_day                                              'Maturity date',
+	t.trdnbr                                                'Trdnbr',
+	cf.cfwnbr                                               'Cfnbr',
+	l.legnbr                                                'Leg',
+	display_id(l,'curr')                                    'Curr',
+	1/fx.fxPrevRepDay                                       'Rate',
+
+	/*t.creat_time                                            'Time',*/
+	
+	days_between(m.PrevRepDay,cf.end_day,'Act/365')         'Days',
+    nominal_amount(cf,,display_id(l,'curr'))                  'Nominal',
+    projected_cf(cf,,,display_id(l,'curr'))*t.quantity*1        'ProjCF',
+    present_value(cf,,,,display_id(l,'curr'))*t.quantity*1    'PV',
+    
+	display_id(l,'curr')='ZAR'?
+      projected_cf(cf,,,display_id(l,'curr'))*t.quantity*1:
+      projected_cf(cf,,,display_id(l,'curr'))*t.quantity*1/fx.fxPrevRepDay 'ProjCF in ZAR',
+      
+    display_id(l,'curr')='ZAR'?
+      present_value(cf,,,,display_id(l,'curr'))*t.quantity*1:
+      present_value(cf,,,,display_id(l,'curr'))*t.quantity*1/fx.fxPrevRepDay 'PV in ZAR',
+      
+    display_id(l,'curr')='ZAR'?
+      theta(cf,,,,display_id(l,'curr'))*1:
+      theta(cf,,,,display_id(l,'curr'))*1/fx.fxPrevRepDay                    'Theta in ZAR'
+
+from
+  trade t,
+  cashflow cf,
+  fxrates fx,
+  macros m,
+  leg l
+where
+    t.prfnbr = '1765'
+and t.creat_time>=to_date(@StartDay{today})
+and fx.curr=display_id(l,'curr')
+and t.insaddr=l.insaddr
+and l.legnbr=cf.legnbr
+and present_value(cf,,,,display_id(l,'curr'))*t.quantity*1~=0

@@ -1,0 +1,7 @@
+[Default]FCashFlowInstrument:currentFactorDate = select(isSingleLegInstrument, 
+  true->firstLeg :* "currentFactorDate", 
+  false->nil);
+[Default]FInstrument:currentFactorDate = nil;
+[Default]FInstrumentAndTrades:currentFactorDate = instrument:currentFactorDate;
+[Default]FLeg:currentFactorDate = currentFactorDate(legInformation, staticLegInformation, valuationSystemDate);
+[Default]FMultiInstrumentAndTrades:currentFactorDate = nil;

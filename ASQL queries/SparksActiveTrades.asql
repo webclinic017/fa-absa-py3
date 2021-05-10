@@ -1,0 +1,21 @@
+/* update_method=0 */
+select distinct
+    trd.trdnbr
+from
+    Trade trd,
+    Portfolio prf,
+    Instrument ins
+where
+    trd.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated')
+and
+   ins.insaddr = trd.insaddr
+and
+    prf.prfnbr = trd.prfnbr
+and
+    (ins.exp_day > '{0}'
+or
+    ins.exp_day <= to_date('1970-01-01'))
+and
+    prf.prfid in({1})
+and
+    trd.archive_status = 0

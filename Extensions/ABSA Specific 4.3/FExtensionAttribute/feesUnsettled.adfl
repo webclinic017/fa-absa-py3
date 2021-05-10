@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FCombInstrMapAndTrades:feesUnsettled = nil;
+[ABSA Specific 4.3]FInstrumentAndTrades:feesUnsettled = py("feesSettled", context).FeesUnSettled(object, profitAndLossEndDate);
+[ABSA Specific 4.3]FLegAndTrades:feesUnsettled = nil;
+[ABSA Specific 4.3]FPriceAggregate:feesUnsettled = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "feesUnsettled");

@@ -1,0 +1,17 @@
+[Profit and Loss]FInstrument:tradeSetUsedInProfitandLoss = singleTradePosition:tradeSetUsedInProfitandLoss [positionObject, calculateTradeEffectInPosition];
+[Profit and Loss]FLegAndTrades:tradeSetUsedInProfitandLoss = select(singleTradePosition, 
+  nil->nil, 
+  default->[singleTradePosition]);
+[Profit and Loss]FTrade:tradeSetUsedInProfitandLoss = select(calculateTradeEffectInPosition, 
+  true->switch(isVoid, 
+    true->[object], 
+    false->select(positionObject, 
+      nil->select(portfolioUsedInProfitAndLoss, 
+        nil->[object], 
+        default->select(object == originalTrade, 
+          true->portfolioUsedInProfitAndLoss.TradesIn(instrument), 
+          false->tradesUsedInProfitandLossFromTradeRow(object, originalTrade, portfolioUsedInProfitAndLoss.TradesIn(originalInstrument)))), 
+      default->collapse(positionTradesInInstrument))), 
+  false->[object]);
+[Profit and Loss]FTradeRow:tradeSetUsedInProfitandLoss = trade:tradeSetUsedInProfitandLoss [positionObject, calculateTradeEffectInPosition];
+[Profit and Loss]FUndefinedObject:tradeSetUsedInProfitandLoss = nil;

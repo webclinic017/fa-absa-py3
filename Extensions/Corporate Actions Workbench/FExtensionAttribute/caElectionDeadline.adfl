@@ -1,0 +1,6 @@
+[Corporate Actions Workbench]FCorporateActionElection:caElectionDeadline = switch(object.Deadline, 
+  0->"", 
+  default->acm.Time.LocalToUtc(object.Deadline));
+[Corporate Actions Workbench]FCorporateActionElectionMultiItem:caElectionDeadline = select(children.Size > 0, 
+  false->nil, 
+  true->maxOf(children :* "caElectionDeadline"));

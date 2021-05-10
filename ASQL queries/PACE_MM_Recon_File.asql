@@ -1,0 +1,162 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       PACE_MM_Recon_File
+PROJECT                 :       PACE MM
+PURPOSE                 :       This ASQL will provide a file to be used in a recon with PACE MM.
+DEPARTMENT AND DESK     :       Money Market Desk
+REQUASTER               :       PACE MM Project
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       822638
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2011-09-01      822638          Heinrich Cronje                 Initial Implementation
+2013-03-09	    851429		  Heinrich Cronje                 Added the Start Date for Backdated Fixed Amounts.
+2013-03-20      889151		  Heinrich Cronje                 Removed Voided Trades from recon. PACE MM does not
+                                                                include Cancellation Trades in their recon.
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL has two secons:
+        1.  All PACE MM Call Deposits and Fixed Term Deposits that have an expiry date of today and later.
+        2.  All PACE MM Call Deposit Fixed Amounts and Interest Reinvestments that were updated on the date
+            that was input.
+*/
+
+select
+    ael_d(,'PACE_MM_Recon_Functions.applyGlobalSimulation', to_date(@1_Date{Today}))   'date'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*==========================================================
+                    All Live PACE MM Trades
+==========================================================*/
+select
+    'Trade' 'Record_Section',
+    i.open_end = 'Open End' and l.type = 'Call Fixed Adjustable' ?
+        'CallDeposit' : 
+        i.open_end ~= 'Open End' and l.type ~= 'Call Fixed Adjustable' ?
+        'Deposit' : i.instype    'Instrument_Type',
+    t.optional_key  'Original_PACE_ID',
+    t.trdnbr    'FA_Trade_ID',
+    i.insid 'FA_Instrument_ID',
+    add_info(p,'BarCap_SMS_CP_SDSID')   'Counterparty_SDS',
+    '' 'PACE_Event_ID',
+    ''    'FA_Event_ID',
+    display_id(i,'curr')    'Currency',
+    i.exp_day   'Expiry_Date',
+    l.start_day 'Start_Date',
+    l.fixed_rate    'Interest_Rate',
+    l.reinvest = 'Yes' ? 1 : 0  'Reinvest_Interest',
+    to_date(t.time)   'Trade_Day',
+    nominal_amount(t, t.value_day) 'Transaction_Amount',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Balance', m.date)   'Balance',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Portfolio Accrued Call Interest', m.date)   'Accrued_Interest',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Trade Face Nominal', m.date)    'Face_Nominal',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Nominal Factor', m.date)  'Nominal_Factor'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    leg l,
+    party p,
+    party aq,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.acquirer_ptynbr = aq.ptynbr
+    and to_date(i.exp_day) >= m.date
+    and i.instype = 'Deposit'
+    and add_info(p,'PACE_MM_Client') = 'Yes'
+    and t.optional_key like '%BARXMM%MMG%'
+    and t.status in ('BO Confirmed','BO-BO Confirmed')
+    and aq.ptyid in ('Funding Desk', 'Money Market Desk')
+ 
+/*==========================================================
+                    Transaction Section
+==========================================================*/
+select
+    'Transaction' 'Record_Section',
+    c.type = 'Fixed Amount' ? 
+        projected_cf(c) >= 0.00 ?
+            'CallDepositD' : 'CallDepositW'
+        : c.type = 'Interest Reinvestment' ? 
+            'CallDepositR' : c.type  'Instrument_Type',
+    to_string(c.cfwnbr) 'Record_ID',
+    t.optional_key  'Original_PACE_ID',
+    t.trdnbr    'FA_Trade_ID',
+    i.insid 'FA_Instrument_ID',
+    add_info(p,'BarCap_SMS_CP_SDSID')   'Counterparty_SDS',
+    c.extern_id 'PACE_Event_ID',
+    to_string(c.cfwnbr)    'FA_Event_ID',
+    display_id(i,'curr')    'Currency',
+    i.exp_day   'Expiry_Date',
+    l.start_day 'Start_Date',
+    l.fixed_rate    'Interest_Rate',
+    l.reinvest = 'Yes' ? 1 : 0  'Reinvest_Interest',
+    c.type = 'Fixed Amount' 
+        ? c.start_day ~= 0 ? c.start_day : c.pay_day
+        : c.pay_day   'Trade_Day',
+    projected_cf(c) 'Transaction_Amount',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Balance', m.date)   'Balance',
+    ael_f(t,'PACE_MM_Recon_Functions.get_Trading_Manager_Column_Value','Portfolio Accrued Call Interest', m.date)   'Accrued_Interest',
+    0.00   'Maturity_Amount'
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow c,
+    party p,
+    party aq,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.acquirer_ptynbr = aq.ptynbr
+    and to_date(i.exp_day) >= m.date
+    and i.instype = 'Deposit'
+    and i.open_end = 'Open End'
+    and add_info(p,'PACE_MM_Client') = 'Yes'
+    and c.type in ('Fixed Amount','Interest Reinvestment')
+    and to_date(c.updat_time) = m.date
+    and t.optional_key like '%BARXMM%MMG%'
+    and t.status in ('BO Confirmed','BO-BO Confirmed')
+    and aq.ptyid in ('Funding Desk', 'Money Market Desk')
+    and l.type = 'Call Fixed Adjustable'
+
+union
+
+select
+    t.Record_Section,
+    t.Instrument_Type,
+    t.Instrument_Type = 'CallDeposit' ? t.FA_Instrument_ID : t.FA_Trade_ID  'Record_ID',
+    t.Original_PACE_ID,
+    t.FA_Trade_ID,
+    t.FA_Instrument_ID,
+    t.Counterparty_SDS,
+    t.PACE_Event_ID,
+    t.FA_Event_ID,
+    t.Currency,
+    t.Expiry_Date,
+    t.Start_Date,
+    t.Interest_Rate,
+    t.Reinvest_Interest,
+    t.Trade_Day,
+    t.Transaction_Amount,
+    t.Balance,
+    t.Accrued_Interest,
+    (t.Nominal_Factor > 0 ? t.Face_Nominal * t.Nominal_Factor : t.Face_Nominal) + t.Accrued_Interest   'Maturity_Amount'
+from
+    temp t

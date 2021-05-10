@@ -1,0 +1,13 @@
+[Default]FCashFlowInstrument:isApplicableForLocalVolatility = select(stochasticReferenceVolatilityInformation, 
+  nil->false, 
+  default->stochasticReferenceVolatilityInformation:isApplicableForLocalVolatility);
+[Default]FInstrument:isApplicableForLocalVolatility = select(udmcIsMultiUnderlying, 
+  true->select(maxOfAny(includes(multiUnderlyingVolatilityInformation :* "isApplicableForLocalVolatility", false)), 
+    true->false, 
+    false->true), 
+  false->select(volatilityInformation, 
+    nil->false, 
+    default->volatilityInformation:isApplicableForLocalVolatility));
+[Default]FObject:isApplicableForLocalVolatility = nilObject:isApplicableForLocalVolatility;
+[Default]FUndefinedObject:isApplicableForLocalVolatility = true;
+[Default]FVolatilityInformation:isApplicableForLocalVolatility = object.IsApplicableForLocalVolatility;

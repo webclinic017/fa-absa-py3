@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:underlyingValue = select(underlyingValueType, 
+  "Zero Coupon Fix"->collapse(stepUpSwaptionUnderlyingValue), 
+  "Credit Future"->unitValueDirtyToClean(legInformations, staticLegInformations, creditFutureUnderlyingSpotValue, underlying:contractSize, valuationDate), 
+  "Notional Future"->underlyingStartValueForForwardValueCalculation / ctdFactor, 
+  "Compound Option"->underlying :* "underlyingValue" [priceSource, doSplitAll], 
+  "Swaption"->collapse(swaptionUnderlyingValue), 
+  "Spread Option"->collapse(spreadOptionUnderlyingValue), 
+  default->collapse(underlyingStartValueForForwardValueCalculation));

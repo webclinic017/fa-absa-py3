@@ -1,0 +1,23 @@
+/* update_method=0 */
+select distinct
+    t.trdnbr
+from 
+    trade t,
+    instrument i,
+    leg l,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and t.trdnbr *= s.trdnbr
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+and t.acquirer_ptynbr = 32668
+and i.instype = 'SecurityLoan'
+and add_info(t,'SL_G1Counterparty1') in ('SLB ACS MAIN', 'SLB ACS LOCAL CFD', 'SLB ACS STRUCTURED 2', 'SLB ACS STRUCTURED 3', 'SLB ACS STRUCTURED 4')
+and add_info(t,'SL_G1Counterparty2') ~= ''
+and t.text1 ~= 'FULL_RETURN'
+and t.time <= TODAY
+and t.value_day <= TODAY
+and l.start_day <= TODAY
+and l.end_day >= TODAY
+and ael_i(t,'sbl_reporting_utils.include_loan', s) = 1

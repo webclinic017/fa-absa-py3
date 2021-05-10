@@ -1,0 +1,12 @@
+[ABSAPortfolioSwap]FInstrument:cfdExecutionPremiumTPL = object :* "plZeroWithDate" [displayCurrency];
+[ABSAPortfolioSwap]FLeg:cfdExecutionPremiumTPL = switch(legDescription, 
+  "Execution Premium"->object :* "tPL" [positionObject], 
+  default->object :* "plZeroWithDate" [displayCurrency]);
+[ABSAPortfolioSwap]FLegAndTrades:cfdExecutionPremiumTPL = leg :* "cfdExecutionPremiumTPL";
+[ABSAPortfolioSwap]FMultiInstrumentAndTrades:cfdExecutionPremiumTPL = sumOf(instruments :* "cfdExecutionPremiumTPL" [positionObject, displayCurrency]);
+[ABSAPortfolioSwap]FPortfolioSwap:cfdExecutionPremiumTPL = 
+# Jan Sinkora @ 2013-11-28: Removed the value() around profitAndLossEndDate as it was moving the date a day back for some reason.
+select(legs == [], 
+  true->object :* "plZeroWithDate" [displayCurrency], 
+  false->sumOf(discountAndConvertToCurrency((legs :* "cfdExecutionPremiumTPL" [positionObject]), instrumentDiscountCurvesPerUnit, profitAndLossEndDate, instrumentCurrencies :* "fxSpotRate" [fxToCurrency = currency], displayCurrency, filterUnit)));
+[ABSAPortfolioSwap]FSingleInstrumentAndTrades:cfdExecutionPremiumTPL = instrument :* "cfdExecutionPremiumTPL" [positionObject, displayCurrency];

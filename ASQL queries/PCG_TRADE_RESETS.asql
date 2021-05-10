@@ -1,0 +1,23 @@
+select
+
+t.trdnbr,
+r.day 'Reset Day',
+i.exp_day 'Expiry',
+display_id(t,'prfnbr'),
+years_between(to_date(@3_RepDate{TODAY}),r.day, @8_Daycount{Act/365})* 365.25                 'Days'
+
+from
+trade t,
+reset r,
+instrument i,
+leg l,
+cashflow cf
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and cf.cfwnbr = r.cfwnbr
+AND r.day > to_date(@3_RepDate{TODAY})
+AND r.Day <= to_date(date_add_delta(@3_RepDate{TODAY},0,@4_Num_Months_to_adj{1},0))

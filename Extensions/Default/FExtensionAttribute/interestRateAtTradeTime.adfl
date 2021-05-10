@@ -1,0 +1,5 @@
+[Default]FCurrency:interestRateAtTradeTime = fxDiscountCurve.DiscountRate(currencyPairSpotDate, valueDay, daycountMethod);
+[Default]FFra:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = valueDay, valueDay = startDate];
+[Default]FFuture:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = instrumentSpotDate, valueDay = settlementDate];
+[Default]FInstrument:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = instrumentSpotDate, valueDay = valueDay];
+[Default]FTrade:interestRateAtTradeTime = instrument :* "interestRateAtTradeTime" [valuationBaseDateTimeInput = object.TradeTime, valueDay = object.ValueDay, fxToCurrency = currency];

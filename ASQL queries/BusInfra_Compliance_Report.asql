@@ -1,0 +1,61 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','BusInfra_Compliance_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'BusInfra_Compliance_Report' and p.type = 'SQL Query' 
+
+/*
+Purpose             : A report is required to hold reuters price feeds which cannot be edited
+			    Add 3 columns 'Points/Cents','Contract size','Measuring unit' so feed can also be used by Credit Risk
+Department and Desk : Business Infrastructure, Credit Risk - TPEM
+Requester           : Steve Smit, Patrick Mobwano
+Developer           : [Tshepo Mabena, Aaeda Salejee], Jaysen Naicker
+CR Number           : 247112
+Change Number       : 302196 ,568675 
+
+*/
+
+select 
+    p.day,
+    p.settle,
+    p.insaddr,
+    p.ptynbr,
+    p.updat_usrnbr
+into
+    price_tmp
+from
+    price p
+where
+    to_date(p.updat_time)   =  to_date(@3_Date{Today})
+    
+    
+select distinct
+    p.day                'Date',
+    i.instype            'Instype',
+    i.insid              'Insid',
+    i.isin               'ISIN',
+    p.settle             'EOD_Price',
+    display_id(i,'curr') 'Currency',
+    u.name               'Update_User',
+    i.quote_type = 'Per 100 Units' ? 'Cents' : 'Points'   'Points/Cents',
+    i.contr_size    'Contract size',
+    add_info(i,'Quote Unit Type')   'Measuring unit'
+  
+from
+   price_tmp p,
+   party pp,
+   PriceDefinition  ppp,
+   PriceDistributor pd,
+   instrument i,
+   user u
+where
+       p.insaddr = i.insaddr
+   and pd.disnbr = ppp.disnbr
+   and ppp.insaddr = p.insaddr    
+   and p.ptynbr  = pp.ptynbr 
+   and p.updat_usrnbr = u.usrnbr   
+   and pp.ptyid = (@1_Market{SPOT;}) 
+   and pd.disid = (@2_Feed{REUTERS_FEED;})
+
+

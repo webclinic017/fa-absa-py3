@@ -1,0 +1,11 @@
+[Trading]FBasketPriceFeed:indexAdjustmentFactor = calculateFutureEqWeight(instrument, 1.0);
+[Trading]FBasketTradingInterface:indexAdjustmentFactor = priceFeed:indexAdjustmentFactor;
+[Trading]FCombInstrMap:indexAdjustmentFactor = 1.0;
+[Trading]FCombOrderBook:indexAdjustmentFactor = 1.0;
+[Trading]FIndexOrderBook:indexAdjustmentFactor = priceFeed:indexAdjustmentFactor;
+[Trading]FOrderBook:indexAdjustmentFactor = 1.0;
+[Trading]FOrderBookLink:indexAdjustmentFactor = parentPriceFeed:indexAdjustmentFactor;
+[Trading]FOwnOrder:indexAdjustmentFactor = select(parentTrading, 
+  nil->1.0, 
+  default->parentTrading:indexAdjustmentFactor);
+[Trading]FTradingInterface:indexAdjustmentFactor = 1.0;

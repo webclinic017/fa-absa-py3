@@ -1,0 +1,46 @@
+[Default]FObject:QuoteAndHedgeTotalPrice
+
+Properties =
+  Abstract=No
+  CreatePermission=User
+  DisplayName=Total Price
+  EditPermission=User
+  InheritsFrom=QuoteAndHedge
+  TradingEnabled=Yes
+
+Transitions =
+
+Panel InputParams1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityToQuote, quoteAndHedgeTotalPrice
+
+Panel InputParams2 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteLegTotalQuantity
+
+Conditions =
+
+Actions =
+
+ActionLists =
+
+Variable hedgeLegBuyOrSell =
+  Description=Buy or sell opposite to the quote leg
+  DisplayName=Hedge Buy/Sell
+  Domain=enum(BuyOrSell)
+  Type=ReadOnly
+  Value=switch("Buy" == quoteLegBuyOrSell, \
+      true->"Buy", \
+      false->"Sell")
+
+Variable quoteAndHedgeTotalPrice =
+  Description=The total price of the quote and hedge leg. Defined as quote price + hedge price.
+  DisplayName=Total Price
+  Domain=double
+  Mandatory=Yes
+  Type=InputFixed
+  Value=0.0
+
+<end>

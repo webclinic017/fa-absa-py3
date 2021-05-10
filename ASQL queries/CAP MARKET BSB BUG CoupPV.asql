@@ -1,0 +1,20 @@
+select
+
+
+display_id(t,'prfnbr')  'Portfolio', 
+t.trdnbr,
+i.instype,
+i.exp_day       'Exp Day',
+present_value(t)    'PV'
+ 
+
+from
+ 
+trade t, instrument i
+ 
+where
+i.insaddr = t.insaddr
+and i.instype = 'BuySellback'
+and i.exp_day <= TODAY
+and present_value(t) ~= 0
+and t.status not in ('Simulated', 'Void')

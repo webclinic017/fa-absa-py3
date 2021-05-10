@@ -1,0 +1,178 @@
+/* update_method=0 */
+﻿/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SND_Trade_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SND_Trade_Check' and p.type = 'SQL Query' 
+/* Standard_Queries:1.0.0 */
+
+/*Name:	.Print/CashFlow
+
+EDIT HISTORY
+
+Date	   Who	What
+-------------------------------------------------------
+941101	   CE	            Created
+980416     AGY	            Use display_id
+2004-09-16 Ondrej Bahounek  Add cashflow computation for Combinations.
+2018-07-04 Tawanda Mukhalela  Added cashflow type Credit Default
+
+
+
+ Select Initial Trades  */
+
+select
+        t.trdnbr                                                                                        'Trdnbr',
+    	i.insid    	    	    		                                                                'instr',
+    	(l.payleg ? 'Pay' : 'Receive')  	                                                            'Pay_Rec',
+        l.legnbr   	    	    		                                                                'Leg Nbr',
+        to_string(cf.type) 	    	    	                                                            'Type',
+    	nominal_amount(t)                                                                               'Nominal',
+        to_date((cf.type in('Fixed Amount') ? '' : cf.start_day))                                       'Start Day',
+        to_date((cf.type in('Fixed Amount') ? '' : cf.end_day))                                         'End Day',
+        to_int(cf.type in('Fixed Amount') ? 0 : (days_between(cf.start_day, cf.end_day, 'Act/365')))    'Days',
+        cf.pay_day  	    	    		                                                            'Pay Day',
+        cf.type = 'Fixed Rate' ? cf.rate : '' 	                                                        'Rate',
+        to_double((cf.type in('Fixed Amount','Fixed Rate') ? '' : cf.spread ))                          'Spread',
+        to_double((cf.type in('Fixed Amount','Fixed Rate','Credit Default') ? '' : period_rate(cf)))                     'Forward',
+        projected_cf(cf) * t.quantity                                                                   'Proj',
+        present_value(cf) * t.quantity                                                                  'PV',
+        display_id(l,'curr')                                                                            'Curr',
+        abs(projected_cf(cf)*t.quantity)                                                                'Abs Proj',
+        abs(present_value(cf) * t.quantity)                                                             'Abs PV'
+        
+from
+    trade t,
+	instrument i,
+	leg l,
+	CashFlow cf
+
+where
+t.trx_trdnbr in (@1_TransRef)
+and match_filter(t, @2_Filter{SND_All_Trades;tradefilter.fltid})
+and i.insaddr = t.insaddr  	
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+
+
+union
+
+
+/* Select combinations - they don't have legs */
+select
+        t.trdnbr                                                                                        'Trdnbr',
+    	i.insid    	    	    		                                                                'instr',
+    	(l.payleg ? 'Pay' : 'Receive')  	                                                            'Pay_Rec',
+        l.legnbr   	    	    		                                                                'Leg Nbr',
+        to_string(cf.type) 	    	    	                                                            'Type',
+    	nominal_amount(t)                                                                               'Nominal',
+        to_date((cf.type in('Fixed Amount') ? '' : cf.start_day))                                       'Start Day',
+        to_date((cf.type in('Fixed Amount') ? '' : cf.end_day))                                         'End Day',
+        to_int(cf.type in('Fixed Amount') ? 0 : (days_between(cf.start_day, cf.end_day, 'Act/365')))    'Days',
+        cf.pay_day  	    	    		                                                            'Pay Day',
+        cf.type = 'Fixed Rate' ? cf.rate : '' 	                                                        'Rate',
+        to_double((cf.type in('Fixed Amount','Fixed Rate') ? '' : cf.spread ))                          'Spread',
+        to_double((cf.type in('Fixed Amount','Fixed Rate','Credit Default') ? '' : period_rate(cf)))                     'Forward',
+        projected_cf(cf) * (t.quantity/i.index_factor)*cl.weight                                        'Proj',
+        present_value(cf) * (t.quantity/i.index_factor)*cl.weight                                       'PV',
+        display_id(l,'curr')                                                                            'Curr',
+        abs(projected_cf(cf) * (t.quantity/i.index_factor)*cl.weight)                                   'Abs Proj',
+        abs(present_value(cf) * (t.quantity/i.index_factor)*cl.weight)                                  'Abs PV'
+        
+from
+    trade t,
+	instrument i,
+    CombinationLink cl,
+    instrument und,
+	leg l,
+	CashFlow cf
+
+where
+t.trx_trdnbr in (@1_TransRef)
+and match_filter(t, @2_Filter{SND_All_Trades;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and i.instype = 'Combination'
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and	und.insaddr *= l.insaddr
+and	l.legnbr *= cf.legnbr
+
+
+union
+
+
+/*Select all additional payments*/
+select
+        t.trdnbr                                                'Trdnbr',
+    	i.insid    	    	    		                        'instr',    	
+        'Additional Payment'                                    'Pay_Rec',
+        0                                                       'Leg Nbr',
+        to_string(p.type) 	    	                            'Type',
+    	0.0                                                     'Nominal',
+        to_date(p.payday)                                       'Start Day',
+        to_date(p.payday)                                       'End Day',         
+        to_int(days_between(p.payday, p.payday, 'Act/365'))     'Days',
+        p.payday  	    	    		                        'Pay Day',
+        '' 	                                                    'Rate',    
+        to_double(0.0)                                          'Spread',
+        to_double(0.0)                                          'Forward',        
+        p.amount                                                'Proj',
+        t.value_day < to_date(today) ? 0 : p.amount             'PV',
+        display_id(p,'curr')                                    'Curr',
+        0.0                                                     'Abs Proj',
+        0.0                                                     'Abs PV'
+        
+from
+    trade t,
+	instrument i,
+	payment p
+
+where
+t.trx_trdnbr in (@1_TransRef)
+and i.insaddr = t.insaddr
+and p.trdnbr = t.trdnbr
+and match_filter(t, @2_Filter{SND_All_Trades_Incl_Sim;tradefilter.fltid})
+and p.amount ~= 0
+
+
+union
+
+
+/*Select all premiums on both trades*/
+select
+        t.trdnbr                                                    'Trdnbr',
+    	i.insid    	    	    		                            'instr',    	
+        'Premium'                                                   'Pay_Rec',
+        0                                                           'Leg Nbr',
+        to_string('Premium') 	    	                            'Type',
+    	0.0                                                         'Nominal',
+        to_date(t.value_day)                                        'Start Day',
+        to_date(t.value_day)                                        'End Day',         
+        to_int(days_between(t.value_day, t.value_day, 'Act/365'))   'Days',
+        t.value_day  	    	    		                        'Pay Day',
+        '' 	                                                        'Rate',    
+        to_double(0.0)                                              'Spread',
+        to_double(0.0)                                              'Forward',        
+        t.premium                                                   'Proj',
+        t.value_day < to_date(today)? 0 : t.premium                 'PV',
+        display_id(t,'curr')                                        'Curr',
+        0.0                                                         'Abs Proj',
+        0.0                                                         'Abs PV'
+        
+from
+    trade t,
+	instrument i
+
+where
+t.trx_trdnbr in (@1_TransRef)
+and i.insaddr = t.insaddr
+and match_filter(t, @2_Filter{SND_All_Trades_Incl_Sim;tradefilter.fltid})
+and t.premium ~= 0
+
+
+
+order by 10, 17
+
+
+

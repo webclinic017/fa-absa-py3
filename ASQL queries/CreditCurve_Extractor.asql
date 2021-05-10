@@ -1,0 +1,45 @@
+/*********************************************************************************
+Date                	: 20100614,20110104, 20110413
+Purpose             	: Provide a list of credit curve spreads
+Department and Desk 	: IT pricing and Risk
+Requester           	: Matthew Berry
+Developer           	: Matthew Stephanou
+CR Number           	: 337938,536370, 628573
+
+**********************************************************************************/
+
+select    
+    yc.yield_curve_name                     'Curve',
+    issr.ptyid        			    'Issuer',
+    yp.date_period.count                    'Period Count',
+    yp.date_period.unit                     'Period Unit',
+    to_string(yp.date_period.count, (yp.date_period.unit = 'Years' ? 'Y' : yp.date_period.unit = 'Months' ? 'M' : yp.date_period.unit = 'Weeks' ? 'W' : yp.date_period.unit = 'Days' ? 'D' : yp.date_period.unit))                 'Tenor',  
+    ys.spread * 100                         'Spread',
+    display_id(inst, 'curr')                                 'Curr',
+    yca.recovery_rate                       'Recovery Rate',
+    yca.restructuring_type                      'Restructuring',
+    cl.description                          'Seniority'
+    
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys,
+    YCAttribute yca,
+    Party issr,
+    ChoiceList cl,
+    Instrument inst
+    
+where
+    yc.yield_curve_name IN (@01_YieldCurve{;yieldcurve.yield_curve_name * where yield_curve_type = 'Attribute Spread' })
+    and yca.yield_curve_seqnbr = yc.seqnbr
+    and yca.seqnbr = ys.attribute_seqnbr 
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr
+    and issr.ptynbr = yca.issuer_ptynbr
+    and yca.seniority_chlnbr > 0
+    and cl.seqnbr = yca.seniority_chlnbr
+    and yc.curr = inst.insaddr
+
+
+    
+order by 1,2,4,3

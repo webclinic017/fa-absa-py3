@@ -1,0 +1,5 @@
+[Fixed Income Market Making]FQuoteController:proposedYTMSpreadMid = select(instrument.IsKindOf("FFrn"), 
+  true->nil, 
+  default->switch(proposedQuoteDriverMid, 
+    "YTM"->proposedDriverValueMid, 
+    default->instrument:marketYieldToMaturity [marketUnitValueClean = proposedQuoteMidUnitValueClean, marketPrice = proposedQuoteMid] - spreadBenchmarkYieldToMaturityMid));

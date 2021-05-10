@@ -1,0 +1,7 @@
+[_brokerage_risk_exts]FFuture:collateralValueAdjusted = currencyZero;
+[_brokerage_risk_exts]FInstrument:collateralValueAdjusted = shunt(valueCapCondition == nil, 
+  true->discountedValue, 
+  false->min(discountedValue, valueCap));
+[_brokerage_risk_exts]FInstrumentAndTrades:collateralValueAdjusted = sumOf(instruments :* "collateralValueAdjusted" [portfolio, priceSource, valuesOnSpotOverride, positionObject]);
+[_brokerage_risk_exts]FOption:collateralValueAdjusted = currencyZero;
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:collateralValueAdjusted = instrument:collateralValueAdjusted [portfolio, priceSource, valuesOnSpotOverride, positionObject];

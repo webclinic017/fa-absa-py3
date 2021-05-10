@@ -1,0 +1,21 @@
+[Default]FCombInstrMap:priceDeltaPercentInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->weight * contractSize * timeDistributionFactor * instrument :* "priceDifferenceInstrument" [doSplitAll, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors] * stripDateTimePart(fxLegToInstrumentOnLegSpotDay), 
+  false->stripDateTimePart(combinationSpotZero));
+[Default]FCombination:priceDeltaPercentInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(select(splitCombination, 
+    true->select(priceGreekRiskFactorNodeCount > 0, 
+      true->sumOf((instrumentMaps) :* "priceDeltaPercentInstrument" [doSplitAll, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors]) / combinationDivisionFactor, 
+      false->instrumentSpotZero), 
+    false->collapse(priceDifferenceInstrument)), valuesOnSpot));
+[Default]FInstrument:priceDeltaPercentInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(priceDifferenceInstrument, valuesOnSpot));
+[Default]FInstrumentAndTrades:priceDeltaPercentInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceDeltaPercentValuesIRD [isSplitAllGrouped, priceSource], 
+  false->openInstrumentOrInstrument :* "collapse(priceDeltaPercentInstrument)" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement] * combinationInstrumentMapFactorForPriceGreeks);
+[Default]FMultiInstrumentAndTrades:priceDeltaPercentInstrument = nil;
+[Default]FPriceAggregate:priceDeltaPercentInstrument = instrument :* "priceDeltaPercentInstrument" [priceSource];
+[Default]FTradeRow:priceDeltaPercentInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceDeltaPercentValuesIRD [isSplitAllGrouped, priceSource], 
+  false->instrument:priceDeltaPercentInstrument [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement, currency = tradeRowCurrency] * combinationInstrumentMapFactorForPriceGreeks);

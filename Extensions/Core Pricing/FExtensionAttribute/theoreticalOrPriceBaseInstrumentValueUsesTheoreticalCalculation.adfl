@@ -1,0 +1,13 @@
+[Core Pricing]FInstrument:theoreticalOrPriceBaseInstrumentValueUsesTheoreticalCalculation[doSplitAll] = select(priceBase, 
+  None->true, 
+  default->shunt[doSplitAll](timeDistributionBucketForPriceBase == defaultBucket, 
+    true->shunt[doSplitAll](refPriceBase, 
+      "Theoretical Equals Market"->false, 
+      "Market"->shunt[doSplitAll](doSplitAll, 
+        true->true, 
+        false->false), 
+      "MtM From Feed Flag"->select(mtmFromFeed, 
+        false->true, 
+        true->false), 
+      default->true), 
+    false->true));

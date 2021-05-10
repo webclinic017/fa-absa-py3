@@ -1,0 +1,5 @@
+[ABSA Accounting 4.3]FCashFlow:callSettledEnd = instrument :* "settledEndCalculation" [*];
+[ABSA Accounting 4.3]FDeposit:callSettledEnd = switch(fixedAdjustableEndCashFlows.Size > 0, 
+  false->plZero, 
+  true->sumOf(fixedAdjustableEndCashFlows :* "callSettledEnd" [profitAndLossParameters]));
+[ABSA Accounting 4.3]FInstrument:callSettledEnd = plZero;

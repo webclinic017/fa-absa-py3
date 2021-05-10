@@ -1,0 +1,11 @@
+[ABSA Derivatives 4.3]FVarianceSwap:underlyingValue = select(underlyingType, 
+  "Stock"->select(underlyingQuotation, 
+    "Per 100 Units"->underlying.UnitQuoteToUnitValue(underlyingspotPriceAsUnderlying, 1.0), 
+    default->underlyingSpotOrForwardValue), 
+  default->select(underlyingValueType, 
+    "Zero Coupon Fix"->stepUpSwaptionUnderlyingValue, 
+    "Credit Future"->unitValueDirtyToClean(legInformations, underlying:theoreticalSpotValue + underlyingRealizedLossAndAccrued), 
+    "Notional Future"->underlyingSpotOrForwardValue / ctdFactor, 
+    "Compound Option"->underlying :* "underlyingValue" [priceSource, doSplitAll], 
+    "Per Unit Vanilla"->underlying.UnitQuoteToUnitValue(underlyingspotPriceAsUnderlying, 1.0), 
+    default->underlyingSpotOrForwardValue));

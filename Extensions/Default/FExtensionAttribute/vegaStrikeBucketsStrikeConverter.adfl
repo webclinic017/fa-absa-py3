@@ -1,0 +1,5 @@
+[Default]FNamedParameters:vegaStrikeBucketsStrikeConverter = select(vegaStrikeBucketsReferenceInstrument, 
+  nil->nil, 
+  default->select(vegaStrikeBucketsToStrikeType == "Absolute", 
+    true->object:singleVolatilityStrikeConverters [instrument = vegaStrikeBucketsReferenceInstrument, toQuotation = perUnitQuotation, fromQuotation = vegaStrikeBucketQuotation, bottomStrikeDimension = "Log Moneyness", relativeConversionValueModel = nil, fromStrikeType = "None", priceSource, doSplitAll], 
+    false->nil));

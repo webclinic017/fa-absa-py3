@@ -1,0 +1,8 @@
+[Core Pricing]FCertificate:underlyingForwardValueModel = select(baseValuationOnUnderlyingComponents, 
+  true->collapse(multiUnderlyingForwardValueLocalOrCompo), 
+  default->collapse(underlyingForwardValueModelCore));
+[Core Pricing]FFuture:underlyingForwardValueModel = collapse(underlyingForwardValueModelCore);
+[Core Pricing]FInstrument:underlyingForwardValueModel = collapse(underlyingForwardValueByType);
+[Core Pricing]FOption:underlyingForwardValueModel = select(baseValuationOnUnderlyingComponents, 
+  true->underlyingBasketAsSingleForwardValue, 
+  default->collapse(underlyingForwardValueByType));

@@ -1,0 +1,10 @@
+[Adaptiv XVA]FCreditBalance:potentialFutureExposure = select(creditBalanceInstruments :* "cvaDeals", 
+  nil->denominatedvalue(0, potentialFutureExposureCalculationCurrency, , valuationDate), 
+  default->shunt[positionObject, includeAllTrades](creditBalanceIsEmpty, 
+    true->denominatedvalue(0, potentialFutureExposureCalculationCurrency, , valuationDate), 
+    false->parsePFEResult(adaptivPotentialFutureExposure, potentialFutureExposureCalculationCurrency, valuationDate, bucketStartDate, bucketEndDate)["PFE"]));
+[Adaptiv XVA]FInstrumentAndTrades:potentialFutureExposure = select(creditBalanceInstruments :* "cvaDeals", 
+  nil->denominatedvalue(0, potentialFutureExposureCalculationCurrency, , valuationDate), 
+  default->shunt[positionObject, includeAllTrades](creditBalanceIsEmpty, 
+    true->denominatedvalue(0, potentialFutureExposureCalculationCurrency, , valuationDate), 
+    false->parsePFEResult(adaptivPotentialFutureExposure, potentialFutureExposureCalculationCurrency, valuationDate, bucketStartDate, bucketEndDate)["PFE"]));

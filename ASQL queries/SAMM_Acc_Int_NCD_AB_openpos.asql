@@ -1,0 +1,294 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Acc_Int_NCD_AB_openpos') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Acc_Int_NCD_AB_openpos' and p.type = 'SQL Query' 
+/*
+Description
+-----------
+This report shows the Interest Accrued and Settled for the Period specified.
+
+
+
+Macros:
+-------
+1_Filter 		: Tradefilter
+2_TrdNbrs  		: List Trade Numbers instead of Filter
+3_Curr			: Only interest in this currency will be included
+4_StartDate		: Date1 (Incl).  To run report since inception, make StartDate = "smalldate"
+5_EndDate		: Date2 (Excl)
+6_YearEnd		: Date3 (Excl)
+7_ShowTOTALDESK		: Show Total by Desk
+8_ShowTOTALPortfolio	: Show Total by Portfolio
+9_ShowTOTALCpty		: Show Total by Desk, Portfolio and Cpty
+10_ShowDetails		: Show Details of all trades (no totals)
+
+
+
+Rows:
+-----
+Total by Desk: Totals all Trades by Desk / Acquirer
+Total by Portfolio: Totals by portfolio name
+Total by Cpty : Totals by Desk, Portfolio and Cpty
+Details:  Shows all trade details
+
+Columns:
+--------
+Section		: Section Name
+TrdNbr		: Trade Number
+Desk		: Acquirer
+Product		: Product
+Portfolio	: Physical Portfolio
+Cpty		: Counterparty to the Trade
+Insid		: Instrument ID
+Curr		: Interest Currency
+Nominal		: Nominal Amount of Leg	as at EndDate
+Premium		: Consideration of trade
+Discount Rate	: Trade price expressed in discount
+Discount	: Nominal-Premium
+DailyDisc	: Discount of product/tenor 
+PeriodDisc	: Discount of product/tenor * Period given by Report Start and Report End Dates(exclusive)
+AccruedDisc	: Discount of product/tenor * Period given by Report Start and Instrument End Dates(exclusive)
+WrittenoffDisc	: Discount of product/tenor * Period given by Instrument Start and Report End Dates(exclusive) accounts for instruments started within Reporting period
+Tenor		: Period of Product
+Instr_StartDate	: Start Date of Instrument
+Instr_MatDate	: Maturity Date of Instrument.  For call deposits this is equal to the END DATE
+Status		: Trade Status
+StartDate	: Report StartDate
+EndDate		: Report EndDate
+
+
+2004-06-30 	Updated by Andries Brink - Was selecting into temp table grouping on the inid, causing details section to not return the sums as coded originally. Changed to group by trdnbr to correct this
+*/
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT distinct
+	@3_Curr{ZAR;instrument.insid where instype = 'Curr'}	'Curr',
+	@ReportCurr{ZAR;instrument.insid where instype='Curr'}	'Hcur',
+	@4_StartDate{yesterday}			'd0',
+	@5_EndDate{today}			'd1',
+	@6_YearEnd{}				'd2',
+	@7_ShowTOTALDESK{Yes;'Yes','No'}			'TOTALDESK',
+	@8_ShowTOTALPortfolio{Yes;'Yes','No'}			'TOTALPortfolio',
+	@9_ShowTOTALCpty{Yes;'Yes','No'}			'TOTALCpty',
+	@10_ShowDetails{Yes;'Yes','No'}				'det'
+
+	
+INTO
+	macros
+FROM
+	serverdata s
+  
+WHERE
+	s.srdnbr > 0
+
+/*----------------------------------------------------
+	Interest Accrual for NCD 
+----------------------------------------------------*/
+
+select
+	
+        t.trdnbr				'TrdNbr',
+	display_id(t,'acquirer_ptynbr')  	'Desk',
+	add_info(t,'MM_Instype') 		'Product',
+	display_id(t,'prfnbr')			'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	display_id(t,'insaddr.issuer_ptynbr')	'Issuer',
+        i.insid					'Insid',
+	m.curr					'Curr',
+	sum(i.exp_day < m.d1 ? 0.0 : (t.quantity*i.contr_size)) 	'Nominal',
+	sum(i.exp_day < m.d1 ? 0.0 : t.premium)			'Premium',
+	add_info(i,'NCD_Issue_Rate') 				'DiscountRate',
+	i.exp_day < m.d1 ? 0.0 : days_between(l.start_day, i.exp_day, 'Act/365')	'Tenor',
+	to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) *  days_between(l.start_day, i.exp_day, 'Act/365')	'Discount',
+	to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) 							'DailyDisc',
+	to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (i.exp_day < m.d0 ? 0.0 : days_between((l.start_day > m.d0 ? l.start_day : m.d0),(i.exp_day < m.d1 ? i.exp_day : m.d1), 'Act/365'))  'PeriodDisc',
+	to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) *  days_between((i.exp_day < m.d1 ? i.exp_day : m.d1), i.exp_day, 'Act/365')  'AccruedDisc',
+	to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) *  days_between((i.exp_day < m.d1 ? i.exp_day : m.d1), i.exp_day, 'Act/365') 'WrittenoffDisc',
+	l.start_day,
+	l.type = 'Call Float' ? m.d1 : l.end_day  'end_day',
+	t.status,
+	m.d0  'StartDate',
+	m.d1  'EndDate'
+	
+
+into mytemp
+
+from	instrument i,
+        trade t,
+        leg l,
+	macros m
+	
+
+where
+        i.insaddr = t.insaddr
+and     l.insaddr = i.insaddr
+/*and	currency_included(l,m.curr) = 1*/
+and 	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+/*and	time_to_day(t.time) < m.d1*/
+and	(add_info(t,'MM_Instype')) = 'NCD'
+and	t.value_day ~= i.exp_day
+and	i.instype = 'Bill'
+and 	i.exp_day >= m.d1
+
+
+
+
+select 
+	mt.TrdNbr,
+	mt.Desk,
+	mt.Product,
+	mt.Portfolio,
+	mt.Cpty,
+	mt.Issuer,
+	mt.Insid,
+	mt.Curr,
+	mt.Nominal,	
+	mt.Premium,
+	mt.DiscountRate,
+	mt.Tenor,
+	i.exp_day < m.d1 ? 0.0 : ((mt.DailyDisc/36500)*mt.Tenor) 'Discount',
+	i.exp_day < m.d1 ? 0.0 : mt.DailyDisc/36500  'DailyDisc',
+	(i.exp_day < m.d1 ? 0.0 : mt.DailyDisc/36500)*(i.exp_day < m.d0 ? 0.0 :(days_between((l.start_day > m.d0 ? l.start_day : m.d0),(i.exp_day < m.d1 ? i.exp_day : m.d1), 'Act/365')))  'PeriodDisc',
+	(i.exp_day < m.d1 ? 0.0 : mt.DailyDisc/36500)*(days_between((i.exp_day < m.d1 ? i.exp_day : m.d1), i.exp_day, 'Act/365'))  'AccruedDisc',
+	(i.exp_day < m.d1 ? 0.0 : mt.DailyDisc/36500)* (days_between(l.start_day, m.d1, 'Act/365')) 'WrittenoffDisc',
+	l.start_day,
+	l.type = 'Call Float' ? m.d1 : l.end_day  'end_day',
+	mt.status,
+	m.d0  'StartDate',
+	m.d1  'EndDate'
+
+into temp
+
+from
+	mytemp mt,
+	macros m,
+	instrument i,
+	leg l
+where
+	mt.Nominal ~= 0
+and 	mt.Insid = i.insid
+and 	i.insaddr = l.insaddr
+
+
+/****************************************************************************
+	FINAL DISPLAY
+**************************************************************************/
+
+select
+'Total By Desk'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Issuer,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+t.status,
+t.StartDate,
+t.EndDate
+
+from
+temp t,
+macros m
+
+where
+m.TOTALDESK in ('Yes','YES','yes','Y','y')
+
+
+Group by t.Desk
+having sum(t.end_day < m.d1 ? 0.0 : t.nominal) > 1.000000000
+
+union
+
+select
+'Total By Portfolio'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Issuer,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+t.status,
+t.StartDate,
+t.EndDate
+
+from
+temp t,
+macros m
+
+where
+m.TOTALPortfolio in ('Yes','YES','yes','Y','y')
+
+
+Group by t.Portfolio, t.Product
+having sum(t.end_day < m.d1 ? 0.0 : t.nominal) > 1.000000000
+
+
+union
+
+select
+'Details'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Issuer,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+t.status,
+t.StartDate,
+t.EndDate
+
+
+from
+temp t,
+macros m
+
+where
+m.det in ('Yes','YES','yes','Y','y')
+
+group by t.insid
+having sum(t.end_day < m.d1 ? 0.0 : t.nominal) > 1.000000000
+

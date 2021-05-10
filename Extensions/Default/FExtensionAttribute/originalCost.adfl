@@ -1,0 +1,10 @@
+[Default]FCombInstrMapAndTrades:originalCost = nil;
+[Default]FDeliverableLinkAndTrades:originalCost = nil;
+[Default]FInstrument:originalCost = sumOf((positionOriginalCost.Keys) :* "double(positionOriginalCost.At(object) * fxSpotRate)" [displayCurrency, positionOriginalCost, fxToCurrency = displayCurrency, fxBaseCurrency = currency]);
+[Default]FLegAndTrades:originalCost = nil;
+[Default]FMultiInstrumentAndTrades:originalCost = select(instruments.Size > 0, 
+  false->nil, 
+  true->sumOf(instruments :* "originalCost" [positionObject, displayCurrency, profitAndLossEndDate]));
+[Default]FSingleInstrumentAndTrades:originalCost = instrument :* "originalCost" [positionObject, displayCurrency, profitAndLossEndDate];
+[Default]FTrade:originalCost = object.OriginalCost(profitAndLossEndDate);
+[Default]FTradeRow:originalCost = trade :* "originalCost" [profitAndLossEndDate];

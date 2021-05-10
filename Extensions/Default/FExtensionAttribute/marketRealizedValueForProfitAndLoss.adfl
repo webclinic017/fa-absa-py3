@@ -1,0 +1,10 @@
+[Default]FInstrument:marketRealizedValueForProfitAndLoss = select(doCostAdjustment, 
+  true->select(isValuedAtCost, 
+    true->collapse(marketRealizedValueForProfitAndLossDiscounted), 
+    false->valuationDateZero), 
+  false->collapse(marketRealizedValueForProfitAndLossDiscounted));
+[Default]FInstrumentAndTrades:marketRealizedValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, instrument, valuesOnSpot, openPositionInstrumentProvider]);
+[Default]FMultiInstrumentAndTrades:marketRealizedValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketRealizedValueForProfitAndLossOpenInstruments)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, openPositions, onlySpotValuedInstruments]);
+[Default]FPortfolio:marketRealizedValueForProfitAndLoss = openInstrument :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, accountingParameters, tradedPortfolio];
+[Default]FTrade:marketRealizedValueForProfitAndLoss = instrument:marketRealizedValueForProfitAndLoss [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, valuationBaseDateTimeInput, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends];
+[Default]FTradeRow:marketRealizedValueForProfitAndLoss = openInstrumentOrTaxLotInstrument :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, plSpotGroupingReference, filterUnit, taxLotPositionObject, taxLotValuation := taxLotPnL, projectedPaymentsExcludeDividends];

@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrument:loanValue = sumOf(tradesInPosition :* "loanValue");
+[Securities Lending ABSA]FInstrumentAndTrades:loanValue = sumOf(instrument :* "loanValue" [positionObject]);
+[Securities Lending ABSA]FMultiInstrumentAndTrades:loanValue = sumOf(instruments :* "loanValue" [positionObject]);
+[Securities Lending ABSA]FTrade:loanValue = select(sl_instype, 
+  "SecurityLoan"->collateralAmount, 
+  default->instrument:currencyZero);

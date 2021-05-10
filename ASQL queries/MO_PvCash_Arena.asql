@@ -1,0 +1,67 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_PvCash_Arena') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_PvCash_Arena' and p.type = 'SQL Query' 
+
+
+
+
+
+
+select
+
+today   'Date',
+i.insid 'Ins',
+p.prfid 'Portfolio',
+sum(mtm_value_fo(t,date_add_banking_day(today,,-1),,,,,))    'PV t-1',
+sum(present_value(t)) 'PV t',
+sum(cash_balance(t,date_add_banking_day(today,,-1),date_add_banking_day(today,,-1),,,,)) 'Cash t-1',
+sum(cash_balance(t,today,today,,,,)) 'Cash t',
+
+(sum(present_value(t)) + sum(cash_balance(t,today,today,,,,))) - (sum(mtm_value_fo(t,date_add_banking_day(today,,-1),,,,,)) + sum(cash_balance(t,date_add_banking_day(today,,-1),date_add_banking_day(today,,-1),,,,))) 'PnL o/n'   
+
+
+from
+trade   t,
+instrument i,
+portfolio p
+
+where
+match_filter(t,@1_Filter{;tradefilter.fltid},)
+and p.prfnbr = t.prfnbr
+and i.insaddr = t.insaddr
+and t.status not in ('Void','Simulated')
+
+group by 2
+
+union
+
+select
+
+today   'Date',
+'' 'Ins',
+'' 'Portfolio',
+sum(mtm_value_fo(t,date_add_banking_day(today,,-1),,,,,))    'PV t-1',
+sum(present_value(t)) 'PV',
+sum(cash_balance(t,date_add_banking_day(today,,-1),date_add_banking_day(today,,-1),,,,)) 'Cash t-1',
+sum(cash_balance(t,today,today,,,,)) 'Cash',
+(sum(present_value(t)) + sum(cash_balance(t,today,today,,,,))) - (sum(mtm_value_fo(t,date_add_banking_day(today,,-1),,,,,)) + sum(cash_balance(t,date_add_banking_day(today,,-1),date_add_banking_day(today,,-1),,,,))) 'PnL o/n'   
+
+
+
+from
+trade   t,
+instrument i,
+portfolio p
+
+where
+match_filter(t,@1_Filter{;tradefilter.fltid},)
+and p.prfnbr = t.prfnbr
+and i.insaddr = t.insaddr
+and t.status not in ('Void','Simulated')
+
+group by 1
+

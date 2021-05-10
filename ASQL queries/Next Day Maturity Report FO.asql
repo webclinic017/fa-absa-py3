@@ -1,0 +1,826 @@
+/*------------------------------------------------------------------------------
+    Next Day Maturity Report FO
+
+    Purpose             : Retrievws all cashflows, dividends and payments for 
+                          the Next Day Maturity Report
+    Department and Desk : Trading, Money Market & External Funding Desks
+    Requester           : Koos Liebenberg
+    Developer           : Debbie Osler, Francois Truter
+    CR Number           : 224117
+    CR Number           : 246851
+    
+------------------------------------------------------------------------------*/
+
+/*----------------------------Usage code for this ASQL------------------------*/
+
+SELECT  ael_i(p,'ASQL_log','Next Day Maturity Report FO') 'Name' 
+INTO    ASQL_LOG_TEMP 
+FROM    TextObject p 
+WHERE   p.name = 'Next Day Maturity Report FO'
+AND     p.type = 'SQL Query' 
+ 
+/*  DO.Cashflows
+
+Query based on .App/Portfoliocashflows
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+1_StartDay - Cashflows from this date (incl) will be shown
+2_EndDay - Cashflows up to and incl this date are shown
+3_Currency - The currency of the payments. More than one curr can be selected
+4_ShowTOTALCurrRepDay - Totals Cashflows by Currency and PayDay
+5_ShowTOTALInstype - Totals Cashflows by Instrument Type
+6_Show_TradeDetail - Shows Cashflow details
+CashflowType - Either "All" or select from list
+Filter - The tradefilter from which the payments will be presented 
+Instype - Either "All" or ATLAS Instrument Type or Select from List
+
+Columns :
+Day - Payday
+Amount - Amount
+Curr - Currency
+Type - Type of payment: Premium, Cashflow, End Premium/Sec Loan Fee,
+ Additional Payment or Dividend 
+TrdNbr - Trade number
+RecAcc - Receive Account
+PayAcc - Pay Account
+PartyType - 'Issuer' if cashflow from security (Bond,FRN,Zero,PromisLoan,Bill,CD or Convertible),
+ 'CP' otherwise
+Party - Issuer ID if cashflow from security, else Counterparty ID
+Netting - Counterparty netting on or off
+
+
+History:
+================================================================================
+When: 		Who:		          What:
+----------  --------------------  ----------------------------------------------
+2003-04-07	Debbie Osler 	      Created
+2003-05-20 	Debbie Osler	      Added Cols - Portfolio, Trade Time, 
+                                  Trade Status,deal date, B/S 
+2004-02-12	Debbie Osler	      Added Col to explain section, Fixed Macros so 
+                                  that they are correct
+2010-02-11  Francois Truter       CR Number: 224117
+                                  1. Removed duplicate rows caused by join to 
+                                     SettleInstruction and SettleInstructionRule
+                                  2. Price column displays Fixed Rate when price 
+                                     is zero
+                                  3. Correct Account Name & Number is used from
+                                     Setllement table
+                                  4. Changed tenor calculation to use Leg 
+                                     information since Instrument start & end
+                                     dates aren't always populated
+2010-02-25  Francois Truter       CR Number: 246851
+                                  Using TradeAccountLink table instead of 
+                                  Settlement table to retrieve account details.
+                                     
+------------------------------------------------------------------------------*/ 
+
+/*------------BUILD TEMPORARY CASHFLOWS TABLE---------------------------------*/
+
+SELECT  Trade.trdnbr, 
+        add_info(Trade, 'Funding Instype') ~= '' ? add_info(Trade, 'Funding Instype')
+            : (add_info(Trade, 'MM_Instype') ~= '' ? add_info(Trade, 'MM_Instype')
+                : add_info(Trade, 'Instype')) 'mm_instype',
+        MIN(Leg.start_day) 'cashflow_start_day',
+        MAX(Leg.end_day) 'cashflow_end_day',
+        MAX(Leg.fixed_rate) 'fixed_rate'
+        
+INTO    TempTradeInfo
+
+FROM    Trade,
+        Instrument,
+        Leg,
+        User Trader,
+        Instrument Currency
+WHERE   Trade.insaddr = Instrument.insaddr
+AND     Instrument.insaddr = Leg.insaddr
+AND     Trade.trader_usrnbr = Trader.usrnbr
+AND     match_filter(Trade, @Filter{;tradefilter.fltid})
+AND     Trader.userid =  @Dealer{ABAC268;user.userid*}
+AND     Instrument.exp_day = @2_EndDay{Today;}
+AND     ('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or Instrument.instype in (@Instype{}))
+AND     Currency.insid in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+GROUP BY Trade.trdnbr
+
+SELECT  Counterparty.ptyid 'counterparty_id',
+        Counterparty.type 'counterparty_type',
+        Issuer.ptyid 'issuer_id',
+        Currency.insid 'currency',
+        Instrument.insaddr,
+        Instrument.insid,
+        Instrument.instype,
+        Instrument.und_instype,
+	    Instrument.contr_size,
+	    Instrument.ref_value 'ref_value',
+        Instrument.exp_day,
+        TempTradeInfo.mm_instype 'mm_instype',
+        Trade.trdnbr,
+        Trade.value_day 'value_day',
+        Trade.value_day	'start_day',
+        Trade.premium,
+        Trade.optional_key 'devon_reference',
+        Trade.status,
+        Trade.time,
+        Trade.your_ref 'counterparty_reference',
+        Trader.name	'trader_name',
+        round(Trade.price, 6) ~= 0.000000 ? Trade.price : TempTradeInfo.fixed_rate 'price',
+        display_id(Trade,'prfnbr') 'portfolio',
+        Trade.acquire_day,
+	    Trade.quantity,
+	    nominal_amount(Trade) 'nominal',
+        to_int(convert('double', Instrument.open_end = 'Open End' ? 'Open' : days_between(TempTradeInfo.cashflow_start_day, TempTradeInfo.cashflow_end_day, 'Act/365'))) 'tenor',
+        add_info(Trade,'MM_Ceded_Amount') ~= '' ? to_double(add_info(Trade,'MM_Ceded_Amount')) : 0.00 'ceded_amount',
+        mtm_price(Currency, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'fx_rate',
+	    projected_cf(Instrument) 'instrument_projected_cashflow'
+        
+INTO    TempTrades
+
+FROM
+        Trade,
+        TempTradeInfo,
+        Instrument,
+        Instrument Currency,
+        Party Counterparty,
+        Party Issuer,
+        User Trader
+WHERE   Trade.trdnbr = TempTradeInfo.trdnbr
+AND     Trade.insaddr = Instrument.insaddr
+AND     Trade.curr = Currency.insaddr
+AND     Trade.counterparty_ptynbr = Counterparty.ptynbr
+AND     Trade.trader_usrnbr = Trader.usrnbr
+AND     Instrument.issuer_ptynbr *= Issuer.ptynbr
+AND     match_filter(Trade, @Filter{;tradefilter.fltid})
+AND     Instrument.exp_day = @2_EndDay{Today;}
+AND 	('All' IN (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) OR Instrument.instype in (@Instype{}))
+AND	    TempTradeInfo.mm_instype IN ('FDE', 'FDI', 'FDC', 'SWT', 'FTL', 'FLI')
+AND     Trader.userid =  @Dealer{ABAC268;user.userid*}
+AND     Currency.insid in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+SELECT  TempTrades.trdnbr,
+        TradeAccountLink.party_type,
+        SettleInstruction.settle_cf_type,
+        display_id(Acc, 'correspondent_bank_ptynbr') 'bank',
+        Acc.account
+        
+INTO    TradeAccounts
+
+FROM    TempTrades,
+        TradeAccountLink,
+        SettleInstruction,
+        SettleInstructionRule,
+        Account Acc
+WHERE   TempTrades.trdnbr = TradeAccountLink.trdnbr
+AND     TempTrades.counterparty_type = TradeAccountLink.party_type
+AND     TradeAccountLink.settle_seqnbr = SettleInstruction.seqnbr
+AND     SettleInstruction.seqnbr = SettleInstructionRule.settle_seqnbr
+AND     SettleInstructionRule.accnbr = Acc.accnbr
+
+
+/*-------------------- SELECT PREMIUM AMOUNTS --------------------------------*/ 
+
+SELECT  TempTrades.value_day	                'day',
+        TempTrades.start_day	                'start_day',
+        TempTrades.premium	                    'amount',
+        TempTrades.currency	                    'currency',
+        'Premium'	                            'cashflow_type',
+        TempTrades.nominal                      'nominal',
+        1.00                                    'nominal_factor',
+        TempTrades.trdnbr                       'trdnbr',
+        TempTrades.devon_reference              'devon_reference',
+        TempTrades.insid                        'insid',
+        to_string(TempTrades.instype)           'instype',
+        'CP'                                    'party_type',
+        TempTrades.counterparty_id              'party',
+        TempTrades.status                       'status',
+        TempTrades.time                         'time',
+        TempTrades.portfolio                    'portfolio',
+        TempTrades.fx_rate                      'fx_rate',
+        TempTrades.mm_instype                   'mm_instype',
+        TradeAccounts.bank                      'bank',
+        TradeAccounts.account                   'account_number',
+        TempTrades.trader_name                  'trader_name',
+        TempTrades.price                        'price',
+        TempTrades.tenor                        'tenor',
+        TempTrades.ceded_amount                 'ceded_amount',
+        TempTrades.counterparty_reference       'counterparty_reference'
+        
+INTO    TempCashflows
+
+FROM    TempTrades,
+        TradeAccounts
+WHERE   TempTrades.premium ~= 0.0
+AND     TempTrades.trdnbr *= TradeAccounts.trdnbr
+AND     (TradeAccounts.settle_cf_type = 'Premium' OR TradeAccounts.settle_cf_type IS NULL)
+AND     TempTrades.value_day <= to_date(@2_EndDay{Today;})
+AND     TempTrades.value_day >= to_date(@1_StartDay{Yesterday;})
+
+/*-------------------------- SELECT CASHFLOWS --------------------------------*/ 
+
+SELECT  Cashflow.pay_day 'day',
+        TempTrades.start_day 'start_day',
+        projected_cf(Cashflow) * TempTrades.quantity 'amount',
+        TempTrades.currency 'currency',
+        'Cashflow' 'cashflow_type',
+        TempTrades.quantity * TempTrades.contr_size * Cashflow.nominal_factor 'nominal',
+        TempTrades.instype='FXSwap' ? Leg.nominal_factor : Cashflow.nominal_factor 'nominal_factor',
+        TempTrades.trdnbr 'trdnbr',
+        TempTrades.devon_reference 'devon_reference',
+        TempTrades.insid 'insid',
+        to_string(Cashflow.type) 'instype',
+        TempTrades.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'party_type',
+        TempTrades.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? TempTrades.issuer_id : TempTrades.counterparty_id 'party',
+        TempTrades.status 'status',
+        TempTrades.time 'time',
+        TempTrades.portfolio 'portfolio',
+        TempTrades.fx_rate 'fx_rate',
+        TempTrades.mm_instype 'mm_instype',
+        TradeAccounts.bank 'bank',
+        TradeAccounts.account 'account_number',
+        TempTrades.trader_name 'trader_name',
+        TempTrades.price 'price',
+        TempTrades.tenor 'tenor',
+        TempTrades.ceded_amount 'ceded_amount',
+        TempTrades.counterparty_reference 'counterparty_reference'
+	
+INTO    TempCashflows
+
+FROM    TempTrades,
+        Cashflow,
+        Leg,
+        TradeAccounts
+WHERE   TempTrades.insaddr = Leg.insaddr
+AND     Leg.legnbr = CashFlow.legnbr
+AND     TempTrades.trdnbr *= TradeAccounts.trdnbr
+AND     (to_string(Cashflow.type) = to_string(TradeAccounts.settle_cf_type) OR TradeAccounts.trdnbr IS NULL)
+AND	    TempTrades.acquire_day <= Cashflow.pay_day
+AND	    ('All' in (@CashflowType{All;Cashflow.type*}) or Cashflow.type in (@CashflowType{;Cashflow.type*}))
+AND     Cashflow.pay_day <= to_date(@2_EndDay{Today;})
+AND     Cashflow.pay_day >= to_date(@1_StartDay{Yesterday;})
+
+/*------------------- SELECT END PREMIUMS & SECURITY LOAN FEES ---------------*/ 
+
+SELECT  TempTrades.exp_day 'day',
+        TempTrades.start_day 'start_day',
+        TempTrades.instype = 'BuySellback' ? TempTrades.quantity * TempTrades.ref_value : TempTrades.quantity * TempTrades.instrument_projected_cashflow 'amount',
+        TempTrades.currency 'currency',
+        'End Premium/Sec Loan Fee' 'cashflow_type',
+        TempTrades.nominal 'nominal',
+        1.00 'nominal_factor',
+        TempTrades.trdnbr 'trdnbr',
+        TempTrades.devon_reference 'devon_reference',
+        TempTrades.insid 'insid',
+        to_string(TempTrades.instype) 'instype',
+        'CP' 'party_type',
+        TempTrades.counterparty_id 'party',
+        TempTrades.status 'status',
+        TempTrades.time 'time',
+        TempTrades.portfolio 'portfolio',
+        TempTrades.fx_rate 'fx_rate',
+        TempTrades.mm_instype 'mm_instype',
+        '' 'bank',
+        '' 'account_number',
+        TempTrades.trader_name 'trader_name',
+        TempTrades.price 'price',
+        TempTrades.tenor 'tenor',
+        TempTrades.ceded_amount 'ceded_amount',
+        TempTrades.counterparty_reference 'counterparty_reference'
+
+INTO    TempCashflows
+
+FROM    TempTrades
+WHERE   instype in ('BuySellback','SecurityLoan')
+AND	    TempTrades.exp_day <= to_date(@2_EndDay{Today;})
+AND     TempTrades.exp_day >= to_date(@1_StartDay{Yesterday;})
+
+/*----------------------- SELECT COMMODITY FUTURES ---------------------------*/ 
+
+SELECT  TempTrades.exp_day 'day',
+        TempTrades.start_day 'start_day',
+        TempTrades.nominal * TempTrades.price * - 1 'amount',
+        TempTrades.currency 'currency',
+        'Commodity Future' 'cashflow_type',
+        TempTrades.nominal 'nominal',
+        1.00 'nominal_factor',
+        TempTrades.trdnbr 'trdnbr',
+        TempTrades.devon_reference 'devon_reference',
+        TempTrades.insid 'insid',
+        to_string(TempTrades.instype) 'instype',
+        'CP' 'party_type',
+        TempTrades.counterparty_id 'party',
+        TempTrades.status 'status',
+        TempTrades.time 'time',
+        TempTrades.portfolio 'portfolio',
+        TempTrades.fx_rate 'fx_rate',
+        TempTrades.mm_instype 'mm_instype',
+        '' 'bank',
+        '' 'account_number',
+        TempTrades.trader_name 'trader_name',
+        TempTrades.price 'price',
+        TempTrades.tenor 'tenor',
+        TempTrades.ceded_amount 'ceded_amount',
+        TempTrades.counterparty_reference 'counterparty_reference'
+
+INTO    TempCashflows
+
+FROM    TempTrades
+
+WHERE   TempTrades.instype in ('Future/Forward')
+AND	    TempTrades.und_instype = 'Commodity'
+AND	    TempTrades.exp_day <= to_date(@2_EndDay{Today;})
+AND     TempTrades.exp_day >= to_date(@1_StartDay{Yesterday;})
+
+/*-------------------- SELECT ADDITIONAL PAYMENTS ----------------------------*/ 
+
+SELECT  Payment.payday 'day',
+        TempTrades.start_day 'start_day',
+        Payment.amount 'amount',
+        TempTrades.currency 'currency',
+        'Additional Payment' 'cashflow_type',
+        TempTrades.nominal 'nominal',
+        1.00 'nominal_factor',
+        TempTrades.trdnbr 'trdnbr',
+        TempTrades.devon_reference 'devon_reference',
+        TempTrades.insid 'insid',
+        to_string(TempTrades.instype) 'instype',
+        'CP' 'party_type',
+        TempTrades.counterparty_id 'party',
+        TempTrades.status 'status',
+        TempTrades.time 'time',
+        TempTrades.portfolio 'portfolio',
+        TempTrades.fx_rate 'fx_rate',
+        TempTrades.mm_instype 'mm_instype',
+        TradeAccounts.bank 'bank',
+        TradeAccounts.account 'account_number',
+        TempTrades.trader_name 'trader_name',
+        TempTrades.price 'price',
+        TempTrades.tenor 'tenor',
+        TempTrades.ceded_amount 'ceded_amount',
+        TempTrades.counterparty_reference 'counterparty_reference'
+
+INTO    TempCashflows
+
+FROM    Payment,
+        TempTrades,
+        TradeAccounts
+        
+WHERE   Payment.trdnbr = TempTrades.trdnbr
+AND     TempTrades.trdnbr *= TradeAccounts.trdnbr
+AND     to_string(Payment.type) *= to_string(TradeAccounts.settle_cf_type)
+AND	    Payment.payday <= to_date(@2_EndDay{Today;})
+AND     Payment.payday >= to_date(@1_StartDay{Yesterday;})
+
+/*------------------------- SELECT DIVIDEND PAYMENTS -------------------------*/ 
+
+SELECT  Dividend.day 'day',
+        TempTrades.start_day 'start_day',
+        Dividend.dividend 'amount',
+        TempTrades.currency 'currency',
+        'Dividend' 'cashflow_type',
+        TempTrades.Nominal 'nominal',
+        1.00 'nominal_factor',
+        TempTrades.trdnbr 'trdnbr',
+        TempTrades.devon_reference 'devon_reference',
+        TempTrades.insid 'insid',
+        to_string(TempTrades.instype) 'instype',
+        'Issuer' 'party_type',
+        TempTrades.issuer_id 'party',
+        TempTrades.status 'status',
+        TempTrades.time 'time',
+        TempTrades.portfolio 'portfolio',
+        TempTrades.fx_rate 'fx_rate',
+        TempTrades.mm_instype 'mm_instype',
+        '' 'bank',
+        '' 'account_number',
+        TempTrades.trader_name 'trader_name',
+        TempTrades.price 'price',
+        TempTrades.tenor 'tenor',
+        TempTrades.ceded_amount 'ceded_amount',
+        TempTrades.counterparty_reference 'counterparty_reference'
+
+INTO    TempCashflows
+
+FROM    TempTrades,
+        Dividend
+WHERE   TempTrades.insaddr = Dividend.insaddr
+AND	    Dividend.day <= to_date(@2_EndDay{Today;})
+AND     Dividend.day >= to_date(@1_StartDay{Yesterday;})
+
+/*---------------------- BUILD TOTAL TABLES ----------------------------------*/ 
+
+SELECT  'Total by Curr & Day' 'section',
+        day > to_date(@1_StartDay{Yesterday;}) ? day 
+            : to_date(@1_StartDay{Yesterday;}) 'day',
+        start_day,
+        currency,
+        instype,
+        insid,
+        0.00 'nominal',
+        1.00 'nominal_factor',
+        1.00 'inv_nominal_factor',
+        sum(amount) > 0 ? 'B' : 'S' 'buy_sell',
+        sum(amount) 'amount',
+        sum(fx_rate * TempCashflows.amount) 'hval',
+        cashflow_type,
+        trdnbr,
+        devon_reference,
+        party_type,
+        party,
+        status,
+        time,
+        portfolio,
+        counterparty_reference,
+        mm_instype,
+        bank,
+        account_number,
+        trader_name,
+        price,
+        tenor,
+        ceded_amount
+
+INTO    Totals 
+
+FROM    TempCashflows
+
+WHERE   @4_Show_TOTALCurrRepDay{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+GROUP BY 1,2,3
+ORDER BY 2
+
+SELECT  'Opening Balance' 'section',
+        day,
+        start_day,
+        currency,
+        instype,
+        insid,
+        nominal,
+        nominal_factor,
+        1/nominal_factor 'inv_nominal_factor',
+        sum(amount) > 0 ? 'B' : 'S' 'buy_sell',
+        sum(amount) 'amount',
+        sum(fx_rate * amount) 'hval',
+        cashflow_type,
+        trdnbr,
+        devon_reference,
+        party_type,
+        party,
+        status,
+        time,
+        portfolio,
+        counterparty_reference,
+        mm_instype,
+        bank,
+        account_number,
+        trader_name,
+        price,
+        tenor,
+    	ceded_amount
+
+INTO    Opening_Balances
+
+FROM    TempCashflows
+
+/* THIS IMPOSSIBLE CONDITION IS TAKEN FROM THE ORIGINAL REPORT – KEEPING 
+THE CONDITION TO EXCLUDE OPENING BALANCES AS PER THE ORIGINAL REPORT*/
+WHERE   day < @1_StartDay{Yesterday;}
+AND	    day >= to_date(@1_StartDay{Yesterday;})
+
+GROUP BY 3
+
+/*-------------------- SELECT DATA FOR USE IN REPORT -------------------------*/
+
+/*-- u1 --*/ 
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        section 'Section',
+        day 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        inv_nominal_factor 'InvNominalFactor',
+        buy_sell 'Buy_Sell',
+        amount 'Amount',
+        hval 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+    	ceded_amount 'CededAmt'
+
+FROM    Opening_Balances
+
+UNION
+
+/*-- u2 --*/
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        section 'Section',
+        day 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        inv_nominal_factor 'InvNominalFactor',
+        buy_sell 'Buy_Sell',
+        amount 'Amount',
+        hval 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'
+
+FROM    Totals
+
+UNION
+
+/*-- u3 --*/
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Run Tot' 'Section',
+        Totals.day 'Day',
+        Totals.start_day 'startday',
+        Totals.currency 'Curr',
+        Totals.instype 'itype',
+        Totals.insid 'insid',
+        Totals.nominal 'Nominal',
+        Totals.nominal_factor 'NominalFactor',
+        Totals.inv_nominal_factor 'InvNominalFactor',
+        Totals.buy_sell 'Buy_Sell',
+        ael_f(,'Metals.Metals_Total',Totals.day,Totals.currency,Opening_Balances.amount,to_date(@1_StartDay{Yesterday;}),@Filter{;tradefilter.fltid}) 'Amount',
+        Totals.hval 'HVAL',
+        Totals.cashflow_type 'CFType',
+        Totals.trdnbr 'TrdNbr',
+        Totals.devon_reference 'devonref',
+        Totals.party_type 'PartyType',
+        Totals.party 'Party',
+        Totals.status,
+        Totals.time,
+        Totals.portfolio,
+        Totals.counterparty_reference 'CPRef',
+        Totals.mm_instype 'MM_Instype',
+        Totals.bank 'AccName',
+        Totals.account_number 'AccNum',
+        Totals.trader_name 'TraderName',
+        Totals.price 'Price',
+        Totals.tenor 'Tenor',
+        Totals.ceded_amount 'CededAmt'
+
+FROM    Totals,
+        Opening_Balances
+WHERE
+        Opening_Balances.currency = Totals.currency
+
+UNION
+
+/*-- u4 --*/
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Total by Instype' 'Section',
+        day > to_date(@1_StartDay{Yesterday;}) ? day 
+            : to_date(@1_StartDay{Yesterday;}) 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        0.00,
+        1.00,
+        1.00,
+        sum(amount) > 0 ? 'B' : 'S' 'Buy_Sell',
+        sum(amount) 'Amount',
+        sum(fx_rate * amount) 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number ,
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'
+
+FROM    TempCashflows
+WHERE   @5_Show_TOTALInstype{Yes;'Yes','No'} IN ('Yes','YES','yes','Y','y')
+
+GROUP BY 1,2,3,4
+
+UNION
+
+/*-- u5 --*/
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Details' 'Section',
+        day 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        1/nominal_factor ,
+        sum(amount) > 0 ? 'B' : 'S' 'Buy_Sell',
+        sum(amount) 'Amount',
+        sum(fx_rate * amount) 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'	
+
+FROM    TempCashflows
+
+WHERE   @6_Show_TradeDetail{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+ORDER BY trdnbr
+
+UNION
+
+/*-- u6 --*/
+
+SELECT  @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Total by Curr' 'Section',
+        day 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        1/nominal_factor 'InvNominalFactor',
+        sum(amount) > 0 ? 'B' : 'S' 'Buy_Sell',
+        sum(amount) 'Amount',
+        sum(fx_rate * amount) 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'
+	
+FROM    TempCashflows
+
+WHERE   @7_Show_TotalCurr{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+GROUP BY 3
+
+UNION
+
+/*-- u7 --*/
+
+SELECT	@1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Total by Trade' 'Section',
+        max(day) 'Day',
+        min(start_day) 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        1/nominal_factor 'InvNominalFactor',
+        sum(amount) > 0 ? 'B' : 'S' 'Buy_Sell',
+        sum(amount) 'Amount',
+        sum(fx_rate * amount) 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'	
+        
+FROM    TempCashflows
+
+WHERE   @8_Show_TotalTrade{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+GROUP BY trdnbr
+
+UNION
+
+/*-- u8 --*/
+
+SELECT	@1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : 'from ' 'report_date_1',
+        to_string(@1_StartDay{Yesterday;}) 'report_date_2',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : ' to ' 'report_date_3',
+        @1_StartDay{Yesterday;} = @2_EndDay{Today;} ? '' : to_string(@2_EndDay{Today;}) 'report_date_4',
+        'Total by Type' 'Section',
+        day 'Day',
+        start_day 'startday',
+        currency 'Curr',
+        instype 'itype',
+        insid 'insid',
+        nominal 'Nominal',
+        nominal_factor 'NominalFactor',
+        1/nominal_factor 'InvNominalFactor',
+        sum(amount) > 0 ? 'B' : 'S' 'Buy_Sell',
+        sum(amount) 'Amount',
+        sum(fx_rate * amount) 'HVAL',
+        cashflow_type 'CFType',
+        trdnbr 'TrdNbr',
+        devon_reference 'devonref',
+        party_type 'PartyType',
+        party 'Party',
+        status,
+        time,
+        portfolio,
+        counterparty_reference 'CPRef',
+        mm_instype 'MM_Instype',
+        bank 'AccName',
+        account_number 'AccNum',
+        trader_name 'TraderName',
+        price 'Price',
+        tenor 'Tenor',
+        ceded_amount 'CededAmt'
+	
+FROM    TempCashflows
+
+GROUP BY party, portfolio, instype

@@ -1,0 +1,7 @@
+[Default]FInstrument:payOffDictionary = select(valuationModelDescription["extensionDictionary"], 
+  default->valuationModelDescription["extensionDictionary"], 
+  nil->select(payoffType, 
+    "Volatility Future"->collapse(variationSwapPayoffDictionary), 
+    "Barrier"->collapse(barrierOptionPayoffDictionary), 
+    "Ladder"->collapse(ladderOptionPayoffDictionary), 
+    default->nil));

@@ -1,0 +1,23 @@
+/* update_method=0 */
+/*
+    Department and Desk : PCG Group Treasury
+    Requester           : James Moodie
+    Developer           : Khaya Mbebe
+    JIRA                : PCGDEV-219                    */
+
+select
+    t.trdnbr
+from
+    TextObject to,
+    InstrumentPackage ip,
+    DealPackage dp,
+    DealPackageTrdLink dtl,
+    Trade t
+where
+    ip.name like 'HR/%'
+and to.type = 'Customizable'
+and ael_i(to,'Hedge_relationship_type_filter.deal_package',to.name, 'Cash Flow') > 0
+and to.name = ip.name
+and dp.ins_package_seqnbr = ip.seqnbr
+and dp.seqnbr = dtl.deal_package_seqnbr
+and dtl.trdnbr = t.trdnbr

@@ -1,0 +1,172 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Confirmation_BuySellBacks') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Confirmation_BuySellBacks' and p.type = 'SQL Query' 
+/*
+Query	:	SACM_Confirmation_BuySellBacks
+Report	:	SACM_Confirmation_BuySellBacks
+Purpose	:	Provide required data for buy sell back confirmations.
+Logic	:	Straightforward.
+History	:	
+		2004/07/07 - Created.
+		2004/09/12 - Added functionality for Reverse/Repos AS
+*/
+
+select
+	t.trdnbr						'DealNumber',
+	
+	'R'							'Flag',
+
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.telephone						'CPTelephone',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	cp.hostid						'CPHostID',
+
+	t.quantity > 0 ? 'PURCHASE' : 'SALE'			'PurchaseSale',
+	und.insid						'StockDes',
+	convert('time', t.time, '%d/%m/%Y %H:%M:%S')		'DealDate',
+
+	convert('date', t.value_day, '%d/%m/%Y')		'SettlementDate1',
+	convert('date', i.exp_day, '%d/%m/%Y')			'SettlementDate2',
+
+	i.ref_price						'YTM1',
+	to_double('0.0')					'YTM2',
+
+	(i.ref_value * t.quantity)				'Nominal',
+
+	l.fixed_rate						'RepoRate',
+	t.quantity >= 0 ? 'REVERSE REPO' : 'REPO'		'RepoType',
+
+	clean_from_yield(und,t.value_day,,,i.ref_price)		'CleanPrice1',
+	to_double('0.0')					'CleanPrice2',
+
+	t.premium						'Premium1',
+	to_double('0.0')					'Premium2',
+	(t.premium * l.fixed_rate * days_between(t.value_day, i.exp_day, 'Act/365')/36500)*-1		'AccruedInterest'
+
+into
+	temp
+
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	instrument	und,
+	leg		l
+
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	i.und_insaddr = und.insaddr
+and	l.insaddr = i.insaddr
+and	i.instype = 'Repo/Reverse'
+and	t.status in ('FO Confirmed', 'BO Confirmed','BO-BO Confirmed')
+and	t.status not in ('Void', 'Simulated')
+and	(time_to_day(t.time) = @Date{Today} or t.trdnbr = @TradeNumber{0})
+
+
+
+
+
+
+select
+	t.trdnbr						'DealNumber',
+
+	'B'							'Flag',
+
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.telephone						'CPTelephone',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	cp.hostid						'CPHostID',
+
+	t.quantity > 0 ? 'PURCHASE' : 'SALE'			'PurchaseSale',
+	und.insid						'StockDes',
+	convert('time', t.time, '%d/%m/%Y %H:%M:%S')		'DealDate',
+
+	convert('date', t.value_day, '%d/%m/%Y')		'SettlementDate1',
+	convert('date', i.exp_day, '%d/%m/%Y')			'SettlementDate2',
+
+	t.price							'YTM1',
+	i.ref_price						'YTM2',
+
+	abs(nominal_amount(t))					'Nominal',
+
+	i.rate							'RepoRate',
+	t.quantity >= 0 ? 'BUY SELLBACK' : 'SELL BUYBACK'	'RepoType',
+
+	clean_from_yield(und,t.value_day,,,t.price)		'CleanPrice1',
+	clean_from_yield(und,i.exp_day,,,i.ref_price)		'CleanPrice2',
+
+	t.premium						'Premium1',
+	(i.ref_value * t.quantity)				'Premium2',
+	
+	abs(i.ref_value * t.quantity) - abs(t.premium) 		'AccruedInterest'
+into
+	temp
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	instrument	und
+
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	i.und_insaddr = und.insaddr
+and	i.instype = 'BuySellback'
+and	t.status in ('FO Confirmed', 'BO Confirmed','BO-BO Confirmed')
+and	t.status not in ('Void', 'Simulated')
+and	(time_to_day(t.time) = @Date{Today} or t.trdnbr = @TradeNumber{0})
+
+
+
+
+
+select
+	t.DealNumber,
+	t.CPFullname,
+	t.CPAttention,
+	t.CPTelephone,
+	t.CPAddLine1,
+	t.CPAddLine2,
+	t.CPCity,
+	t.CPCountry,
+	t.CPZipCode,
+	t.CPHostID,
+
+	t.PurchaseSale,
+	t.StockDes,
+	t.DealDate,
+
+	t.SettlementDate1,
+	t.SettlementDate2,
+
+	convert('double', t.YTM1)			'YTM1',
+	t.Flag = 'R' ? '' : convert('double', t.YTM2)	'YTM2',
+
+	t.Nominal,
+
+	t.RepoRate,
+	t.RepoType,
+
+	convert('double', t.CleanPrice1)			'CleanPrice1',
+	t.Flag = 'R' ? '' : convert('double', t.CleanPrice2)	'CleanPrice2',
+
+	t.Premium1,
+	t.Flag = 'R' ? (t.Premium1 * -1) + t.AccruedInterest : t.Premium2	'Premium2',
+	
+	t.AccruedInterest
+from
+	temp t

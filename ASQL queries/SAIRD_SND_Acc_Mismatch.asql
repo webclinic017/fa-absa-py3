@@ -1,0 +1,248 @@
+/*------------------------------------------------------------------
+    SAIRD_SND_Acc_Mismatch
+    
+    Date                : 2010-03-31
+    Purpose             : add Discount delta column
+    Department and Desk : PCG SM SND
+    Requester           : Dumisani Mkhonza
+    Developer           : Ickin Vural
+    CR Number           : 269951 (2343)
+
+    Date                : 2011-02-08
+    Purpose             : add Trade Currency and Val Group columns
+    Department and Desk : PCG SM SND
+    Requester           : Lott Chidawaya
+    Developer           : Douglas Finkel
+    CR Number           : 567492
+
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+    ASQL Log
+------------------------------------------------------------------*/  
+select
+ael_i(t,'ASQL_log.ASQL_log','SAIRD_SND_Acc_Mismatch') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject t where
+t.name = 'SAIRD_SND_Acc_Mismatch' and t.type = 'SQL Query'
+
+
+/*------------------------------------------------------------------
+    Macros
+------------------------------------------------------------------*/    
+select
+    to_date(@1_StartDate{Today})             'StartDate',
+	to_date(@2_ReportDate{Today})            'ReportDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+		
+/*------------------------------------------------------------------ 
+    List of Trades
+------------------------------------------------------------------*/  
+select
+	t.trdnbr                                                                                     'Trdnbr',
+	t.trx_trdnbr                                                                                 'Transref',
+	i.instype                                                                                    'Instype',
+	p1.prfid                                                                                     'Portfolio',
+    p2.prfid                                                                                     'CostCentre',
+    t.acquire_day                                                                                'AcquireDay',
+    i.exp_day                                                                                    'MaturityDate',
+    c.spread                                                                                     'Spread',
+    (ael_f(t,'SND_Mismatch.get_ValEnd',m.StartDate,m.ReportDate,'Total Val End'))                           'ValEnd',
+    (ael_f(t,'SND_Mismatch.get_Accrued',to_date('1970-01-01'),m.ReportDate,'Portfolio Accrued Interest'))   'Accrued',
+    (ael_f(t,'SND_Mismatch.get_Interest',to_date(c.start_day),m.ReportDate,'Portfolio Interest'))           'Interest',
+    (ael_f(t,'SND_Mismatch.get_TPL',m.StartDate, m.ReportDate, 'Portfolio Total Profit and Loss'))          'TPL',
+    (nominal_amount(c, m.ReportDate) * t.quantity)                                               'CurrentNominal',
+     add_info(t1,'SND_Trade_Type')                                                               'TRFSNDTradeType',
+     t.quantity > 0 ? 'Buy' : 'Sell'                                                             'BuySell', 
+          
+    to_double(projected_cf(c) * t.quantity / nominal_amount(c) / t.quantity) / (to_int(convert('double',days_between(c.Start_Day,c.End_Day,'Act/365')))) * 36500   'CurrentRate',
+    to_date(ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, m.ReportDate, 3))                      'LastResetDate',
+	to_double(ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, m.ReportDate, 0))                    'LastResetRate',
+	to_date(ael_s(,'SAGEN_Resets.FirstResetAfter', l.legnbr, m.ReportDate,t.trdnbr, 3))                   'NextResetDate',
+    to_double(ael_s(,'SAGEN_Resets.FirstResetAfter', l.legnbr, m.ReportDate,t.trdnbr, 0))                 'NextResetRate',
+
+     l.reset_day_offset                                                                          'ROffset',
+     l.reset_type                                                                                'ResetType',
+     c.start_day                                                                                 'StartDay',
+     c.end_day                                                                                   'EndDay',
+     
+     to_string(l.rolling_period.count,' ',l.rolling_period.unit)      	                         'RollingPeriod',
+     t.status                                                                                    'Status',
+     m.ReportDate                                                                                'ReportDate',
+     ael_f(t,'SND_Mismatch.get_bm_delta')                                                        'Delta',
+     ael_f(t,'SND_Mismatch.get_dd_delta')                                                        'Discount_Delta',
+     c.pay_day                                                                                   'PayDay',
+     t.value_day                                                                                 'ValueDay',
+     display_id(t,'curr')                                                                        'TradeCurrency',
+     display_id(i,'product_chlnbr')                                                              'ValGroup'
+into 
+    TRD
+from
+	trade 		  t,
+	instrument 	  i,
+	portfolio     p1,
+    portfolio     p2,
+    portfoliolink pp,
+    cashflow      c,
+    leg           l,
+    trade         t1,
+    macros        m
+	
+where
+	 match_filter(t, @3_Filter{SND_MISMATCH;tradefilter.fltid})
+   and	t.insaddr = i.insaddr
+   and i.insaddr= l.insaddr
+   and l.legnbr = c.legnbr
+   and t.prfnbr = p1.prfnbr
+   and p1.prfnbr = pp.member_prfnbr
+   and p2.prfnbr = pp.owner_prfnbr
+   and c.pay_day > m.ReportDate
+   and c.start_day <= m.ReportDate
+   and c.end_day > m.ReportDate  
+   and t.trx_trdnbr = t1.trdnbr
+   and c.type not in ('Fixed Amount')
+        
+   
+/*------------------------------------------------------------------ 
+    Data Formatting 
+------------------------------------------------------------------*/ 
+select
+    c.TrdNbr,
+    c.Transref,
+    c.Instype,
+    c.RollingPeriod,
+    c.Portfolio,
+    c.CostCentre,
+    c.AcquireDay,
+    c.MaturityDate,
+    c.LastResetDate 'LastResetDate',
+    round(to_double(c.LastResetRate),5)  'LastResetRate',
+    c.NextResetDate 'NextResetDate',
+    round(to_double(c.NextResetRate),5) 'NextResetRate',
+    c.LastResetDate ~= c.NextResetDate ? c.LastResetDate ~= '1900-01-01' ? c.NextResetDate < c.ReportDate ? to_int(convert('double',days_between(c.ReportDate,c.PayDay,'Act/365'))) : to_int(convert('double',days_between(c.ReportDate,c.NextResetDate,'Act/365'))) : to_int(convert('double',days_between(c.NextResetDate,c.PayDay,'Act/365'))) : to_int(convert('double',days_between(c.NextResetDate,c.PayDay,'Act/365'))) 'DaysLeft',
+    c.ReportDate,       
+    c.spread,
+    c.ValEnd,
+    c.Accrued,
+    c.TPL,
+    c.CurrentNominal,
+    c.TRFSNDTradeType,
+    c.BuySell,
+    c.Status,
+    c.CurrentRate,
+    c.Interest,
+    c.Delta,
+    c.Discount_Delta,
+    c.ResetType,
+    c.PayDay,
+    c.StartDay,
+    c.EndDay,
+    c.TradeCurrency,
+    c.ValGroup
+into 
+    Temp1
+from
+    TRD c 
+   
+select
+	ael_i(,'SND_Mismatch.change_par_override', 332)   'changed'
+into
+    mapping
+from
+	Instrument i
+where
+	i.insid = 'ZAR'
+
+select
+    c.TrdNbr,
+    c.Transref,
+    c.Instype,
+    c.RollingPeriod,
+    c.Portfolio,
+    c.CostCentre,
+    c.AcquireDay,
+    c.MaturityDate,
+    c.LastResetDate,
+    c.LastResetRate,
+    c.NextResetDate,
+    c.NextResetRate,
+    c.ReportDate,       
+    c.spread,
+    c.ValEnd,
+    c.Accrued,
+    c.DaysLeft,
+    c.Interest,
+    c.TPL,
+    c.CurrentNominal,
+    c.TRFSNDTradeType,
+    c.BuySell,
+    c.Status,
+    c.CurrentRate,
+    c.Delta,
+    c.Discount_Delta,
+    c.ResetType,
+    map.changed ~= -1 ? (ael_f(t,'SND_Mismatch.get_ValEnd',m.StartDate,m.ReportDate,'Total Val End'))   : -1 'ValEndSpread',
+    c.TradeCurrency,
+    c.ValGroup
+into    
+    Temp2 
+from
+    Temp1 c,
+    mapping map,
+    macros m,
+    trade t
+where
+    t.trdnbr = c.trdnbr
+				
+select
+	ael_i(,'SND_Mismatch.change_par_override', map.changed)   'changed_back'
+into
+    map_back
+from
+	Mapping map
+where
+	map.changed ~= -1
+
+select
+    c.TrdNbr,
+    c.Transref,
+    c.Instype,
+    c.Portfolio,
+    c.CostCentre,
+    c.AcquireDay,
+    c.MaturityDate,
+    c.spread,
+    c.ValEnd,
+    c.ValEndSpread,
+    c.ValEndSpread - c.ValEnd                         'SpreadValue',
+    c.CurrentNominal,
+    c.Accrued,
+    c.CurrentNominal + c.Accrued                      'BookValue',
+    c.Interest,
+    c.TPL,
+    c.TPL - c.Interest                                'PeriodMismatch',
+    c.ValEndSpread - (c.CurrentNominal + c.Accrued)   'BSMismatch',
+    c.TRFSNDTradeType,
+    c.BuySell,
+    c.RollingPeriod,
+    c.Status,
+    c.CurrentRate,
+    c.LastResetRate,
+    c.LastResetDate,
+    c.NextResetDate,
+    c.NextResetRate,
+    c.ReportDate,       
+    c.DaysLeft,
+    c.DaysLeft <= 31 ? '1m' : c.DaysLeft <= 61 ? '2m' : c.DaysLeft <= 91 ?  '3m' : c.DaysLeft <= 183 ? '6m' : c.DaysLeft <= 274 ? '9m': c.DaysLeft <= 365 ? '1y' : c.DaysLeft <= 730 ? '2y' : c.DaysLeft <= 1095 ? '3y' : c.DaysLeft <= 1825 ? '5y' : '10y' 'Bucket',
+    c.ResetType,
+    c.Delta,
+    c.Discount_Delta,
+    c.TradeCurrency,
+    c.ValGroup
+from
+   Temp2 c

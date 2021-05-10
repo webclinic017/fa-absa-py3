@@ -1,0 +1,14 @@
+[ABSA Greeks 4.3]FInstrumentAndTrades:priceDeltaHedgeEquivalent = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->select(priceDeltaHedgeAlternativeChosen, 
+      nil->spotHandlingZero, 
+      default->switch(priceDeltaPercentForHedge.Number == 0, 
+        true->spotHandlingZero, 
+        false->hedgePriceDeltaPercent / priceDeltaPercentForHedge))));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:priceDeltaHedgeEquivalent = select(priceDeltaHedgeAlternativeChosen, 
+  nil->nil, 
+  default->switch(priceDeltaPercentForHedge.Number == 0, 
+    true->nil, 
+    false->hedgePriceDeltaPercent / priceDeltaPercentForHedge));

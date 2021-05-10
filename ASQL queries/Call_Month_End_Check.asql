@@ -1,0 +1,520 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Month_End_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Month_End_Check' and p.type = 'SQL Query' 
+
+/*
+Date            Who                     What                                    CR Number
+2008-05-13      Heinrich Cronje         Created                                 2820 - 2821
+2008-06-03      Heinrich Cronje         Added union zeroRate                    3105
+2008-06-04      Heinrich Cronje         Added union rollingPeriod               3130
+2008-06-05      Heinrich Cronje         Added union Day Count method            3142
+2008-07-31      Heinrihc Cronje         Added function CFEndDayRedemptionPayDay 3793
+2008-08-14      Tshepo Mabena           Added trade filteres to exclude trades
+                                        that should not be in the exception
+                                        report
+2009-02-06	Heinrich Cronje		Added unions CFFactor, CFNoResets,	367136
+					RedemptionMoreWeek, InterestPast
+                                        
+Description:
+This is the check vital Call Account information before month end.
+
+Rolling Base Day:               If the Rolling Base Day is before the start day of the leg or if the 
+                                Rolling Base Day is not the same as the start day of the leg or if the 
+                                Rolling Base Day is not the first of the next month from the start day 
+                                then it should be on the report. 
+Account Name:                   If the add info field called Account_Name is empty then it should be on the report. 
+Call Region:                    If the add info field called Call_Region is empty or doesn't start with the letters
+                                "INST" or "CORPORATE" then it should be on the report. 
+Interest Start Day:             If the latest Call Fixed Rate Adjustable's start date is before the first day of 
+                                the current month then it should be on the report. 
+Loan - Reinvest:                If the Loan tick box is ticked and the Interest Reinvestment tick box isn't 
+                                ticked then it should be on the report. 
+Trade Status:                   If the trade status is FO Confirmed then it should be on the report. 
+Forward Dated CF:               If there is a cash flow done "today" with a future pay day then it should be on the report.
+ZeroRate:                       If there is any resets with zero rates on the latest Call Fixed Rate Adjustable then the trade
+                                should be on the report.
+rollingPeriod:                  Any money market call account with rolling period not 1m should be on the report.
+CFEndDayRedemptionPayDay:       The last interest cash flow's end day should equal the Redemption Amount's pay day.
+CFFactor:                       The current Call Fixed Rate Adjustable interest entry should have a float_rate_factor = 1
+CFNoResets:                     The current Call Fixed Rate Adjustable interest entry should have resets.
+RedemptionMoreWeek:             Redemption amount should not be forward dated more that a week.
+InterestPast:                   Interest that is created today should not have a payday before today
+
+*/
+
+/*---------------------All Call Accounts--------------------*/
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    l.start_day 'Start_Day',
+    l.end_day   'End_Day',
+    l.rolling_base_day  'Rolling_Base_Day',
+    l.fixed_coupon  'Fixed_Period',
+    t.status    'Status',
+    display_id(t,'trader_usrnbr')   'Trader',
+    add_info(t,'Account_Name')  'Account_Name',
+    add_info(t,'Call_Region')   'Call_Region',
+    ael_f(,'Call_Month_End_Check.callRegion',t.trdnbr)  'Call_Region_Check',
+    ael_f(,'Call_Month_End_Check.rollingBaseDayCheck',t.trdnbr)    'Rolling',
+    ael_d(,'Call_Month_End_Check.currentIntStartDay',t.trdnbr)  'Latest_Interest_Start_Day',
+    t.quantity  'Loan',
+    l.reinvest  'Reinvest',
+    ael_f(,'Call_Month_End_Check.forwardDatedCashFlows',t.trdnbr)   'ForwardDatedCF',
+    ael_f(,'Call_Month_End_Check.zeroRate',t.trdnbr)   'ZeroRate',
+    ael_s(,'Call_Month_End_Check.rollingBasePeriod',t.trdnbr)   'RollingPeriod',
+    l.daycount_method   'DayCountMethod',
+    ael_f(,'Call_Month_End_Check.CFEndDayRedemptionPayDay',t.trdnbr)   'CF_End_Day_Redemption_Pay_Day',
+    ael_f(,'Call_Month_End_Check.CFFactor',i.insid) 'CF_Factor',
+    ael_f(,'Call_Month_End_Check.CFNoResets',i.insid)   'CF_No_Resets',
+    ael_f(,'Call_Month_End_Check.RedemptionMoreWeek',i.insid)   'RedemptionWeek',
+    ael_f(,'Call_Month_End_Check.InterestPast',i.insid) 'InterestPast'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    leg l
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})    
+    
+/*---------------------Rolling Base Day--------------------*/
+select
+    'Rolling Base Day'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.Status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+        t.Rolling = 1
+    and match_filter(t, @4_Filter_Rolling_Base_Day{Call_Month_End_Rolling_Base_D;tradefilter.fltid})
+
+union
+
+/*---------------------Fixed Period-----------------------*/
+select
+    'Fixed Period'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.Fixed_Period = 'No'
+
+union
+
+/*---------------------Account Name-----------------------*/
+select
+    'Account Name'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.Account_Name = ''
+
+union
+
+/*---------------------Call Region-----------------------*/
+select
+    'Call Region'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+        t.Call_Region = ''
+    or t.Call_Region_Check = 1
+
+union
+
+/*---------------------Interest Start Day-----------------------*/
+select
+    'Interest Start Day'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+        t.Latest_Interest_Start_Day ~= date_add_banking_day(TODAY,'ZAR',0)
+    and match_filter(t, @4_Filter_Rolling_Base_Day{Call_Month_End_Rolling_Base_D;tradefilter.fltid})
+union
+
+/*---------------------Loan - Reinvest Check-----------------------*/
+select
+    'Loan - Reinvest'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+        t.Loan = -1
+    and t.Reinvest = 'No'
+    and match_filter(t, @3_Filter_Loan_Reinvestment{Call_Month_End_Loan_Reinvestm;tradefilter.fltid})
+
+union
+
+/*---------------------Trade Status-----------------------*/
+select
+    'Trade Status'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.Status = 'FO Confirmed'
+
+union
+
+/*---------------------Forward Dated Cash Flows-----------------------*/
+select
+    'Forward Dated CF'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.ForwardDatedCF > 0
+    
+union
+
+/*---------------------Zero Rates-----------------------*/
+select
+    'Zero Rate'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+        t.ZeroRate > 0
+    and match_filter(t, @5_Filter_Zero_Rates{Call_Month_End_Zero_Rates;tradefilter.fltid})
+
+
+union
+
+/*---------------------Rolling Period-----------------------*/
+select
+    'Rolling Period'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.RollingPeriod ~= ''
+
+union
+
+/*---------------------Day Count method-----------------------*/
+select
+    'Day Count Method'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.DayCountMethod ~= 'Act/365'
+
+union
+
+/*---------------------CFRA End Day - Redemption Amount Pay Day-----------------------*/
+select
+    'CFRA End Day - Redemption Amount Pay Day'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.CF_End_Day_Redemption_Pay_Day = 1 
+
+union
+
+/*---------------------CFRA Factor-----------------------*/
+select
+    'CFRA Factor'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.CF_Factor = 1 
+
+union
+
+/*---------------------CFRA no resets-----------------------*/
+select
+    'CFRA No Resets'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.CF_No_Resets = 1 
+
+union
+
+/*---------------------Redemption amount forward dated more that a week-----------------------*/
+select
+    'Redemption Amount Forward Dated'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.RedemptionWeek = 1 
+
+union
+
+/*---------------------Interest created today with payday befor today-----------------------*/
+select
+    'Intrest Created Today Value Past'  'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Account_Name,
+    t.Call_Region,
+    t.Start_Day,
+    t.End_Day,
+    t.Rolling_Base_Day,
+    t.Fixed_Period,
+    t.status,
+    t.Trader,
+    t.Latest_Interest_Start_Day,
+    t.Loan,
+    t.Reinvest,
+    t.ForwardDatedCF,
+    t.ZeroRate,
+    t.RollingPeriod,
+    t.DayCountMethod
+from
+    temp t
+where
+    t.InterestPast = 1 

@@ -1,0 +1,6 @@
+[Default]FInstrument:orderBookPriceSourceVar = defaultTrading:orderBookPriceSourceVar;
+[Default]FOrderBook:orderBookPriceSourceVar = var(object.GetDefaultValueEx("orderBookPriceSource", context), "orderBookKind");
+[Default]FPriceFeed:orderBookPriceSourceVar = select(trading, 
+  nil->defaultTrading:orderBookPriceSourceVar, 
+  default->trading:orderBookPriceSourceVar);
+[Default]FTradingInterface:orderBookPriceSourceVar = var(object.GetDefaultValueEx("orderBookPriceSource", context), "orderBookKind");

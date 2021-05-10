@@ -1,0 +1,100 @@
+/* update_method=0 */
+/*
+Purpose                 :[Market Risk feed files],[Added BI.exp_day]
+Department and Desk     :[IT],[MR]
+Requester:              :[Natalie Austin],[Susan Kruger]
+Developer               :[Douglas Finkel],[Willie van der Bank]
+CR Number               :[264536, 644358],[796426 14/10/2011]
+
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_Inflation_SA_Bonds') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Inflation_SA_Bonds' and p.type = 'SQL Query' 
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Inflation_SA_Bonds.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'IndexLinkedBond' 'instype',
+    max(i.exp_day) 'exp_day'
+Into
+    MaxDate
+From
+    instrument i, Trade t, valid_portfolios vp
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('CreditDefaultSwap')
+And t.insaddr = i.insaddr
+And t.status not in ('Void', 'Terminated', 'Simulated')
+and t.prfnbr = vp.prfnbr
+
+Group By 1
+
+
+Select
+    i.insaddr,
+    md.exp_day
+Into
+    BondInstruments
+From
+    instrument i, MaxDate md
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('IndexLinkedBond')
+And i.instype = md.instype
+
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Inflation_SA_Bonds.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'},BI.exp_day)	'BuildConfirmation'
+Into
+    Macro
+From 
+    instrument i, BondInstruments BI
+Where
+    (i.exp_day = 0 or i.exp_day > Today)
+    And i.instype = 'IndexLinkedBond'
+    And BI.insaddr = i.insaddr
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

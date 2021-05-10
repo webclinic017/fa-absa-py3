@@ -1,0 +1,4 @@
+[Securities Lending ABSA]FInstrumentAndTrades:sl_nextDivEstimateValue = sumOf(tradesInPosition :* "sl_nextDivEstimateValue" [positionObject]);
+[Securities Lending ABSA]FTrade:sl_nextDivEstimateValue = switch((sl_startDate <= sl_nextDivEstimateLDT) and (sl_endDate > sl_nextDivEstimateLDT), 
+  true->sl_nextDivEstimateAmount * sl_quantity, 
+  false->0);

@@ -1,0 +1,6 @@
+[Default]FInstrumentAndTrades:bookNAVWhenCalculateCashIsTrue = select(isCashGrouping, 
+  true->bookCashMarkToMarketPeriodValue, 
+  false->select(isAssetGrouping, 
+    true->bookAssetValue, 
+    false->bookCashMarkToMarketPeriodValue + bookAssetValue));
+[Default]FSingleInstrumentAndTrades:bookNAVWhenCalculateCashIsTrue = bookAssetValue;

@@ -1,0 +1,10 @@
+[Adaptiv XVA]FInstrumentAndTrades:matchingCreditBalanceInstrument = shunt(matchingCreditBalanceInstruments.Size == 1, 
+  false->nil, 
+  true->matchingCreditBalanceInstruments[0]);
+[Adaptiv XVA]FSingleInstrumentAndTrades:matchingCreditBalanceInstrument = shunt(matchingCreditBalanceInstruments.Size == 1, 
+  false->nil, 
+  true->matchingCreditBalanceInstruments[0]);
+[Adaptiv XVA]FTrade:matchingCreditBalanceInstrument = shunt(object.CreditBalance <> nil, 
+  true->object.CreditBalance, 
+  false->nil);
+[Adaptiv XVA]FTradeRow:matchingCreditBalanceInstrument = trade:matchingCreditBalanceInstrument;

@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','Dev_Reset_Advice_PDF') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'Dev_Reset_Advice_PDF' and p.type = 'SQL Query'
+
+/* 
+    Name      : Dev_Reset_Advice_PDF
+    Purpose   : Builds Interest Rate Reset Advice Notes for Swaps, Floors and Caps in PDF 
+    Developer : Tshepo Mabena
+    Date      : 18-09-2008
+*/
+
+
+select
+	ael_s(,'Dev_Reset_Advice_PDF.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

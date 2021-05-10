@@ -1,0 +1,6 @@
+[Core Risk]FCombInstrMap:priceDeltaInstrumentCore = select(priceGreekRiskFactorNodeCount == 1, 
+  true->weight * contractSize * timeDistributionFactor * instrument :* "priceDeltaInstrumentCore" [doSplitAll, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors], 
+  false->denominatedValueZero);
+[Core Risk]FInstrument:priceDeltaInstrumentCore = select(priceGreekRiskFactorNodeCount == 1, 
+  true->priceDifferenceInstrument / (singlePriceGreekRiskFactorValueInInstrumentCurrency * percentAdjustmentFactor), 
+  false->denominatedValueZero);

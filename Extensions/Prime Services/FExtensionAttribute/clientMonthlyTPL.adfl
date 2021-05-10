@@ -1,0 +1,8 @@
+[Prime Services]FInstrumentAndTrades:clientMonthlyTPL = shunt(children.IsEmpty, 
+  false->sumOf(children :* "clientMonthlyTPL"), 
+  default->denominatedvalue(0, displayCurrency, nil, nil));
+[Prime Services]FSingleInstrumentAndTrades:clientMonthlyTPL = select(instrumentType, 
+  "Deposit"->plZero, 
+  default->select(isCFDPortfolio, 
+    true->psClientMonthlyTPL - (object :* "brokerageCFD" [profitAndLossStartDate = firstDayOfMonth]) + denominatedvalue(monthlyExecutionFee, displayCurrency, nil, nil), 
+    false->psClientMonthlyTPL + psMonthlyTPLAdjustmentSum));

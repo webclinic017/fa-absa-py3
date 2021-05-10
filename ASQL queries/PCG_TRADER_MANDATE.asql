@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_TRADER_MANDATE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_TRADER_MANDATE' and p.type = 'SQL Query'
+
+Select
+
+t.trdnbr 'Trade',
+i.instype 'Instrument',
+display_id(t,'prfnbr'),
+t.trader_usrnbr = 0 ? 'Adaptor' : u.userid          'TraderID',
+t.trader_usrnbr = 0 ? 'Adaptor' : u.name            'Trader',
+count(t.trdnbr)
+
+from 
+
+trade t,
+instrument i,
+user u
+
+where
+
+match_filter(t, @1Portfolio_Filter{;tradefilter.fltid})
+and i.insaddr = t.insaddr
+and t.trader_usrnbr *= u.usrnbr
+and t.time >= @FromDate{2008-01-01} and t.time <= @ToDate{today}
+
+Group by 4,3
+
+
+union
+
+Select
+
+t.trdnbr 'Trade',
+i.instype 'Instrument',
+display_id(t,'prfnbr'),
+t.trader_usrnbr = 0 ? 'Adaptor' : u.userid          'TraderID',
+t.trader_usrnbr = 0 ? 'Adaptor' : u.name            'Trader',
+count(t.trdnbr)
+
+from 
+
+trade t,
+instrument i,
+user u
+
+where
+
+match_filter(t, @1Portfolio_Filter{;tradefilter.fltid})
+and i.insaddr = t.insaddr
+and t.trader_usrnbr *= u.usrnbr
+and t.time >= @FromDate{2008-01-01} and t.time <= @ToDate{today}
+
+Group by 4,3

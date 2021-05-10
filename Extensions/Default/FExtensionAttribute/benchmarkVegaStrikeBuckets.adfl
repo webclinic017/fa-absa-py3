@@ -1,0 +1,4 @@
+[Default]FInstrumentAndTrades:benchmarkVegaStrikeBuckets = convertToCurrency(benchmarkVegaStrikeBucketValues, theoreticalValueFxRates, displayCurrencySymbol);
+[Default]FTimeBucketAndObject:benchmarkVegaStrikeBuckets = select(useOnesidedShiftForVega, 
+  true->oneSidedDifferential(benchmarkVegaStrikeBucketsBase, node(benchmarkVegaStrikeBucketsBase).Axis, true)[timeBucketCollectionIndex], 
+  default->scenarioaxisarray(rowInstrumentAndTrades:benchmarkVegaStrikeBuckets [displayCurrency, vegaStrikeBucketsInfoSetExternally], <["parameterExpiryDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex]);

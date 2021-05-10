@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:instrumentForwardValueCarryCost = select(forwardValueProviderTargetBase:isInterestProvider, 
+  true->select(isReciprocal, 
+    true->-CarryCost(normalFxRateProvider, forwardValuationDate, "Continuous", "Act/365", nil), 
+    false->CarryCost(forwardValueProviderTargetBase, forwardValuationDate, "Continuous", "Act/365", nil)), 
+  false->nil);

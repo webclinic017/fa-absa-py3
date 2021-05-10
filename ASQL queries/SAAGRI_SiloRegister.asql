@@ -1,0 +1,42 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAAGRI_SiloRegister') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAAGRI_SiloRegister' and p.type = 'SQL Query' 
+
+/*
+Description
+Date        Who             CR Nbr      What
+2009-02-05  Heinrich Cronje 367672      Changed HVal to subtract Calc from Original HVal
+*/
+
+select
+     t.trdnbr                               'Trade Number',
+     time_to_day(t.time)                    'Date',
+     i.insid                                'Instrument',
+     t.your_ref                             'Counterparty Ref',
+     p.ptyid                                'Counterparty',
+     t.quantity				                'Quantity',
+     add_info(t,'AgriSiloLocation')         'Agri Silo Loc',
+     add_info(t,'AgriTransportDiff')        'Agri Transport Diff',
+     add_info(t,'AgriStatus')               'Agri Status',
+     to_double(add_info(t,'AgriTransportDiff'))*t.quantity 'Calc',
+     (to_double(mtm_value_fo(t, @3_ReportDate{TODAY}, c.insid, 2, 0, 1)) - to_double(add_info(t,'AgriTransportDiff'))*t.quantity) 'HVAL',
+	 accumulated_cash(t, @3_ReportDate{TODAY}, c.insid, 2, 0, , 1, 'None')		'HCashIncep',
+	 add_info(i, 'Commodity Type')          'Commodity Type',
+	 t.status                               'Trade Status'
+
+
+from
+     trade t,
+     instrument i,
+     instrument c,
+     party p
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	and t.insaddr=i.insaddr
+	and t.curr=c.insaddr
+	and	t.counterparty_ptynbr=p.ptynbr
+	and time_to_day(t.time) <= to_date(@3_ReportDate{TODAY})

@@ -1,0 +1,12 @@
+[Default]FInstrumentAndTrades:underlyingValueInTheoreticalPrice = select(1 == count(snoop01(theoreticalPrice, "underlyingValue")), 
+  true->snoop01(theoreticalPrice, "underlyingValue"), 
+  false->snoop01(theoreticalPrice, "underlyingValueModel"));
+[Default]FMultiInstrumentAndTrades:underlyingValueInTheoreticalPrice = nil;
+[Default]FOrderBook:underlyingValueInTheoreticalPrice = select(1 == count(snoop01(theoreticalPrice, "underlyingValue")), 
+  true->snoop01(theoreticalPrice, "underlyingValue"), 
+  false->snoop01(theoreticalPrice, "underlyingValueModel"));
+[Default]FPortfolioInstrumentAndTrades:underlyingValueInTheoreticalPrice = nil;
+[Default]FPriceAggregate:underlyingValueInTheoreticalPrice = priceFeed:underlyingValueInTheoreticalPrice;
+[Default]FPriceFeed:underlyingValueInTheoreticalPrice = select(1 == count(snoop01(theoreticalPrice, "underlyingValue")), 
+  true->snoop01(theoreticalPrice, "underlyingValue"), 
+  false->snoop01(theoreticalPrice, "underlyingValueModel"));

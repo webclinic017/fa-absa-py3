@@ -1,0 +1,39 @@
+/*Query picks up all ccs in the filter. It takes the notional exchanges and reval/return projected cashflows and sums them. If the trade is correct, the sum would equal 0*/
+
+
+Select
+    ael_i(p,'ASQL_log','PCG_Exception_CurrSwaps') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_CurrSwaps' and p.type = 'SQL Query' 
+
+
+Select
+
+t.trdnbr 'Trade_Number',
+i.instype 'Instrument_Type',
+sum(projected_cf(cf)) 'Projected_Cashflow',
+abs(sum(projected_cf(cf))) ' Absolute_ProjectedCF',
+display_id(t,'prfnbr') 'Portfolio'
+
+
+from 
+trade t,
+leg l,
+cashflow cf,
+instrument i
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and l.nominal_scaling = 'FX'
+and cf.type in ('Fixed Amount','Return')
+
+/*Below trades were checked for errors, either they are legacy trades which have errors with past cashflows or they have been fixed by booking an additional payment to correct the nominal scaling. The add payment would not pick up in the query, thus the cf's will not add up to zero*/
+
+and t.trdnbr not in ('568053','635699','1972635','975983','975997','635694','635701','676218','676226','1313387','187392','913201','914986','1983777','918032','929975','1038346','187434','842642','861772','839292','859065','1046147','901483','721869','187596','698675','1439676','324434','991065')
+
+group by 1

@@ -1,0 +1,5 @@
+[Profit and Loss Explain]FInstrumentAndTrades:profitAndLossExplainRiskFactorFlatChange = select(weightMethod, 
+  "Delta Weighted Average"->switch(almostZero(profitAndLossExplainRiskFactorDeltaBucketSum, 1e-15), 
+    true->0.0, 
+    false->sumOf(profitAndLossExplainBucketRiskFactors :* "profitAndLossExplainRiskFactorChange * profitAndLossExplainRiskFactorDelta" [profitAndLossStartDate, profitAndLossEndDate, riskFactorTypeName, rowObject := object]) / profitAndLossExplainRiskFactorDeltaBucketSum), 
+  default->averageOf(profitAndLossExplainBucketRiskFactors :* "profitAndLossExplainRiskFactorChange" [profitAndLossStartDate, profitAndLossEndDate, riskFactorTypeName, rowObject := object]));

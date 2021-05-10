@@ -1,0 +1,9 @@
+[Profit and Loss]FDeliverableLinkAndTrades:tradedInterest = nil;
+[Profit and Loss]FInstrumentAndTrades:tradedInterest = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->tradedInterestLive, 
+  "Inception to Historical"->tradedInterestEnd, 
+  "Historical to Present"->tradedInterestLive - tradedInterestStart, 
+  "Historical to Historical"->tradedInterestEnd - tradedInterestStart);
+[Profit and Loss]FPriceAggregate:tradedInterest = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "tradedInterest");

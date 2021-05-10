@@ -1,0 +1,5 @@
+[Default]FCashFlowInstrument:fxRateForYTMCalculations = nil;
+[Default]FDualCurrencyBond:fxRateForYTMCalculations = flattenAndRemoveNil(legs :* "fxRateForYTMCalculations");
+[Default]FLeg:fxRateForYTMCalculations = select(instrumentCurrency <> currency, 
+  true->fxRateToInstrument, 
+  false->nil);

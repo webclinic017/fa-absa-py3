@@ -1,0 +1,7 @@
+[Absa_2010]FInstrumentAndTrades:ABSAFilter = select(instrumentGroupingReference, 
+  nil->select(underlying, 
+    nil->alwaysMatchedFilter, 
+    default->select(underlying.IsKindOf("FIndex"), 
+      true->underlying, 
+      false->alwaysMatchedFilter)), 
+  default->instrumentGroupingReferenceUnderlyingOrSelf);

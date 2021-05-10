@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:parVolatility = select(valuationModelDisablesParVolatilityColumn, 
+  false->select(hasParVolatility, 
+    true->shunt(isSimulatedFlatVolatility, 
+      true->simulatedFlatVolatilityValue, 
+      false->cashFlowInstrumentParVolatility), 
+    false->nil), 
+  true->nil);
+[Default]FInstrument:parVolatility = nil;
+[Default]FInstrumentAndTrades:parVolatility = instrument:parVolatility;

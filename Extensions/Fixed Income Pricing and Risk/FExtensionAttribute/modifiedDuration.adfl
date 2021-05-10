@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FCombInstrMap:modifiedDuration = instrument :* "modifiedDuration" [priceSource];
+[Fixed Income Pricing and Risk]FCombination:modifiedDuration = sumOf(flattenAndRemoveNil(modifiedDurationsWeighted)) / underlyingOrSelf.Factor;
+[Fixed Income Pricing and Risk]FInstrument:modifiedDuration = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->shunt(implyValid, 
+    false->object:modifiedDurationFromYield [yieldValue = theoreticalYieldToMaturity, instrumentSpotDate], 
+    true->object:modifiedDurationFromYield [yieldValue = marketYieldToMaturity, instrumentSpotDate]), 
+  false->nan);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:modifiedDuration = instrument :* "modifiedDuration" [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:modifiedDuration = nil;

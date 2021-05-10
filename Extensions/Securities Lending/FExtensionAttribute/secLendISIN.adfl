@@ -1,0 +1,13 @@
+[Securities Lending]FInstrument:secLendISIN = object.Isin;
+[Securities Lending]FMultiInstrumentAndTrades:secLendISIN = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendISIN));
+[Securities Lending]FOrderBook:secLendISIN = instrument:secLendISIN;
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendISIN = nil;
+[Securities Lending]FPriceLevelRow:secLendISIN = instrument:secLendISIN;
+[Securities Lending]FSecurityLoan:secLendISIN = underlying:secLendISIN;
+[Securities Lending]FSingleInstrumentAndTrades:secLendISIN = instrument:secLendISIN;
+[Securities Lending]FTradeRow:secLendISIN = instrument:secLendISIN;
+[Securities Lending]FUndefinedObject:secLendISIN = nil;

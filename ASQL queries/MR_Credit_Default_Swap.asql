@@ -1,0 +1,95 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 707888
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003404656   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-444
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Credit_Default_Swap_DN') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Credit_Default_Swap_DN' and p.type = 'SQL Query'
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Credit_Default_Swap_DN.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Credit_Default_Swap.csv'},@3_PositionName{'MR_Credit_Default_Swap_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+	
+select i.insaddr, round(sum(ccf.nominal_factor),2) 'CD_Nominal', round(sum(pcf.nominal_factor),2) 'Fix_Nominal', min(ccf.start_day) 'CD_StartDate', min(pcf.start_day) 'Fix_StartDate'
+into Temp
+from instrument i, leg pl, cashflow pcf, leg cl, cashflow ccf
+where i.instype = 'CreditDefaultSwap'
+and i.insaddr = pl.insaddr
+and pl.legnbr = pcf.legnbr
+and i.insaddr = cl.insaddr
+and cl.legnbr = ccf.legnbr
+and cl.type = 'Credit Default'
+and (i.exp_day = 0 or i.exp_day > Today)
+and not(pl.type = 'Credit Default')
+Group by 1
+
+select T.insaddr,
+l.legnbr 'LNumber',
+l.type 'Type',
+T.CD_StartDate 'StartDate'
+into InsType
+from Temp T, leg l 
+where T.insaddr = l.insaddr
+and l.type = 'Credit Default'
+and not (T.CD_Nominal = T.Fix_Nominal)
+
+select T.insaddr,
+l.legnbr 'LNumber',
+l.type 'Type',
+T.Fix_StartDate 'StartDate'
+into InsType
+from Temp T, leg l 
+where T.insaddr = l.insaddr
+and not (l.type = 'Credit Default')
+and not (T.CD_Nominal = T.Fix_Nominal)
+
+select T.insaddr,
+0 'LNumber',
+l.type 'Type',
+l.start_day 'StartDate'
+into InsType
+from Temp T, leg l
+where (T.CD_Nominal = T.Fix_Nominal)
+and T.insaddr = l.insaddr
+and not (l.type = 'Credit Default')
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Credit_Default_Swap_DN.Write',@1_path{'f:\'},@2_FileName{'MR_Credit_Default_Swap.csv'},@3_PositionName{'MR_Credit_Default_Swap_Position.csv'},IT.LNumber,IT.Type,IT.StartDate)	'BuildConfirmation'
+Into
+    Macro
+From 
+	InsType IT, instrument i
+Where i.insaddr = IT.insaddr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

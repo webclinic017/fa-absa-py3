@@ -1,0 +1,14 @@
+select
+
+t.trdnbr
+
+from
+trade t,
+instrument i
+
+where
+t.insaddr = i.insaddr
+and i.instype = 'Option'
+and display_id (i,'Curr') = 'ZAR'
+and i.und_instype ~= 'Curr'
+and i.spot_banking_days_offset > 0

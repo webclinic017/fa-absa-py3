@@ -1,0 +1,93 @@
+
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','FXO Turnover per cp per curr') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'FXO Turnover per cp per curr' and p.type = 'SQL Query'
+
+/* 
+    Name      : FXO Turnover per cp per cur
+    Purpose   : for portfolio VOE
+    Developer : Anil Parbhoo
+    CR number : CHNG0000834586
+*/
+
+
+
+
+select
+t.trdnbr,
+t.status,
+p.prfid'Portfolio',
+cp.ptyid'CP',
+i.insid'Option_Name',
+i.exp_day,
+uc.insid'Curr_1',
+(abs(t.quantity))'ABS_Nominal_1',
+
+sc.insid'Curr_2',
+(abs(t.quantity*i.strike_price))'ABS_Nominal_2',
+t.sales_credit'sc1',
+to_double(add_info(t,'Sales_Credit2'))'sc2',
+to_double(add_info(t,'Sales_Credit3'))'sc3',
+to_double(add_info(t,'Sales_Credit4'))'sc4',
+to_double(add_info(t,'Sales_Credit5'))'sc5',
+to_double(add_info(t,'ValueAddCredits'))'va1',
+to_double(add_info(t,'ValueAddCredits2'))'va2',
+to_double(add_info(t,'ValueAddCredits3'))'va3',
+to_double(add_info(t,'ValueAddCredits4'))'va4',
+to_double(add_info(t,'ValueAddCredits5'))'va5'
+
+
+into temp
+
+
+from
+trade t,
+instrument i,
+portfolio p,
+party cp,
+instrument uc,
+instrument sc
+
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr = p.prfnbr
+and i.instype in ('Option')
+and i.und_instype = 'Curr'
+and match_filter(t,@Filter{FXO Net Position and Turnover;Tradefilter.fltid})
+and t.counterparty_ptynbr=cp.ptynbr
+and t.Status not in ('Void','Simulated', 'Terminated')
+and i.und_insaddr=uc.insaddr
+and i.strike_curr = sc.insaddr
+
+
+/*   select from temp  */
+
+
+select
+
+
+tt.trdnbr,
+tt.status,
+tt.Portfolio,
+tt.CP,
+tt.Option_Name,
+tt.exp_day,
+tt.Curr_1,
+sum(tt.ABS_Nominal_1)'ABS_Nominal_1',
+tt.Curr_2,
+sum(tt.ABS_Nominal_2)'ABS_Nominal_2',
+sum(tt.sc1+tt.sc2+tt.sc3+tt.sc4+tt.sc5)'Sales_Credits',
+sum(tt.va1+tt.va2+tt.va3+tt.va4+tt.va5)'Value_Added_Credits'
+
+from 
+
+temp tt
+
+group by tt.CP, tt.Curr_1, tt.Curr_2
+
+
+order by tt.CP, tt.Curr_1, tt.Curr_2

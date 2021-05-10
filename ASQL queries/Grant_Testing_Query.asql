@@ -1,0 +1,90 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+
+ select 
+      ael_i(p,'ASQL_log','PCG_Benchmark_prices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Benchmark_prices' and p.type = 'SQL Query' 
+
+  /* 
+
+    ================================================================
+
+    asql used to calc benchmark deltas
+
+    done by simulating a 1bp bump on benchmarks for given curve
+
+    Dirk Strauss    14-Sept-2007
+
+    ================================================================
+
+*/
+
+select
+
+    date_add_banking_day(to_date(TODAY), 'ZAR', -1)  't0',
+    to_date(TODAY)                                   't1'
+into
+    parm
+from 
+    Instrument i
+where
+    i.insid = 'ZAR'
+
+select    
+    TODAY                                   'RepDate',
+    p.t0,
+    p.t1,
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    p0.settle                               'prc_t0',
+    p1.settle                               'prc_t1',
+    (p1.settle - p0.settle) * 100           'diff_bp'
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p0,
+    price p1,
+    parm p
+where
+    yc.yield_curve_name in ('USD-SWAP','EUR-SWAP')
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr    
+    and p0.insaddr = ins.insaddr
+    and p1.insaddr = ins.insaddr    
+    and p0.day = p.t0
+    and p1.day = p.t1
+    and p0.ptynbr = 10 /*'SPOT'*/
+    and p1.ptynbr = 10 /*'SPOT'*/
+    and p.t1 ~= TODAY
+order by 4, 6
+
+union
+
+select    
+    TODAY                                   'RepDate',
+    p.t0,
+    p.t1,
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    p0.settle                               'prc_t0',
+    used_price(ins)                          'prc_t1',
+    (used_price(ins) - p0.settle) * 100      'diff_bp'
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p0,
+    parm p
+where
+    yc.yield_curve_name in ('USD-SWAP','EUR-SWAP')
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr    
+    and p0.insaddr = ins.insaddr
+    and p0.day = p.t0
+    and p0.ptynbr = 10 /*'SPOT'*/
+    and p.t1 = TODAY
+order by 4, 6

@@ -1,0 +1,20 @@
+[ACL]FCashFlowInstrument:faclAttrAmortisation = select(isSingleLegInstrument, 
+  false->nil, 
+  true->firstLeg :* "faclAmortisation" [faclTradeQuantity]);
+[ACL]FCreditDefaultSwap:faclAttrAmortisation = select(faclTradeQuantity > 0, 
+  true->select(faclReceiveLeg, 
+    nil->nil, 
+    default->faclReceiveLeg :* "faclAmortisation" [faclTradeQuantity]), 
+  false->select(faclPayLeg, 
+    nil->nil, 
+    default->faclPayLeg :* "faclAmortisation" [faclTradeQuantity]));
+[ACL]FInstrument:faclAttrAmortisation = nil;
+[ACL]FSwap:faclAttrAmortisation = select(faclTradeQuantity > 0, 
+  true->select(faclReceiveLeg, 
+    nil->nil, 
+    default->faclReceiveLeg :* "faclAmortisation" [faclTradeQuantity]), 
+  false->select(faclPayLeg, 
+    nil->nil, 
+    default->faclPayLeg :* "faclAmortisation" [faclTradeQuantity]));
+[ACL]FTrade:faclAttrAmortisation = instrument :* "faclAttrAmortisation" [faclTradeQuantity = faclTradeNominal];
+[ACL]FTradeRow:faclAttrAmortisation = trade:faclAttrAmortisation;

@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:collateralMarginValue = select(isPartyGrouping, 
+  true->select(isSingleCollateral, 
+    true->totalCollateralValueExcludingInterest, 
+    false->sumOf(tradesInPosition :* "collateralMarginValue" [positionObject])), 
+  false->sumOf(children :* "collateralMarginValue"));
+[Securities Lending ABSA]FTrade:collateralMarginValue = (totalCollateralValueExcludingInterest * collateralMargin);

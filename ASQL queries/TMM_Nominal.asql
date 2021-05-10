@@ -1,0 +1,46 @@
+   /* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TMM_Nominal') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TMM_Nominal' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	@Date{}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)		            'fxRepDay'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+
+select
+    t.trdnbr                                'TradeNumber',
+    display_id(t, 'prfnbr')                 'Portfolio',
+    i.exp_day                               'ExpiryDate',
+    /*t.quantity*i.contr_size* 1/fx.fxRepDay  'Nominal',*/
+    present_value(t) * 1/fx.fxRepDay        'PresentValue'
+    
+from
+    Trade t,
+    Instrument i,
+    Instrument c,
+    fxrates fx
+    
+where
+    match_filter(t, @Filter{'TMM_Nominal'})    
+and t.insaddr = i.insaddr    
+and i.curr = c.insaddr
+and fx.curr =* c.insid
+and t.status not in ('Simulated','Terminated','Void')
+and (i.exp_day >= @Date{today}) 
+    

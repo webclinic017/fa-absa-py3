@@ -1,0 +1,12 @@
+[Prime Services]FBond:closingPrice = py("PS_Functions", context).YieldToPrice(object, profitAndLossEndDate, profitAndLossUsedPriceEnd, true, false);
+[Prime Services]FCertificateOfDeposit:closingPrice = py("PS_Functions", context).YieldToPrice(object, profitAndLossEndDate, profitAndLossUsedPriceEnd, true, false);
+[Prime Services]FDeposit:closingPrice = plZero;
+[Prime Services]FFra:closingPrice = parRateClean * 100;
+[Prime Services]FFuture:closingPrice = select(underlying.InsType, 
+  "Bond"->py("PS_Functions", context).YieldToPrice(underlying, object.ExpiryAndUnderlying.ExpiryDate, profitAndLossUsedPriceEnd, true, false) / 100, 
+  default->profitAndLossUsedPriceEnd);
+[Prime Services]FInstrument:closingPrice = profitAndLossUsedPriceEnd;
+[Prime Services]FSingleInstrumentAndTrades:closingPrice = instrument:closingPrice;
+[Prime Services]FSwap:closingPrice = select(isExpired, 
+  true->notANumberIsZero(parRateClean) * 100, 
+  default->parRateClean * 100);

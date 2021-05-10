@@ -1,0 +1,7 @@
+[Default]FInstrument:creditImpliedFlatParCDSSpread = select(typeHazardCreditCurvesInTheoreticalPriceForFlatParCDSSpread, 
+  0->nil, 
+  default->shunt(implyValid, 
+    false->nil, 
+    true->imply(creditFlatParCDSSpread, creditTheoreticalPriceFromParCDSSpread, marketPrice, creditImpliedFlatParCDSSpreadAccuracy, -1.0, 1.0, implyMaxIterations)));
+[Default]FInstrumentAndTrades:creditImpliedFlatParCDSSpread = instrument :* "creditImpliedFlatParCDSSpread" [priceSource];
+[Default]FMultiInstrumentAndTrades:creditImpliedFlatParCDSSpread = nil;

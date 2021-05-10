@@ -1,0 +1,65 @@
+/*=================================================================================================
+    t.time                                              'TIME',
+    t.value_day                                         'VALUEDAY',
+    po.prfid                                            'PORTFOLIO',
+    p.ptyid                                             'COUNTERPARTY',
+    u.userid                                            'TRADER',
+    i.insid                                             'CURRENCY1',
+    c.insid                                             'CURRENCY2',    
+    sum(t.quantity)                                     'QUANTITY',
+    t.price                                             'PRICE',
+    sum(t.premium)                                      'PREMIUN',
+=================================================================================================*/
+select 
+    ael_s(t,'AsqlFunctions_HP.midas_dealno')     'MIDAS', 
+    ael_s(t,'AsqlFunctions_HP.trade_system')     'SYSTEM',
+    t.trdnbr                                  'TRADENO',
+    t.optional_key                            'OPKEY',
+    t.status                                  'STATUS',
+    t.your_ref                                'YOURREF',
+    t.value_day                               'VALUEDAY'  
+into
+    TRADES
+from 
+    trade t,
+    instrument i,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr    
+and i.instype = 'Curr'
+and t.time > '2010-01-01'
+and p.prfid in ('MIDAS_FLO','FLO','MIDAS_FWT','FWT','MIDAS_JOL','JOL','MIDAS_CAT','CAT')
+/*=================================================================================================
+it might have gone to another portfolios ?
+and t.group_trdnbr = t.group_trdnbr
+=================================================================================================*/
+select 
+    t1.TRADENO      'TRADE1',
+    t2.TRADENO      'TRADE2',
+    t1.MIDAS        'MIDAS1',                                        
+    t2.MIDAS        'MIDAS2',
+    t1.SYSTEM       'SYSTEM1',
+    t2.SYSTEM       'SYSTEM2',
+    t1.OPKEY        'OPTIONALKEY1',
+    t2.OPKEY        'OPTIONALKEY2',
+    t1.STATUS       'STATUS1',
+    t2.STATUS       'STATUS2',
+    t1.YOURREF      'YOURREF1',
+    t2.YOURREF      'YOURREF2',
+    t1.VALUEDAY     'VALUEDAY1',
+    t2.VALUEDAY     'VALUEDAY2'
+from
+    TRADES t1,
+    TRADES t2
+where 
+    t1.MIDAS = t2.MIDAS
+and t1.TRADENO ~= t2.TRADENO
+and t1.SYSTEM ~= t2.SYSTEM
+and t1.VALUEDAY = t2.VALUEDAY
+/*=================================================================================================
+it might have gone to another portfolios ?
+and t.group_trdnbr = t.group_trdnbr
+=================================================================================================*/
+
+

@@ -1,0 +1,29 @@
+[Default]FBuySellBack:staticLegInformations = underlying:staticLegInformations;
+[Default]FCashFlowInstrument:staticLegInformations = select(includeLegInformationsFromCustomValuedInstrument, 
+  true->collapse(staticLegInformationsAll), 
+  false->select(useCustomHistoricalCashFlowsForProfitAndLoss, 
+    true->nil, 
+    default->collapse(staticLegInformationsAll)));
+[Default]FCfd:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate := expiryDate], 
+  false->nil);
+[Default]FCombInstrMap:staticLegInformations = instrument:weightAdjustedStaticLegInformations [weight := weight * object.Weight, isUnderlying, includeLegInformationsFromCustomValuedInstrument];
+[Default]FCombination:staticLegInformations = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "staticLegInformations" [weight := invertedFactor, includeLegInformationsFromCustomValuedInstrument]), 
+  false->nil);
+[Default]FDerivative:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate = expiryDateForCouponToValue], 
+  false->nil);
+[Default]FFuture:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate := expiryDate], 
+  false->nil);
+[Default]FInstrument:staticLegInformations = nil;
+[Default]FInstrumentAndTrades:staticLegInformations = instrument:staticLegInformations;
+[Default]FInstrumentMoneyFlow:staticLegInformations = instrument:staticLegInformations;
+[Default]FLeg:staticLegInformations = select(hasGenericBaseDate, 
+  true->object:staticLegInformation [instrument:forwardPriceDate], 
+  false->staticLegInformation);
+[Default]FLegAndTrades:staticLegInformations = leg:staticLegInformations;
+[Default]FOrderBook:staticLegInformations = instrument:staticLegInformations;
+[Default]FPriceFeed:staticLegInformations = instrument:staticLegInformations;
+[Default]FQuoteController:staticLegInformations = instrument:staticLegInformations;

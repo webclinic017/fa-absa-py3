@@ -1,0 +1,76 @@
+/* update_method=0 */
+/* Daily_CPIRef_non_bus_days: last updated on Thu Jan 10 08:42:44 2008. Extracted by Stowaway on 18/08/2009.*/
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Daily_CPIRef_non_bus_days') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Daily_CPIRef_non_bus_days' and p.type = 'SQL Query' 
+ 
+  /* Daily_CPIRef_non_buss_days: created on Wednesday 13 July 2005 by Charmain Alves FCS*/
+/*
+
+ 
+
+query = Daily_DFs_non_buss_days
+*/
+
+ 
+
+/*Generate sequence 0-9*/
+
+ 
+
+select
+ u1.usrnbr,
+ count(u2.usrnbr)-1 'Nbr'
+into
+ TMP
+from
+ user u1,
+ user u2
+where
+ u1.usrnbr<u2.usrnbr
+group by u1.usrnbr
+
+ 
+
+/*Generate sequence 1-1000*/
+
+ 
+
+select
+ 100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1 'Nbr'
+into
+ SCEN
+from 
+ TMP t1,
+ TMP t2,
+ TMP t3
+where
+ t1.Nbr<10
+and t2.Nbr<10
+and t3.Nbr<1000
+
+ 
+
+/*Calculate result by scenario*/
+
+ 
+
+select
+ date_add_delta(@CPIRefStart{2005-06-01},s.Nbr)  'Date',
+ cpi_reference(i,date_add_delta(@CPIRefStart{2005-05-01},s.Nbr))                    'CPI_Ref',
+ forward_price(i,date_add_delta(@CPIRefStart{2005-05-01},s.Nbr)),
+ s.Nbr
+from
+ SCEN  s,
+ instrument  i
+ 
+where
+ i.insid='SACPI'
+and s.Nbr<=@Nbr_7000_is_29years[31]
+
+ 
+
+order by 2

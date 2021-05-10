@@ -1,0 +1,522 @@
+/*
+Purpose                 :Eagle Feed feed files
+Department and Desk     :IT
+Requester:              :Dale Vice
+Developer               :Kim Madeley
+CR Number               :C809530
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-01-19                      Kieron Mcewan      Christoff Human    Including Total Return underlying bonds in the feed.
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+  select 
+      ael_i(p,'ASQL_log','EAGLE_CD_ABSA_AST') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EAGLE_CD_ABSA_AST' and p.type = 'SQL Query' 
+ 
+  SELECT
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+
+
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		'ME',
+		
+
+	to_date(@5_YearEndDate{2003-03-31;})					'YE',
+	
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+	
+	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay',
+	mtm_price(hc, m.ME, curr.insid)				'fxME',
+	mtm_price(hc, m.YE, curr.insid)				'fxYE'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+/*KKKKKKKKKKKKKKKKKKKKKKKKKKKKK*/
+
+
+select
+t.trdnbr                                                'SOURCE_TRADE_ID',
+convert('time', TODAY, '%Y%m%d')                        'EXTRACT_DATE',
+l.type = 'Credit Default' ? 1 : 2                          'LEG_NUMBER',
+(present_value(l) * t.quantity)  > 0 ? 'R' : 'P'          'PAY_OR_RECEIVE',
+l.daycount_method = '30/360' ? '30/360' :
+l.daycount_method = '30E/360' ? '30/E' :
+l.daycount_method = 'Act/360' ? 'A360' :
+l.daycount_method = 'Act/365' ? 'A365F' :
+l.daycount_method = 'Act/ActISMA' ? 'A360' :
+l.daycount_method                                                                               'DAY_COUNT_BASIS',
+''                                                                                          'COMPOUND_TYPE',
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                              'COMPOUND_FREQUENCY',
+display_id(l,'curr')                                                                            'ORIG_PRIMARY_CURRENCY',
+convert('time', l.start_day, '%Y%m%d')                                                          'FIRST_VALUE_DATE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                                            'SECOND_VALUE_DATE',
+convert('time', ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7), '%d')                      'PAYMENT_DAY',
+i.instype = 'FRA' ? 'Z' :                                  
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'INTEREST_CYCLE_TYPE',
+nominal_amount(t)                                                                 'PRIMARY_AMOUNT',
+convert('time', ael_s(,'SAGEN_Resets.CurrentReset',l.legnbr,TODAY,3), '%d')                     'RESET_DAY',
+i.instype = 'FRA' ? 'Z' : 
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'RESET_FREQUENCY',
+l.spread                                                                                          'SPREAD',
+l.pay_day_method = 'Following' ? 'F' : 
+l.pay_day_method = 'Preceding' ? 'P' :                
+l.pay_day_method = 'Mod. Following' ? 'MF' : 
+l.pay_day_method = 'Mod. Preceding' ? 'MP' : 
+l.pay_day_method = 'IMM' ? 'IM' : 
+'E'                                                                                               'INTEREST_CYCLE_RULE',
+display_id(l,'pay_calnbr') = 'CHF Zurich' ? 'ZUB' :
+display_id(l,'pay_calnbr') = 'EUR Euro' ? 'TGT' :
+display_id(l,'pay_calnbr') = 'GBP London' ? 'LNB' :
+display_id(l,'pay_calnbr') = 'USD New York' ? 'NYB' :
+display_id(l,'pay_calnbr') = 'ZAR Johannesburg' ?  'JOB' :
+display_id(l,'pay_calnbr') = 'Target' ?  'TGT' :
+'JOB'                                                                                         'PAYMENT_CAL',
+''                                                                                             'RESET_INTEREST_RULE',
+(display_id(l,'curr') = 'ZAR' ? 'SAFEX' :
+display_id(l,'curr') = 'USD' ? 'LIBOR' : 
+display_id(l,'curr') = 'EUR' ? 'EUBOR' : 
+display_id(l,'curr') = 'GBP' ? 'LIBOR' :
+'SAFEX')                                                                                         'REFERENCE_RATE_ID',
+(nominal_amount(t) < 0 and (present_value(l) * t.quantity) > 0) ? 0 :
+(nominal_amount(t) < 0 and (present_value(l) * t.quantity) < 0) ? (present_value(und) * t.quantity / i.index_factor * cl.weight) :
+(nominal_amount(t) > 0 and (present_value(l) * t.quantity) < 0) ? 0 : (present_value(und) * t.quantity / i.index_factor * cl.weight) 'CCY_AMOUNT_NPVCCY',
+
+l.type = 'Fixed' ? 'FIX' : 'FLT'                        'FIXED_FLOAT_IND',
+ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,8)                                           'INTEREST_RATE',
+(to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7)) <=
+to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,1))) ? 'ADV' : 'ARR'                  'PAYMENT_TIMING',
+''                                                                                              'FIXING_RATE',
+''                                                                                              'INTEREST_TERM',
+0.00                                                                                'UNDERLYING_SPOT_PRICE'
+
+into tempCLN
+
+
+from trade t, instrument i, party p, CombinationLink cl, instrument und, leg l
+where i.insaddr = t.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.insaddr = cl.owner_insaddr
+and und.insaddr = cl.member_insaddr
+and und.insaddr = l.insaddr
+and i.instype = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day >= Today
+and display_id(t,'acquirer_ptynbr') in ('Credit Derivs', 'CREDIT DERIVATIVES DESK')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+/* and round(mtm_value_fo(t,@3_ReportDate{})) ~= 0.00 */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+group by 1,3
+
+Having count(und.insaddr) = 1
+
+select
+
+SOURCE_TRADE_ID,
+EXTRACT_DATE,
+LEG_NUMBER,
+PAY_OR_RECEIVE,
+DAY_COUNT_BASIS,
+COMPOUND_TYPE,
+COMPOUND_FREQUENCY,
+ORIG_PRIMARY_CURRENCY,
+FIRST_VALUE_DATE,
+SECOND_VALUE_DATE,
+PAYMENT_DAY,
+INTEREST_CYCLE_TYPE,
+abs(PRIMARY_AMOUNT) 'PRIMARY_AMOUNT',
+RESET_DAY,
+RESET_FREQUENCY,
+SPREAD,
+INTEREST_CYCLE_RULE,
+PAYMENT_CAL,
+RESET_INTEREST_RULE,
+REFERENCE_RATE_ID,
+PRIMARY_AMOUNT < 0 ? abs(CCY_AMOUNT_NPVCCY) * -1 : abs(CCY_AMOUNT_NPVCCY)    'CCY_AMOUNT_NPVCCY',
+FIXED_FLOAT_IND,
+INTEREST_RATE,
+PAYMENT_TIMING,
+FIXING_RATE,
+INTEREST_TERM,
+UNDERLYING_SPOT_PRICE
+
+
+from
+
+tempCLN
+
+union
+
+select
+
+t.trdnbr                                                                                         'SOURCE_TRADE_ID',
+convert('time', TODAY, '%Y%m%d')                                                                'EXTRACT_DATE',
+l.type = 'Credit Default' ? 1 : 2                                                                                         'LEG_NUMBER',
+(present_value(l) * t.quantity)  > 0 ? 'R' : 'P'                                                'PAY_OR_RECEIVE',
+l.daycount_method = '30/360' ? '30/360' :
+l.daycount_method = '30E/360' ? '30/E' :
+l.daycount_method = 'Act/360' ? 'A360' :
+l.daycount_method = 'Act/365' ? 'A365F' :
+l.daycount_method = 'Act/ActISMA' ? 'A360' :
+l.daycount_method                                                                               'DAY_COUNT_BASIS',
+''                                                                                          'COMPOUND_TYPE',
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                              'COMPOUND_FREQUENCY',
+display_id(l,'curr')                                                                            'ORIG_PRIMARY_CURRENCY',
+convert('time', l.start_day, '%Y%m%d')                                                          'FIRST_VALUE_DATE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                                            'SECOND_VALUE_DATE',
+convert('time', ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7), '%d')                      'PAYMENT_DAY',
+i.instype = 'FRA' ? 'Z' :                                  
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'INTEREST_CYCLE_TYPE',
+abs(nominal_amount(l) * t.quantity)                                                                  'PRIMARY_AMOUNT',
+convert('time', ael_s(,'SAGEN_Resets.CurrentReset',l.legnbr,TODAY,3), '%d')                     'RESET_DAY',
+i.instype = 'FRA' ? 'Z' : 
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'RESET_FREQUENCY',
+l.spread                                                                                          'SPREAD',
+l.pay_day_method = 'Following' ? 'F' : 
+l.pay_day_method = 'Preceding' ? 'P' :                
+l.pay_day_method = 'Mod. Following' ? 'MF' : 
+l.pay_day_method = 'Mod. Preceding' ? 'MP' : 
+l.pay_day_method = 'IMM' ? 'IM' : 
+'E'                                                                                               'INTEREST_CYCLE_RULE',
+display_id(l,'pay_calnbr') = 'CHF Zurich' ? 'ZUB' :
+display_id(l,'pay_calnbr') = 'EUR Euro' ? 'TGT' :
+display_id(l,'pay_calnbr') = 'GBP London' ? 'LNB' :
+display_id(l,'pay_calnbr') = 'USD New York' ? 'NYB' :
+display_id(l,'pay_calnbr') = 'ZAR Johannesburg' ?  'JOB' :
+display_id(l,'pay_calnbr') = 'Target' ?  'TGT' :
+'JOB'                                                                                         'PAYMENT_CAL',
+''                                                                                             'RESET_INTEREST_RULE',
+(display_id(l,'curr') = 'ZAR' ? 'SAFEX' :
+display_id(l,'curr') = 'USD' ? 'LIBOR' : 
+display_id(l,'curr') = 'EUR' ? 'EUBOR' : 
+display_id(l,'curr') = 'GBP' ? 'LIBOR' :
+'SAFEX')                                                                                         'REFERENCE_RATE_ID',
+(nominal_amount(t) < 0 and (present_value(l) * t.quantity) > 0) ? 0 :
+(nominal_amount(t) < 0 and (present_value(l) * t.quantity) < 0) ? mtm_value_fo(t,@3_ReportDate{},display_id(i,'curr')) :
+(nominal_amount(t) > 0 and (present_value(l) * t.quantity) < 0) ? 0 : mtm_value_fo(t,@3_ReportDate{},display_id(i,'curr')) 'CCY_AMOUNT_NPVCCY',
+l.type = 'Fixed' ? 'FIX' : 'FLT'                        'FIXED_FLOAT_IND',
+ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,8)                                           'INTEREST_RATE',
+(to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7)) <=
+to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,1))) ? 'ADV' : 'ARR'                  'PAYMENT_TIMING',
+''                                                                                              'FIXING_RATE',
+''                                                                                              'INTEREST_TERM',
+0.00                                                                                'UNDERLYING_SPOT_PRICE'
+from
+
+trade t,
+instrument i,
+leg l,
+macros		m,
+fxrates		fx,
+instrument	curr,
+party p,
+instrument und,
+
+yieldcurve yc,
+YCAttribute attrib
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+AND fx.curr = curr.insid
+AND curr.instype = 'Curr'
+AND currency_included(t, curr.insid) = 1
+AND curr.insaddr= l.curr
+and i.instype in ('CreditDefaultSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and ael_s(,'SAGEN_Cashflows.NoCfwnbr',l) = 'Yes'*/
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+/*and round(mtm_value_fo(t,@3_ReportDate{})) ~= 0.00 */
+and l.credit_ref = und.insaddr
+and ael_s(,'get_discountcurve',i,'Pay') = yc.yield_curve_name
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.issuer_ptynbr = und.issuer_ptynbr
+and attrib.seniority_chlnbr = und.seniority_chlnbr
+
+union
+
+select
+
+t.trdnbr                                                                                       'SOURCE_TRADE_ID',
+convert('time', TODAY, '%Y%m%d')                                                                'EXTRACT_DATE',
+1                                                                                        'LEG_NUMBER',
+(present_value(l) * abs(t.quantity))  > 0 ? 'R' : 'P'                            'PAY_OR_RECEIVE',
+l.daycount_method = '30/360' ? '30/360' :
+l.daycount_method = '30E/360' ? '30/E' :
+l.daycount_method = 'Act/360' ? 'A360' :
+l.daycount_method = 'Act/365' ? 'A365F' :
+l.daycount_method                                                                               'DAY_COUNT_BASIS',
+''                                                                                          'COMPOUND_TYPE',
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                              'COMPOUND_FREQUENCY',
+display_id(l,'curr')                                                                            'ORIG_PRIMARY_CURRENCY',
+convert('time', l.start_day, '%Y%m%d')                                                          'FIRST_VALUE_DATE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                                            'SECOND_VALUE_DATE',
+convert('time', ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7), '%d')                      'PAYMENT_DAY',
+i.instype = 'FRA' ? 'Z' :                                  
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'INTEREST_CYCLE_TYPE',
+abs(nominal_amount(t))                                                                 'PRIMARY_AMOUNT',
+convert('time', ael_s(,'SAGEN_Resets.CurrentReset',l.legnbr,TODAY,3), '%d')                     'RESET_DAY',
+i.instype = 'FRA' ? 'Z' : 
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'RESET_FREQUENCY',
+l.spread                                                                                          'SPREAD',
+l.pay_day_method = 'Following' ? 'F' : 
+l.pay_day_method = 'Preceding' ? 'P' :                
+l.pay_day_method = 'Mod. Following' ? 'MF' : 
+l.pay_day_method = 'Mod. Preceding' ? 'MP' : 
+l.pay_day_method = 'IMM' ? 'IM' : 
+'E'                                                                                               'INTEREST_CYCLE_RULE',
+display_id(l,'pay_calnbr') = 'CHF Zurich' ? 'ZUB' :
+display_id(l,'pay_calnbr') = 'EUR Euro' ? 'TGT' :
+display_id(l,'pay_calnbr') = 'GBP London' ? 'LNB' :
+display_id(l,'pay_calnbr') = 'USD New York' ? 'NYB' :
+display_id(l,'pay_calnbr') = 'ZAR Johannesburg' ?  'JOB' :
+display_id(l,'pay_calnbr') = 'Target' ?  'TGT' :
+'JOB'                                                                                         'PAYMENT_CAL',
+''                                                                                             'RESET_INTEREST_RULE',
+(display_id(l,'curr') = 'ZAR' ? 'SAFEX' :
+display_id(l,'curr') = 'USD' ? 'LIBOR' : 
+display_id(l,'curr') = 'EUR' ? 'EUBOR' : 
+display_id(l,'curr') = 'GBP' ? 'LIBOR' :
+'SAFEX')                                                                                         'REFERENCE_RATE_ID',
+
+mtm_value_fo(t,@3_ReportDate{},display_id(t,'curr'))                                 'CCY_AMOUNT_NPVCCY',
+l.type = 'Fixed' ? 'FIX' : 'FLT'                        'FIXED_FLOAT_IND',
+to_string(l.fixed_rate)                                                                       'INTEREST_RATE',
+(to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7)) <=
+to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,1))) ? 'ADV' : 'ARR'                  'PAYMENT_TIMING',
+''                                                                                              'FIXING_RATE',
+''                                                                                              'INTEREST_TERM',
+used_price(und)                                                                                 'UNDERLYING_SPOT_PRICE'
+
+from
+
+trade t,
+instrument i,
+leg l,
+macros		m,
+fxrates		fx,
+instrument	curr,
+party p,
+instrument und
+
+where 
+
+    t.insaddr = i.insaddr
+and und.insaddr = l.insaddr
+and i.und_insaddr = und.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+AND fx.curr = curr.insid
+AND curr.instype = 'Curr'
+AND currency_included(t, curr.insid) = 1
+AND curr.insaddr= l.curr
+and i.instype = 'Option'
+and und.instype = 'Bond'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+/* and round(mtm_value_fo(t,@3_ReportDate{})) ~= 0.00 */
+
+union
+
+select
+
+t.trdnbr                                                                                       'SOURCE_TRADE_ID',
+convert('time', TODAY, '%Y%m%d')                                                                'EXTRACT_DATE',
+1                                                                                       'LEG_NUMBER',
+(present_value(l) * abs(t.quantity))  > 0 ? 'R' : 'P'                            'PAY_OR_RECEIVE',
+l.daycount_method = '30/360' ? '30/360' :
+l.daycount_method = '30E/360' ? '30/E' :
+l.daycount_method = 'Act/360' ? 'A360' :
+l.daycount_method = 'Act/365' ? 'A365F' :
+l.daycount_method                                                                               'DAY_COUNT_BASIS',
+''                                                                                          'COMPOUND_TYPE',
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                              'COMPOUND_FREQUENCY',
+display_id(l,'curr')                                                                            'ORIG_PRIMARY_CURRENCY',
+convert('time', l.start_day, '%Y%m%d')                                                          'FIRST_VALUE_DATE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                                            'SECOND_VALUE_DATE',
+convert('time', ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7), '%d')                      'PAYMENT_DAY',
+i.instype = 'FRA' ? 'Z' :                                  
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'INTEREST_CYCLE_TYPE',
+abs(nominal_amount(t))                                                                 'PRIMARY_AMOUNT',
+convert('time', ael_s(,'SAGEN_Resets.CurrentReset',l.legnbr,TODAY,3), '%d')                     'RESET_DAY',
+i.instype = 'FRA' ? 'Z' : 
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 1) ? 'M' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 3) ? 'Q' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 6) ? 'S' :
+(l.rolling_period.unit = 'Months' and l.rolling_period.count = 12) ? 'A':
+(l.rolling_period.unit = 'Years' and l.rolling_period.count = 1) ? 'A':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 1) ? 'D':
+(l.rolling_period.unit = 'Days' and l.rolling_period.count = 91) ? 'Q':
+'Z'                                                                                             'RESET_FREQUENCY',
+l.spread                                                                                          'SPREAD',
+l.pay_day_method = 'Following' ? 'F' : 
+l.pay_day_method = 'Preceding' ? 'P' :                
+l.pay_day_method = 'Mod. Following' ? 'MF' : 
+l.pay_day_method = 'Mod. Preceding' ? 'MP' : 
+l.pay_day_method = 'IMM' ? 'IM' : 
+'E'                                                                                               'INTEREST_CYCLE_RULE',
+display_id(l,'pay_calnbr') = 'CHF Zurich' ? 'ZUB' :
+display_id(l,'pay_calnbr') = 'EUR Euro' ? 'TGT' :
+display_id(l,'pay_calnbr') = 'GBP London' ? 'LNB' :
+display_id(l,'pay_calnbr') = 'USD New York' ? 'NYB' :
+display_id(l,'pay_calnbr') = 'ZAR Johannesburg' ?  'JOB' :
+display_id(l,'pay_calnbr') = 'Target' ?  'TGT' :
+'JOB'                                                                                         'PAYMENT_CAL',
+''                                                                                             'RESET_INTEREST_RULE',
+(display_id(l,'curr') = 'ZAR' ? 'SAFEX' :
+display_id(l,'curr') = 'USD' ? 'LIBOR' : 
+display_id(l,'curr') = 'EUR' ? 'EUBOR' : 
+display_id(l,'curr') = 'GBP' ? 'LIBOR' :
+'SAFEX')                                                                                         'REFERENCE_RATE_ID',
+
+mtm_value_fo(t,@3_ReportDate{},display_id(t,'curr'))                                 'CCY_AMOUNT_NPVCCY',
+l.type = 'Fixed' ? 'FIX' : 'FLT'                        'FIXED_FLOAT_IND',
+to_string(l.fixed_rate)                                                                       'INTEREST_RATE',
+(to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,7)) <=
+to_date(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,TODAY,1))) ? 'ADV' : 'ARR'                  'PAYMENT_TIMING',
+''                                                                                              'FIXING_RATE',
+''                                                                                              'INTEREST_TERM',
+0.0                                                                             'UNDERLYING_SPOT_PRICE'
+
+from
+
+trade t,
+instrument i,
+leg l,
+instrument float
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and l.type = 'Total Return'
+and l.float_rate = float.insaddr
+and float.instype in ('Bond','IndexLinkedBond')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+
+
+
+

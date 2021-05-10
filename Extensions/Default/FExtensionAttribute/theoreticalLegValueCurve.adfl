@@ -1,0 +1,11 @@
+[Default]FLeg:theoreticalLegValueCurve = select(payTypeForward, 
+  true->nil, 
+  false->select(payType, 
+    "Future"->nil, 
+    default->select(useRiskFreeDiscounting, 
+      true->riskFreeDiscountCurve, 
+      false->select(useBESADiscounting, 
+        true->repoCurve, 
+        false->select(isCredit, 
+          true->riskFreeDiscountCurve, 
+          false->discountCurve)))));

@@ -1,0 +1,55 @@
+/* Usage code for this ASQL */
+/*2007/12/11 changed by D Wentzel to allow the 6m point to come through as 6m and not 6y*/
+
+select
+ael_i(p,'ASQL_log','SACD_ERM_Rates_USD') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACD_ERM_Rates_USD' and p.type = 'SQL Query' 
+
+
+
+
+
+
+select
+    display_id(a, 'issuer_ptynbr')      'Party',
+    
+    /*date_period.count = 0 ? to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 1, 0, 0), 'Act/365'))*/
+    date_period.unit = 'Years' ?  to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, date_period.count), 'Act/365'))
+    : date_period.unit = 'Months' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, date_period.count,0), 'Act/365'))
+    : date_period.unit = 'Days' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  date_period.count, 0,0), 'Act/365'))
+    : date_period.unit = 'Weeks' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  date_period.count*7, 0,0), 'Act/365'))
+    : to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, date_period.count), 'Act/365')) 'Days In Period',
+    
+   /* date_period.count = 0 ? date_add_delta(@Date{today}, 1, 0, 0)    */
+    date_period.unit = 'Years' ? date_add_delta(@Date{today}, 0, 0, date_period.count)
+    : date_period.unit = 'Months' ? date_add_delta(@Date{today}, 0, date_period.count,0)
+    : date_period.unit = 'Days' ? date_add_delta(@Date{today}, date_period.count, 0, 0)
+    : date_period.unit = 'Weeks' ? date_add_delta(@Date{today}, date_period.count * 7, 0, 0)
+    : date_add_delta(@Date{today}, 0, 0, date_period.count) 'End Date', 
+    
+    s.spread * 1                     'Rate',
+    today                               'DATADATE' 
+    
+
+from
+    YieldCurve y,
+    YCAttribute a,
+    YCSpread s,
+    YieldCurvePoint p
+    
+   
+    
+where
+    y.seqnbr = a.yield_curve_seqnbr
+and a.seqnbr = s.attribute_seqnbr
+and y.seqnbr = p.yield_curve_seqnbr
+and point_seqnbr = p.seqnbr
+and y.yield_curve_name = @YieldCurveName{CDIssuerCurve_HR_USD;yieldcurve.yield_curve_name}
+    
+    
+
+
+
+

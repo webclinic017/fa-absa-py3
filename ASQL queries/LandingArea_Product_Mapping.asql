@@ -1,0 +1,164 @@
+
+/*
+Project                 : Client Valuation 
+Purpose                 : Added the following fields for the Client Val: Underlying_Expiry, SEDOL, Underlying_Fwd_Price and StartDate.   
+                           
+Department and Desk     : IT - CTB Primary Markets  
+Requester               : Phil Ledwaba
+Developer               : Tshepo Mabena
+CR Number               : 829680 
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* select 
+      ael_i(p,'ASQL_log','LandingArea_Product_Mapping') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Product_Mapping' and p.type = 'SQL Query' */
+
+ 
+select
+    t.trdnbr,
+    l.type,
+    l.payleg
+
+into tempYes
+
+from 
+    trade t, 
+    leg l, 
+    instrument i
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Float'
+and l.payleg = 'Yes'
+and i.exp_day > date_add_delta(today, -5,0,0)
+
+
+
+
+select
+    t.trdnbr,
+    l.type,
+    l.payleg
+
+into tempNo
+
+from 
+    trade t, 
+    leg l, 
+    instrument i
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Float'
+and l.payleg = 'No'
+and i.exp_day > date_add_delta(today, -5,0,0)
+
+select 
+    ty.trdnbr, 
+    'BasisSwap'  'Type'
+
+into tempType
+
+from 
+    tempYes ty, 
+    tempNo tn
+
+where 
+    ty.trdnbr = tn.trdnbr
+
+
+select
+    t.trdnbr,
+    'CurrSwap' 'Type'
+
+into tempType
+
+from 
+    trade t, 
+    leg l, 
+    instrument i
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Fixed'
+and i.exp_day > date_add_delta(today, -5,0,0)
+
+
+
+select distinct 
+    i.insaddr,
+    i.insid,
+    ty.type	                            'Instype',
+    Add_Info(t,'MM_Instype')            'MM_INSTYPE',
+    Add_Info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day = 0 ? '0000-01-01' : i.exp_day  'exp_day' ,
+    und.insaddr                         'Und_insaddr',
+    und.insid                           'Und_insid',
+    und.instype                         'Und_instype',
+    'None'                              'OptType',
+    Add_Info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype'
+
+from 
+    trade t, 
+    instrument i, 
+    tempType ty, 
+    instrument und
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype = 'CurrSwap'
+and t.trdnbr = ty.trdnbr
+and i.exp_day > date_add_delta(today, -5,0,0)
+
+union
+
+select distinct 
+    i.insaddr,
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    Add_Info(t,'MM_Instype')            'MM_INSTYPE',
+    Add_Info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day = 0 ? '0000-01-01' : i.exp_day  'exp_day' ,
+    und.insaddr                         'Und_insaddr',
+    und.insid                           'Und_insid',
+    und.instype                         'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    Add_Info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and (t.status not in ('Simulated') OR t.TrdNbr IN (1129688,1356965,1232483,1502608))
+and i.instype ~= 'CurrSwap'
+and (i.exp_day > date_add_delta(today, -5,0,0)
+	OR i.exp_day = '0000-01-01'  
+	OR i.insid LIKE 'USD/IMM/%'
+    OR i.insid = 'EUR/111013-111014/0.70/#3')
+
+

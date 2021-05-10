@@ -1,0 +1,22 @@
+[Default]FBasketRepo:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Default]FBasketSecurityLoan:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Default]FCashFlowInstrument:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Default]FInstrument:nonCouponValue = nil;
+[Default]FLeg:nonCouponValue = select(count(projectedNonCouponCashFlows), 
+  0->[], 
+  default->select(isCredit, 
+    true->select(isMultiCurrencyInstrument, 
+      true->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, riskFreeDiscountCurve, moneyMarketCurve, projectedNonCouponCashFlows, projectedNonCouponHazardFactors, fxRateToInstrument, instrumentCurrency), 
+      false->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, riskFreeDiscountCurve, repoCurve, projectedNonCouponCashFlows, projectedNonCouponHazardFactors, fxRateToInstrument, instrumentCurrency)), 
+    false->select(isMultiCurrencyInstrument, 
+      true->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, discountCurve, moneyMarketCurve, projectedNonCouponCashFlows, fxRateToInstrument, instrumentCurrency), 
+      false->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, discountCurve, repoCurve, projectedNonCouponCashFlows, fxRateToInstrument, instrumentCurrency))));
+[Default]FRepoInstrument:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated)) + moneyMarketCurve.DiscountValue(securityAmount, instrumentSpotDate);

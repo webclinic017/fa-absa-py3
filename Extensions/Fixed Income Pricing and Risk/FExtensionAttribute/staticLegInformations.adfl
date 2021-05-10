@@ -1,0 +1,28 @@
+[Fixed Income Pricing and Risk]FBuySellBack:staticLegInformations = underlying:staticLegInformations;
+[Fixed Income Pricing and Risk]FCashFlowInstrument:staticLegInformations = select(includeLegInformationsFromCustomValuedInstrument, 
+  true->collapse(staticLegInformationsAll), 
+  false->select(useCustomHistoricalCashFlowsForProfitAndLoss, 
+    true->nil, 
+    default->collapse(staticLegInformationsAll)));
+[Fixed Income Pricing and Risk]FCfd:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate := expiryDate], 
+  false->nil);
+[Fixed Income Pricing and Risk]FCombInstrMap:staticLegInformations = instrument:weightAdjustedStaticLegInformations [weight := weight * object.Weight, isUnderlying, includeLegInformationsFromCustomValuedInstrument];
+[Fixed Income Pricing and Risk]FCombination:staticLegInformations = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "staticLegInformations" [weight := invertedFactor, includeLegInformationsFromCustomValuedInstrument]), 
+  false->nil);
+[Fixed Income Pricing and Risk]FDerivative:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate = expiryDateForCouponToValue], 
+  false->nil);
+[Fixed Income Pricing and Risk]FFuture:staticLegInformations = select(needsLegInformation, 
+  true->underlying:staticLegInformations [forwardPriceDate := expiryDate], 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:staticLegInformations = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:staticLegInformations = instrument:staticLegInformations;
+[Fixed Income Pricing and Risk]FInstrumentMoneyFlow:staticLegInformations = instrument:staticLegInformations;
+[Fixed Income Pricing and Risk]FLeg:staticLegInformations = select(hasGenericBaseDate, 
+  true->object:staticLegInformation [instrument:forwardPriceDate], 
+  false->staticLegInformation);
+[Fixed Income Pricing and Risk]FLegAndTrades:staticLegInformations = leg:staticLegInformations;
+[Fixed Income Pricing and Risk]FOrderBook:staticLegInformations = instrument:staticLegInformations;
+[Fixed Income Pricing and Risk]FPriceFeed:staticLegInformations = instrument:staticLegInformations;

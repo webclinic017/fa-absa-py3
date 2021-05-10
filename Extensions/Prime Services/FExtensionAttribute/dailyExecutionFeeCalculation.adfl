@@ -1,0 +1,10 @@
+[Prime Services]FTrade:dailyExecutionFeeCalculation = select(instrument.InsType, 
+  "Stock"->-1 * abs(object.Price * object.Quantity / instrument:eqQuoteFactor) * vatFactor * executionRate / 100, 
+  "ETF"->-1 * abs(object.Price * object.Quantity / instrument:eqQuoteFactor) * vatFactor * executionRate / 100, 
+  "CFD"->-1 * abs(object.Price * object.Quantity / instrument:eqQuoteFactor) * vatFactor * executionRate / 100, 
+  "Future/Forward"->-1 * abs(instrument:contractSize * object.Quantity * object.Price / underlying:eqQuoteFactor) * vatFactor * executionRate / 100, 
+  "Option"->-1 * abs(instrument:contractSize * object.Quantity * py("PS_Functions", context).GetMtMPrice(underlying, tradeDate) / underlying:eqQuoteFactor) * vatFactor * executionRate / 100, 
+  "Bond"->-1 * abs(py("PS_Functions", context).TradeYieldDelta(object)) * vatFactor * executionRate * 100, 
+  "FRA"->-1 * abs(py("PS_Functions", context).TradeYieldDelta(object)) * vatFactor * executionRate * 100, 
+  "Swap"->-1 * abs(py("PS_Functions", context).TradeYieldDelta(object)) * vatFactor * executionRate * 100, 
+  default->0);

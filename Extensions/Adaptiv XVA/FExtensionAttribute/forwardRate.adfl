@@ -1,0 +1,10 @@
+[Adaptiv XVA]FCashFlow:forwardRate = select(cashFlowIsGenericForForwardRate, 
+  true->totalGenericForwardRate, 
+  false->select(isCapletFloorlet(type), 
+    true->cashFlowInformation :* "forwardRate" [legInformation], 
+    false->cashFlowInformation :* "forwardRate" [legInformationOrNil]));
+[Adaptiv XVA]FCashFlowInformation:forwardRate = select(isCapletFloorlet(type), 
+  true->capletFloorletUndRate, 
+  false->select(isAmountCashFlow, 
+    true->0.0, 
+    default->object.Rate(legInformationOrNil)));

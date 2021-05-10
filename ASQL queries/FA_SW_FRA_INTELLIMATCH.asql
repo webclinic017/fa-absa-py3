@@ -1,0 +1,60 @@
+/*
+Purpose                       :  The requirement is to reconcile deal data. 
+Department and Desk           :  Ops
+Requester                     :  Miguel de silva
+Developer                     :  Ickin Vural
+CR Number                     :  362177 (ABOPSIT-107)
+*/
+
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','FA_SW_FRA_INTELLIMATCH') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'FA_SW_FRA_INTELLIMATCH' and p.type = 'SQL Query' 
+
+select
+    
+    t.optional_key 'MARKITWIRE_ID',
+    t.trdnbr 'TRDNBR',
+    to_date(t.time) 'TIME',
+    t.status 'STATUS',
+    display_id(t,'prfnbr') 'PRFNBR.PRFID',
+    i.contr_size 'CONTR_SIZE',
+    t.quantity 'QUANTITY',
+    display_id(t,'curr') 'CURR.INSID',
+    l.start_day 'START_DAY',
+    display_id(t,'acquirer_ptynbr') 'ACQUIRER_PTYNBR.PTYID',
+    p.swift  'COUNTERPARTY_PTYNBR.SWIFT',
+    i.instype 'INSTTYPE',
+    display_id(t,'trader_usrnbr') 'TRADER_USERNBR.USERID',
+    l.daycount_method = 'Act/360' ? 'ACT/360' : l.daycount_method = 'Act/365' ? 'ACT/365.FIXED' : l.daycount_method = 'Act/ActISDA' ? 'ACT/ACT>ISDA' : l.daycount_method = 'Act/ActISMA' ? 'ACT/ACT.ISMA' : ''  'DAYCOUNT_METHOD',
+    l.pay_day_method = 'Mod. Following' ? 'MODFOLLOWING' : l.pay_day_method = 'Following' ? 'FOLLOWING' : l.pay_day_method = 'Preceding' ? 'PRECEDING' : ''  'PAY_DAY_METHOD' ,
+    display_id(l,'pay_calnbr') 'PAY_CALNBR.CALID' ,
+    display_id(l,'float_rate') 'FLOAT_RATE.INSID',
+    l.reset_day_offset 'RESET_DAY_OFFSET',
+    l.fixed_rate 'FIXED_RATE'
+    
+    
+   
+from
+
+    Instrument i,
+    Trade t,
+    Leg l,
+    Party p
+    
+where
+
+    i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.instype = 'FRA'
+and t.status not in ('Simulated', 'Void')
+and (time_to_day(t.creat_time) = @Date{Today})
+and add_info(t,'MarkitWire') ~= ''
+and t.optional_key like 'MW%'
+
+order by 1

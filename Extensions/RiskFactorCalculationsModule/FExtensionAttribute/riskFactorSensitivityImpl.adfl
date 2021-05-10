@@ -1,0 +1,4 @@
+[RiskFactorCalculationsModule]FInstrumentAndTrades:riskFactorSensitivityImpl = select(count(riskFactorDimensions), 
+  0->riskFactorTheoreticalValueSensitivity, 
+  1->shift(object:riskFactorTheoreticalValueSensitivity [riskFactorTargetParams, riskFactorCollections], riskFactorDeltaParameters, shiftRiskFactorDeltaParameters riskFactorDimensionsHead), 
+  default->shift(object:riskFactorSensitivityImpl [riskFactorTargetParams, riskFactorCollections, riskFactorDimensions := riskFactorDimensionsTail], riskFactorDeltaParameters, shiftRiskFactorDeltaParameters riskFactorDimensionsHead));

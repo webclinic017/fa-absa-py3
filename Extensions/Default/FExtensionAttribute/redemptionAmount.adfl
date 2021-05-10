@@ -1,0 +1,6 @@
+[Default]FDeposit:redemptionAmount = -redemptionAmountProjectedCashFlow;
+[Default]FInstrument:redemptionAmount = nil;
+[Default]FInstrumentAndTrades:redemptionAmount = select(currencyGroupingReference, 
+  nil->nil, 
+  default->sumOf(instruments :* "redemptionAmountPosition" [positionObject, valuesOnSpotOverride, valuationDate]));
+[Default]FSingleInstrumentAndTrades:redemptionAmount = instrument :* "redemptionAmountPosition" [positionObject, valuesOnSpotOverride, valuationDate];

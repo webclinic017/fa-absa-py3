@@ -1,0 +1,13 @@
+[Default]FInstrument:underlyingPriceInTheoreticalPriceTransform = select(underlyingForUnderlyingPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(underlyingPriceInTheoreticalPrice, 
+    nil->nil, 
+    default->underlyingPriceInTheoreticalPriceTransformImpl));
+[Default]FInstrumentAndTrades:underlyingPriceInTheoreticalPriceTransform = openInstrumentOrInstrument:underlyingPriceInTheoreticalPriceTransform [theoreticalPrice, priceSource, isSplitAllGrouped, usePerUnitQuotation, underlying = underlyingForUnderlyingPriceInTheoreticalPrice];
+[Default]FMultiInstrumentAndTrades:underlyingPriceInTheoreticalPriceTransform = select(underlyingForUnderlyingPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(underlyingPriceInTheoreticalPrice, 
+    nil->nil, 
+    default->underlyingPriceInTheoreticalPriceTransformImpl));
+[Default]FPortfolioInstrumentAndTrades:underlyingPriceInTheoreticalPriceTransform = nil;
+[Default]FPriceAggregate:underlyingPriceInTheoreticalPriceTransform = instrument:underlyingPriceInTheoreticalPriceTransform [theoreticalPrice, priceSource, isSplitAllGrouped, usePerUnitQuotation, underlying = underlyingForUnderlyingPriceInTheoreticalPrice];

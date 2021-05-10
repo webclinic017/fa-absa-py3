@@ -1,0 +1,162 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_CFD_AISUpload_File') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_CFD_AISUpload_File' and p.type = 'SQL Query' 
+ 
+
+
+
+/* determine closing balance */
+select 
+    display_id(t,'insaddr')						'Instrument',
+	time_to_day(t.time)						'DealDate',
+	i.instype							'InstrumentType',
+    add_info(Prf,'CFD Counterparty')          'Borrower_CP',
+	sum(t.quantity) 							'Number_of_Contracts',                 	
+	@Date{TODAY}							'DATA_DATE',
+	date_add_banking_day(@Date,, +5)             'Settlement_Date',
+	display_id(pr,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')						'SubPortFolio'	
+
+into
+	t1	
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	portfoliolink pr,
+	portfolio prf
+	
+where 
+	t.insaddr = i.insaddr
+	and match_filter(t,@TradeFilter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','FMAINTENANCE','Eq Derivative Desk','Equity Deriv','Equity_OTC')
+	and time_to_day(t.time) <= @Date
+	and t.prfnbr = pr.member_prfnbr
+	and t.prfnbr = prf.prfnbr
+	and i.instype = 'Stock'
+    
+group by 1
+
+ /* Determine opening balance */
+ 
+select 
+	display_id(t,'insaddr')						'Instrument',
+	time_to_day(t.time)						'DealDate',
+	i.instype							'InstrumentType',
+    add_info(Prf,'CFD Counterparty')          'Borrower_CP',
+	sum(t.quantity) 							'Number_of_Contracts',                 	
+	@Date{TODAY}							'DATA_DATE',
+	display_id(pr,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')						'SubPortFolio'	
+
+into
+	t2
+	
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	portfoliolink pr,
+	portfolio prf
+	
+where 
+	t.insaddr = i.insaddr
+	and match_filter(t,@TradeFilter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','FMAINTENANCE','Eq Derivative Desk','Equity Deriv','Equity_OTC')
+	and time_to_day(t.time) <= date_add_banking_day(@Date,, -1)
+	and t.prfnbr = pr.member_prfnbr
+    and t.prfnbr = prf.prfnbr
+	and i.instype = 'Stock'
+
+group by 1
+
+select
+    temp.Instrument								'Share',
+    temp.Borrower_CP                                 'Borrower_CP',
+    sum(temp2.Number_of_Contracts) 	              	'Opening_Balance',
+	sum(temp.Number_of_Contracts)					'Closing_Balance',
+	temp.Number_of_Contracts - temp2.Number_of_Contracts      'Movement',
+	temp.DATA_DATE								'Report_Date',
+	temp.Settlement_Date             'Settlement_Date'
+
+into
+    move
+
+from
+    t1 temp,
+    t2 temp2
+    
+where
+    temp.Instrument *= temp2.Instrument
+
+group by 1
+
+select
+    Share,
+    Borrower_CP,
+    Opening_Balance,
+    Closing_Balance,
+    Movement,
+    Report_Date,
+    Settlement_Date
+    
+into borrow
+    
+from
+    move
+   
+where
+    Opening_Balance < 0.00 OR Closing_Balance < 0.00
+
+select
+    borrow.Opening_Balance >= 0 ? borrow.Closing_Balance
+        : (borrow.Movement > -1* borrow.Opening_Balance) and (borrow.Movement > 0) ? -1* borrow.Opening_Balance
+        : borrow.Movement           'Quantity',
+    ael_s(,'SAGEN_str_functions.split_string',borrow.Share,'ZAR/',1)    'Share_Code',
+    'ABSA Capital CFD' 'CFD_Account',
+    borrow.Borrower_CP,
+    borrow.Report_Date,
+    borrow.Settlement_Date
+from 
+    borrow
+where (borrow.Opening_Balance >= 0 ? borrow.Closing_Balance
+        : (borrow.Movement > -1* borrow.Opening_Balance) and (borrow.Movement > 0) ? -1* borrow.Opening_Balance
+        : borrow.Movement) < 0.00
+        AND ael_s(,'SAGEN_str_functions.split_string',borrow.Share,'ZAR/',1) = 'NONE' 
+
+
+/*OLD DATA SENT THROUGH
+/*SELECT
+        SUM(T.quantity < 0.00 ? ABS(T.Quantity) : T.Quantity * -1)  'Quantity',
+        ael_s(,'SAGEN_str_functions.split_string',I.InsID,'ZAR/',1) 'Share_Code',
+        'ABSA Capital CFD'                                          'CFD_Account',
+        add_info(P,'CFD Counterparty')                              'Borrower_CP',
+        to_date(T.time)                                             'Trade_Date',
+        T.Value_Day                                                 'Settlement_Date',
+        add_info(T,'Stock Hedges')                                  'Deal_Ref'
+        
+FROM
+        Trade T,
+        Instrument I,
+        Portfolio P
+WHERE
+        T.insaddr = i.insaddr
+        AND T.prfnbr = P.prfnbr
+        AND match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+        AND to_date(T.creat_time) = to_date(@3_ReportDate{yesterday})
+GROUP BY 2,5*/

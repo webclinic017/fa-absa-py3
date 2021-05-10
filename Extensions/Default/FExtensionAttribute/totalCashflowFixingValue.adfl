@@ -1,0 +1,5 @@
+[Default]FAbstractReset:totalCashflowFixingValue = select(cashFlowInformation, 
+  nil->nil, 
+  default->instrument.ContractSize * select(cashFlowProjectedFromModelCall, 
+    true->collapse(projectedFromModelCallForCashFlow), 
+    false->cashFlowInformation :* "projectedCashFlow" [roundingInformation, legInformation, unRoundedProjectedCashFlow]) * cashFlowInformation:timeApportionFactor);

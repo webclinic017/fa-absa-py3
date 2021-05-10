@@ -1,0 +1,122 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ERM_ATM_Volatility') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'ERM_ATM_Volatility' and p.type = 'SQL Query' 
+ 
+select
+	v.vol_name			'Vol_name',
+	i.insid				'Instrument',
+	und.insid			'Underlying',
+	(i.call_option = 'yes') ? 'Call' : 'Put'	'C_P',
+	und.exp_day			'UndMat',
+	i.exp_day			'Exp_day',
+	i.strike_price			'Strike_Moneyness',
+	used_price(und)			'Und_Mkt_Price',
+	used_price(i)			'Mkt_Price',
+	vp.volatility*100 
+	+ uvp.volatility*100		'Volatility',
+	today				'Business_Date'
+from
+	Volatility v,
+	VolPoint vp,
+	Volatility UV,
+	Volpoint UVP,
+	instrument i,
+	instrument uvi,
+	instrument und
+
+where
+	vp.vol_seqnbr = v.seqnbr
+and	v.und_vol_seqnbr = UV.seqnbr
+and	uvp.vol_seqnbr = uv.seqnbr
+and	uvi.exp_day = i.exp_day
+and	v.vol_name in ('EQUITY_ATM_VOL','TBR_Safex Skew')
+and	i.insaddr = vp.insaddr
+and	uvi.insaddr = uvp.insaddr
+and	i.und_insaddr = und.insaddr
+
+union
+
+select
+	v.vol_name			'Vol_name',
+	i.insid				'Instrument',
+	und.insid			'Underlying',
+	(i.call_option = 'yes') ? 'Call' : 'Put'	'C_P',
+	und.exp_day			'UndMat',
+	i.exp_day			'Exp_day',
+	i.strike_price			'Strike_Moneyness',
+	used_price(und)			'Und_Mkt_Price',
+	used_price(i)			'Mkt_Price',
+	v.vol_name = 'SAEQ_Skew_New' ? used_vol(i) : vp.volatility*100 		'Volatility',
+	today				'Business_Date'
+from
+	Volatility v,
+	VolPoint vp,
+	instrument i,
+	instrument und
+
+where
+	vp.vol_seqnbr = v.seqnbr
+and	v.vol_name in ('EQUITY_ATM_VOL', 'SAFEX_SOYA', 'SAFEX_SUNS', 'SAFEX_WHEAT', 'SAFEX_WMAZ', 'SAFEX_YMAZ', 'SAEQ_Skew', 'SAEQ_Skew_New', 'XAUUSD')
+and	i.insaddr = vp.insaddr
+and	i.und_insaddr = und.insaddr
+
+union
+
+select
+	v.vol_name			'Vol_name',
+	i.insid				'Instrument',
+	und.insid			'Underlying',
+	(i.call_option = 'yes') ? 'Call' : 'Put'	'C_P',
+	und.exp_day			'UndMat',
+	i.exp_day			'Exp_day',
+	i.strike_type = 'Rel Frw Pct' ? ((1+i.strike_price/100) * (und.quote_type = 'Per 100 Units' ? (used_und_frw_price(i) / 100) : used_und_frw_price(i)))
+    : (und.quote_type = 'Per 100 Units' ? i.strike_price /100 : i.strike_price)			'Strike_Moneyness',
+	und.quote_type = 'Per Unit' ? used_price(und) 
+	: (und.quote_type = 'Per 100 Units' ? used_price(und) / 100 
+	: used_price(und)) 			'Und_Mkt_Price',
+	used_price(i)			'Mkt_Price',
+	vp.volatility*100 		'Volatility',
+	today				'Business_Date'
+from
+	Volatility v,
+	VolPoint vp,
+	instrument i,
+	instrument und
+
+where
+	vp.vol_seqnbr = v.seqnbr
+and	v.vol_name like '%_SSkew'
+and	i.insaddr = vp.insaddr
+and	i.und_insaddr = und.insaddr
+
+union
+
+select
+	v.vol_name			'Vol_name',
+	i.insid				'Instrument',
+	und.insid			'Underlying',
+	(i.call_option = 'yes') ? 'Call' : 'Put'	'C_P',
+	und.exp_day			'UndMat',
+	i.exp_day			'Exp_day',
+	i.strike_type = 'Rel Frw Pct' ? ((1+i.strike_price/100) * (und.quote_type = 'Per 100 Units' ? (used_und_frw_price(i) / 100) : used_und_frw_price(i)))
+    : (und.quote_type = 'Per 100 Units' ? i.strike_price /100 : i.strike_price)			'Strike_Moneyness',
+	und.quote_type = 'Per Unit' ? used_price(und) 
+	: (und.quote_type = 'Per 100 Units' ? used_price(und) / 100 
+	: used_price(und)) 			'Und_Mkt_Price',
+	used_price(i)			'Mkt_Price',
+	vp.volatility*100 		'Volatility',
+	today				'Business_Date'
+from
+	Volatility v,
+	VolPoint vp,
+	instrument i,
+	instrument und
+
+where
+	vp.vol_seqnbr = v.seqnbr
+and	v.vol_name like '%_Skew'
+and	i.insaddr = vp.insaddr
+and	i.und_insaddr = und.insaddr

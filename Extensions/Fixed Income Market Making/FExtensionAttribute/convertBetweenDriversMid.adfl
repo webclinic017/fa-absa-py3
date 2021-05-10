@@ -1,0 +1,5 @@
+[Fixed Income Market Making]FQuoteController:convertBetweenDriversMid = shunt(fromDriverMid, 
+  "Offset"->switch(fromDriverMid == proposedQuoteDriverMid, 
+    true->fromDriverValueMid, 
+    false->object:driverToDriver [bidOrAskDriver = "Mid", toDriver = proposedQuoteDriverMid, fromDriver = qOffsetRootDriverMid, fromValue = qOffsetAccumulatedDriverValueMid + fromDriverValueMid]), 
+  default->object:driverToDriver [bidOrAskDriver = "Mid", toDriver = proposedQuoteDriverMid, fromDriver = fromDriverMid, fromValue = fromDriverValueMid]);

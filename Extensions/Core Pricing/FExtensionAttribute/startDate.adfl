@@ -1,0 +1,16 @@
+[Core Pricing]FCashFlowMoneyFlow:startDate = cashFlow.StartDate;
+[Core Pricing]FExerciseEvent:startDate = object.StartDate;
+[Core Pricing]FInstrument:startDate = select(isMultiExercise, 
+  true->exerciseEvents.StartDate, 
+  false->object.StartDate);
+[Core Pricing]FInstrumentAndTrades:startDate = nil;
+[Core Pricing]FMoneyFlow:startDate = nil;
+[Core Pricing]FMoneyFlowAndTrades:startDate = moneyFlow:startDate;
+[Core Pricing]FResetMoneyFlow:startDate = reset.StartDate;
+[Core Pricing]FSingleInstrumentAndTrades:startDate = minOfAny(instrument:startDate);
+[Core Pricing]FStaticLegInformation:startDate = object.StartDate;
+[Core Pricing]FTimeBucket:startDate = object.StartDate;
+[Core Pricing]FTimeBucketAndObject:startDate = select(timeBucket == nil, 
+  true->smallDate, 
+  false->timeBucket:startDate);
+[Core Pricing]FTradeRow:startDate = minOfAny(instrument:startDate);

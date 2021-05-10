@@ -1,0 +1,52 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PartyStatus_Value_Day_TM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PartyStatus_Value_Day_TM' and p.type = 'SQL Query' 
+
+/*********** Description **********
+Date        Issue#  Who                 What        CR#
+2009-09-01  1905    Heinrich Cronje     Created  
+   
+Changes:
+
+Purpose             : Adding instype - Curr
+Department and Desk : SM PCG Financial Control
+Requester           : Davon Van Wyk
+Developer           : Tshepo Mabena
+CR Number           : 249983 
+
+Purpose             :   Check if portfolio is part of ABSA BANK LTD
+Department and Desk :   Accounting
+Requester           :   Davon van Wyk
+Developer           :   Heinrich Cronje
+CR Number           :   297217
+
+This ASQL returns the trade numbers for all trades that are
+linked to a counterparty with PartyStatus equal to 
+"Internal C/party". The instruments in question must have
+and exp_day.
+*/
+
+select
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    party pa,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais,
+    portfolio p
+where
+        t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = pa.ptynbr
+    and ai.addinf_specnbr = ais.specnbr
+    and ai.recaddr = pa.ptynbr
+    and t.status in ('FO Confirmed','BO-BO Confirmed','BO Confirmed','Terminated')
+    and i.instype in ('Stock','CFD','Commodity','Curr')
+    and t.value_day >= today
+    and ais.field_name = 'PartyStatus'
+    and ai.value = 'Internal C/party'
+    and t.prfnbr = p.prfnbr
+    and ael_i(p,'SAGEN_IT_Functions.get_Port_Struct_from_Port','ABSA CAPITAL') = 1

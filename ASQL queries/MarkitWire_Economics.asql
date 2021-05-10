@@ -1,0 +1,58 @@
+select
+    t.trdnbr 'Trade Nbr', 
+    cf.cfwnbr,
+    add_info(t, 'MarkitWire') 'MW Key',
+    add_info(t, 'CCPmiddleware_id') 'ccp Key',
+    add_info(t, 'CCPmiddleware_versi') 'ccp Key',
+    add_info(t, 'mwire_sideid') 'Side Id',
+    p.prfid 'Portfolio',
+    l.type,
+    cf.rate,
+    abs(projected_cf(cf)*t.quantity) 'Projected',
+    present_value(t) 'PresentValue',
+    accumulated_cash(t,@4_EndDate{yesterday},'ZAR',2,0,,1,'None') 'End Cash',
+    l.fixed_rate  'Strike',
+    par_rate(i) 'FwdPrice',
+    i.exp_Day 'Expiry',
+    i.insid 'Ins ID',
+    i.instype 'Type',
+    t.status 'Status',
+    t.value_day 'Effective',
+    display_id(i, 'curr')    'Currency',
+    nominal_amount(t) 'Nominal',
+    display_id(t, 'acquirer_ptynbr') 'Acquirer',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    u.userid 'Trader',
+    t.time  'Trade Date',
+    t.acquire_day   'Acquire Date',
+    t.value_day 'Value Date'
+from
+    trade t, 
+    instrument i,
+    leg l,
+    cashflow cf,
+    user u,
+    portfolio p,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais,
+    instrument cr
+where 
+    i.insaddr = t.insaddr
+and ai.recaddr = t.trdnbr
+and ai.addinf_specnbr = ais.specnbr
+and ais.field_name = 'MarkitWire'
+and ai.value LIKE 'MW%'
+and t.trader_usrnbr = u.usrnbr
+and l.insaddr = i.insaddr
+and cf.legnbr = l.legnbr
+and t.prfnbr = p.prfnbr
+and ((@4_Trader{All;user.userid} = 'All') or 
+    (u.userid in (@4_Trader{All;user.userid})))
+and (i.instype in (@3_Instype{Swap;'Swap','FRA', 'CurrSwap'*}))
+and t.time >= @1_StartDay{Yesterday;}
+and t.time <= @2_EndDay{Today;}
+and i.curr = cr.insaddr
+and cr.instype = 'Curr'
+and t.status not in ('Void','Terminated')
+order by 
+    t.trdnbr

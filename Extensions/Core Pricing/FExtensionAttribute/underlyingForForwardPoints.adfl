@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:underlyingForForwardPoints = select(underlyingForUnderlyingForwardPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(underlying:isPreciousMetal, 
+    true->CreatePreciousMetalRate(underlying, strikeCurrency), 
+    false->select(isFXDerivative and isReciprocal, 
+      true->CreateFxRate(foreignCurrency, derivativeStrikeCurrency), 
+      false->underlyingForUnderlyingForwardPriceInTheoreticalPrice)));
+[Core Pricing]FInstrumentAndTrades:underlyingForForwardPoints = instrument:underlyingForForwardPoints;

@@ -1,0 +1,9 @@
+[Default]FCurrency:marketOrFixedMarkToMarketInstrumentValue = instrumentSpotZero;
+[Default]FInstrument:marketOrFixedMarkToMarketInstrumentValue = switch(useMarketPrice, 
+  true->shunt[priceSource, accountingParameters, isBook](useMarkToMarketPriceToday, 
+    0->marketSpotValue, 
+    1->shunt[priceSource, accountingParameters, isBook](hasMarkToMarketPriceToday, 
+      true->collapse(markToMarketSpotValue), 
+      false->marketSpotValue), 
+    2->collapse(markToMarketSpotValue)), 
+  default->instrumentSpotZero);

@@ -1,0 +1,21 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRetDOValue = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeRetDOEnabled, 
+    default->nil, 
+    "True"->switch(isFinite(getTimeSeriesDvValueFromDP(object.DealPackage, timeSeriesSpecId, hedgeRetDOValueId)), 
+      default->nil, 
+      true->getTimeSeriesDvValueFromDP(object.DealPackage, timeSeriesSpecId, hedgeRetDOValueId))));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRetDOValue = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeRetDOEnabled, 
+    default->nil, 
+    "True"->switch(isFinite(getTimeSeriesDvValue(lowestChild.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeRetDOValueId)), 
+      default->nil, 
+      true->getTimeSeriesDvValue(lowestChild.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeRetDOValueId))));
+[HedgeAccountingMod]FTradeRow:hedgeRetDOValue = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeRetDOEnabled, 
+    default->nil, 
+    "True"->switch(isFinite(getTimeSeriesDvValue(object.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeRetDOValueId)), 
+      default->nil, 
+      true->getTimeSeriesDvValue(object.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeRetDOValueId))));

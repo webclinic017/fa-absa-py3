@@ -1,0 +1,123 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_ERM_Transaction_List') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_ERM_Transaction_List' and p.type = 'SQL Query' 
+SELECT
+
+to_date(@1_StartDate{TODAY}) 'start',
+to_date(@2_EndDate{TODAY}) 'end',
+@3_SETTLE_OR_TRADE{;'Settle','Trade'} 'datetype'
+
+into macros
+
+from serverdata s
+
+where s.srdnbr > 0
+
+select
+
+i.insid				'Instrument',
+t.trdnbr			'TradeNumber',
+time_to_day(t.time)		'TradeDate',
+t.value_day			'SettlementDate',
+i.contr_size * t.quantity	'NominalAmount',
+t.price				'TradeYield',
+clean_from_yield(i, t.value_day,,,t.price) * i.contr_size * t.quantity /100.0	'CleanPrice',
+interest_accrued(i,, t.value_day) * t.quantity		'AccruedInterest',
+dirty_from_yield(i, t.value_day,,,t.price) * i.contr_size * t.quantity / 100.0	'BookValue'
+
+into
+	transactionlist
+
+from
+	instrument	i,
+	trade		t,
+	macros 		m
+
+where
+	match_filter(t,'CM_ERM_Transaction_List')
+and	t.insaddr = i.insaddr
+and 	i.instype  = 'Bond'
+and	(m.datetype = 'Settle' ? t.value_day >=m.start : time_to_day(t.time) >= m.start)
+and	(m.datetype = 'Settle' ? t.value_day <=m.end : time_to_day(t.time) <= m.end)
+
+
+
+
+select
+	'Purchases'				'Position',
+	tl.Instrument,
+	tl.TradeNumber,
+	convert('date',tl.TradeDate)		'TradeDate',
+	convert('date',tl.SettlementDate)	'SettlementDate',
+	tl.NominalAmount,
+	tl.TradeYield,
+	tl.CleanPrice,
+	tl.AccruedInterest,
+	tl.BookValue	
+from
+	transactionlist tl
+where
+	tl.NominalAmount >= 0
+
+
+union
+
+select
+	'Total Purchases'			'Position',
+	tl.Instrument,
+	0,
+	convert('date', TODAY),
+	convert('date', TODAY),
+	sum(tl.NominalAmount),
+	sum(tl.NominalAmount * tl.TradeYield) / sum(tl.NominalAmount),
+	sum(tl.CleanPrice),
+	sum(tl.AccruedInterest),
+	sum(tl.BookValue)	
+from
+	transactionlist tl
+where
+	tl.NominalAmount >= 0
+group by
+	tl.Instrument
+
+
+union
+
+select
+	'Sales'					'Position',
+	tl.Instrument,
+	tl.TradeNumber,
+	convert('date',tl.TradeDate)				'TradeDate',
+	convert('date',tl.SettlementDate)			'SettlementDate',
+	tl.NominalAmount,
+	tl.TradeYield,
+	tl.CleanPrice,
+	tl.AccruedInterest,
+	tl.BookValue	
+from
+	transactionlist tl
+where
+	tl.NominalAmount < 0
+
+union
+
+select
+	'TotalSales'				'Section',
+	tl.Instrument,
+	0,
+	convert('date', TODAY),
+	convert('date', TODAY),
+	sum(tl.NominalAmount),
+	sum(tl.NominalAmount * tl.TradeYield) / sum(tl.NominalAmount),
+	sum(tl.CleanPrice),
+	sum(tl.AccruedInterest),
+	sum(tl.BookValue)	
+from
+	transactionlist tl
+where
+	tl.NominalAmount < 0
+group by
+	tl.Instrument

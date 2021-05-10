@@ -1,0 +1,72 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','caps_floors_details') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'caps_floors_details' and p.type = 'SQL Query' 
+
+
+/*
+Purpose                       :  details of existing caps/floors and new instruments/trades for SE adjustment
+Department and Desk           :  IRD desk
+Requester                     :  Parin Gokaldas
+CR number                     :  abitfa-1729 
+Developer                     :  Anil Parbhoo
+*/
+
+
+
+
+
+select
+
+t.trdnbr,
+(cf.start_day-Today)/365'cf years to start date',
+t.status,
+display_id(t,'prfnbr')'Portfolio',
+display_id(t,'counterparty_ptynbr')'CP',
+c.insid'currency',
+t.quantity,
+i.insid,
+i.instype,
+cf.cfwnbr,
+cf.updat_time,
+cf.start_day,
+cf.end_day,
+cf.nominal_factor,
+cf.float_rate_factor,
+add_info(cf,'Org_nominal_factor')'Org_nominal_factor',
+t.mirror_trdnbr,
+t.contract_trdnbr,
+
+t.trx_trdnbr
+
+
+from
+trade t,
+instrument i,
+leg l,
+cashflow cf,
+instrument c
+
+
+where
+
+t.insaddr=i.insaddr
+and t.status not in ('void', 'simulated')
+and i.instype in ('cap','floor')
+and i.insaddr=l.insaddr
+and cf.legnbr=l.legnbr
+and i.exp_day>=Today
+
+and i.curr=c.insaddr
+and c.insid = 'ZAR'
+
+
+
+
+order by t.trdnbr, cf.start_day
+
+
+
+

@@ -1,0 +1,15 @@
+[Equity Market Making]FObject:qDefTieringCategory = nilObject:qDefTieringCategory;
+[Equity Market Making]FOrderBook:qDefTieringCategory = select(qDefTieringCategoryName, 
+  nil->nil, 
+  ""->nil, 
+  default->getObject("FTieringCategory", qDefTieringCategoryName));
+[Equity Market Making]FParty:qDefTieringCategory = select(qDefTieringCategoryLink, 
+  nil->nil, 
+  default->qDefTieringCategoryLink:qDefTieringCategory);
+[Equity Market Making]FQuoteController:qDefTieringCategory = select(qIsPrivate, 
+  true->select(qCounterparty, 
+    nil->nil, 
+    default->qCounterparty:qDefTieringCategory), 
+  default->nil);
+[Equity Market Making]FTieringCategoryLink:qDefTieringCategory = object.TieringCategory;
+[Equity Market Making]FUndefinedObject:qDefTieringCategory = nil;

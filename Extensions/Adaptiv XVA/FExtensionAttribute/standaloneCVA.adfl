@@ -1,0 +1,8 @@
+[Adaptiv XVA]FCreditBalance:standaloneCVA = switch(cvaDeals.Size == 1, 
+  true->adaptivModelCallCVA, 
+  false->nil);
+[Adaptiv XVA]FTrade:standaloneCVA = switch(nil == matchingCreditBalanceInstrument, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:standaloneCVA);
+[Adaptiv XVA]FTradeRow:standaloneCVA = trade:standaloneCVA;
+[Adaptiv XVA]FUndefinedObject:standaloneCVA = nil;

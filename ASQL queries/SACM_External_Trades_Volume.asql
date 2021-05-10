@@ -1,0 +1,307 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_External_Trades_Volume') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_External_Trades_Volume' and p.type = 'SQL Query' 
+/*
+
+bonds and repos settlement report per portfolio per bond
+
+
+coded by anil 2005-08-05
+
+
+and party.ptyid~='DRA TRANSAKSIES'
+and party.ptyid~='ABSA BANK LTD'
+and i.insid ~='ZAR/HFS1A1' - non listed FRN
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830','IRD Funding Hybrid')
+
+
+*/
+
+
+select
+s.srdnbr,
+2 'client_factor',
+1 'member_factor'
+
+into factor
+
+from
+
+serverdata s
+
+
+
+
+/*---------incorporate Bills into temp table-----*/
+select
+time_to_day(t.creat_time)'Time',
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP',
+
+(ael_f(party,'Last_Date_Register.length',party.hostid)=4 ? f.member_factor : f.client_factor )*abs(t.quantity*1000000)'volume',
+party.hostid,
+ael_f(party,'Last_Date_Register.length',party.hostid)'long'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+factor f
+
+where
+
+i.insaddr=t.insaddr
+
+
+
+and i.instype ='Bill'
+and ( i.insid like 'ABA%'
+or i.insid like 'ABB%'
+or i.insid like 'ABC%')
+
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+and (t.creat_time>=@From{Yesterday;}
+and t.creat_time<=@To{Today;})
+
+
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830','IRD Funding Hybrid')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid~='DRA TRANSAKSIES'
+and party.ptyid~='ABSA BANK LTD'
+
+order by i.instype, i.insid
+
+/*----- incorporate bonds, ilb, frn into temp table----*/
+select
+time_to_day(t.creat_time)'Time',
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP',
+
+(ael_f(party,'Last_Date_Register.length',party.hostid)=4 ? f.member_factor : f.client_factor )*abs(t.quantity*1000000)'volume',
+party.hostid,
+ael_f(party,'Last_Date_Register.length',party.hostid)'long'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+factor f
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+
+
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+and (t.creat_time>=@From{Yesterday;}
+and t.creat_time<=@To{Today;})
+
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830','IRD Funding Hybrid')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid~='DRA TRANSAKSIES'
+and party.ptyid~='ABSA BANK LTD'
+and insid ~='ZAR/HFS1A1'
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+time_to_day(t.creat_time)'Time',
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+t.premium>=0 ? abs(t.quantity)*1000000*-1 : abs(t.quantity)*1000000*1 'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP',
+(ael_f(party,'Last_Date_Register.length',party.hostid)=4 ? f.member_factor : f.client_factor )*abs(t.quantity*1000000)'volume',
+party.hostid,
+ael_f(party,'Last_Date_Register.length',party.hostid)'long'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+factor f
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+and (t.creat_time>=@From{Yesterday;}
+and t.creat_time<=@To{Today;})
+
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830','IRD Funding Hybrid')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+and party.ptyid~='ABSA BANK LTD'
+
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+time_to_day(t.creat_time)'Time',
+i.exp_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+i.ref_value*t.quantity>0 ? abs(t.quantity)*1000000*-1 : abs(t.quantity)*1000000*1 'Nominal',
+p.prfid,
+i.ref_value*t.quantity'premium',
+party.ptyid'CP',
+(ael_f(party,'Last_Date_Register.length',party.hostid)=4 ? f.member_factor : f.client_factor )*abs(t.quantity*1000000)'volume',
+party.hostid,
+ael_f(party,'Last_Date_Register.length',party.hostid)'long'
+
+into temp
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+factor f
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and (t.creat_time>=@From{Yesterday;}
+and t.creat_time<=@To{Today;})
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+order by i.instype, ui.insid
+
+
+/*----select all------*/
+
+
+select
+t.Time'Trade_time',
+t.Settlement,
+t.trdnbr,
+'YES' ? t.status : '' 'status',
+'YES' ? t.instype : '' 'instype',
+t.insid,
+t.Nominal,
+t.prfid,
+t.premium,
+'YES' ? t.CP : '' 'CP',
+(t.volume),
+t.hostid,
+t.long,
+Today'Report_Date'
+from 
+
+temp t
+
+order by 5,/*t.instype*/ t.insid,t.trdnbr, t.Settlement
+
+union
+
+select
+t.Time'Trade_time',
+t.Settlement,
+t.trdnbr,
+'Sub total by portfolio'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+sum(t.Nominal),
+t.prfid,
+sum(t.premium),
+ '' /* 'CP'*/,
+sum(t.volume),
+t.hostid,
+t.long,
+Today'Report_Date'
+
+from 
+
+temp t
+
+group by t.prfid
+
+
+order by t.prfid
+
+
+union
+
+select
+t.Time'Trade_time',
+t.Settlement,
+t.trdnbr,
+'Grand Total'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal,
+' ' /*t.prfid*/,
+sum(t.premium),
+ '' /* 'CP'*/,
+sum(t.volume),
+t.hostid,
+t.long,
+Today'Report_Date'
+
+from 
+
+temp t
+
+group by 14

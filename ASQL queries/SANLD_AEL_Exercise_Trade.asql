@@ -1,0 +1,28 @@
+/*
+Purpose                       :  Calls the SANLD_AEL_Exercise_Trade Python module 
+                                 to exercise FX Option trades intraday.
+Department and Desk           :  NLD Desk
+Requester                     :  Emlind Assur
+Developer                     :  Herman Hoon
+CR Number                     :  489649 
+Date                          :  2010-11-09
+*/
+
+/* Usage code for this ASQL*/ 
+select
+    ael_i(p,'ASQL_log','SANLD_AEL_Exercise_Trade') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'SANLD_AEL_Exercise_Trade' 
+and p.type = 'SQL Query' 
+
+
+select
+    ael_s(, 'SANLD_AEL_Exercise_Trade.exercise',@1_Filter{NLD_All_Trades_MaturedOptions;tradefilter.fltid}, @2_TrdNbr{}) 'Exercise'
+from
+	serverdata s
+where
+	s.srdnbr > 0

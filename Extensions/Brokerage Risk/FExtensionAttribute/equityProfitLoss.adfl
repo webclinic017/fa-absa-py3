@@ -1,0 +1,27 @@
+[Brokerage Risk]FBond:equityProfitLoss = switch(portfolio:portfolioType == "Cash Account", 
+  true->switch(stdPosition >= 0, 
+    true->equityRPL, 
+    default->switch((totalPosition >= 0) and (stdPosition < 0), 
+      true->equityRPLTotalValue, 
+      default->equityRPL)), 
+  default->switch(stdPosition >= 0, 
+    true->equityTPL, 
+    default->switch((totalPosition >= 0) and (stdPosition < 0), 
+      true->equityRPLTotalValue, 
+      default->equityTPLAll)));
+[Brokerage Risk]FInstrument:equityProfitLoss = switch(portfolio:portfolioType == "Cash Account", 
+  true->equityRPL, 
+  default->equityTPL);
+[Brokerage Risk]FMultiInstrumentAndTrades:equityProfitLoss = convertToCurrency(sumOf(instruments :* "collapse(equityProfitLoss)" [portfolio, priceSource, valuesOnSpotOverride, positionObject, groupingSpotDiscountDate]), portfolioFxRates, displayCurrencySymbol, filterUnit);
+[Brokerage Risk]FSingleInstrumentAndTrades:equityProfitLoss = convertToCurrency(instrument:equityProfitLoss [portfolio, priceSource, valuesOnSpotOverride, positionObject, groupingSpotDiscountDate], portfolioFxRates, displayCurrencySymbol, filterUnit);
+[Brokerage Risk]FStock:equityProfitLoss = switch(portfolio:portfolioType == "Cash Account", 
+  true->switch(stdPosition >= 0, 
+    true->equityRPL, 
+    default->switch((totalPosition >= 0) and (stdPosition < 0), 
+      true->equityRPLTotalValue, 
+      default->equityRPL)), 
+  default->switch(stdPosition >= 0, 
+    true->equityTPL, 
+    default->switch((totalPosition >= 0) and (stdPosition < 0), 
+      true->equityRPLTotalValue, 
+      default->equityTPLAll)));

@@ -1,0 +1,53 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+'''
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_EuroDollarFuture.OpenFile', @1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_EuroDollarFuture.Write', @1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+from
+    instrument i,
+    instrument u
+where
+    /* Basic filtering conditions */
+	(i.exp_day = 0 or i.exp_day > Today)
+    
+    /* Instrument specific filtering*/
+    and i.und_insaddr = u.insaddr
+    and i.instype in ('Future/Forward')
+    and i.und_instype in ('RateIndex')
+    
+    and date_add_delta(i.exp_day,u.exp_period.count) > i.exp_day
+        
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

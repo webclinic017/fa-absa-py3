@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrument:costOfCarryFundingValues = select(mappedFundingParameter.FundingAmount, 
+  "Cash"->cashPerCurrencyToday, 
+  "Mark-to-Market"->select(isSettled, 
+    true->0.0, 
+    false->stripDateTimePart(neg(markToMarketInstrumentPositionValues))));

@@ -1,0 +1,9 @@
+[Cross Asset Risk]FActiveOrder:activeOrders = object;
+[Cross Asset Risk]FCompoundPortfolio:activeOrders = createArray(allPhysicalPortfolios :* "activeOrders");
+[Cross Asset Risk]FInstrument:activeOrders = portfolio:activeOrders;
+[Cross Asset Risk]FPhysicalPortfolio:activeOrders = object.ActiveOrders;
+[Cross Asset Risk]FPortfolio:activeOrders = [];
+[Cross Asset Risk]FPortfolioInstrumentAndTrades:activeOrders = portfolio:activeOrders;
+[Cross Asset Risk]FSingleInstrumentAndTrades:activeOrders = select(portfolio.Compound, 
+  true->createArray((portfolio:allPhysicalPortfolios) :* "activeOrdersForInstrument" [instrument]), 
+  default->portfolio:activeOrdersForInstrument [instrument]);

@@ -1,0 +1,78 @@
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','LandingArea_Resets') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'LandingArea_Resets' and p.type = 'SQL Query' */
+
+
+
+
+
+
+
+/* 2009-07-21 bs rewrite for 4.3 */
+select
+    to_date(@1_ReportDate{TODAY}) 'repday'
+into
+    tmp_macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    t.trdnbr,
+    l.legnbr,
+    to_string(l.rolling_period.count,' ',l.rolling_period.unit) 'Rolling_period_count',
+	to_string(l.rolling_period.count,' ',l.rolling_period.unit) 'Rolling_period_unit',
+    ael_s(l, 'SAGEN_Cashflows.CurrentCF', l.legnbr, m.repday, 6) 'Rate',
+    display_id(l,'float_rate') 'Rate_Index',
+    ael_s(l, 'SAGEN_Resets.CurrentReset', l.legnbr, m.repday, 3) 'LastResetDate',
+    ael_s(l, 'SAGEN_Resets.CurrentReset', l.legnbr, m.repday, 0) 'LastResetRate',
+    ael_s(l, 'SAGEN_Resets.FirstResetAfter', l.legnbr, m.repday, t.trdnbr, 3) 'NextResetDate',
+    ael_s(l, 'SAGEN_Resets.FirstResetAfter', l.legnbr, m.repday, t.trdnbr, 0) 'NextResetRate'
+into
+    tmp_trd
+from
+    trade t,
+    instrument i,
+    leg l,
+    tmp_macros m
+where
+    match_filter(t, @Filter{;tradefilter.fltid})
+    and t.insaddr=i.insaddr
+    and i.insaddr=l.insaddr
+    and i.exp_day >= m.repday
+
+select 
+    c.trdnbr,
+    c.Rolling_period_count,
+    c.Rolling_period_unit,
+    (c.Rate = '0001-01-01' or c.Rate = 'NULL')
+        ? 0.00000
+        : round(to_double(c.Rate),5) 'Rate',
+    c.Rate_Index,
+    c.LastResetDate = '0001-01-01'
+        ? 'NULL'
+        : c.LastResetDate 'LastResetDate',
+    (c.LastResetRate = '0001-01-01' or c.LastResetRate = 'NULL')
+        ? 0.00000
+        : round(to_double(c.LastResetRate),5) 'LastResetRate',
+    c.NextResetDate = '0001-01-01'
+        ? 'NULL'
+        : c.NextResetDate 'NextResetDate',
+    (c.NextResetRate = '0001-01-01' or c.NextResetRate = 'NULL')
+        ? 0.00000
+        : round(to_double(c.NextResetRate),5) 'NextResetRate',
+    cf.type 'CashFlowFType',
+    m.repday 'ReportDay'
+from
+    tmp_trd c,
+    cashflow cf,
+    tmp_macros m
+where
+    c.legnbr=cf.legnbr
+    and cf.type ~= 'Fixed Amount'
+    and cf.pay_day >= m.repday
+group by 1,5,6,8,10

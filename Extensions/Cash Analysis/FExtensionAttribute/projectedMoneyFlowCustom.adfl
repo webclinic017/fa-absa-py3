@@ -1,0 +1,12 @@
+[Cash Analysis]FCashFlowMoneyFlow:projectedMoneyFlowCustom = nil;
+[Cash Analysis]FMoneyFlow:projectedMoneyFlowCustom = nil;
+[Cash Analysis]FMoneyFlowAndTrades:projectedMoneyFlowCustom = select(almostZero(((object.MoneyFlow) :* "tradeQuantities"), 1e-10), 
+  true->0, 
+  default->select(instrument.InsType, 
+    "Repo/Reverse"->projectedRepoReverseMoneyFlowCustom, 
+    "SecurityLoan"->quantityScaledSecurityLoanProjectedMoneyFlowCustom, 
+    "Bond"->projectedBondMoneyFlow, 
+    "IndexLinkedBond"->projectedBondMoneyFlow, 
+    default->quantityScaledProjectedMoneyFlowCustom));
+[Cash Analysis]FMultiMoneyFlowAndTrades:projectedMoneyFlowCustom = nil;
+[Cash Analysis]FResetMoneyFlow:projectedMoneyFlowCustom = nil;

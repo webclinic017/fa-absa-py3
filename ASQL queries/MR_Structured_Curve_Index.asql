@@ -1,0 +1,105 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536,622355, 622355
+'''
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Structured_Curve_Index.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Structured_Curve_Index.csv'},@3_PositionName{'MR_Structured_Curve_Index_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+
+select
+    display_id(l,'float_rate'),
+    l.float_rate 'ref',
+    cl.name 'name'
+into
+    VolTemp
+From
+    Context c,
+    ContextLink cl,
+    ChoiceList chl,
+    Instrument i,
+    Leg l
+Where
+    c.name = 'ACMB Global'
+and c.seqnbr = cl.context_seqnbr
+and cl.group_chlnbr = chl.seqnbr
+and i.product_chlnbr = chl.seqnbr
+and cl.mapping_type in ('Val Group','Instrument')
+and i.insaddr = l.insaddr
+and cl.type in ('Volatility')
+and i.instype in ('Cap','Floor')
+and i.exp_day > today
+and i.curr = cl.curr
+and l.type in ('Cap','Floor')
+Group by 2,3
+
+
+select
+    l.legnbr
+into
+    temp
+from
+    instrument i,
+    leg l
+where
+    i.insaddr = l.insaddr
+    and i.exp_day > today
+    and i.instype in ('Swap','CurrSwap','Cap','Floor','CreditDefaultSwap','TotalReturnSwap','Deposit','FRN','Repo/Reverse', 'IndexLinkedSwap','FRA')
+    and l.type in ('Call Float','Float')
+    
+select
+    l.legnbr,
+    v.name
+Into 
+    final
+from
+    temp t,
+    VolTemp v,
+    leg l,
+    leg ll,
+    instrument i
+where
+    l.legnbr = t.legnbr
+    and l.float_rate = i.insaddr
+    and i.insaddr = ll.insaddr
+    /*and i.instype in ('RateIndex')*/
+    and i.insaddr *= v.ref
+
+
+select
+   'Write File' 'Process',
+    ael_s(l,'MR_Structured_Curve_Index.Write',@1_path{'f:\'},@2_FileName{'MR_Structured_Curve_Index.csv'},@3_PositionName{'MR_Structured_Curve_Index_Position.csv'},f.name)	'BuildConfirmation'
+Into
+    macro
+from
+    final f,
+    leg l
+where
+    l.legnbr = f.legnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+    

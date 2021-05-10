@@ -1,0 +1,5 @@
+[Default]FVolatilityFuture:variationSwapIncludeEventsToDateOrDateTime = select(variationSwapFixingIsTimeSensitive, 
+  true->valuationDateTime, 
+  default->select(useFullDayClock, 
+    true->valuationDate, 
+    false->dateAddDelta(valuationDate, 0, 0, 1)));

@@ -1,0 +1,9 @@
+[IRD Pricing and Risk]FCashFlowInstrument:parVolatility = select(valuationModelDisablesParVolatilityColumn, 
+  false->select(hasParVolatility, 
+    true->shunt(isSimulatedFlatVolatility, 
+      true->simulatedFlatVolatilityValue, 
+      false->cashFlowInstrumentParVolatility), 
+    false->nil), 
+  true->nil);
+[IRD Pricing and Risk]FInstrument:parVolatility = nil;
+[IRD Pricing and Risk]FInstrumentAndTrades:parVolatility = instrument:parVolatility;

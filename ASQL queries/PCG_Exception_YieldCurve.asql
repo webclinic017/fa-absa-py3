@@ -1,0 +1,33 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Exception_YieldCurve') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_YieldCurve' and p.type = 'SQL Query' 
+ 
+  select distinct
+    'Yield Curve'  'Object',
+    yc.yield_curve_name,
+    yc.seqnbr,
+    yc.underlying_yield_curve_seqnbr,
+    PCG_Tech_Utils.ycp(yc.yield_curve_name) 'YieldCurvePoints',
+    yc.yield_curve_type,
+    yc.interpolation_type,
+    yc.estimation_type,
+    yc.attribute_type,
+    yc.storage_calc_type,
+    yc.storage_daycount,
+    yc.storage_rate_type,
+    yc.ir_format,  
+    yc.pay_day_method,
+    yc.attribute_type,
+    display_id(yc,'curr') 'curr',
+    yc.is_yield,
+    yc.rec_rate,
+    yc.reference_day,
+    yc.risk_type,
+    yc.size,
+    yc.use_bm_dates
+from
+    yieldcurve yc
+   

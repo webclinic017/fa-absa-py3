@@ -1,0 +1,41 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MO_Valgroup_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MO_Valgroup_Check' and p.type = 'SQL Query' 
+
+select
+display_id(t,'prfnbr')'portfolio',
+i.insid,
+i.instype,
+ael_s(t,'InstrType.InstrumentType')'type',
+c.insid'curr',
+i.exp_day,
+count(t.trdnbr),
+t.status,
+cl.entry'valgroup'
+
+
+from
+
+instrument i,
+instrument c,
+trade t,
+choicelist cl
+
+
+where
+i.insaddr=t.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+/*and i.instype in (@instrument{;instrument.instype *})*/
+and i.exp_day>Today
+and i.product_chlnbr=cl.seqnbr
+and i.curr=c.insaddr
+and match_filter(t,@Filter{MO_SM_MM_Trading;TradeFilter.fltid})
+and cl.entry ~= 'ZAR-MM-FV'
+
+/*group by 4, c.insid, cl.entry*/
+
+
+order by i.instype,4,i.exp_day

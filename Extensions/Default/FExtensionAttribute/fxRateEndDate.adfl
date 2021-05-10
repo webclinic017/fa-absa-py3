@@ -1,0 +1,7 @@
+[Default]FCurrency:fxRateEndDate = switch(profitAndLossEndDateIsHistorical, 
+  false->select(immediateFxRates, 
+    true->fxRateInstrument :* "fxForwardRate" [fxForwardDate = profitAndLossEndFXForwardDate, fxToCurrency], 
+    false->stripDateTimePart(simplisticFXSpotRate)), 
+  true->switch(fxToCurrency == object, 
+    true->1.0, 
+    false->fxRateInstrument :* "historicalImmediateOrSpotFxRate" [fxHistoricalDate = profitAndLossEndDate, fxHistoricalForwardDate = profitAndLossEndFXForwardDate, fxToCurrency]));

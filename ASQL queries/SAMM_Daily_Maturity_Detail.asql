@@ -1,0 +1,73 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Daily_Maturity_Detail') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Daily_Maturity_Detail' and p.type = 'SQL Query' 
+
+select
+'Summary', 
+i.insid 'Instrument',
+t.trdnbr 'TradeNumber', 
+sum(t.quantity*i.contr_size) 'Nominal',
+'''MM_Primary_Issue',
+t.time 'TradeTime',
+iss.ptyid 'Issuer',
+'' 'CP',
+'' 'Acquirer',
+i.exp_day 'ExpiryDay',
+i.instype,
+add_info(t,'MM_Instype') = '' ? add_info(t, 'Funding Instype') : add_info(t,'MM_Instype')  'MM_Instype'
+
+from trade t, instrument i, party cp, party iss, party acq
+
+
+where
+
+    i.insaddr = t.insaddr
+and t.counterparty_ptynbr = cp.ptynbr
+and i.issuer_ptynbr *= iss.ptynbr
+and t.acquirer_ptynbr = acq.ptynbr
+/*and i.insid = 'ZAR/031030-040430/RKOS'*/
+and i.instype in ('Bill', 'FRN', 'Deposit')
+and t.status not in ('Simulated', 'Void')
+and acq.ptyid = 'Money Market Desk'
+and i.exp_day = @Date{Today}
+
+group by i.insid
+
+order by i.insid
+
+union
+
+
+select
+'Detail', 
+ i.insid 'Instrument',
+t.trdnbr 'TradeNumber', 
+t.quantity*i.contr_size 'Nominal',
+add_info(t,'MM_Primary_Issue')'MM_Primary_Issue',
+t.time 'TradeTime',
+iss.ptyid 'Issuer',
+cp.ptyid 'CP',
+acq.ptyid 'Acquirer',
+i.exp_day 'ExpiryDay',
+i.instype,
+add_info(t,'MM_Instype') = '' ? add_info(t, 'Funding Instype') : add_info(t,'MM_Instype')  'MM_Instype'
+
+from trade t, instrument i, party cp, party iss, party acq
+
+where
+
+    i.insaddr = t.insaddr
+and t.counterparty_ptynbr = cp.ptynbr
+and i.issuer_ptynbr *= iss.ptynbr
+and t.acquirer_ptynbr = acq.ptynbr
+/*and i.insid = 'ZAR/031030-040430/RKOS'*/
+and i.instype in ('Bill', 'FRN', 'Deposit')
+and t.status not in ('Simulated', 'Void')
+and acq.ptyid = 'Money Market Desk'
+and i.exp_day = @Date{Today}
+order by i.insid, t.time
+
+

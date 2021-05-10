@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:fxSwapDailyInterest = sumOf(children :* "fxSwapDailyInterest");
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:fxSwapDailyInterest = profitAndLossValuesEndCurrencies = [displayCurrency, instrument.CurrencyPair.Currency1, instrument.CurrencyPair.Currency2], normalizeUnitMultiplicationIgnoreDateTime(sumOf(trades :* "fxSwapDailyInterest" [currencySplitGroupingValue = currencySplitGroupingValue]), profitAndLossEndFXRates, displayCurrency, instrument:filterUnit);
+[ABSA Specific 4.3]FTrade:fxSwapDailyInterest = py("FX_Swap", context).daily_interest(object, valuationDate, currencySplitGroupingValue);

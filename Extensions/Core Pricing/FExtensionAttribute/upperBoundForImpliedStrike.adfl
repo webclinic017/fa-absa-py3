@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:upperBoundForImpliedStrike = select(storedStrikeType, 
+  "Absolute"->absoluteUpperBoundForImpliedStrike, 
+  default->relativeUpperBoundForImpliedStrike);
+[Core Pricing]FLeg:upperBoundForImpliedStrike = 100.0;
+[Core Pricing]FOption:upperBoundForImpliedStrike = select(isFXOption, 
+  true->upperBoundForImpliedStrikeForFXO, 
+  default->upperBoundForImpliedStrikeOptionUnderlying);
+[Core Pricing]FTradeRow:upperBoundForImpliedStrike = instrument:upperBoundForImpliedStrike;

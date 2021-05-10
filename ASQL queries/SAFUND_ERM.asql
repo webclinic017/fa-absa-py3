@@ -1,0 +1,259 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAFUND_ERM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAFUND_ERM' and p.type = 'SQL Query' 
+
+/*
+Purpose                       :  [Created. Daily trade report to identity total exposure of the funding desk],[Added column MM_Instype]
+Department and Desk           :  [],[GT]
+Requester                     :  [],[Jaco Le Roux]
+Developer                     :  [Aaeda Salejee], [Willie van der Bank]
+CR Number                     :  [124176 2004/07/30],[670226 2011/06/09]
+*/
+
+select
+	@Date{TODAY}		'date'
+into
+	Input
+from
+	instrument i
+where	
+	i.insid = 'ZAR'
+
+
+
+
+select
+	t.trdnbr								                                    'Trade',
+	i.insid									                                    'InstrumentId',
+	to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					        'Type',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	            'Instype',
+    add_info(t, 'MM_Instype')   'MM_Instype',
+
+/*	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'Instype',
+*/
+	prf.prfid                     							                    'Portfolio',
+	display_id(t, 'counterparty_ptynbr')					                    'Counterparty',
+	nominal_amount(t,d.date)					 	                            'Nominal',
+	i.instype in ('Deposit', 'CD') ? l.fixed_rate 
+                : i.instype = 'FRN' ? to_double(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,d.date,8)) 
+                : i.instype = 'Bill' ? ael_f(,'IssuedRate.ReturnRate',i) 
+                : t.price			                                            'Rate',
+	((t.quantity * i.contr_size * l.fixed_rate) / 36500) * days_between((i.exp_day < d.date ? i.exp_day : l.start_day), d.date, 'Act/365')		'AccrueInterest',
+	/*((t.quantity * i.contr_size * l.fixed_rate) / 36500) 'AccInt',*/
+	i.instype = 'Bill' ? ((days_between(t.value_day, d.date, 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100) 
+                : ael_f(t, 'SA_AccruedInterest.accrued_interest', , d.date)     'AccInt',
+	to_string(i.instype = 'Bill' ? t.value_day 
+                : ael_s(,'NextCashflow.CurrentCF',l.legnbr,d.date,1))			'CF_Start_Day',
+	to_string(i.instype = 'Bill' ? i.exp_day 
+                : ael_s(,'NextCashflow.CurrentCF',l.legnbr,d.date,2))			'CF_End_Day',
+
+	to_string(i.instype = 'Deposit' and add_info(t, 'Funding Instype') = 'FRN' 
+        ? ael_s(,'SAGEN_str_functions.concat', convert('float', round(days_between(l.start_day, i.exp_day, 'Act/365') / 365 * 12)), 'm', '')
+		: ael_s(,'RollingPeriod.RP',l))					                        'InterestFrequency',
+
+ 	l.start_day								                                    'StartDate',
+	i.exp_day								                                    'Enddate',
+	time_to_day(t.time)						                                    'TradeTime',
+	u.userid								                                    'Trader',
+	t.status								                                    'Status',
+	@Date{TODAY}		    				                                    'BusinessDay',
+	t.counterparty_ptynbr					                                    'ClientCode',
+	days_between(d.date, i.exp_day, 'Act/365')				                    'DaysToMaturity',
+	to_string(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,d.date,4))			'PeriodDays',
+	i.instype = 'Deposit' and add_info(t, 'Funding Instype') = 'FRN' 
+        ? ael_s(,'SAGEN_str_functions.concat', 'ZAR-JIBAR-', convert('float', round(days_between(i.start_day, i.exp_day, 'Act/365') / 365 * 12)),'M') 
+        : display_id(l, 'float_rate')                                           'FloatRate',
+	used_price(pri, d.date, 'ZAR')					                            'Prime',
+	to_string(l.float_rate_factor)  				                            'Float_Rate_Factor',
+	(t.mirror_trdnbr > 0) ?  ael_s(t,'SAGEN_str_functions.get_CP_Portfolio', t): ''     'CP_Portfolio',
+	l.spread                                                                    'Spread'
+
+
+into
+	temp
+
+from
+	Instrument i,
+	Trade t,
+	Leg l,
+	User u,
+	Input d,
+	portfolio prf,
+	instrument pri
+
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and t.prfnbr = prf.prfnbr
+and	t.trader_usrnbr = u.usrnbr
+and	i.exp_day > d.date
+and	time_to_day(t.time) <= d.date
+and	i.instype in ('Bill','CD','Deposit','FRN')
+and	t.status NOT IN ('Simulated','Terminated','Void')
+and prf.prfid not in ('MM_Graveyard','SPV1','SPV2','SPV3','EQ INV 3226','EQ INV 3226','Equity Script Lending','Capital Market Script Lending')
+and prf.prfid not like 'Call_%'
+and	pri.insid = 'ZAR-PRIME'
+/*and t.trdnbr = 952564*/
+
+
+
+
+select 
+	t.trdnbr								'Trade',
+	i.insid									'InstrumentId',
+	to_string(i.instype)    	            'Type',
+	to_string(i.instype)                    'Instype',
+	''                                      'MM_Instype',
+	display_id(t, 'prfnbr')					'Portfolio',
+	display_id(t, 'counterparty_ptynbr')	'Counterparty',
+	nominal_amount(t)					 	'Nominal',
+	i.rate			                        'Rate',
+	((t.quantity * i.contr_size * i.rate) / 36500) * days_between(i.exp_day, today, 'Act/365')		'AccrueInterest',
+	
+	/*ael_f(t, 'SA_AccruedInterest.accrued_interest', , today)	'AccInt',*/
+	
+	t.premium + (i.ref_value*t.quantity)    'AccInt',
+	to_string(t.value_day)                  'CF_Start_Day',
+	to_string(i.exp_day)                    'CF_End_Day',
+
+	'0d'				                    'InterestFrequency',
+
+ 	t.value_day								'StartDate',
+	i.exp_day								'Enddate',
+	time_to_day(t.time)						'TradeTime',
+	u.userid								'Trader',
+	t.status								'Status',
+	@Date{TODAY}							'BusinessDay',
+	t.counterparty_ptynbr								'ClientCode',
+	days_between(today, i.exp_day, 'Act/365')	    'DaysToMaturity',
+	to_string(days_between(t.value_day, i.exp_day, 'Act/365'))	'PeriodDays',
+	''                                      'FloatRate',
+	used_price(pri, today, 'ZAR')			'Prime',
+	'0'                 					'Float_Rate_Factor',
+	(t.mirror_trdnbr > 0) ?  ael_s(t,'SAGEN_str_functions.get_CP_Portfolio', t): ''           'CP_Portfolio',
+	0.0                                     'Spread'
+into
+        temp
+from
+	Instrument i,
+	Trade t,
+	Leg l,
+	User u,
+    portfolio prf,
+	instrument pri    
+where
+    t.insaddr = i.insaddr 
+and display_id(t, 'prfnbr') = 'MONY 9802' 
+and i.instype = 'BuySellback'
+/*and	i.insaddr = l.insaddr*/
+and t.prfnbr = prf.prfnbr
+and	t.trader_usrnbr = u.usrnbr
+and	i.exp_day > today
+and	time_to_day(t.time) <= today
+and	t.status NOT IN ('Simulated','Terminated','Void')
+and prf.prfid not in ('MM_Graveyard','SPV1','SPV2','SPV3','EQ INV 3226','EQ INV 3226','Equity Script Lending','Capital Market Script Lending')
+and prf.prfid not like 'Call_%'
+and	pri.insid = 'ZAR-PRIME'
+/*and t.trdnbr = 952564*/
+
+
+
+
+/***main select***/
+select
+	'Detail',
+	t.Trade,
+	t.InstrumentId,
+	t.Type,
+	t.Instype,
+	t.MM_Instype,
+	t.Portfolio,
+	t.Counterparty,
+	t.Nominal,
+	/*t.AccrueInterest,
+	t.InterestFrequency = '0d' ? t.AccrueInterest
+		: t.AccInt * days_between(t.CF_Start_Day, d.date, 'Act/365')	'AccInt',*/
+	t.AccInt	'AccInt',
+	t.Rate,
+	(t.Nominal * t.Rate) / 36500	'DailyInterest',
+	t.InterestFrequency,
+	t.CF_Start_Day,
+	t.CF_End_Day,
+	t.StartDate,
+	t.Enddate,
+	t.TradeTime,
+	t.Trader,
+	t.Status,
+	t.BusinessDay,
+	t.ClientCode,
+	t.DaysToMaturity,
+	ael_f(i,'FYieldConverter.yield_converter',(t.InterestFrequency = '1y' ? 1 : t.InterestFrequency = '6m' ? 2 : t.InterestFrequency = '3m' ? 4 : t.InterestFrequency = '1m' ? 12 : 365),'Yield',t.PeriodDays,t.Rate,'NACM') 	'NACMRate',
+	t.FloatRate,
+	t.Prime,
+	t.Float_Rate_Factor,
+	t.CP_Portfolio/*,
+	t.Spread*/
+
+from
+	instrument i,
+	temp t,
+	Input d
+where
+	i.insid = t.InstrumentId
+
+
+union
+
+
+
+select
+	'Total',
+	t.Trade,
+	t.InstrumentId,
+	t.Type,
+	t.Instype,
+	t.MM_Instype,
+	t.Portfolio,
+	t.Counterparty,
+	sum(t.Nominal),
+	/*sum(t.AccrueInterest),*/
+	sum(t.InterestFrequency = '0d' ? t.AccrueInterest
+		: t.AccInt * days_between(t.CF_Start_Day, d.date, 'Act/365'))	'AccInt',
+	sum(t.Rate),
+	sum((t.Nominal * t.Rate) / 36500)	'DailyInterest',
+	t.InterestFrequency,
+	t.CF_Start_Day,
+	t.CF_End_Day,
+	t.StartDate,
+	t.Enddate,
+	t.TradeTime,
+	t.Trader,
+	t.Status,
+	t.BusinessDay,
+	t.ClientCode,
+	t.DaysToMaturity,
+	ael_f(i,'FYieldConverter.yield_converter',(t.InterestFrequency = '1y' ? 1 : t.InterestFrequency = '6m' ? 2 : t.InterestFrequency = '3m' ? 4 : t.InterestFrequency = '1m' ? 12 : 365),'Yield',t.PeriodDays,t.Rate,'NACM') 	'NACMRate',
+	t.FloatRate,
+	t.Prime,
+	t.Float_Rate_Factor,
+	t.CP_Portfolio/*,
+	t.Spread*/
+from
+	instrument i,
+	temp t,
+	Input d
+where
+	i.insid = t.InstrumentId
+
+group by 1
+	

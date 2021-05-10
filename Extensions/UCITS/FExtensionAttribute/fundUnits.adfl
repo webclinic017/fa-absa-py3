@@ -1,0 +1,5 @@
+[UCITS]FFund:fundUnits = profitAndLossPosition / nominal;
+[UCITS]FInstrument:fundUnits = nil;
+[UCITS]FInstrumentAndTrades:fundUnits = shunt(count(fundInstruments) > 0, 
+  true->sumOf(fundInstruments :* "profitAndLossPosition / nominal" [positionObject, profitAndLossStartDate, profitAndLossEndDate]), 
+  false->0);

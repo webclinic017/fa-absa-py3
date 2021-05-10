@@ -1,0 +1,356 @@
+/*
+Purpose                 :Eagle Feed feed files
+Department and Desk     :IT
+Requester:              :Dale Vice
+Developer               :Kim Madeley
+CR Number               :C627109
+CR Number               :C809530
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-01-19                      Kieron Mcewan      Christoff Human    Including Total Return underlying bonds in the feed.*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EAGLE_CD_ABSA_TRD') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EAGLE_CD_ABSA_TRD' and p.type = 'SQL Query' 
+
+select
+
+distinct 
+
+/*ael_s(,'get_discountcurve',und,'Pay'),*/
+/*yc.yield_curve_name,*/
+
+t.trdnbr                                                 'SOURCE_TRADE_ID',
+'CDS'                                                      'PRODUCT_TYPE',
+''                                                      'LOCATION_CODE',
+convert('time', t.time, '%Y%m%d')                       'TRADE_DATE',
+convert('time', TODAY, '%Y%m%d')                        'EXTRACT_DATE',
+convert('string', display_id(t,'prfnbr'),15)            'BOOK',
+display_id(t,'trader_usrnbr')                           'TRADER_ID',
+i.start_day = '0000-01-01' ?  
+ael_s(i,'Eagle_Date.MinDate',l.start_day) 
+: ael_s(i,'Eagle_Date.CDate',i.start_day)                'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                     'MATURITY_DATE',
+''                                                       'OPTION_END_DATE',
+i.settlement = 'Physical Delivery' ? 'PHYS' :
+i.settlement = 'Cash' ? 'CASH' : ''                       'SETTLEMENT_TYPE',
+convert('time', TODAY, '%Y%m%d')                        'APP_DATE',
+t.quantity < 0 ? 'CRED_DEF_S' : 'CRED_DEF_B'    'TTS_PRODUCT_TYPE',
+''                                              'RISK_PRODUCT_TYPE',
+t.quantity < 0 ? 'SELL' : 'BUY'                          'BUY_OR_SELL',
+''                                                   'OPTION_STYLE',
+0.00                                                       'STRIKE_PERCENT',
+''                                                       'OPTION_TYPE',
+attrib.recovery_rate/100                                   'RECOVERY',
+   ''             'MOODYRATING',
+'R'                                                    'RESTRUCTURING_CLAUSE',
+0.00                                    'UPFRONTFEEAMOUNT',
+display_id(t,'curr')                                     'UPFRONTFEECCY',
+'Bond'                                        'SPECIFIC_REFERENCE_ASSET',
+'SenSec'                                        'OBLIGATION_ABBREV',
+       ''         'ATTACHMENT',
+         ''       'DETTACHMENT',
+           ''     'TRANCHE_NAME',
+nominal_amount(t)                                       'NOTIONAL_AMOUNT',
+display_id(t,'Curr')                                     'CALIBRATION_CCY',
+'10250696'                                          'COMPANY_SDS_ID',
+display_id(und,'issuer_ptynbr')                         'COMPANY',
+add_info(p,'BarCap_Eagle_SDSID')                        'SDS_COUNTERPARTY_ID',
+''                   'OPTION_EXP_DATE',
+add_info(iss,'BarCap_Eagle_SDSID')                                      'ISSUER_ID',
+''                                                              'HASDEFAULTED',
+'NEW'                                                           'TRADE_EVENT',
+''                    'INSTRUMENT_STYLE',
+''                  'PRICING_MODEL',
+''                                                                       'SETTLEMENT_CCY',
+''                             'SETTLEMENT_DATE',
+''                  'OPTION_EXERCISED_FLAG'
+
+
+
+
+
+
+
+
+from
+
+
+trade t,
+instrument i,
+leg l,
+party p,
+instrument und,
+party iss,
+
+yieldcurve yc,
+YCAttribute attrib
+    
+
+
+where i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.credit_ref = und.insaddr
+and ael_s(,'get_discountcurve',i,'Pay') = yc.yield_curve_name
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.issuer_ptynbr = und.issuer_ptynbr
+and t.counterparty_ptynbr = p.ptynbr
+and und.issuer_ptynbr = iss.ptynbr
+and i.instype in ('CreditDefaultSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+/* and round(mtm_value_fo(t,@3_ReportDate{})) ~= 0.00 */
+and attrib.seniority_chlnbr = und.seniority_chlnbr
+/* add trade filter */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and t.trdnbr = 878869*/
+
+union
+
+
+select
+
+distinct 
+
+
+t.trdnbr                                                'SOURCE_TRADE_ID',
+'Bond Option'                                                     'PRODUCT_TYPE',
+''                                                      'LOCATION_CODE',
+convert('time', t.time, '%Y%m%d')                       'TRADE_DATE',
+convert('time', TODAY, '%Y%m%d')                        'EXTRACT_DATE',
+convert('string', display_id(t,'prfnbr'),15)            'BOOK',
+display_id(t,'trader_usrnbr')                           'TRADER_ID',
+ael_s(,'Eagle_Date.CDate',l.start_day)                 'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',und.exp_day)                     'MATURITY_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                    'OPTION_END_DATE',
+i.settlement = 'Physical Delivery' ? 'PHYS' :
+i.settlement = 'Cash' ? 'CASH' : ''                       'SETTLEMENT_TYPE',
+convert('time', TODAY, '%Y%m%d')                        'APP_DATE',
+'OPTION'                                         'TTS_PRODUCT_TYPE',
+''                                              'RISK_PRODUCT_TYPE',
+t.quantity < 0 ? 'SELL' : 'BUY'                          'BUY_OR_SELL',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                                                   'OPTION_STYLE',
+i.strike_price                                                       'STRIKE_PERCENT',
+i.call_option = 'No' ? 'P':'C'                             'OPTION_TYPE',
+50.00/100                                'RECOVERY',
+   ''             'MOODYRATING',
+'R'                                                    'RESTRUCTURING_CLAUSE',
+0.00                                    'UPFRONTFEEAMOUNT',
+display_id(t,'curr')                                     'UPFRONTFEECCY',
+'Bond'                                        'SPECIFIC_REFERENCE_ASSET',
+'SenSec'                                        'OBLIGATION_ABBREV',
+       ''         'ATTACHMENT',
+         ''       'DETTACHMENT',
+           ''     'TRANCHE_NAME',
+nominal_amount(t)                                       'NOTIONAL_AMOUNT',
+display_id(t,'Curr')                                     'CALIBRATION_CCY',
+'10250696'                                                   'COMPANY_SDS_ID',
+display_id(und,'issuer_ptynbr')                         'COMPANY',
+add_info(p,'BarCap_Eagle_SDSID')                        'SDS_COUNTERPARTY_ID',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                   'OPTION_EXP_DATE',
+add_info(iss,'BarCap_Eagle_SDSID')                                      'ISSUER_ID',
+''                                                              'HASDEFAULTED',
+'NEW'                                                           'TRADE_EVENT',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                     'INSTRUMENT_STYLE',
+''                  'PRICING_MODEL',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+convert('time', t.value_day, '%Y%m%d')                              'SETTLEMENT_DATE',
+'N'                  'OPTION_EXERCISED_FLAG'
+
+
+
+
+from
+
+trade t, 
+instrument i,
+instrument und,
+leg l,
+party p,
+party iss
+
+where i.insaddr = t.insaddr
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and iss.ptynbr = und.issuer_ptynbr
+and i.instype = 'Option'
+and und.instype = 'Bond'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+/* and round(mtm_value_fo(t,@3_ReportDate{})) ~= 0.00 */
+/* add trade filter */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+union
+
+select
+distinct 
+
+t.trdnbr                                               'SOURCE_TRADE_ID',
+'CLN'                                                     'PRODUCT_TYPE',
+''                                                      'LOCATION_CODE',
+convert('time', t.time, '%Y%m%d')                       'TRADE_DATE',
+convert('time', TODAY, '%Y%m%d')                        'EXTRACT_DATE',
+convert('string', display_id(t,'prfnbr'),15)            'BOOK',
+display_id(t,'trader_usrnbr')                           'TRADER_ID',
+ael_s(,'Eagle_Date.CDate',l.start_day)                 'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',und.exp_day)                     'MATURITY_DATE',
+''                                                      'OPTION_END_DATE',
+und.settlement = 'Physical Delivery' ? 'PHYS' :
+und.settlement = 'Cash' ? 'CASH' : ''                       'SETTLEMENT_TYPE',
+convert('time', TODAY, '%Y%m%d')                        'APP_DATE',
+'SWAP'                                         'TTS_PRODUCT_TYPE',
+''                                              'RISK_PRODUCT_TYPE',
+t.quantity < 0 ? 'SELL' : 'BUY'                          'BUY_OR_SELL',
+''                                                          'OPTION_STYLE',
+i.strike_price                                                       'STRIKE_PERCENT',
+i.call_option = 'No' ? 'P':'C'                             'OPTION_TYPE',
+50.00/100                                'RECOVERY',
+
+   ''             'MOODYRATING',
+'R'                                                    'RESTRUCTURING_CLAUSE',
+0.00                                    'UPFRONTFEEAMOUNT',
+display_id(t,'curr')                                     'UPFRONTFEECCY',
+'Bond'                                         'SPECIFIC_REFERENCE_ASSET',
+'SenSec'                                        'OBLIGATION_ABBREV',
+       ''         'ATTACHMENT',
+         ''       'DETTACHMENT',
+           ''     'TRANCHE_NAME',
+nominal_amount(t)                                       'NOTIONAL_AMOUNT',
+display_id(t,'Curr')                                     'CALIBRATION_CCY',
+'10250696'                                                   'COMPANY_SDS_ID',
+
+display_id(und,'issuer_ptynbr')                         'COMPANY',
+add_info(p,'BarCap_Eagle_SDSID')                        'SDS_COUNTERPARTY_ID',
+''                                             'OPTION_EXP_DATE',
+add_info(issu,'BarCap_Eagle_SDSID')                                       'ISSUER_ID',
+''                                                              'HASDEFAULTED',
+'NEW'                                                           'TRADE_EVENT',
+''                     'INSTRUMENT_STYLE',
+''                  'PRICING_MODEL',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+convert('time', t.value_day, '%Y%m%d')                              'SETTLEMENT_DATE',
+'N'                  'OPTION_EXERCISED_FLAG'
+
+
+
+/*
+
+i.index_factor,
+t.quantity,
+display_id(t,'acquirer_ptynbr') 'Desk',
+i.insid   'Instrument',
+present_value(t) 'PV',
+/*mtm_value_fo(i,@Date{},display_id(i,'curr')) 'PV2',*/
+/*t.trdnbr,
+i.instype 'Instrument_type',
+display_id(cl,'member_insaddr') 'Underying_Instrument_Id',
+(present_value(und) * t.quantity / i.index_factor * cl.weight) 'PV_und',
+present_value(und) * t.quantity / i.index_factor,
+und.instype  'Underlying_Instrument_Type',
+cl.weight,
+present_value(l) * t.quantity / i.index_factor * cl.weight*/
+
+
+
+from trade t, instrument i, party p, CombinationLink cl, instrument und, leg l,instrument iss, party issu
+where i.insaddr = t.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.insaddr = cl.owner_insaddr
+and und.insaddr = cl.member_insaddr
+and und.insaddr = l.insaddr
+and l.credit_ref = iss.insaddr
+and iss.issuer_ptynbr = issu.ptynbr
+and i.instype = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day >= Today
+and display_id(t,'acquirer_ptynbr') in ('Credit Derivs', 'CREDIT DERIVATIVES DESK')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+/* add trade filter */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+group by 1
+
+Having count(und.insaddr) = 1
+
+union
+
+select
+
+distinct 
+
+
+t.trdnbr                                                'SOURCE_TRADE_ID',
+'TRS'                          'PRODUCT_TYPE',
+''                                                      'LOCATION_CODE',
+convert('time', t.time, '%Y%m%d')                       'TRADE_DATE',
+convert('time', TODAY, '%Y%m%d')                        'EXTRACT_DATE',
+convert('string', display_id(t,'prfnbr'),15)            'BOOK',
+display_id(t,'trader_usrnbr')                           'TRADER_ID',
+ael_s(,'Eagle_Date.CDate',l.start_day)                  'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',und.exp_day)                  'MATURITY_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                    'OPTION_END_DATE',
+i.settlement = 'Physical Delivery' ? 'PHYS' :
+i.settlement = 'Cash' ? 'CASH' : ''                     'SETTLEMENT_TYPE',
+convert('time', TODAY, '%Y%m%d')                        'APP_DATE',
+'TOT_RET'                                         'TTS_PRODUCT_TYPE',
+''                                              'RISK_PRODUCT_TYPE',
+t.quantity < 0 ? 'SELL' : 'BUY'                          'BUY_OR_SELL',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                                                   'OPTION_STYLE',
+i.strike_price                                                       'STRIKE_PERCENT',
+i.call_option = 'No' ? 'P':'C'                             'OPTION_TYPE',
+50.00/100                                'RECOVERY',
+   ''             'MOODYRATING',
+'R'                                                    'RESTRUCTURING_CLAUSE',
+0.00                                    'UPFRONTFEEAMOUNT',
+display_id(t,'curr')                                     'UPFRONTFEECCY',
+'Bond'                                        'SPECIFIC_REFERENCE_ASSET',
+'SenSec'                                        'OBLIGATION_ABBREV',
+       ''         'ATTACHMENT',
+         ''       'DETTACHMENT',
+           ''     'TRANCHE_NAME',
+nominal_amount(t)                                       'NOTIONAL_AMOUNT',
+display_id(t,'Curr')                                     'CALIBRATION_CCY',
+'10250696'                                                   'COMPANY_SDS_ID',
+display_id(und,'issuer_ptynbr')                         'COMPANY',
+add_info(p,'BarCap_Eagle_SDSID')                        'SDS_COUNTERPARTY_ID',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                   'OPTION_EXP_DATE',
+add_info(iss,'BarCap_Eagle_SDSID')                                      'ISSUER_ID',
+''                                                              'HASDEFAULTED',
+'NEW'                                                           'TRADE_EVENT',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                     'INSTRUMENT_STYLE',
+''                  'PRICING_MODEL',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+convert('time', t.value_day, '%Y%m%d')                              'SETTLEMENT_DATE',
+'N'                  'OPTION_EXERCISED_FLAG'
+
+
+
+
+from
+
+trade t, 
+instrument i,
+instrument und,
+leg l,
+party p,
+party iss
+
+where i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and und.insaddr = l.float_rate
+and p.ptynbr = t.counterparty_ptynbr
+and l.type = 'Total Return'
+and und.instype in ('Bond','IndexLinkedBond')
+and iss.ptynbr = und.issuer_ptynbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+

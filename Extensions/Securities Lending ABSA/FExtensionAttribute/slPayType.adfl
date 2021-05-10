@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FTrade:slPayType = select(object.Instrument.Instype == "SecurityLoan", 
+  true->nil, 
+  default->select(object.Bought, 
+    true->"CLR", 
+    false->"CLD"));
+[Securities Lending ABSA]FTradeRow:slPayType = trade:slPayType;

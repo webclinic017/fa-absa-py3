@@ -1,0 +1,105 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_SwapsFutureCash') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_SwapsFutureCash' and p.type = 'SQL Query' 
+/*
+	ABSA.TIER2.Greeks
+Date		Who		What
+2003-06-05	Debbie Osler 	Created 
+
+
+*/
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@4_EndDate_PL{today})							'RepDay',
+
+	to_date(@3_StartDate_PL{yesterday})							'PrevRepDay',
+
+
+	@5_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+	/*@6_ShowTOTAL_DeskPortfolioInstype{Yes;'Yes','No'}  'TotalPDI'*/
+	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay'
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+/*--------------------------------------------------------------------------
+SELECT DATA
+----------------------------------------------------------------------------*/
+
+
+SELECT 
+	@1_Filter{;tradefilter.fltid}		'TradeFilter',
+	display_id(t,'prfnbr') 		 	'Portfolio',
+	display_id(t,'acquirer_ptynbr')  	'Desk',
+	t.trdnbr,
+	i.insid,
+	curr.insid			 	'curr',
+	ael_s(t,'InstrType.InstrumentType')	'instype',
+	fx.hcurr				'hcurr',
+	sum(present_value(t,,,,curr.insid))		'PresentValue',
+
+	sum(present_value(t,m.repday,date_add_delta(m.RepDay,1,0,0),,curr.insid))		'PV_1d',
+	sum(present_value(t,date_add_delta(m.repday,1,0,0),date_add_delta(m.RepDay,8,0,0),,curr.insid))		'PV_8d',
+	sum(present_value(t,date_add_delta(m.repday,8,0,0),date_add_delta(m.RepDay,0,1,0),,curr.insid))		'PV_1m',
+	sum(present_value(t,date_add_delta(m.repday,0,1,0),date_add_delta(m.RepDay,0,3,0),,curr.insid))		'PV_3m',
+	sum(present_value(t,date_add_delta(m.repday,0,3,0),date_add_delta(m.RepDay,0,6,0),,curr.insid))		'PV_6m',
+	sum(present_value(t,date_add_delta(m.repday,0,6,0),date_add_delta(m.RepDay,0,0,1),,curr.insid))		'PV_1y',
+	sum(present_value(t,date_add_delta(m.repday,0,0,1),date_add_delta(m.RepDay,0,0,2),,curr.insid))		'PV_2y',
+	sum(present_value(t,date_add_delta(m.repday,0,0,2),date_add_delta(m.RepDay,0,0,3),,curr.insid))		'PV_3y',
+	sum(present_value(t,date_add_delta(m.repday,0,0,3),date_add_delta(m.RepDay,0,0,5),,curr.insid))		'PV_5y',
+	sum(present_value(t,date_add_delta(m.repday,0,0,5),date_add_delta(m.RepDay,0,0,10),,curr.insid))	'PV_10y',
+    sum(present_value(t,date_add_delta(m.RepDay,0,0,10),BIGDATE,,curr.insid))		'PV_Rest'
+	
+
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+
+
+/*group by 1,6*/
+	
+
+
+	

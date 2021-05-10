@@ -1,0 +1,6 @@
+[Prime Services]FInstrument:totalCashDaily = sumOf(tradesInPosition :* "totalCashDaily");
+[Prime Services]FInstrumentAndTrades:totalCashDaily = sumOf(instrument :* "totalCashDaily" [positionObject]);
+[Prime Services]FMultiInstrumentAndTrades:totalCashDaily = sumOf(instruments :* "totalCashDaily" [positionObject]);
+[Prime Services]FTrade:totalCashDaily = denominatedvalue(switch(withinDateRange and isGeneralPortfolio, 
+  true->py("CashDaily", context).ReturnTotalCashDaily(object, profitAndLossEndDate), 
+  false->0), displayCurrency, , );

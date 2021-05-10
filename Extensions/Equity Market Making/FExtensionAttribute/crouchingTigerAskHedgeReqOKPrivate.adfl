@@ -1,0 +1,9 @@
+[Equity Market Making]FQuoteController:crouchingTigerAskHedgeReqOKPrivate = select(instrument:isCashFlowInstrument, 
+  true->crouchingTigerAskHedgeReqOKPrivateFI, 
+  false->switch(crouchingTigerDelta > 0, 
+    true->switch(crouchingTigerUnderlyingBestQuantityBid >= crouchingTigerReqHedgeQtyAsk, 
+      true->true, 
+      false->false), 
+    false->switch(crouchingTigerUnderlyingBestQuantityAsk >= crouchingTigerReqHedgeQtyAsk, 
+      true->true, 
+      false->false)));

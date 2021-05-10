@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:lastTradePortfolio = 
+# Upgrade 2014.4.6 note: Previously used logic was incorrect. The corrected definition will return latest trade portfolio name.
+switch(lastTradeNumber, 
+  nil->nil, 
+  default->getObject("FTrade", lastTradeNumber).Portfolio);

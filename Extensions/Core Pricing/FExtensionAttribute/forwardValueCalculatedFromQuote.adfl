@@ -1,0 +1,3 @@
+[Core Pricing]FCashFlowInstrument:forwardValueCalculatedFromQuote = select(isSingleLegInstrument, 
+  true->firstLeg :* "forwardValueFromQuote" [forwardValueDate, calculationScalingCurrency = calculationCurrency], 
+  false->sumOf(legs :* "forwardValueFromQuote" [forwardValueDate, calculationScalingCurrency = calculationCurrency]));

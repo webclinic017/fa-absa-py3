@@ -1,0 +1,134 @@
+/*------------------------------------------------------------------
+    DCRM_CT_SpreadCurvePoint
+
+    This query supplies all the attrubute spread point information of 
+    the credit curves used in a specific filter.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_SpreadCurvePoint') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_SpreadCurvePoint' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})               'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	CDS DATA
+------------------------------------------------------------------*/
+select
+    ael_s(i,'DCRM_CDS.getCreditCurve')    'CreditCurve',
+    cr.issuer_ptynbr
+into
+    tempCreditCurves
+from    
+    instrument i,
+    trade t,
+    leg l,
+    cashflow c,
+    instrument cr,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and i.exp_day  >= m.ValueDate
+
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = c.legnbr
+and c.type    = 'Credit Default'
+
+and l.credit_ref = cr.insaddr
+
+
+/*------------------------------------------------------------------
+    CLN DATA - Combinations on CDS
+------------------------------------------------------------------*/
+select
+    ael_s(und,'DCRM_CDS.getCreditCurve')    'CreditCurve',
+    cr.issuer_ptynbr
+into
+    tempCreditCurves
+from    
+    instrument i,
+    instrument und,
+    CombinationLink cl,
+    trade t,
+    leg l,
+    cashflow c,
+    instrument cr,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day  >= m.ValueDate
+
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.legnbr  = c.legnbr
+and c.type    = 'Credit Default'
+
+and l.credit_ref = cr.insaddr
+
+
+select distinct
+    tc.CreditCurve,
+    tc.issuer_ptynbr
+into
+    getCreditCurves
+from
+    tempCreditCurves tc
+where
+    tc.CreditCurve ~= ''
+
+/*------------------------------------------------------------------
+	Data
+------------------------------------------------------------------*/
+select
+    attrib.seqnbr                        'CurveID',
+    ael_s(p,'DCRM_CDS.getCurveStrip')    'Tenor',
+    s.spread                             'Spread'
+from
+    getCreditCurves gc,
+    yieldcurve yc,
+    YCattribute attrib,
+    YCSpread s,
+    YieldCurvePoint p
+where
+    gc.CreditCurve = yc.yield_curve_name
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.issuer_ptynbr = gc.issuer_ptynbr
+
+and yc.seqnbr = p.yield_curve_seqnbr
+and attrib.seqnbr = s.attribute_seqnbr
+and s.point_seqnbr = p.seqnbr

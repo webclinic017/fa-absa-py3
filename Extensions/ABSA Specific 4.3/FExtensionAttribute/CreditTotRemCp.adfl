@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FInstrument:CreditTotRemCp = (ael("FCreditLimit", context).calc_credit_rem_cp(counterparty, acquirer));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:CreditTotRemCp = select(parent, 
+  nil->nil, 
+  default->select((grouper == "Counterparty"), 
+    false->nil, 
+    default->(ael("FCreditLimit", context).calc_credit_rem_cp(groupingValue, acquirer))));
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:CreditTotRemCp = nil;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:CreditTotRemCp = instrument:CreditTotRemCp;
+[ABSA Specific 4.3]FTrade:CreditTotRemCp = (ael("FCreditLimit", context).calc_credit_rem_cp(counterparty, acquirer, profitAndLossEndDate));
+[ABSA Specific 4.3]FTradeRow:CreditTotRemCp = trade:CreditTotRemCp;

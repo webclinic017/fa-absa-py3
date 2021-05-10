@@ -1,0 +1,16 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+Select 
+     ael_i(p,'ASQL_log','NOSTRO_Migration_SSI_Names') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'NOSTRO_Migration_SSI_Names' and p.type = 'SQL Query' 
+
+select
+    display_id(si,'ptynbr')     'Party',
+    display_id(si,'curr')       'Currency',
+    si.settleid                 'Settle ID'
+from
+    SettleInstruction si
+where
+    display_id(si,'ptynbr') in ('ABCAP CRT','ABSA BANK LTD','ABSA BANK LIMITED','ABSA BANK LIMITEDCOPY','ABSA BANK LTD','ACQ STRUCT DERIV DESK','AFRICA DESK','ALCO DESK ISSUER','BOND DESK','BOWWOOD AND MAIN NO 36 PTY LYD','CM Spot Trading','COLLATERAL DESK','CREDIT DERIVATIVES DESK','Capital Market Desk','Credit Derivs','EQ Derivatives Desk','EQUITY DERIVATIVES','ETN ISSUANCE','EUROGET ESKROW ACCOUNT','FORWARDS DESK','Funding Desk','Gold Desk','IRD DESK NONCSA','IRP_FX Desk','LIQUID ASSET DESK','MONEY MARKET DERIVATIVES','Metals Desk','Money Market Desk','NLD DESK','PRIMARY MARKETS','PRIME SERVICES DESK','REPO DESK','STRUCT NOTES DESK','Swaps Desk','BARCLAYS BANK MAURITIUS LIMITED OFFSHOR')
+and display_id(si,'curr') in ('EUR','USD')

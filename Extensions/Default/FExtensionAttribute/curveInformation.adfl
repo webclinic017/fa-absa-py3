@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:curveInformation = shunt[yieldCurve, yieldCurveDate](yieldCurve, 
+  nil->select(creditCurveSingleRow, 
+    nil->discountCurve, 
+    default->creditCurveSingleRow), 
+  default->select(yieldCurve.IrFormat, 
+    "Hazard Rate Curve"->scenarioaxis(creditCurve, <["valuationBaseDateTime"], , , yieldCurveDate>, <["mappedCreditLink"], , "shiftMappingLink", shiftYieldCurveDate(yieldCurve, yieldCurveDateOrNoDate)>), 
+    "Zero Coupon Curve"->scenarioaxis(discountCurve, <["valuationBaseDateTime"], , , yieldCurveDate>, <["mappedDiscountLink"], , "shiftMappingLink", shiftYieldCurveDate(yieldCurve, yieldCurveDateOrNoDate)>)));

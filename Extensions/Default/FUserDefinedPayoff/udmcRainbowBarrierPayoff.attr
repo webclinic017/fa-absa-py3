@@ -1,0 +1,97 @@
+[Default]FObject:udmcRainbowBarrierPayoff
+# ------------------------------------------
+# PAYOFF EXPRESSION
+# Rainbow Barrier Payoff
+#
+# INTERPRETATION
+# Barrier type 'Down & In'/'Down & Out':
+# Call:         max(S_worst - K, 0);
+# Put :         max(K - S_worst, 0);
+#
+# Barrier type 'Up & In'/'Up & Out': 
+# Call:         max(S_best - K, 0);
+# Put :         max(K - S_best, 0);
+#
+# DEFINITION
+# S_worst = max( min(S1, S2,...,Sn), 0) 
+# S_best = max( max(S1, S2,...,Sn), 0)
+# Barrier type: 'Barrier Type' in the Barrier Exotic tab;
+# Observation days: Exotic Events of type 'Barrier date', specified for the underlying components;
+# Barrier: Exotic Event 'Average price' is specified as the barrier level (an absolute value) for the underlying components;
+# Initial Fixings: Exotic Events of type 'Average strike', specified for the underlying components, represent the initial fixings for the instrument.
+# ------------------------------------------
+
+#PARAMETERS
+param matrix(double) isInitialFixing;
+param matrix(double) isBarrierObs;
+param matrix(double) barrierLevel;
+param int isCall;
+param int isUp;
+param int isIn;
+param int barrierIsHit;
+param int nAsset;
+param matrix(double) timeSteps;
+param int isQuanto;
+param double fixFXRate;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+matrix(double) initFix = zeros(nAsset);
+double callOrPut = (2.0 * isCall) - 1.0;
+double downOrUp = (2.0 * (1-isUp)) - 1.0;
+double inOrOut = (2.0 * isIn) - 1.0;
+double hit = 0.0;
+double optionValue = 0.0;
+double perf = 0.0;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+int last = length(timeSteps)-1;
+matrix(double) barrierOrNone = 10 * downOrUp * (isBarrierObs - 1.0).* barrierLevel+ (isBarrierObs .* barrierLevel);
+
+#MAIN LOOP
+if(barrierIsHit)
+{
+    hit = barrierIsHit*2.0 - 1.0;
+}
+else
+{
+    hit = (sum(S < barrierOrNone) > 0)*2.0 - 1.0;  
+};
+
+initFix = rowSum(isInitialFixing .* S) ./ rowSum(isInitialFixing);
+if(isUp)
+{
+    perf = max(S[:, last] ./ initFix) - 1.0;
+}
+else
+{
+    perf = min(S[:, last] ./ initFix) - 1.0;
+};
+
+optionValue = ((hit * inOrOut) > 0.0 ) * max(callOrPut* perf, 0.0);
+
+#CASHFLOW
+cashFlow(0, fx * optionValue);
+
+
+# ------------------------------------------
+#PEL IMPLEMENTATION
+#
+# isInitialFixing: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Average strike' fixing;
+# isBarrierObs: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Barrier date' fixing;
+# barrierLevel: One column, the number of rows is equal the number of components. 
+# isUp: Has 1 or 0 value, dependent on if the 'Barrier Type' is Up or Down;
+# isIn: Has 1 or 0 value, dependent on if the 'Barrier Type' is In or Out;
+# barrierIsHit: Has 1 or 0 value, dependent on if barrier 'Crossed Status' is confirmed or not;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of component prices. The number of rows is equal to the number of components, the number of columns is equal to the number of observation dates;
+#
+# initFix - Vector containing initial fixings for the components;
+# perf: The component performance;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# rowSum(matrix(double)) function gives the matrix with one column and as many rows as the argument matrix. The value of each element will be the sum of the corresponding row in the argument matrix.
+# ------------------------------------------
+
+...

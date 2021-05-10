@@ -1,0 +1,19 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Midbase_PortLinks') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Midbase_PortLinks' and p.type = 'SQL Query' 
+
+
+
+SELECT 
+    pl.creat_time,
+    pl.creat_usrnbr,
+    pl.lnknbr,
+    pl.member_prfnbr,
+    pl.owner_prfnbr= 0 ? 'NULL' : to_string(pl.owner_prfnbr)  'owner_prfnbr',
+    pl.updat_time,
+    pl.updat_usrnbr
+FROM 
+    portfoliolink pl

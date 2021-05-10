@@ -1,0 +1,5 @@
+[PreAndPostTradeAnalysis]FSalesOrder:marketTotalQtyDuringExecution = switch(postTradeAnalysisHasPeriod, 
+  true->switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+    true->prePostTradeAnalysis.PeriodQuantity(postTradeStartTime, postTradeEndTime).TotalQuantityIncludingOTCDeals, 
+    false->prePostTradeAnalysis.PeriodQuantity(postTradeStartTime, postTradeEndTime).TotalQuantity), 
+  default->nan);

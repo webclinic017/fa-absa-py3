@@ -1,0 +1,16 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_POPLeaserate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_POPLeaserate' and p.type = 'SQL Query' 
+select
+	i.insaddr,
+	ael_s(i,'SAGEN_CalcLeaseRate.getleaserate','XAU-DEPO','USD-SWAP','GOFO/%'),    
+	ael_s(i,'SAGEN_CalcLeaseRate.getleaserate','XAG-DEPO','USD-SWAP','SIFO/%'),    
+	ael_s(i,'SAGEN_CalcLeaseRate.getleaserate','XPT-DEPO','USD-SWAP','PTFO/%'),    
+	ael_s(i,'SAGEN_CalcLeaseRate.getleaserate','XPD-DEPO','USD-SWAP','PDFO/%')
+from
+	instrument i
+where
+	i.insid = 'ZAR'

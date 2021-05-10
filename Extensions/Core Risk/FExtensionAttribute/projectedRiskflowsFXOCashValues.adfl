@@ -1,0 +1,4 @@
+[Core Risk]FCurrency:projectedRiskflowsFXOCashValues = select(object == currency, 
+  true->projectedRiskflowsFXOTheoreticalPositionValue, 
+  false->denominatedvalue(0.0, object, nil, theoreticalInstrumentValueDate));
+[Core Risk]FOption:projectedRiskflowsFXOCashValues = currenciesForVectorColumn :* "projectedRiskflowsFXOCashValues" [currency, projectedRiskflowsFXOTheoreticalPositionValue, theoreticalInstrumentValueDate];

@@ -1,0 +1,6 @@
+[Automated Trading]ExecutionAlgo:matchPrice = select(algoIsBuy, 
+  true->algoPriceFeed.BestAskPrice.Get, 
+  false->algoPriceFeed.BestBidPrice.Get);
+[Automated Trading]PriceLevelCatcher:matchPrice = switch(buyOrSell, 
+  "Buy"->orderBook.PriceFeed.BestAskPrice.Get, 
+  "Sell"->orderBook.PriceFeed.BestBidPrice.Get);

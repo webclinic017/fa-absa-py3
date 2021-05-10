@@ -1,0 +1,9 @@
+[Default]FQuoteController:qProposedCalculatedAskPrice = select(qIsPriceSpecifierEnabled, 
+  true->switch(qPriceSpecifier, 
+    "Price"->qCalculatedSpreadAskPrice, 
+    "Yield"->proposedYTMFromCalcAskPrice, 
+    "Spread"->proposedYTMSpreadFromCalcAskPrice, 
+    "Ref Price"->qRequestReferenceAskPrice, 
+    "FX Rate"->qRequestProposedFxRate, 
+    default->qCalculatedSpreadAskPrice), 
+  default->qCalculatedSpreadAskPrice);

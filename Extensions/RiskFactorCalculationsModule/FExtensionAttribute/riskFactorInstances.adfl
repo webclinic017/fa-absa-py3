@@ -1,0 +1,4 @@
+[RiskFactorCalculationsModule]FObject:riskFactorInstances = select(count(riskFactorPathKeys), 
+  0->flattenAndRemoveNil(value(riskFactorCollections) :* "object.RiskFactorInstances"), 
+  1->filteredRiskFactorInstances(value(riskFactorPathKeysHead), flattenAndRemoveNil(value(riskFactorCollections) :* "object.RiskFactorInstances"))[value(riskFactorPathValuesHead)], 
+  default->filteredRiskFactorInstances(value(riskFactorPathKeysHead), object:riskFactorInstances [riskFactorCollections, riskFactorPathKeys := riskFactorPathKeysTail, riskFactorPathValues := riskFactorPathValuesTail])[value(riskFactorPathValuesHead)]);

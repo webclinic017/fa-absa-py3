@@ -1,0 +1,6 @@
+[ABSA FX]FMultiInstrumentAndTrades:projectedCashInventoryGrouperCurrency = convertToCurrency(projectedCashInventoryFlatNonNormalized, displayCurrencyFXRatesForProjectedCashInventory, displayCurrency, displayCurrency);
+[ABSA FX]FPortfolioInstrumentAndTrades:projectedCashInventoryGrouperCurrency = nil;
+[ABSA FX]FSingleInstrumentAndTrades:projectedCashInventoryGrouperCurrency = convertToCurrency(projectedCashInventoryFlatNonNormalized, displayCurrencyFXRatesForProjectedCashInventory, displayCurrency, displayCurrency);
+[ABSA FX]FTradeRow:projectedCashInventoryGrouperCurrency = select(trade.Instrument == displayCurrency, 
+  true->trade.Quantity, 
+  false->trade.Premium);

@@ -1,0 +1,36 @@
+select
+    t.trdnbr    'trade',
+    i.insid     'instrument',
+    l.type      'type',
+    cf.cfwnbr   'cashflow',
+    cf.type     'cashflow type',
+    cf.rate     'Rate',
+    l.initial_index_value   'BaseIndex',
+    cf.type = 'Fixed Amount' ? t.quantity*i.contr_size*cf.nominal_factor*cf.fixed_amount : t.quantity*i.contr_size*cf.nominal_factor 'Nominal',
+    cf.start_day    'Start Date',
+    cf.pay_day  'Payment Date',
+    r.day       'Reset Date',
+    r.value     'Nominal Scaling',
+    display_id(t,'trader_usrnbr')   'Trader',
+    t.status    'Status',
+    cf.fixed_amount = 0 ? (present_value(cf)*(cf.type = 'Fixed Amount' ? t.quantity*i.contr_size*cf.nominal_factor*cf.fixed_amount : t.quantity*i.contr_size*cf.nominal_factor)/1000000) : (present_value(cf)*(cf.type = 'Fixed Amount' ? t.quantity*i.contr_size*cf.nominal_factor*cf.fixed_amount : t.quantity*i.contr_size*cf.nominal_factor)/1000000)/cf.fixed_amount'PV',
+    display_id(t,'counterparty_ptynbr') 'Counterparty'
+    
+from
+    trade   t,
+    instrument  i,
+    leg l,
+    cashflow    cf,
+    reset   r
+where
+    t.insaddr = i.insaddr
+and i.instype = 'IndexLinkedSwap'
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and l.insaddr = i.insaddr
+and cf.legnbr = l.legnbr
+and cf.cfwnbr = r.cfwnbr
+and r.type = 'Nominal Scaling'
+and t.status not in ('Simulated','Void')
+and cf.pay_day >= TODAY
+order by
+    r.day

@@ -1,0 +1,7 @@
+[Default]FCashFlowMoneyFlow:nominalPosition = staticLegInformation:contractSize * select(isFixedAmountCashFlow, 
+  true->select(staticLegInformation.StochasticReference, 
+    nil->contractTradeQuantity * projectedCashFlow, 
+    default->contractTradeQuantity * nominalFactor), 
+  false->contractTradeQuantity * nominalFactor);
+[Default]FMoneyFlow:nominalPosition = nil;
+[Default]FMoneyFlowAndTrades:nominalPosition = moneyFlow:nominalPosition;

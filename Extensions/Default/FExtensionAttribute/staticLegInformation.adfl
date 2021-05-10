@@ -1,0 +1,22 @@
+[Default]FAbstractReset:staticLegInformation = leg :* "staticLegInformation";
+[Default]FCashFlow:staticLegInformation = leg :* "staticLegInformation";
+[Default]FCashFlowInformation:staticLegInformation = object.StaticLegInformation;
+[Default]FCashFlowMoneyFlow:staticLegInformation = leg :* "staticLegInformation";
+[Default]FLeg:staticLegInformation = select(staticLegInformationType, 
+  "FRA"->staticLegInformationFra, 
+  "Float"->staticLegInformationFloat, 
+  "Fixed"->staticLegInformationFix, 
+  "CapFloor"->staticLegInformationCapFloor, 
+  "FixedIndex"->staticLegInformationFixIndex, 
+  "FloatIndex"->staticLegInformationFloatIndex, 
+  "Index"->staticLegInformationIndex, 
+  "Zero"->staticLegInformationZero, 
+  "Return"->staticLegInformationReturn, 
+  "FixedInflation"->staticLegInformationFixInflation, 
+  "FloatInflation"->staticLegInformationFloatInflation, 
+  default->object.StaticLegInformation(instrument, genericBaseDate, creditBasketReference));
+[Default]FLegInformation:staticLegInformation = object.StaticLegInformation;
+[Default]FPriceIndex:staticLegInformation = nil;
+[Default]FResetAndTrades:staticLegInformation = leg :* "staticLegInformation";
+[Default]FStaticLegInformation:staticLegInformation = object.StaticLegInformation;
+[Default]FStubResetEstimation:staticLegInformation = leg :* "staticLegInformation";

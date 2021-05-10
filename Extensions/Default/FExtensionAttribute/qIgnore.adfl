@@ -1,0 +1,10 @@
+[Default]FQuoteController:qIgnore = switch(qPriceSource, 
+  "Theor"->select(instrument.Category, 
+    "Combination"->hasAnyCrossingPrices(crossingPricesDependents), 
+    default->select(useUnderlyingPriceQuoting, 
+      true->select((qUnderlyingPriceFeed <> nil) and (qUnderlyingPriceFeed.BidPriceDepth <> nil), 
+        false->false, 
+        true->qUnderlyingPriceFeed.BidPriceDepth.HasCrossingPrice), 
+      false->false)), 
+  "Custom"->qCustomIgnore, 
+  default->qPriceSourcePriceFeed.BidPriceDepth.HasCrossingPrice) or qPriceDepthUpdateInvalid;

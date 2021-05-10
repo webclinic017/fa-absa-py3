@@ -1,0 +1,10 @@
+[Core Pricing]FCashFlowInstrument:theoreticalModelValue = select(hasModelValuationDate, 
+  true->theoreticalModelCall["result"], 
+  default->select(moveValueToValuationDate, 
+    "Repo"->repoCurve.DiscountValue(theoreticalModelCall["result"], valuationDate), 
+    "Full"->object:moveValue [priceSource, doSplitAll, legs, valuesOnSpotOverride, moveStartValue = theoreticalModelCallResult, moveToDate = valuationDate], 
+    "Discount"->discountCurve.DiscountValue(theoreticalModelCall["result"], valuationDate), 
+    "None"->throwError("\'None\' is not a valid type for the valuation model description key \'moveValueToValuationDate\' for instruments of type FCashFlowInstrument")));
+[Core Pricing]FInstrument:theoreticalModelValue = select(useValuationAddOnModel, 
+  true->theoreticalValuationModelValue + theoreticalValuationAddOnModelValue, 
+  false->collapse(theoreticalValuationModelValue));

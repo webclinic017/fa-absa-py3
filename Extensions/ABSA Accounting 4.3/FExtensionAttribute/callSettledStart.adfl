@@ -1,0 +1,5 @@
+[ABSA Accounting 4.3]FCashFlow:callSettledStart = instrument :* "settledStartCalculation" [*];
+[ABSA Accounting 4.3]FDeposit:callSettledStart = select(fixedAdjustableStartCashFlows.Size > 0, 
+  false->plZero, 
+  true->sumOf(fixedAdjustableStartCashFlows :* "callSettledStart" [profitAndLossParameters]));
+[ABSA Accounting 4.3]FInstrument:callSettledStart = plZero;

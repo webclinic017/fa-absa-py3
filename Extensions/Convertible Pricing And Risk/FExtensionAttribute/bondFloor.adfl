@@ -1,0 +1,7 @@
+[Convertible Pricing And Risk]FCashFlowInstrument:bondFloor = max(bondOnlyValue, bondFloorToPut);
+[Convertible Pricing And Risk]FInstrument:bondFloor = nil;
+[Convertible Pricing And Risk]FInstrumentAndTrades:bondFloor = openInstrumentOrInstrument :* "bondFloor" [priceSource, filterCurrency];
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:bondFloor = nil;
+[Convertible Pricing And Risk]FOrderBook:bondFloor = instrument :* "bondFloor" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Convertible Pricing And Risk]FPriceAggregate:bondFloor = priceFeed:bondFloor [priceSource];
+[Convertible Pricing And Risk]FPriceFeed:bondFloor = instrument :* "bondFloor" [priceSource, quotation] * fxInstrumentToPriceFeed;

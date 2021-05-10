@@ -1,0 +1,9 @@
+[Deal Sales Trading Interaction]FGroupingOrder:totalNumberOfCustomerRequests = select(count(memberOrders) > 0, 
+  true->ownOrderCounter, 
+  default->nil);
+[Deal Sales Trading Interaction]FMultiQuoteRequestRow:totalNumberOfCustomerRequests = switch(count(children) > 0, 
+  true->sumOf(children :* "totalNumberOfCustomerRequests"), 
+  default->nil);
+[Deal Sales Trading Interaction]FSingleQuoteRequestRow:totalNumberOfCustomerRequests = select(quoteRequestInfo.Role, 
+  "Sales"->1, 
+  default->0);

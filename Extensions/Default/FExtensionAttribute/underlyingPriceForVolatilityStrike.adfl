@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingPriceForVolatilityStrike = select(storedStrikeTypeNeedsForwardPrice(volatilityStrikePriceType) or needsSpotToForwardDiscounting, 
+  true->select(isStepUpSwaption, 
+    true->delta(underlyingForwardPriceForVolatility, timesHundred(underlyingCouponPriceAdjustment)), 
+    false->underlyingForwardPriceForVolatility), 
+  false->select(isReciprocal, 
+    true->1 / underlyingSpotPrice, 
+    false->collapse(underlyingSpotPrice)));

@@ -1,0 +1,869 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dw_ddSAFUND_ERM_AS_NEW_2') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'dw_ddSAFUND_ERM_AS_NEW_2' and p.type = 'SQL Query' 
+ 
+
+
+
+
+
+
+/********************************
+
+Change 		: Excluded FreeDefCF trades that use CDIssuer Curve for discounting.  
+		  (request from ERM)
+Date   		: July 2006
+Changed by	: Aaeda
+
+
+Change      : Added Payments to Swaps with one fixed and one Float leg.
+Date        : Aug 2006
+Changed By  : Aaeda
+
+Change      : Payment amount - multiplied float side by t.quantity
+Date        : 15 August 2007
+Changed By  : Kim
+Change      : Excluded FRN from extract as per Susan request
+Date        : 15 August 2007
+Changed By  : Kim
+
+*********************************/
+
+
+
+
+
+/******* fixed *******/
+select
+    t.trdnbr 'DealId',
+    c.type = 'Fixed Rate' ? 'Fixed Rate' : c.type  'StructuredPaymentType',
+    nominal_amount(c) * t.quantity    'PaymentAmount',
+    display_id(l, 'curr')     'Currency',
+    convert('date', c.start_day)    'RealStartDate',
+    c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day)    'RealEndDate',
+    c.type = 'Fixed Amount' ? 0.0 : c.rate       'CouponRate',
+    l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'Daycount',
+    c.cfwnbr      'cfwnbr',
+    (c.pay_day < TODAY ? c.rate : c.rate)  'CurrentRateValue',
+    ''       'ResetDate',
+    ael_s(lcurr,'getYCName')    'CurveIndex',
+	c.type in ('Float Rate', 'Caplet', 'Floorlet') ? c.spread : 0.0	'InsSpread',
+	c.float_rate_factor					'InsFactor',    
+    l.payleg = 'No' ? 'Rec' : 'Pay'   'Pay_Rec',
+    0.0      'NominalScaling',
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+
+into
+ temp
+
+from
+ Trade t,
+ Instrument i,
+ Instrument lcurr,
+ Leg l,
+ Cashflow c,
+ Portfolio p
+
+where
+        t.insaddr = i.insaddr
+and     l.insaddr = i.insaddr
+and     l.curr = lcurr.insaddr
+and     l.legnbr = c.legnbr
+and     c.pay_day > TODAY
+and     l.type = 'Fixed'
+and     i.exp_day > @Date{today}
+and     t.status not in ('Simulated',  'Terminated', 'Void')
+and     i.instype IN ('Bill', 'CD', 'Deposit')
+and     t.prfnbr = p.prfnbr
+and     p.prfid not in ('MM_Graveyard')
+and     p.prfid in ('LIABILITIES 2474', 'ABCAP FUND 2475', 'GROUP FUND 2476', 'HEDGES 1573', 'IRP 2304', 'IRD Funding Hybrid', 'NLD Funding Hybrid',
+        'Africa_Bonds',
+        'MONB 0681',
+        'MONY 9802',
+        'STRAT FUND 9831',
+        'STIRT_FRA_TRADING_MHARVEY',
+        'HYBRID_BOND',
+        'HYBRID ANNUITY',
+        'FORWARD_CP',
+        'Portfolio Risk Management',
+        'Conduit Trading',
+        'CORPORATE LEND 3304',
+        'LIABILITIES 9830', 
+        'HYBRID_FVTPL', 
+        'SPV1', 
+        'SPV2', 
+        'SPV3',
+        'SPV4')
+
+ 
+
+
+
+/******* distinct trades *******/
+select
+ distinct(t.DealId)
+into
+ FixedTrades
+from
+ temp t
+
+
+ 
+
+
+
+select
+ 'BAS'          'Type',       
+ tmp.DealID     'DealID',
+ convert('date', time_to_day(t.time))   'DealDate',
+ display_id(t, 'trader_usrnbr')         'Dealer',
+ display_id(t, 'prfnbr')                'Portfolio',
+ display_id(t, 'counterparty_ptynbr')   'CounterParty',
+ t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 'Status',
+ convert('double',mtm_value_fo(t))   'MtM_Currency',
+ t.quantity > 0 ? 'Buy' : 'Sell'    'Buy_Sell',
+ ael_s(t,'get_discountcurve',i,'Pay')/*ael_s(i,'getYCName')*/'DiscountCurvePay',
+ ael_s(t,'get_discountcurve',i,'Receive')  'DiscountCurveReceive',
+ ''        'StructuredPaymentType',
+ to_double('0')      'PaymentAmount',
+ ''       'Currency',
+ ''       'RealStartDate',
+ ''       'RealEndDate',
+ 0.0      'CouponRate',
+ ''       'Daycount',
+ 0        'cfwnbr',
+ 0.0      'CurrentRateValue',
+ ''       'ResetDate',
+ ''       'CurveIndex',
+ 0.0      'InsSpread',
+ 0.0      'InsFactor',
+ ''       'Pay_Rec', 
+ 0.0      'NominalScaling',
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+into
+ BA
+
+from
+ Trade t,
+ Instrument i,
+ FixedTrades tmp
+
+
+where
+ t.insaddr = i.insaddr
+and t.trdnbr = tmp.DealID
+
+
+
+
+/******* fixed *******/
+select
+ 'RO'       'Type',
+ t.DealId,
+ ''         'DealDate',
+ ''         'Dealer',
+ ''         'Portfolio',
+ ''         'CounterParty',
+ ''         'Status',
+ ''         'MtM_Currency',
+ ''         'Buy_Sell',
+ ''         'DiscountCurvePay',
+ ''         'DiscountCurveReceive', 
+ t.StructuredPaymentType,
+ t.PaymentAmount,
+ t.Currency,
+ t.RealStartDate,
+ t.RealEndDate,
+ t.CouponRate,
+ t.Daycount,
+ t.cfwnbr,
+ t.CurrentRateValue,
+ t.ResetDate,
+ t.CurveIndex,
+ t.InsSpread,
+ t.InsFactor,
+ t.Pay_Rec,
+ t.NominalScaling,
+ t.IType,
+ t.Instype
+into
+ BA
+
+from
+ temp t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Float */
+
+select 
+ distinct
+ 'BAS'        'Type',       
+ t.trdnbr     'DealID',
+ convert('date', time_to_day(t.time))   'DealDate',
+ display_id(t, 'trader_usrnbr')    'Dealer',
+ display_id(t, 'prfnbr')     'Portfolio',
+ display_id(t, 'counterparty_ptynbr')   'CounterParty',
+ t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 'Status',
+ convert('double',mtm_value_fo(t))   'MtM_Currency',
+ t.quantity > 0 ? 'Buy' : 'Sell'    'Buy_Sell',
+ ael_s(t,'get_discountcurve',i,'Pay')/*ael_s(i,'getYCName')*/'DiscountCurvePay',
+ ael_s(t,'get_discountcurve',i,'Receive')  'DiscountCurveReceive',
+ ''        'StructuredPaymentType',
+ to_double('0')      'PaymentAmount',
+ ''       'Currency',
+ ''       'RealStartDate',
+ ''       'RealEndDate',
+ 0.0       'CouponRate',
+ ''       'Daycount',
+ 0       'cfwnbr',
+ 0.0       'CurrentRateValue',
+ ''       'ResetDate',
+ ''       'CurveIndex',
+ 0.0       'InsSpread',
+ 0.0       'InsFactor',
+ ''       'Pay_Rec',
+ ael_f(t,'ResetDates.nominal_Scale')   'NominalScaling' ,
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype' 
+into 
+ FloatTrades
+from
+ Trade t,
+ Instrument i,
+ Instrument lcurr,
+ Leg l,
+ Cashflow c,
+ Portfolio p
+
+where
+        t.insaddr = i.insaddr
+and     l.insaddr = i.insaddr
+and     l.curr = lcurr.insaddr
+and     l.legnbr = c.legnbr
+and     c.pay_day > TODAY
+and     l.type = 'Float'
+and     i.exp_day > @Date{today}
+and     t.status not in ('Simulated',  'Terminated', 'Void')
+and     i.instype IN ('Bill', 'CD', 'Deposit')
+and     t.prfnbr = p.prfnbr
+and     p.prfid not in ('MM_Graveyard')
+and     p.prfid in ('LIABILITIES 2474', 'ABCAP FUND 2475', 'GROUP FUND 2476', 'HEDGES 1573', 'IRP 2304', 'IRD Funding Hybrid', 'NLD Funding Hybrid',
+        'Africa_Bonds',
+        'MONB 0681',
+        'MONY 9802',
+        'STRAT FUND 9831',
+        'STIRT_FRA_TRADING_MHARVEY',
+        'HYBRID_BOND',
+        'HYBRID ANNUITY',
+        'FORWARD_CP',
+        'Portfolio Risk Management',
+        'Conduit Trading',
+        'CORPORATE LEND 3304',
+        'LIABILITIES 9830', 
+        'HYBRID_FVTPL', 
+        'SPV1', 
+        'SPV2', 
+        'SPV3',
+        'SPV4')
+
+
+select 
+ *
+into
+ BA
+from
+ FloatTrades
+
+
+/* Float */
+select
+ 'RO2'       'Type',
+ t.trdnbr      'DealId',
+ ''        'DealDate',
+ ''        'Dealer',
+ ''        'Portfolio',
+ ''       'CounterParty',
+ ''        'Status',
+ ''        'MtM_Currency',
+ ''        'Buy_Sell',
+ ''        'DiscountCurvePay',
+ ''       'DiscountCurveReceive', 
+ c.type =  'Float Rate' ? 'Float Rate' : c.type  'StructuredPaymentType',
+ c.type = 'Fixed Amount' ? (projected_cf(c) * t.quantity) : nominal_amount(c) * t.quantity    'PaymentAmount',
+ display_id(l, 'curr')     'Currency',
+ convert('date', c.start_day)    'RealStartDate',
+ c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day)   'RealEndDate',
+ c.type = 'Fixed Rate' ? l.fixed_rate : 0  'CouponRate',
+ l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'Daycount',
+ c.cfwnbr      'cfwnbr',
+ ael_f(,'ResetDates.CurrentResetValue', c, 1)  'CurrentRateValue',
+ convert('date', ael_d(,'ResetDates.CurrentResetDay', c, 0)) 'ResetDate',
+ l.type = 'Fixed' ? ael_s(lcurr,'getYCName') : display_id(l,'float_rate')     'CurveIndex',
+ c.type in ('Float Rate', 'Caplet', 'Floorlet') ? c.spread : 0.0	'InsSpread',
+ c.float_rate_factor					'InsFactor',
+ l.payleg = 'No' ? 'Rec' : 'Pay'    'Pay_Rec',
+ 0.0       'NominalScaling' ,
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+
+into
+ BA
+
+from
+ Trade t,
+ Instrument i,
+ Instrument und,
+ Instrument lcurr,
+ Leg l,
+ Cashflow c,
+ FloatTrades tmp
+
+where
+    t.trdnbr = tmp.DealId
+and t.insaddr = i.insaddr 
+and i.insaddr = l.insaddr
+and l.curr = lcurr.insaddr
+and l.legnbr = c.legnbr
+and c.pay_day > TODAY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Call Float */
+
+select 
+ distinct
+ 'BAS'       'Type',       
+ t.trdnbr     'DealID',
+ convert('date', time_to_day(t.time))   'DealDate',
+ display_id(t, 'trader_usrnbr')         'Dealer',
+ p.prfid                                'Portfolio',
+ display_id(t, 'counterparty_ptynbr')   'CounterParty',
+ t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 'Status',
+ convert('double',mtm_value_fo(t))   'MtM_Currency',
+ t.quantity > 0 ? 'Buy' : 'Sell'    'Buy_Sell',
+ ael_s(t,'get_discountcurve',i,'Pay')/*ael_s(i,'getYCName')*/'DiscountCurvePay',
+ ael_s(t,'get_discountcurve',i,'Receive')  'DiscountCurveReceive',
+ ''        'StructuredPaymentType',
+ to_double('0')      'PaymentAmount',
+ ''       'Currency',
+ ''       'RealStartDate',
+ ''       'RealEndDate',
+ 0.0      'CouponRate',
+ ''       'Daycount',
+ 0        'cfwnbr',
+ 0.0      'CurrentRateValue',
+ ''       'ResetDate',
+ ''       'CurveIndex',
+ 0.0      'InsSpread',
+ 0.0      'InsFactor',
+ ''       'Pay_Rec',
+ ael_f(t,'ResetDates.nominal_Scale')   'NominalScaling',
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+
+into 
+ CallFloatTrades
+from
+ Trade t,
+ Instrument i,
+ Instrument lcurr,
+ Leg l,
+ Cashflow c,
+ Portfolio p
+
+where
+        t.insaddr = i.insaddr
+and     l.insaddr = i.insaddr
+and     l.curr = lcurr.insaddr
+and     l.legnbr = c.legnbr
+and     c.pay_day > TODAY
+and     l.type = 'Call Float'
+and     i.exp_day > @Date{today}
+and     t.status not in ('Simulated',  'Terminated', 'Void')
+and     i.instype IN ('Bill', 'CD', 'Deposit')
+and     t.prfnbr = p.prfnbr
+and     p.prfid not in ('MM_Graveyard')
+and     p.prfid in ('LIABILITIES 2474', 'ABCAP FUND 2475', 'GROUP FUND 2476', 'HEDGES 1573', 'IRP 2304', 'IRD Funding Hybrid', 'NLD Funding Hybrid',
+        'Africa_Bonds',
+        'MONB 0681',
+        'MONY 9802',
+        'STRAT FUND 9831',
+        'STIRT_FRA_TRADING_MHARVEY',
+        'HYBRID_BOND',
+        'HYBRID ANNUITY',
+        'FORWARD_CP',
+        'Portfolio Risk Management',
+        'Conduit Trading',
+        'CORPORATE LEND 3304',
+        'LIABILITIES 9830', 
+        'HYBRID_FVTPL', 
+        'SPV1', 
+        'SPV2', 
+        'SPV3',
+        'SPV4')
+
+ 
+select 
+ *
+into
+ BA
+from
+ CallFloatTrades
+
+
+/* Call Float */
+select
+ 'RO3'      'Type',
+ t.trdnbr   'DealId',
+ ''         'DealDate',
+ ''         'Dealer',
+ ''         'Portfolio',
+ ''         'CounterParty',
+ ''         'Status',
+ ''         'MtM_Currency',
+ ''         'Buy_Sell',
+ ''         'DiscountCurvePay',
+ ''         'DiscountCurveReceive', 
+ c.type =  'Float Rate' ? 'Float Rate' : c.type  'StructuredPaymentType',
+ c.type = 'Fixed Amount' ? (projected_cf(c) * t.quantity) : nominal_amount(c) * t.quantity    'PaymentAmount',
+ display_id(l, 'curr')     'Currency',
+ convert('date', c.start_day)    'RealStartDate',
+ c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day)   'RealEndDate',
+ c.type = 'Fixed Rate' ? l.fixed_rate : 0  'CouponRate',
+ l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'Daycount',
+ c.cfwnbr      'cfwnbr',
+ ael_f(,'ResetDates.CurrentResetValue', c, 1)  'CurrentRateValue',
+ convert('date', ael_d(,'ResetDates.CurrentResetDay', c, 0)) 'ResetDate',
+ l.type = 'Fixed' ? ael_s(lcurr,'getYCName') : display_id(l,'float_rate')     'CurveIndex',
+ c.type in ('Float Rate', 'Caplet', 'Floorlet') ? c.spread : 0.0	'InsSpread',
+ c.float_rate_factor					'InsFactor',
+ l.payleg = 'No' ? 'Rec' : 'Pay'    'Pay_Rec',
+ 0.0       'NominalScaling' ,
+	to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+
+ 
+
+into
+ BA
+
+from
+ Trade t,
+ Instrument i,
+ Instrument und,
+ Instrument lcurr,
+ Leg l,
+ Cashflow c,
+ CallFloatTrades tmp
+
+where
+    t.trdnbr = tmp.DealId
+and t.insaddr = i.insaddr 
+and i.insaddr = l.insaddr
+and l.curr = lcurr.insaddr
+and l.legnbr = c.legnbr
+and c.pay_day > TODAY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* BuysellBack */
+
+select 
+ distinct
+ 'BAS'       'Type',       
+ t.trdnbr    'DealID',
+ convert('date', time_to_day(t.time))   'DealDate',
+ display_id(t, 'trader_usrnbr')         'Dealer',
+ p.prfid                                'Portfolio',
+ display_id(t, 'counterparty_ptynbr')   'CounterParty',
+ t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 'Status',
+ convert('double',mtm_value_fo(t))   'MtM_Currency',
+ t.quantity > 0 ? 'Buy' : 'Sell'    'Buy_Sell',
+ ael_s(t,'get_discountcurve',i,'Pay')/*ael_s(i,'getYCName')*/'DiscountCurvePay',
+ ael_s(t,'get_discountcurve',i,'Receive')  'DiscountCurveReceive',
+ ''        'StructuredPaymentType',
+ to_double('0')      'PaymentAmount',
+ ''       'Currency',
+ ''       'RealStartDate',
+ ''       'RealEndDate',
+ 0.0       'CouponRate',
+ ''       'Daycount',
+ 0       'cfwnbr',
+ 0.0       'CurrentRateValue',
+ ''       'ResetDate',
+ ''       'CurveIndex',
+ 0.0       'InsSpread',
+ 0.0       'InsFactor',
+ ''       'Pay_Rec',
+ ael_f(t,'ResetDates.nominal_Scale')   'NominalScaling'  ,
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype'
+into 
+ BSBTrades
+from
+ Trade t,
+ Instrument i,
+ Portfolio p
+where
+    t.insaddr = i.insaddr 
+and display_id(t, 'prfnbr') = 'MONY 9802' 
+and i.instype = 'BuySellback'
+/*and i.insaddr = l.insaddr*/
+and i.exp_day > today
+and time_to_day(t.time) <= today
+and t.status NOT IN ('Simulated','Terminated','Void')
+/*and pri.insid = 'ZAR-PRIME'*/
+and     t.prfnbr = p.prfnbr
+and     p.prfid not in ('MM_Graveyard')
+and     p.prfid in ('LIABILITIES 2474', 'ABCAP FUND 2475', 'GROUP FUND 2476', 'HEDGES 1573', 'IRP 2304', 'IRD Funding Hybrid', 'NLD Funding Hybrid',
+        'Africa_Bonds',
+        'MONB 0681',
+        'MONY 9802',
+        'STRAT FUND 9831',
+        'STIRT_FRA_TRADING_MHARVEY',
+        'HYBRID_BOND',
+        'HYBRID ANNUITY',
+        'FORWARD_CP',
+        'Portfolio Risk Management',
+        'Conduit Trading',
+        'CORPORATE LEND 3304',
+        'LIABILITIES 9830', 
+        'HYBRID_FVTPL', 
+        'SPV1', 
+        'SPV2', 
+        'SPV3',
+        'SPV4')
+
+        
+select 
+ *
+into
+ BA
+from
+ BSBTrades
+
+
+/* BuySellBack */
+select
+ 'RO4'      'Type',
+ t.trdnbr   'DealId',
+ ''         'DealDate',
+ ''         'Dealer',
+ ''         'Portfolio',
+ ''         'CounterParty',
+ ''         'Status',
+ ''         'MtM_Currency',
+ ''         'Buy_Sell',
+ ''         'DiscountCurvePay',
+ ''         'DiscountCurveReceive', 
+ c.type =  'Float Rate' ? 'Float Rate' : c.type  'StructuredPaymentType',
+ nominal_amount(c)/* * t.quantity*/    'PaymentAmount',
+ display_id(l, 'curr')     'Currency',
+ convert('date', c.start_day)    'RealStartDate',
+ c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day)   'RealEndDate',
+ c.type = 'Fixed Rate' ? l.fixed_rate : 0  'CouponRate',
+ l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'Daycount',
+ c.cfwnbr      'cfwnbr',
+ ael_f(,'ResetDates.CurrentResetValue', c, 1)  'CurrentRateValue',
+ convert('date', ael_d(,'ResetDates.CurrentResetDay', c, 0)) 'ResetDate',
+ l.type = 'Fixed' ? ael_s(lcurr,'getYCName') : display_id(l,'float_rate')     'CurveIndex',
+ c.type in ('Float Rate', 'Caplet', 'Floorlet') ? c.spread : 0.0	'InsSpread',
+ c.float_rate_factor					'InsFactor',
+ l.payleg = 'No' ? 'Rec' : 'Pay'    'Pay_Rec',
+ 0.0       'NominalScaling',
+    to_string((i.instype = 'FRN') ? 'FRN' : i.instype)					'IType',
+
+	to_string((i.instype = 'FRN' and add_info(t, 'MM_Instype') = 'NCC') ? 'NCC'
+		: i.instype = 'FRN' ? 'FRN'
+			: add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype')))	'Instype' 
+
+into
+ BA
+
+from
+     Trade t,
+     Instrument i,
+     Instrument und,
+     Instrument lcurr,
+     Leg l,
+     Cashflow c,
+     BSBTrades tmp
+
+where
+    t.trdnbr = tmp.DealId
+and t.insaddr = i.insaddr 
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.curr = lcurr.insaddr
+and l.legnbr = c.legnbr
+/*and c.pay_day > TODAY*/
+
+
+
+
+
+
+
+/* premium */
+select
+    'RO_P'        'Type',
+    t.trdnbr    'DealId',
+    ''          'DealDate',
+    ''          'Dealer',
+    ''          'Portfolio',
+    ''          'CounterParty',
+    ''          'Status',
+    ''          'MtM_Currency',
+    ''          'Buy_Sell',
+    ''          'DiscountCurvePay',
+    ''          'DiscountCurveReceive', 
+    'Premium'   'StructuredPaymentType',
+    t.premium   'PaymentAmount',
+    display_id(t, 'curr')           'Currency',
+    convert('date', t.value_day)    'RealStartDate',
+    convert('date', t.value_day)    'RealEndDate',
+    0.0                             'CouponRate',
+    ''                              'Daycount',
+    0                               'cfwnbr',
+    0.0                             'CurrentRateValue',
+    convert('date', t.value_day)    'ResetDate',
+    ''                              'CurveIndex',
+    0.0                             'InsSpread',
+    0.0                             'InsFactor',
+    t.premium >= 0 ? 'Rec' : 'Pay'  'Pay_Rec',
+    0.0                             'NominalScaling',
+    b.IType,
+	b.Instype
+
+into
+    BA
+
+from
+    BA b,
+    Trade t
+    
+where
+    t.trdnbr = b.DealId
+and b.Type = 'BAS'
+/*and t.insaddr = i.insaddr 
+and i.insaddr = l.insaddr
+and l.curr = lcurr.insaddr
+and l.legnbr = c.legnbr
+and t.value_day >= TODAY*/
+
+
+
+
+
+
+
+/* additonal pamyents */
+select
+    'RO_AP'     'Type',
+    t.trdnbr    'DealId',
+    ''          'DealDate',
+    ''          'Dealer',
+    ''          'Portfolio',
+    display_id(p, 'ptynbr')     'CounterParty',
+    ''          'Status',
+    ''          'MtM_Currency',
+    ''          'Buy_Sell',
+    ''          'DiscountCurvePay',
+    ''          'DiscountCurveReceive', 
+    p.type = 'Termination Fee' ? 'Termination Fee' : p.type      'StructuredPaymentType',
+    p.amount    'PaymentAmount',
+    display_id(p, 'curr')           'Currency',
+    convert('date', p.payday)       'RealStartDate',
+    convert('date', p.payday)       'RealEndDate',
+    0.0                             'CouponRate',
+    ''                              'Daycount',
+    0                               'cfwnbr',
+    0.0                             'CurrentRateValue',
+    convert('date', p.payday)       'ResetDate',
+    ''                              'CurveIndex',
+    0.0                             'InsSpread',
+    0.0                             'InsFactor',
+    p.amount >= 0 ? 'Rec' : 'Pay'   'Pay_Rec',
+    0.0                             'NominalScaling' ,
+    b.IType,
+    b.Instype
+
+into
+    BA
+
+from
+    BA b,
+    Trade t,
+    Payment p
+
+where
+    t.trdnbr = b.DealId
+and b.Type = 'BAS'
+and t.trdnbr = p.trdnbr    
+and p.payday > TODAY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/******* main *******/
+select
+	t.Type,
+	t.DealId,
+	t.DealDate,
+	t.Dealer,
+	t.Portfolio,
+	t.CounterParty,
+	t.Status,
+	t.MtM_Currency,
+	t.Buy_Sell,
+	t.DiscountCurvePay,
+	t.StructuredPaymentType,
+	t.PaymentAmount,
+	t.Currency,
+	t.RealStartDate,
+	t.RealEndDate,
+	t.CouponRate,
+	t.Daycount,
+	t.cfwnbr,
+	t.CurrentRateValue,
+	t.ResetDate,
+	t.CurveIndex,
+	t.InsSpread,	
+	t.InsFactor,
+	t.Pay_Rec,
+	TODAY		'DATE_TODAY',
+	t.DiscountCurveReceive,
+	t.IType,
+	t.Instype
+
+from 
+	BA t
+
+order by
+	t.DealId, t.Type 
+
+
+
+
+
+
+
+
+
+
+
+

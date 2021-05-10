@@ -1,0 +1,12 @@
+[Default]FCombInstrMap:combinationMarkToMarketInstrumentPositionValues = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->select(combinationLegsUnadjusted, 
+    true->setDateTimePart(valuationInstrument :* "markToMarketOrInvertedMarkToMarketInstrumentValue * riskPosition" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities, useFallbackToTheoreticalValues], (combination:instrumentSpotDate)) * weight, 
+    false->valuationInstrument :* "collapse(markToMarketInstrumentPositionValues)" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities = (positionTradeQuantities * weight), useFallbackToTheoreticalValues]));
+[Default]FCombination:combinationMarkToMarketInstrumentPositionValues = select(mtmFromFeed, 
+  true->select(useFallbackToTheoreticalValues, 
+    true->select(isFinite(marketPrice), 
+      true->collapse(marketInstrumentPositionValues), 
+      false->combinationMarkToMarketInstrumentMapsPositionValues), 
+    false->collapse(marketInstrumentPositionValues)), 
+  false->combinationMarkToMarketInstrumentMapsPositionValues);

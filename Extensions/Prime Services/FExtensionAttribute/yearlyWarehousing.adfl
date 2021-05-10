@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:yearlyWarehousing = sumOf(children :* "yearlyWarehousing");
+[Prime Services]FSingleInstrumentAndTrades:yearlyWarehousing = switch(isFundingPortfolio and isWarehousingInstrument, 
+  true->py("PS_FundingCalculations", context).CalculateWarehousing(instrument, fundingInstrument, acm.Time.DateAddDelta(firstDayOfYear, 0, 0, -1), profitAndLossEndDate, "Yearly"), 
+  false->0);

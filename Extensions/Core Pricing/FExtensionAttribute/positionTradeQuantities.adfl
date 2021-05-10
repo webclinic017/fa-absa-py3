@@ -1,0 +1,8 @@
+[Core Pricing]FCashFlowMoneyFlow:positionTradeQuantities = select(taxLotValuation, 
+  true->tradedInstrument:positionTradeQuantitiesIgnoreTradeCategory [trades, valuesOnSpotOverride, includeAllTrades, taxLotPositionObject, taxLotValuation, acquireCutoffDate = object.ExCouponDate(staticLegInformation)], 
+  default->tradedInstrument:positionTradeQuantitiesIgnoreTradeCategory [trades, valuesOnSpotOverride, includeAllTrades]);
+[Core Pricing]FCombInstrMapAndTrades:positionTradeQuantities = tradeQuantities(tradesInPosition, valuationDate, acquireCutoffDate, plClearDateForValuation, plClearDateForValuation, tradeStatusInclusionMaskDefault, tradeCategoryInclusionMaskDefault, tradeInclusionDateTime);
+[Core Pricing]FFxRate:positionTradeQuantities = valuesInTypeAsBasket(futurePositionPayments, quantitySymbol);
+[Core Pricing]FInstrument:positionTradeQuantities = select(taxLotValuation, 
+  false->tradeQuantities(tradesInPosition, valuationDate, acquireCutoffDate, plClearDateForValuation, plClearDateForValuation, tradeStatusInclusionMaskDefault, tradeCategoryInclusionMaskDefault, tradeInclusionDateTime), 
+  true->taxLotTradeQuantities(taxLotPositionObject, valuationDate, acquireCutoffDate, plClearDateForValuation, plClearDateForValuation, tradeStatusInclusionMaskDefault, tradeCategoryInclusionMaskDefault, tradeInclusionDateTime));

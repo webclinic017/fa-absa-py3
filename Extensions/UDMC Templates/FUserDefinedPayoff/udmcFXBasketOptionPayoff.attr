@@ -1,0 +1,40 @@
+[UDMC Templates]FObject:udmcFXBasketOptionPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for FX basket option
+#
+# INTERPRETATION
+# An option on the weighted returns in a basket.
+#
+# DEFINITION
+# strike: Option strike price, in this case defined as the inital value of the basket;
+# w: Weights, retrieved from the 'Weight' field;
+#--------------------------------------------
+
+# PARAMETERS
+param matrix(double) w;
+param double strike;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double basketInit = strike;
+double basketFinal = 0.0;
+double optionValue = 0.0;
+
+# MAIN LOOP
+basketFinal = w[0,0]*S[0,0]+w[0,1]*S[1,0];
+
+if(basketFinal<basketInit)
+{
+    optionValue = (basketInit-basketFinal)/basketInit;
+}
+else
+{
+    optionValue = 0.0;
+};
+
+cashFlow(0, optionValue);
+
+...

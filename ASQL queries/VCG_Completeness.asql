@@ -1,0 +1,32 @@
+/*
+Purpose:	    Show portfolios and cost centers for trades in a certain trade filter
+Department:	PCG
+Requester: 	Palesa Mkhabele
+Developer: 	Jaysen Naicker
+CR Number: 	562642
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','VCG_Completeness') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'VCG_Completeness' and p.type = 'SQL Query'
+
+
+Select
+    t.trdnbr,
+    p.prfid    'Portfolio',
+    pp.prfid  'Cost_Centre',
+    @Filter{;Tradefilter.fltid}  'FILTER_NAME'
+from 
+    trade t,
+    portfolio p ,
+    portfolio pp ,
+    portfolioLink pl 
+where
+    match_filter(t, @Filter{;Tradefilter.fltid})
+    and t.prfnbr = p.prfnbr 
+    and p.prfnbr = pl.member_prfnbr 
+    and pl.owner_prfnbr = pp.prfnbr
+group by 2

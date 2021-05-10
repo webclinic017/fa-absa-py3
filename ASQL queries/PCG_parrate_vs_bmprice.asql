@@ -1,0 +1,43 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_parrate_vs_bmprice') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_parrate_vs_bmprice' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+    yc.yield_curve_name,
+    ins.insid,    
+    today                               'today',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'exp_day',
+    used_price(ins)                 'bm_rate',
+    yc_rate(yc, today, ael_d(ins, 'dirk_utils.bm_maturity'), 'Quarterly', , 'Par Rate') * 100.0  'par_rate'
+into 
+    temp
+from
+    instrument ins,
+    benchmark bm,
+    yieldcurve yc
+where
+    yc.yield_curve_name  in ('ZAR-SWAP')
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and ins.instype = 'Swap'
+
+select
+    yield_curve_name,
+    insid,
+    today,
+    exp_day,
+    bm_rate,
+    par_rate,
+    bm_rate - par_rate          'diff'
+from
+    temp
+order by
+    1,4
+    

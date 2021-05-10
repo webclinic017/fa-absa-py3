@@ -1,0 +1,19 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCurrentSpread = switch(usedInHedge, 
+  default->nil, 
+  true->switch(validSubCategoriesForSpread.IndexOfFirstEqual(hedgeRelationshipSubCategory) >= 0, 
+    true->getHedgeCurrentSpread(object.DealPackage, profitAndLossEndDate), 
+    default->nil));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCurrentSpread = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hasDealPackage, 
+    default->nil, 
+    true->switch(validSubCategoriesForSpread.IndexOfFirstEqual(hedgeRelationshipSubCategory) >= 0, 
+      default->nil, 
+      true->getHedgeCurrentSpread(lowestChild.OriginalTrade.DealPackage, profitAndLossEndDate))));
+[HedgeAccountingMod]FTradeRow:hedgeCurrentSpread = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hasDealPackage, 
+    default->nil, 
+    true->switch(validSubCategoriesForSpread.IndexOfFirstEqual(hedgeRelationshipSubCategory) >= 0, 
+      default->nil, 
+      true->getHedgeCurrentSpread(object.OriginalTrade.DealPackage, profitAndLossEndDate))));

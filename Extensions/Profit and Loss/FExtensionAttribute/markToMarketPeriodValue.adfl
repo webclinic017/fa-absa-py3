@@ -1,0 +1,13 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:markToMarketPeriodValue = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:markToMarketPeriodValue = nil;
+[Profit and Loss]FInstrumentAndTrades:markToMarketPeriodValue = select(isCashGrouping, 
+  true->collapse(cashMarkToMarketPeriodValueDisplay), 
+  false->select(lowestOfCostOrValChosen, 
+    true->min(assetMarkToMarketPeriodValue, -openValue + forwardInterestSettled), 
+    false->collapse(assetMarkToMarketPeriodValue)));
+[Profit and Loss]FPriceAggregate:markToMarketPeriodValue = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "markToMarketPeriodValue");
+[Profit and Loss]FTimeBucketAndObject:markToMarketPeriodValue = scenarioaxisarray(rowInstrumentAndTrades:markToMarketPeriodValue [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

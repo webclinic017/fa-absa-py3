@@ -1,0 +1,7 @@
+[Core Risk]FCombInstrMap:priceGreekRiskFactorNodes = instrument :* "priceGreekRiskFactorNodes" [doSplitAll, priceSource, priceGreekShiftFilter, useGreekBetaFactors, useCommodityRiskFactors];
+[Core Risk]FCurrencySwap:priceGreekRiskFactorNodes = nil;
+[Core Risk]FInstrument:priceGreekRiskFactorNodes = select(priceGreekFactorsUseUnfiltered, 
+  true->priceGreekRiskFactorsUnfilteredNode.InternalInputs, 
+  false->node(priceGreekRiskFactorsFiltered).InternalInputs);
+[Core Risk]FInstrumentAndTrades:priceGreekRiskFactorNodes = flattenAndRemoveNil(openInstrument :* "priceGreekRiskFactorNodes" [priceSource, isSplitAllGrouped, priceGreekShiftFilter, useCommodityRiskFactors]);
+[Core Risk]FMultiInstrumentAndTrades:priceGreekRiskFactorNodes = flattenAndRemoveNil(flattenAndRemoveDuplicates(openInstruments :* "collapse(priceGreekRiskFactorNodes)" [priceSource, isSplitAllGrouped, priceGreekShiftFilter, useCommodityRiskFactors]));

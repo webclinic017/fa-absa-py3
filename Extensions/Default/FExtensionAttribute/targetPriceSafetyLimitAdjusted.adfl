@@ -1,0 +1,5 @@
+[Default]ExecutionAlgo:targetPriceSafetyLimitAdjusted = switch(isLimitedPrice(targetPriceFundamental) and isLimitedPrice(algoPriceLimit), 
+  true->select(algoIsBuy, 
+    true->min(targetPriceFundamental, algoPriceLimit), 
+    false->max(targetPriceFundamental, algoPriceLimit)), 
+  default->targetPriceFundamental);

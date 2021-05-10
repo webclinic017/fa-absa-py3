@@ -1,0 +1,6 @@
+[Default]FEvaluator:riskFactorsInTheoreticalValue = select(riskFactorNode.Proprietor, 
+  default->riskFactorNode.Proprietor, 
+  nil->riskFactorNode);
+[Default]FInstrumentAndTrades:riskFactorsInTheoreticalValue = select(riskFactorIsFXCollection, 
+  false->removeNil(flattenAndRemoveDuplicates(riskFactorNodesForRiskFactorCollection :* "riskFactorsInTheoreticalValue")), 
+  true->riskFactorsFxInTheoreticalValue);

@@ -1,0 +1,7 @@
+[ArenaFunction32To4]FInstrument:valuationModelNameOriginal = select(isCustomValued, 
+  true->valuationDescription, 
+  default->select(isCalculatedTheoretically, 
+    true->object.ValuationModel(underlyingDividendsSize, select(object.UsesVolatility, 
+      true->volatilityStructure.IsHullWhiteStructure, 
+      false->false), hasMultiPriceRiskFactors, valuationDate, useFullYieldCurves, useProportionalDividends), 
+    false->"None"));

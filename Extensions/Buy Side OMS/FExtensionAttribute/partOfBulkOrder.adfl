@@ -1,0 +1,5 @@
+[Buy Side OMS]FOwnOrder:partOfBulkOrder = select(object.OrderRole == "Bulk Order", 
+  true->true, 
+  false->select(object.ParentOrder, 
+    nil->false, 
+    default->object.ParentOrder.OrderRole == "Bulk Order"));

@@ -1,0 +1,5 @@
+[Absa_2010]FInstrument:forwardValueAfterExpiry = select(isEquity, 
+  true->shunt((today <> valuationDate) and (valuationDate <> object.ExpiryDateOnly) and (ThetaShift <> 0), 
+    true->theorZeroForward(valuationDate, currency, underlyingSpotPrice), 
+    false->europeanIntrinsicValueModel(underlyingValueModelOnExpiryDayAsArrayForAfterExpiryValuation, underlyingValueForAfterExpiryValuation, denominatedvalue(0, underlyingValueForAfterExpiryValuation.Unit, 0, payDate), var("Call", "enum(OptionPayoffType)"), false, isCashSettled, expiryDateTime, valuationDateTime, payDate, ) | "europeanIntrinsicValueModelShadow"), 
+  false->europeanIntrinsicValueModel(underlyingValueModelOnExpiryDayAsArrayForAfterExpiryValuation, underlyingValueForAfterExpiryValuation, denominatedvalue(0, underlyingValueForAfterExpiryValuation.Unit, 0, payDate), var("Call", "enum(OptionPayoffType)"), false, isCashSettled, expiryDateTime, valuationDateTime, payDate, ) | "europeanIntrinsicValueModelShadow");

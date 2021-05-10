@@ -1,0 +1,9 @@
+[Trading]FGroupingOrder:tradingLimitMarketPlace = primaryInternalMarket;
+[Trading]FOrderBook:tradingLimitMarketPlace = object.GetDefaultValueEx("orderBookTradingLimitMarket", context);
+[Trading]FOwnOrder:tradingLimitMarketPlace = select(trading, 
+  nil->nil, 
+  default->trading:tradingLimitMarketPlace);
+[Trading]FTrade:tradingLimitMarketPlace = select(trading, 
+  nil->primaryInternalMarket, 
+  default->trading:tradingLimitMarketPlace);
+[Trading]FTradingInterface:tradingLimitMarketPlace = object.GetDefaultValueEx("orderBookTradingLimitMarket", context);

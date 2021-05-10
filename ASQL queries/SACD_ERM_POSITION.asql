@@ -1,0 +1,257 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACD_ERM_POSITION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACD_ERM_POSITION' and p.type = 'SQL Query' 
+/*
+
+anil - 20050112 - changed the notional amount in the case of amortising CDS trades
+Jurg - 20070502 - added 'GOLD' to the prfid in the where clause
+*/
+
+/*
+Description
+
+Date:                   2010-02-04
+
+Purpose:                To replace hard-coded portfolio names by a trade filter
+
+Department and Desk:    Market Risk
+
+Requester:              Oupa Gadinabokao
+
+Developer:              Tshepo Mabena
+
+CR Number:              C000000215104 
+*/
+
+*/
+
+/*
+Description
+
+Date:                   2010-04-20
+
+Purpose:                To include CLNs as part of instruments returned by the query.
+
+Department and Desk:    Market Risk
+
+Requester:              Oupa Gadinabokao
+
+Developer:              Oupa Gadinabokao
+
+CR Number:              C000000287590
+*/
+
+
+/*SACD_ERM_POSITION*/
+select
+    t.trdnbr 'TRADE_NO',
+    c.cfwnbr 'CASHFLOW_NUMBER',
+    cp.fullname 'COUNTERPARTY',
+    display_id(i,'curr') 'CURRENCY',
+    c.end_day = '0000-01-01'? '1900-01-01' : c.end_day 'EXPIRY_DATE',
+/*    
+i.contr_size*t.quantity 'NOTIONAL',
+*/
+    i.instype = 'FreeDefCF' and c.type = 'Fixed Amount' ? (nominal_amount(c, t.value_day) *  t.quantity * (l.payleg = 'Yes'? -1 : 1))
+        : c.nominal_factor*t.quantity *1000000  'NOTIONAL',
+
+    /*c.type = 'Float Rate' ? r.value : period_rate(c,c.start_day,c.end_day) 'COUPON_RATE',*/
+    period_rate(c,c.start_day,c.end_day) 'COUPON_RATE',
+    l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'DAYS_YEAR',
+    c.start_day = '0000-01-01'? '1900-01-01' : c.start_day 'EFFECTIVE_DATE',
+    ael_s(l,'myfreq')  'TERM',
+    i.instype = 'Swap' ? 'Swap' : i.instype 'TYPE',
+    l.payleg = 'Yes'? 'PAY' : 'REC' 'PAY_REC',
+    time_to_day(t.time) 'TRADEDATE',
+    today 'DATE_LAST_UPDATED',
+    display_id(t,'prfnbr') 'PORTFOLIO',
+    i.settlement = 'None' ? 'None' : i.settlement 'SETTLEMENT_METHODOLOGY',
+    l.digital_payoff 'SETTLE_AMOUNT',
+    display_id(t,'trader_usrnbr')    'DEALER',
+    c.spread            'SPREADS',
+    c.type = 'Float Rate' ? 'Float Rate' : c.type                'CF_TYPE',
+    /*mtm_value_bo(t,c.pay_day,'ZAR',1)*/ 1.0 /*present_value(c) * t.quantity*/    'MtM_ZAR',
+    /*mtm_value_bo(t,c.pay_day,'USD',1)*/ 1.0 /*present_value(c) * t.quantity * used_price(cur,,'USD')*/    'MtM_USD',
+    display_id(cr,'issuer_ptynbr')        'ISSUER',
+    c.pay_day,
+    i.insid                             'INSTRUMENT',
+    display_id(l, 'float_rate')         'FLOAT REF',
+    i.instype = 'Swap' ? 'Swap' : i.instype 'UNDTYPE',
+    l.digital                           'DIGITAL',
+    l.digital_payoff * c.nominal_factor*t.quantity *10000  'DIGITAL_PAYOFF',
+    l.digital_type                           'DIGITAL_TYPE',
+    clist.entry                         'VALGROUP'
+    
+from     
+    instrument i,
+    trade t,
+    leg l,
+    cashflow c,
+    party p,
+    party cp,
+    instrument cr,
+    instrument cur,
+    portfolio port,
+    ChoiceList clist
+
+where
+   match_filter(t,@Filter{SACD_ERM_POSITION;Tradefilter.fltid})
+and i.insaddr = t.insaddr
+and    clist.seqnbr = i.product_chlnbr
+and i.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and i.exp_day > today
+and t.counterparty_ptynbr = cp.ptynbr
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype in ('TotalReturnSwap', 'CreditDefaultSwap', 'FreeDefCF','CLN')
+and i.instype ~= 'IndexLinkedSwap'
+/*and (p.ptyid = 'Credit Derivs'
+or  port.prfid in ('CD_QUANTO_BARCAP_MARGIN', 'CD_STANDARD BANK','CD_EXTINGUISHER CCS','CD_FIREFLY','CD_ALHAMBRA','CD_SAVCIO_BTB_TRS','CD_QUANTO','CD_HYBRID', 'CD_HYBRID_FIXED','CREDIT DERIV 4557', 'Complex CDS','GOLD','49114 EQ_SA_StockVol', 'EQ_SA_Credit',
+'CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_HYBRID','CD_CORPBONDS','CD_CDS', 'EQ_OFP','CP_CDS','CD_CONSOL_001','CD_CONSOL_002','CD_CONSOL_003','CD_CONSOL_004','CD_CONSOL_005','CD_CONSOL_006','CD_CONSOL_007','CD_FAIR VALUE NOTES','CD_LEVERAGED NOTES','CDS_HTM','CD_COLLATERAL_CDS','CD_AFRICA','AFRICA_CDS'))*/
+
+
+
+
+
+
+union
+
+
+
+
+
+/*** Combination Instruments ***/
+select
+    t.trdnbr 'TRADE_NO',
+    c.cfwnbr 'CASHFLOW_NUMBER',
+    cp.fullname 'COUNTERPARTY',
+    display_id(und_ins,'curr') 'CURRENCY',
+    c.end_day = '0000-01-01'? '1900/01/01' : c.end_day 'EXPIRY_DATE',
+/*    
+i.contr_size*t.quantity 'NOTIONAL',
+*/
+    t.trdnbr = '1444737' and c.cfwnbr = '1693746' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693747' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693748' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693749' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693750' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693751' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693752' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693753' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693754' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693755' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693756' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693757' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693758' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693759' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693760' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693761' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693762' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693763' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693764' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693765' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693766' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693767' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693768' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693769' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693770' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693771' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693772' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693773' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693774' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693775' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693776' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693777' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693778' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693779' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693780' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693781' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693782' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693783' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693784' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693785' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1693786' ? 300000000
+    : t.trdnbr = '1444737' and c.cfwnbr = '1875150' ? 300000000
+    : t.trdnbr = '1444737' and i.instype = 'Combination' and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity/i.index_factor *-1 * (l.payleg = 'Yes'? -1 : 1)
+   /**********************************************************************/ 
+   /*this is where the original code started, just inserted the above for this specific alhambra trade*/ 
+    : i.instype = 'FreeDefCF'  and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity * (l.payleg = 'Yes'? -1 : 1)
+    : i.instype = 'Combination' and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity/i.index_factor * (l.payleg = 'Yes'? -1 : 1)
+    : i.instype = 'Combination' and c.type not in ('Fixed Amount') ? c.nominal_factor*t.quantity 
+    : c.nominal_factor*t.quantity *1000000  'NOTIONAL',
+        
+    /*c.type = 'Float Rate' ? r.value : period_rate(c,c.start_day,c.end_day) 'COUPON_RATE',*/
+    period_rate(c,c.start_day,c.end_day) 'COUPON_RATE',
+    l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'DAYS_YEAR',
+    c.start_day = '0000-01-01'? '1900/01/01' : c.start_day 'EFFECTIVE_DATE',
+    ael_s(l,'myfreq')  'TERM',
+    i.instype = 'Swap' ? 'Swap' : i.instype 'TYPE',
+    l.payleg = 'Yes'? 'PAY' : 'REC' 'PAY_REC',
+    time_to_day(t.time) 'TRADEDATE',
+    today 'DATE_LAST_UPDATED',
+    display_id(t,'prfnbr') 'PORTFOLIO',
+    i.settlement = 'None' ? 'None' : i.settlement 'SETTLEMENT_METHODOLOGY',
+    l.digital_payoff 'SETTLE_AMOUNT',
+    display_id(t,'trader_usrnbr')    'DEALER',
+    c.spread            'SPREADS',
+    c.type = 'Float Rate' ? 'Float Rate' : c.type                'CF_TYPE',
+    /*mtm_value_bo(t,c.pay_day,'ZAR',1)*/ 1.0 /*present_value(c) * t.quantity*/    'MtM_ZAR',
+    /*mtm_value_bo(t,c.pay_day,'USD',1)*/ 1.0 /*present_value(c) * t.quantity * used_price(cur,,'USD')*/    'MtM_USD',
+    display_id(cr,'issuer_ptynbr')        'ISSUER',
+    c.pay_day,
+    i.insid                             'INSTRUMENT',
+    display_id(l, 'float_rate')         'FLOAT REF',
+    und_ins.instype = 'Swap' ? 'Swap' : und_ins.instype 'UNDTYPE',
+    l.digital                           'DIGITAL',
+    l.digital_payoff * c.nominal_factor*t.quantity *10000 'DIGITAL_PAYOFF',
+    l.digital_type                           'DIGITAL_TYPE',
+    clist.entry                         'VALGROUP'
+    
+from     
+    instrument i,
+    trade t,
+    leg l,
+    cashflow c,
+    party p,
+    party cp,
+    instrument cr,
+    instrument cur,
+    portfolio port,
+    CombinationLink cl,
+    Instrument und_ins,
+    ChoiceList clist
+
+where
+match_filter(t,@Filter{SACD_ERM_POSITION;Tradefilter.fltid}) 
+and i.insaddr = t.insaddr
+and    clist.seqnbr = und_ins.product_chlnbr
+/*and i.insaddr = l.insaddr*/
+and l.legnbr = c.legnbr
+
+/*CombinationLink*/
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr = l.insaddr
+
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+/*and t.trdnbr = 977725 977725 976763*/
+/*and i.exp_day > today*/
+
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype = 'Combination'
+and und_ins.instype ~= 'IndexLinkedSwap'
+/*and port.prfid in ('CD_QUANTO_BARCAP_MARGIN', 'CD_STANDARD BANK','CD_EXTINGUISHER CCS','CD_FIREFLY','CD_ALHAMBRA','CD_SAVCIO_BTB_TRS','CD_QUANTO','CD_HYBRID', 'CD_HYBRID_FIXED','JOB10','CD_HYBRID','CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_HYBRID','CD_CORPBONDS','CD_CDS','CP_CDS','CD_FAIR VALUE NOTES','CD_CONSOL_001','CD_CONSOL_002','CD_CONSOL_003','CD_CONSOL_004','CD_CONSOL_005','CD_CONSOL_006','CD_CONSOL_007','CD_LEVERAGED NOTES','CDS_HTM','CD_COLLATERAL_CDS','CD_AFRICA','AFRICA_CDS')*/
+
+
+

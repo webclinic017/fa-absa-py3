@@ -1,0 +1,28 @@
+[OperationsViewerAxlFormulas]FObject:Security Total UnSettled Today
+{
+}
+isValueDayBeforeOrEqualToday = Or(Compare.IsLess(&'value_day', DateTime.Today()), Compare.IsEqual(&'value_day', DateTime.Today()));
+
+{
+}
+unSettledAmountUpToToday = If(And(&'unSettledSecurityExtAttr', @isValueDayBeforeOrEqualToday()), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Total UnSettled Today',
+    GroupLabel:'Security',
+    Description:'UnSettled security settlements with value day before or equal to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(@unSettledAmountUpToToday());
+
+
+...

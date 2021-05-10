@@ -1,0 +1,7 @@
+[Default]FInstrument:marketDiscountMargin = select(isDiscountMarginSensitive, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(theoreticalPriceFromDiscountMargin, "discountMargin"), theoreticalPriceFromDiscountMargin, marketPrice, discountMarginAccuracy, -1.0, 1.0, implyMaxIterations), 
+    false->nil));
+[Default]FInstrumentAndTrades:marketDiscountMargin = instrument :* "marketDiscountMargin" [marketPrice, priceSource];
+[Default]FMultiInstrumentAndTrades:marketDiscountMargin = nil;

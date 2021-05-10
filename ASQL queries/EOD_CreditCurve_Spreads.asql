@@ -1,0 +1,33 @@
+/*********************************************************************************
+Date                	: 20100614,20110104, 20110413
+Purpose             	: Provide a list of credit curve spreads
+Department and Desk 	: IT pricing and Risk
+Requester           	: Matthew Berry
+Developer           	: Matthew Stephanou
+CR Number           	: 337938,536370, 628573
+
+**********************************************************************************/
+
+select    
+    yc.yield_curve_name                     'Curve',
+    issr.ptyid        			    'Issuer',
+    yp.date_period.count                    'Period Count',
+    yp.date_period.unit                     'Period Unit',
+    ys.spread * 100                         'Spread'
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys,
+    YCAttribute yca,
+    Party issr
+where
+    yc.yield_curve_name IN ('CDIssuerCurve_HR','CDIssuerCurve_HR_EUR','CDIssuerCurve_HR_USD')
+    and yca.yield_curve_seqnbr = yc.seqnbr
+    and yca.seqnbr = ys.attribute_seqnbr 
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr
+    and issr.ptynbr = yca.issuer_ptynbr
+    and yca.seniority_chlnbr > 0
+
+    
+order by 1,2,4,3

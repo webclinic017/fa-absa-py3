@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FLeg:variableNominalFactor = select(hasVariableNominalFactor, 
+  false->nan, 
+  true->select(constantNominalLegCurrency, 
+    nil->nan, 
+    default->double(constantNominalLegCurrency :* "fxForwardRate" [fxForwardDate = forwardValueDate, fxToCurrency := scalingCurrency, discountingType])));

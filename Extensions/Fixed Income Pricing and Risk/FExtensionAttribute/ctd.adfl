@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FDeliverableLinkAndTrades:ctd = switch(tradedInstrument:ctd == instrument, 
+  true->"CTD", 
+  false->nil);
+[Fixed Income Pricing and Risk]FFuture:ctd = select(isFutureOnNotional, 
+  true->select(isAUDF, 
+    true->actualUnderlying, 
+    false->actualUnderlying.SelectedDeliverable), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:ctd = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:ctd = instrument:ctd;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:ctd = nil;

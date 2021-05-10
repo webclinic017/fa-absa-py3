@@ -1,0 +1,8 @@
+[Default]ExecutionAlgo:algoAuctionOrderNeedQtyUpdate = switch(((algoEquilibriumQuantity > 0) and object.CurrentOrderActive), 
+  true->(not almostEqual(object.CurrentOrderQty, algoNextValidOrderQuantity)), 
+  default->false);
+[Default]ExecutionAlgoVolumeParticipation:algoAuctionOrderNeedQtyUpdate = switch((algoEquilibriumQuantity > 0) and object.CurrentOrderActive, 
+  true->switch((object.ParticipationRatio < object.LimVolumeParticipation), 
+    true->((abs((object.CurrentOrderQty / algoEquilibriumQuantity) - object.ParticipationRatio) > algoMinParticipationDiff) and ((algoMinParticipationDiff * algoEquilibriumQuantity) > 1) and (not almostEqual(object.CurrentOrderQty, algoNextValidOrderQuantity)) or ((object.CurrentOrderQty / algoEquilibriumQuantity) > object.LimVolumeParticipation)), 
+    false->(not almostEqual(object.CurrentOrderQty, algoNextValidOrderQuantity))), 
+  default->false);

@@ -1,0 +1,71 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SAIRD_BO_CAPLETCONFIRMATION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SAIRD_BO_CAPLETCONFIRMATION' and p.type = 'SQL Query' 
+
+
+/*Caplet Rate Info*/
+
+select
+t.optional_key 'DevNbr',
+l.payleg,
+i.insid				'Instrument',
+l.pay_day_method		'Method',
+i.pay_offset_method		'Convention',
+t.quantity*i.contr_size*c.nominal_factor		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+l.start_day			'Start',
+c.end_day			'End',
+c.start_day			'CFStart',
+p.fullname			'CP',
+(t.quantity*i.contr_size*c.nominal_factor) > 0 ?  'ABSA' : p.fullname 'FixedPayer',
+(t.quantity*i.contr_size*c.nominal_factor) < 0 ?  'ABSA' : p.fullname 'FloatPayer',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+t.value_day			'Pay_Dates',
+t.premium			'Premium',
+l.strike			'Strike',
+('Yes' ? display_id(l, 'float_rate') : '') like '%JIBAR%' ? 'ZAR-JIBAR-SAFEX' : ('Yes' ? display_id(l, 'float_rate') : '')  'Float_Rate',
+'YES' ? l.spread : ''		'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'reset_calnbr')	'Business_Days',
+p.swift				'Swift_Code',
+
+p.country			'CP_Country',
+display_id(p, 'document_type_chlnbr')	'Document',
+t.status			'Status',
+display_id(i, 'curr')		'Curr',
+l.rolling_period.count		'Rolling',
+l.pay_day_offset.count		'PayOffset',
+date_add_banking_day(l.start_day, display_id(i, 'curr'), l.pay_day_offset.count) 'StartOffset',
+ael_i(i,'CashFlowCount',c.cfwnbr)  'test'
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr*=c.legnbr
+and	l.insaddr=*i.insaddr
+/*and	l.type='caplet'*/
+and 	i.instype='Cap'
+and	r.cfwnbr=*c.cfwnbr
+and	p.ptynbr=*t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+
+and (ael_i(i,'CashFlowCount',c.cfwnbr)) = 1
+and	t.status not in ('Simulated','Terminated','Void')

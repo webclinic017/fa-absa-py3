@@ -1,0 +1,49 @@
+[Default]FObject:udmcVanillaPayoff
+# ----------------------------------------
+# PAYOFF EXPRESSION
+# 
+#
+# INTERPRETATION
+# Call:       max(S - K, 0)
+# Put:        max(K - S, 0)              
+#
+# DEFINITION          
+# S: ;
+# K: Strike Price, 'Strike' field;
+# 'Average price' exotic events should be specified.
+# ----------------------------------------
+
+# PARAMETERS
+param int isCall;
+param int isQuanto;
+param double K;
+param double fixFXRate;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double callOrPut = 2.0*isCall-1.0;
+double fx = isQuanto * (fixFXRate-1.0) +1.0;
+double s = 0.0;
+double k = 0.0;
+
+# MAIN LOOP
+s = S[0,-1];
+k = K;
+
+# CASHFLOW
+cashFlow(0, fx * max(0.0, callOrPut * (s - k)));
+
+#------------------------------------------
+#PEL IMPLEMENTATION
+#
+# fixFXRate - fixed  FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# fx - FX Rate value if the type of the option is Quanto, 1.0 otherwise; 
+# average(matrix(double)) function gives the average of the matrix values.
+# ------------------------------------------
+
+...

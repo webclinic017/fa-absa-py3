@@ -1,0 +1,5 @@
+[Credit Pricing and Risk]FInstrument:instrumentCorrelations = select(correlationMatrix, 
+  nil->nil, 
+  default->select(isMonteCarloCreditBasket, 
+    true->flatCorrelationMatrix(instrumentCorrelation, count(creditIssuer)), 
+    default->flatCorrelationMatrix(instrumentCorrelation, 1)));

@@ -1,0 +1,12 @@
+[Profit and Loss]FInstrument:profitAndLossUsedPriceStart = shunt(profitAndLossStartDate > longTimeAgo, 
+  true->shunt(profitAndLossStartDate < valuationSystemDate, 
+    true->object:profitAndLossUsedPrice [positionObject, valuationBaseDateTimeInput = profitAndLossStartDate], 
+    default->select(useBidAskValuation, 
+      true->bidAskCalculation(doubleSumOf(positionTradeQuantities), markToMarketSuggestedSpotPriceBidAsk, valuationSystemDate, accountingParameters), 
+      default->markToMarketSuggestedSpotPrice)), 
+  false->nil);
+[Profit and Loss]FPriceAggregate:profitAndLossUsedPriceStart = shunt(singleInstrumentAndTrades, 
+  nil->nil, 
+  default->singleInstrumentAndTrades :* "profitAndLossUsedPriceStart");
+[Profit and Loss]FSingleInstrumentAndTrades:profitAndLossUsedPriceStart = instrument :* "profitAndLossUsedPriceStart" [profitAndLossStartDate, positionObject];
+[Profit and Loss]FTradeRow:profitAndLossUsedPriceStart = instrument :* "profitAndLossUsedPriceStart" [profitAndLossStartDate, positionObject];

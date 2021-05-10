@@ -1,0 +1,108 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','anil_sql_test') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'anil_sql_test' and p.type = 'SQL Query' 
+
+
+/*
+coded by ap
+reflects delta implicit by trade
+*/
+
+
+/*----define spot day offset ----*/
+select
+s.srdnbr,
+to_int(@spot_days_offset{0;})'spot_day_offset'
+
+into temp
+
+from 
+
+serverdata s
+
+/*----use spot day offset to define buckets --------------*/
+
+
+select 
+c.insid,
+date_add_banking_day(Today,c.insid,tt.spot_day_offset)'from_date',
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,3,0),c.insid,'Following')'3m',
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,4,0),c.insid,'Following')'4m'
+
+into ycpoints
+
+from temp tt, instrument c
+
+where
+
+c.insid=@Currency{ZAR;instrument.insid where instype='Curr'}
+
+
+select
+
+Today'date',
+t.trdnbr,
+'Yes' ? i.instype : '''instype' ,
+i.exp_day,
+display_id(t,'prfnbr')'Portfolio',
+(risk(t,'Delta',,,,,,2,d.3m))'Greater_than_3m',
+delta_implicit(t,,,,'ZAR'),
+
+/*
+(risk(t,'Delta',,,,,,0,d.3m))'Delta_check',
+(risk(t,'Delta',,,,,,1,d.3m))'3m_Delta',
+(risk(t,'Delta',,,,,,2,d.3m))'Greater_than_3m',
+*/
+
+t.status
+
+from
+trade t,
+instrument i, 
+ycpoints d
+
+where
+i.insaddr=t.insaddr
+and match_filter(t,@filter{GT_Risk_Portfolios_Incl_PLS;tradefilter.fltid})
+
+
+order by 5,4,3
+union
+
+
+
+select
+
+Today'date',
+t.trdnbr,
+/*'Yes' ? i.instype : '' */'Portfolio Total' ,
+i.exp_day,
+display_id(t,'prfnbr')'Portfolio',
+sum(risk(t,'Delta',,,,,,2,d.3m))'Greater_than_3m',
+sum(delta_implicit(t,,,,'ZAR')),
+
+/*
+(risk(t,'Delta',,,,,,0,d.3m))'Delta_check',
+(risk(t,'Delta',,,,,,1,d.3m))'3m_Delta',
+(risk(t,'Delta',,,,,,2,d.3m))'Greater_than_3m',
+*/
+
+t.status
+
+from
+trade t,
+instrument i, 
+ycpoints d
+
+where
+i.insaddr=t.insaddr
+and match_filter(t,@filter{GT_Risk_Portfolios_Incl_PLS;tradefilter.fltid})
+
+group by 5
+
+order by 5

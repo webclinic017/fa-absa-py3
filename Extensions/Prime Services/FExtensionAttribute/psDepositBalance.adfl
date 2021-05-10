@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:psDepositBalance = sumOf(children :* "psDepositBalance.Number");
+[Prime Services]FSingleInstrumentAndTrades:psDepositBalance = 
+# Balance defined for deposits only.
+select(object.Instrument.InsType == "Deposit", 
+  true->balance, 
+  default->denominatedValueZero);

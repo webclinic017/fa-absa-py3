@@ -1,0 +1,122 @@
+/*------------------------------------------------------------------
+    OptionsExpiry_Salonette
+
+    This query gives information on FX Options and Combinations on FX Options.
+
+    Department and Desk : FX Options Sales
+    Requester           : Twinkle Ramkissoon
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2011-04-11  624240       Herman Hoon	Added the Delivery Date column
+    2011-04-14  628846       Herman Hoon    Added Barrier Type, Crossed Status and Pay At Expiry columns
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+ael_i(p,'ASQL_log','OptionsExpiry_Salonette') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'OptionsExpiry_Salonette' and p.type = 'SQL Query' 
+ 
+/*------------------------------------------------------------------
+	Options
+------------------------------------------------------------------*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	display_id(i,'und_insaddr') 'Und_Instrument',
+	i.und_instype 'Und Instype',
+    t.time  'TradeTime',
+    (i.call_option = 'Yes' ? 'Call' : 'Put')    'Call_Put',
+	i.exp_day	'Expiry',
+    date_add_banking_day(i.exp_day,cur1.insid,i.pay_day_offset) >  date_add_banking_day(i.exp_day,cur2.insid,i.pay_day_offset) ?
+        date_add_banking_day(i.exp_day,cur1.insid,i.pay_day_offset) : date_add_banking_day(i.exp_day,cur2.insid,i.pay_day_offset) 'Delivery',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier,
+    e.barrier_option_type               'Barrier Type',
+    e.barrier_crossed_status            'Crossed Status',
+    e.barrier_rebate_on_expiry = 'Yes' ? 'Pay At Expiry' :  e.barrier_rebate_on_expiry = 'No' ? 'Pay At Hit' : '' 'Pay At Expiry', 
+    date_add_banking_day(i.exp_day,,2),
+    display_id(t, 'curr')   'TradeCurr'
+from
+	trade	t,
+	instrument	i,
+    exotic e,
+    portfolio p,
+    instrument cur1,
+    instrument cur2
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Option'
+and i.und_insaddr = cur1.insaddr
+and i.strike_curr = cur2.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid in ('VOE','BVOE','BTB Trades')
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+order by i.exp_day
+
+union
+
+/*------------------------------------------------------------------
+	Combinations on Options
+------------------------------------------------------------------*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	mem.insid   'Und_Instrument',
+	mem.instype 'Und Instype',
+    t.time  'TradeTime',
+    (mem.call_option = 'Yes' ? 'Call' : 'Put')    'Call_Put',
+	mem.exp_day	'Expiry',
+    date_add_banking_day(mem.exp_day,cur1.insid,i.pay_day_offset) >  date_add_banking_day(mem.exp_day,cur2.insid,mem.pay_day_offset) ?
+        date_add_banking_day(mem.exp_day,cur1.insid,i.pay_day_offset) : date_add_banking_day(mem.exp_day,cur2.insid,mem.pay_day_offset)  'Delivery',
+	mem.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	mem.barrier,
+    e.double_barrier,
+    e.barrier_option_type               'Barrier Type',
+    e.barrier_crossed_status            'Crossed Status',
+    e.barrier_rebate_on_expiry = 'Yes' ? 'Pay At Expiry' :  e.barrier_rebate_on_expiry = 'No' ? 'Pay At Hit' : '' 'Pay At Expiry', 
+    date_add_banking_day(mem.exp_day,,2),
+    display_id(t, 'curr')   'TradeCurr'
+from
+	trade	t,
+	instrument	i,
+    exotic e,
+    portfolio p,
+    CombinationLink cl,
+    instrument mem,
+    instrument cur1,
+    instrument cur2
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Combination'
+and	mem.instype = 'Option'
+and mem.und_insaddr = cur1.insaddr
+and mem.strike_curr = cur2.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid in ('VOE','BVOE','BTB Trades', 'BTB_Exotics')
+and	t.status not in ('Simulated','Void','Terminated')
+and	mem.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+and cl.owner_insaddr = i.insaddr
+and cl.member_insaddr = mem.insaddr
+order by mem.exp_day		

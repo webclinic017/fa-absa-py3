@@ -1,0 +1,59 @@
+
+
+select distinct
+    t.updat_time,
+    t.trdnbr,
+    i.insid         'Instrument',
+    t.status,
+    i.spot_banking_days_offset,
+    l.start_day     'Outright Date',
+    date_add_banking_day(l.start_day, 'ZAR', -2)    'New date',
+    t.value_day,
+    t.acquire_day,
+    t.time,
+    i.exp_day,
+    display_id(t, 'acquirer_ptynbr')    'Acquirer'
+
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l
+    
+where
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and t.trdnbr in (3776592,
+3479766,
+3425770,
+1900555,
+3860710,
+3776554,
+3776550,
+3776546,
+3776540,
+3772984,
+3772981,
+3772968,
+3772862,
+3772856,
+3772845,
+584861,
+5576584,
+5576602,
+5576614,
+5576636,
+5576657,
+5576878,
+5576883,
+5576899,
+5576903,
+5576924,
+
+
+6420094,
+6420065,
+6420049,
+6420017,
+6419998,
+6419971)

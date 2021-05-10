@@ -1,0 +1,4 @@
+[Securities Lending ABSA]FInstrument:slBookedReturns = select(slBookedReturnsQuery.AddAttrNode("Instrument.Underlying.Oid", "EQUAL", underlying.Oid), 
+  default->select(slBookedReturnsQuery.AddOpNode("OR").AddAttrNode("Text1", "EQUAL", "PARTIAL_RETURN"), 
+    default->select(slBookedReturnsQuery.AddOpNode("OR").AddAttrNode("Text1", "EQUAL", "FULL_RETURN"), 
+      default->slBookedReturnsQuery.Select_Triggered)));

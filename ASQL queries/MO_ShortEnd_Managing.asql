@@ -1,0 +1,45 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_ShortEnd_Managing') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_ShortEnd_Managing' and p.type = 'SQL Query' 
+
+  /*
+Developer			:Dirk Strauss/Martin van der Walt
+Purpose				:Displays provision on a reset/resetbucket level. Also displays a resetrisk table
+Deparment and Desk	:Middle Office
+Requester			:Front Office
+CR Number			:286162
+Query				:MO_ShortEnd_Managing
+Date				:2010-03-29
+*/ 
+
+Select
+    @1_InputData{Portfolio;'Portfolio','Filter'}                'InputData',
+    @2_1_FilterData{;tradefilter.fltid}                          'FilterData',
+    @2_2_PortfolioData{;portfolio.prfid}                         'PortfolioData',
+    @3_ReportType{Risk;'Reset_Risk','Prov_per_Reset', 'Prov_per_ResetBucket'}                      'ReportType',
+    @4_Outpath{'F:\\temp\\provision_workings\\'}                'Outpath',
+    @5_Currency{ZAR;instrument.insid WHERE instype = 'Curr'}    'Currency',
+    @6_Curve{ZAR-SWAP;yieldcurve.yield_curve_name}                       'YieldCurve'
+into
+    params
+from
+    serverdata s
+where
+	s.srdnbr > 0
+
+
+select
+    p.InputData,
+    p.FilterData,
+    p.PortfolioData,
+    p.ReportType,
+    p.Outpath,
+    p.Currency,
+    p.YieldCurve,
+    MO_ShortEnd_Managing.Main(InputData,FilterData,PortfolioData,ReportType,Outpath,Currency,YieldCurve) 'Total Provision Amount'
+from
+    params p

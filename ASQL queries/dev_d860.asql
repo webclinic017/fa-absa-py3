@@ -1,0 +1,458 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_d860') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_d860' and p.type = 'SQL Query' 
+/*2002-09-20  INTAS d860*/
+
+/* Updated by:
+	Aaeda Salejee	07/04/2004	Call No : 87955
+*/
+
+
+
+/*SWAP INFO - FIRST LEG*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'2'				'FixedFloat',
+l.type = 'Float' ? 'Float' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'No')) ? 'P' : 'R' 'PayRec',
+abs(t.quantity*i.contr_size*c.nominal_factor) 	'Nominal',
+c.start_day > today ? 0 : (projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.fixed_rate			'Fixed',
+r.value				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+ael_i(l,'d860_count_resets.resetnumb',c.pay_day)  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr=c.cfwnbr
+and 	i.instype='Swap'
+and	ael_s(t,'InstrType.InstrumentType') ~= 'ROD'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and t.optkey1_chlnbr in ('179', '180')*/
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+/*SWAP INFO - SECOND LEG*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'3'				'FixedFloat',
+l.type = 'Fixed' ? 'Fixed' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'Yes')) ? 'R' : 'P' 'PayRec',
+abs(t.quantity*i.contr_size*c.nominal_factor) 	'Nominal',	
+(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.fixed_rate			'Fixed',
+l.fixed_rate				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+ael_i(l,'d860_count_resets.resetnumb',c.pay_day)  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='Swap'
+and	ael_s(t,'InstrType.InstrumentType') ~= 'ROD'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and t.optkey1_chlnbr in ('179', '180')*/
+and	t.status not in ('Simulated','Terminated','Void')
+
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+
+/*CAP*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'2'				'FixedFloat',
+l.type = 'Cap' ? 'Cap' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'No')) ? 'P' : 'R' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+c.start_day > today ? 0 : (projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.strike		'Fixed',
+r.value				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+ael_i(l,'d860_count_resets.resetnumb',c.pay_day)+1  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr=c.cfwnbr
+and 	i.instype= 'Cap'
+and	l.type= 'Cap'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and t.optkey1_chlnbr in ('179', '180')*/
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+
+
+
+
+
+/*PAYMENT*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+l.legnbr			'NoResets',
+'40'				'FixedFloat',
+'Premium'			'FixedFloatDescription',
+ael_s(,'AStemp.Day',l.start_day)	'ResetDay',
+l.start_day			'ResetDate',
+l.start_day			'CFDate',
+l.start_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'No')) ? 'P' : 'R' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+t.premium	'cashflow',
+0		'days',
+0.0		'Fixed',
+t.price				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+1  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+
+party				p
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	i.instype= 'Cap'
+and	l.type= 'Cap'
+and	p.ptynbr=t.counterparty_ptynbr
+and	t.status not in ('Simulated','Terminated','Void')
+/*and t.optkey1_chlnbr in ('179', '180')*/
+
+order by t.optional_key, t.trdnbr
+
+/*Floor*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'2'				'FixedFloat',
+l.type = 'Floor' ? 'Floor' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'No')) ? 'P' : 'R' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+c.start_day > today ? 0 : (projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.strike		'Fixed',
+r.value				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+ael_i(l,'d860_count_resets.resetnumb',c.pay_day)+1  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr=c.cfwnbr
+and 	i.instype= 'Floor'
+and	l.type= 'Floor'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and t.optkey1_chlnbr in ('179', '180')*/
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+
+
+
+
+
+/*PAYMENT*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+l.legnbr			'NoResets',
+'40'				'FixedFloat',
+'Premium'			'FixedFloatDescription',
+ael_s(,'AStemp.Day',i.start_day)	'ResetDay',
+i.start_day			'ResetDate',
+l.start_day			'CFDate',
+l.start_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'No')) ? 'P' : 'R' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+t.premium	'cashflow',
+0		'days',
+0.0		'Fixed',
+t.price				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+1  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+
+party				p
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	i.instype= 'Floor'
+and	l.type= 'Floor'
+and	p.ptynbr=t.counterparty_ptynbr
+and	t.status not in ('Simulated','Terminated','Void')
+/*and t.optkey1_chlnbr in ('179', '180')*/
+
+order by t.optional_key, t.trdnbr
+
+
+
+/*RODS Fixed Side*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'3'				'FixedFloat',
+l.type = 'Fixed' ? 'Fixed' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'Yes')) ? 'R' : 'P' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.fixed_rate			'Fixed',
+l.fixed_rate				'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+ael_i(l,'d860_count_resets.resetnumb',c.pay_day)  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='Swap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+and	ael_s(t,'InstrType.InstrumentType')= 'ROD'
+/*and t.optkey1_chlnbr in ('179', '180')*/
+and	t.status not in ('Simulated','Terminated','Void')
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+
+
+/*ROD - FLoat side*/
+
+select
+ael_s(t,'InstrType.InstrumentType') 'INS',
+t.optional_key 			'DevonNbr',
+t.trdnbr			'Trdnbr',
+c.cfwnbr			'NoResets',
+'2'				'FixedFloat',
+l.type = 'Float' ? 'Float' : l.type	'FixedFloatDescription',
+ael_s(,'AStemp.Day',c.start_day)	'ResetDay',
+c.start_day			'ResetDate',
+c.pay_day			'CFDate',
+c.pay_day			'Duplicate',
+/*l.payleg,*/
+((t.quantity*i.contr_size <0) and (l.payleg = 'Yes')) ? 'R' : 'P' 'PayRec',
+(t.quantity*i.contr_size <0) ? (t.quantity*i.contr_size*-1) : (t.quantity*i.contr_size)	'Nominal',
+(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+l.fixed_rate			'Fixed',
+/*l.fixed_rate	*/ael_f(t,'AccruedInterest2.RODRate',today)			'ResRate',
+display_id(t, 'optkey1_chlnbr')	'TradeARea',
+p.fullname			'CP',
+i.free_text   'Contract',
+display_id(t, 'prfnbr')			'Portfolio',
+/*t.optkey1_chlnbr*/
+1 /*ael_i(l,'d860_count_resets.resetnumb',c.pay_day)*/  'Resets',
+ael_s(t,'InstrType.InstrumentType') 'InsType'
+into temptable
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+	match_filter(t, @Filter{;tradefilter.fltid}) 
+and	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='Swap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+and	ael_s(t,'InstrType.InstrumentType')= 'ROD'
+/*and	r.cfwnbr=c.cfwnbr*/
+and	t.status not in ('Simulated','Terminated','Void')
+/*and t.optkey1_chlnbr in ('179', '180')*/
+order by t.optional_key, t.trdnbr, c.start_day, c.cfwnbr
+
+
+
+
+
+
+select Ins, DevonNbr, Trdnbr, Resets,FixedFloat, FixedFloatDescription, 
+ResetDay, ResetDate, CFDate, Duplicate, PayRec, Nominal,cashflow, 
+days, Fixed, ResRate, Portfolio, TradeARea, CP, Contract, InsType
+from temptable
+order by Trdnbr, FixedFloat, Resets
+
+

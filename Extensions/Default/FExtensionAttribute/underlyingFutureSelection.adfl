@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingFutureSelection = select(mappedUnderlyingFutureSelectionFilter <> nil, 
+  true->mappedUnderlyingFutureSelectionFilter :* "querySelection", 
+  false->select(mappedUnderlyingFutureMethod == "Actual", 
+    true->throwError("Underlying Future Method has been deprecated. Use Price Base Market."), 
+    default->select(defaultUnderlyingFutureSelectionFilter <> nil, 
+      true->defaultUnderlyingFutureSelectionFilter.Select, 
+      false->[])));

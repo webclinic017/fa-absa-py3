@@ -1,0 +1,5 @@
+[Default]FInstrument:theoreticalDeltaAsk = select(isCalculatedTheoretically, 
+  true->shift(priceDeltaInstrument, snoop(priceDeltaInstrument, "marketPrice"), fixedvariant underlyingOrSelfAskPrice), 
+  false->nil);
+[Default]FOrderBook:theoreticalDeltaAsk = instrument :* "theoreticalDeltaAsk" [priceSource];
+[Default]FTradingInterface:theoreticalDeltaAsk = instrument :* "theoreticalDeltaAsk" [priceSource];

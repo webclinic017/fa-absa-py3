@@ -1,0 +1,9 @@
+[Default]FCombInstrMapAndTrades:projectedRiskflowsCurrencyPair = currenciesForVectorColumnNil;
+[Default]FDeliverableLinkAndTrades:projectedRiskflowsCurrencyPair = currenciesForVectorColumnNil;
+[Default]FInstrumentAndTrades:projectedRiskflowsCurrencyPair = select(nil == currenciesForVectorColumn, 
+  true->currenciesForVectorColumnNil, 
+  false->denominatedvalue(valuesInUnit(stripDateTimePart(projectedRiskflowsCurrencyPairCalculation), currenciesForVectorColumn, true)));
+[Default]FLegAndTrades:projectedRiskflowsCurrencyPair = currenciesForVectorColumnNil;
+[Default]FTimeBucketAndObject:projectedRiskflowsCurrencyPair = select(nil == currenciesForVectorColumn, 
+  true->currenciesForVectorColumnNil, 
+  false->denominatedvalue(valuesInUnit(stripDateTimePart(projectedRiskflowsCurrencyPairBucket), currenciesForVectorColumn, true)));

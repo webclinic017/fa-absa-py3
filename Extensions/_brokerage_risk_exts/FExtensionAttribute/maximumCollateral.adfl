@@ -1,0 +1,6 @@
+[_brokerage_risk_exts]FBond:maximumCollateral = netCollateralPosition * theoreticalOrMarketPrice;
+[_brokerage_risk_exts]FCurrency:maximumCollateral = profitAndLossValues.CashInception;
+[_brokerage_risk_exts]FDeposit:maximumCollateral = denominatedvalue(cashBalance, currency, , );
+[_brokerage_risk_exts]FInstrument:maximumCollateral = netCollateralPosition * theoreticalOrMarketPrice * contractSize;
+[_brokerage_risk_exts]FMultiInstrumentAndTrades:maximumCollateral = convertToCurrency(sumOf(instruments :* "maximumCollateral" [portfolio, positionObject]), portfolioFxRates, displayCurrencySymbol, filterUnit);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:maximumCollateral = convertToCurrency(instrument:maximumCollateral [portfolio, positionObject], portfolioFxRates, displayCurrencySymbol, filterUnit);

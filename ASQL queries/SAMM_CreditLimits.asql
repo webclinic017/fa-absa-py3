@@ -1,0 +1,25 @@
+/* update_method=0 */
+/*  
+History:
+When: 		Who:		            What:
+2017/12/14  Bhavnisha Sarawan       Add acquirer parameter for credit calculation
+*/ 
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_CreditLimits') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAMM_CreditLimits' and p.type = 'SQL Query' 
+ 
+
+select  p1.ptyid 'Party Name',
+        cl.limit[0] 'Credit Limit',
+        ael_f(p1,'FCreditLimit.credit_tot_cp_asql',p) 'Credit Utilization',
+        p.ptyid 'Acquirer',
+        add_info(p1,'Credit Limit Exp') 'Credit Limit Expiry Date'/*,
+        add_info(p1,'FICA SBU') 'FICA SBU'*/
+from CreditLimit cl,
+party p,
+party p1
+where cl.depnbr *= p.ptynbr
+and cl.ptynbr = p1.ptynbr

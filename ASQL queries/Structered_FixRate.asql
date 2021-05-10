@@ -1,0 +1,48 @@
+/*------------------------------------------------------------------
+    Structured_FixRate
+
+    Date                : 2010-12-09
+    Purpose             : Used to set the rate on the Zero Coupon Fixed Leg's resets of a specific trade
+    Department and Desk : Structered Desk
+    Requester           : Yalusa Jongihlati
+    Developer           : Herman Hoon
+    CR Number           : 519986
+
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+	ael_i(p,'ASQL_log','Structured_FixRate') 'Name'
+into  
+	ASQL_LOG_TEMP
+from 
+	TextObject p 
+where 
+	p.name = 'Structured_FixRate' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Select the Zero Coupon Fixed Leg's resets
+------------------------------------------------------------------*/
+select
+    t.trdnbr    'Trdnbr',
+    i.insid     'Instrument Name',
+    c.rate      'CF Rate',
+    r.value     'Resets',
+    c.spread    'This must be ZERO'
+from
+    instrument	i,
+    trade		t,
+    leg			l,
+    cashflow    c,
+    reset	    r
+where
+	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and	i.insaddr= t.insaddr
+and	l.legnbr = c.legnbr
+and	l.insaddr= i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and r.legnbr =* l.legnbr
+and l.type   = 'Zero Coupon Fixed'

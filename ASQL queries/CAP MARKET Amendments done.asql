@@ -1,0 +1,28 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET Amendments done') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET Amendments done' and p.type = 'SQL Query' 
+ 
+  select
+t.trdnbr,
+i.instype,
+t.status,
+i.insid,
+nominal_amount(t),
+t.price,
+t.updat_time,
+t.time,
+t.value_day,
+u.userid,
+display_id(t,'prfnbr')
+from
+trade t,
+instrument i,
+user u
+where
+i.insaddr = t.insaddr
+and time_to_day(t.updat_time) >= @AmendedAfter{today}
+and t.updat_usrnbr = u.usrnbr
+and u.userid in ('ABTR120','ABAL430','ABCA009','ABDT105','ABMW464','ABSS880')

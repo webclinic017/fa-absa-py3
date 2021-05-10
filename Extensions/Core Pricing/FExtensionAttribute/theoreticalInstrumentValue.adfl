@@ -1,0 +1,19 @@
+[Core Pricing]FCashFlowMoneyFlow:theoreticalInstrumentValue = select(valuesOnSpot, 
+  true->couponTransferFactor * moneyMarketCurve.DiscountValue(theoreticalInstrumentPositionValues, instrumentSpotDate), 
+  false->couponTransferFactor * theoreticalInstrumentPositionValues);
+[Core Pricing]FEquityIndex:theoreticalInstrumentValue = select(hasMappedUnderlyingFuture, 
+  true->select(doSplitAll, 
+    false->collapse(mappedUnderlyingFutureValue), 
+    true->collapse(theoreticalInstrumentValueCore)), 
+  false->collapse(theoreticalInstrumentValueCore));
+[Core Pricing]FInstrument:theoreticalInstrumentValue = select(hasMappedUnderlyingFuture, 
+  true->collapse(mappedUnderlyingFutureValue), 
+  false->collapse(theoreticalInstrumentValueCore));
+[Core Pricing]FInstrumentAndTrades:theoreticalInstrumentValue = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument:theoreticalInstrumentValue);
+[Core Pricing]FMoneyFlow:theoreticalInstrumentValue = select(valuesOnSpot, 
+  true->moneyMarketCurve.DiscountValue(projectedMoneyFlow, instrumentSpotDate), 
+  false->projectedMoneyFlow);
+[Core Pricing]FResetMoneyFlow:theoreticalInstrumentValue = instrumentSpotZero;
+[Core Pricing]FSecurityMoneyFlow:theoreticalInstrumentValue = instrumentSpotZero;

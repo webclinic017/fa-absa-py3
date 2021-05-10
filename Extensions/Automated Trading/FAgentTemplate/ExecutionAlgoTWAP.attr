@@ -1,0 +1,36 @@
+[Automated Trading]FObject:ExecutionAlgoTWAP
+
+Properties =
+  Abstract=No
+  CanBePaused=Yes
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DisplayName=TWAP
+  EditPermission=User
+  Granularity=10
+  InheritsFrom=ExecutionAlgo
+  StartState=Start
+  StoreTraceLog=Yes
+  TradingEnabled=Yes
+
+Transitions =
+
+Conditions =
+
+Actions =
+
+ActionLists =
+
+Variable allowDirtyVolumePattern =
+  Description=This variable is overridden in from the base class. The algo is allowed to start even if no volume pattern is found in RAMSA, if the user enters manual slices (deselecting Auto Optimize)
+  DisplayName=Allow Dirty Volume Pattern
+  Domain=bool
+  Type=ReadOnly
+  Value=not autoOptimizeSlicesAndDuration
+
+Variable createExecutionPlan =
+  Domain=FVolumeExecutionPlan
+  Type=ReadOnly
+  Value=acm.Trading.CreateLinearExecutionPlan(frontLoad, object)
+
+<end>

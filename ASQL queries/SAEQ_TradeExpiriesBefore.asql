@@ -1,0 +1,51 @@
+select
+    to_string(@Acquirer{EQ Derivatives Desk;party.ptyid where type = 'Intern Dept'})  'Acquirer',
+    to_string(@OTC{No;'Yes','No'})   'OTC',
+    to_date(@StartDate{Today;})    'StartDate',
+    to_date(@EndDate{Today;})      'EndDate'    
+    
+into macro
+
+from
+    instrument  i
+    
+where i.insid = 'ZAR'
+
+select
+    t.trdnbr        'TrdNbr',
+    i.insid         'Instr',
+    i.instype       'InstrType',
+    und.insid       'UnderInstr',
+    und.instype     'UndInstrType',
+    i.strike_price  'InsStrikePrice',
+    i.settlement    'Settlement',
+    t.quantity * i.contr_size    'QTY',
+    i.otc           'Otc',
+    i.exp_day       'ExpDay',
+    p.ptyid         'Acquirer',
+    ap.ptyid        'CounterParty',
+    port.prfid      'Portfolio'
+    
+from
+    instrument  i,
+    instrument  und,
+    trade   t,
+    party   p,
+    party ap,
+    macro   m,
+    portfolio   port
+    
+where i.insaddr = t.insaddr
+and i.und_insaddr = und.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and ap.ptynbr = t.counterparty_ptynbr
+and p.ptyid = m.Acquirer
+and port.prfnbr = t.prfnbr
+and i.otc = m.OTC
+and ap.ptyid in (@CounterParty{;party.ptyid;*})
+and i.exp_day between m.StartDate and m.EndDate
+and i.instype in (@InstrType{;instrument.instype;*})
+and t.status not in ('Simulated','Void','Terminated')
+and match_filter(t,(@TradeFilter{;TradeFilter.fltid}))
+
+

@@ -1,0 +1,85 @@
+/*---------------------------------------------------------------Macro--------------------------------------------------------------------------------*/
+select
+    to_date(@3_Start_Date{Yesterday})  'Start_Date',
+    to_date(@4_End_Day{Today}) 'End_Date',
+    @5_Type{Paid;'Paid','Not_Paid'}   'Type'
+into
+    macro
+from
+    serverdata s
+where
+    srdnbr > 0
+/*------------------------------------------------------------Cash-----------------------------------------------------------------------*/    
+select
+    t.trdnbr 'Trade_Nbr',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    i.insid 'InsID',
+    add_info(t,'Funding Instype') 'Funding_InsType',
+    ael_f(,'Call_Loan_Repayment.reinvest',t.trdnbr,i.insid,m.Start_Date,m.End_Date) 'Amount_Reinvested',
+    ael_f(,'Call_Loan_Repayment.repayment',t.trdnbr,i.insid,m.Start_Date,m.End_Date) 'Amount_Paid'
+into
+    cash
+from 
+    instrument i,
+    cashflow cf,
+    leg l,
+    trade t,
+    macro m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and l.reinvest = 'Yes'
+    and t.quantity = -1
+    and add_info(t,'Funding Instype') in ('Call Bond Loan','Call Loan NonDTI')
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+/*------------------------------------------------------------Paid-----------------------------------------------------------------------*/    
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.InsID,
+    c.Funding_InsType,
+    c.Amount_Reinvested,
+    c.Amount_Paid,
+    c.Amount_Reinvested + c.Amount_Paid 'Amount_Outstanding'
+into
+    temp
+from 
+    cash c, 
+    macro m
+where
+        m.Type = 'Paid'
+    and abs(c.Amount_Reinvested + c.Amount_Paid) <= 5
+    and abs(c.Amount_Reinvested) >1
+    and abs(c.Amount_Paid) > 1
+/*---------------------------------------------------------Not Paid--------------------------------------------------------------------*/
+select distinct
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.InsID,
+    c.Funding_InsType,
+    c.Amount_Reinvested,
+    c.Amount_Paid,
+    c.Amount_Reinvested + c.Amount_Paid 'Amount_Outstanding'
+into
+    temp
+from 
+    cash c, 
+    macro m
+where
+        m.Type = 'Not_Paid'
+    and abs(c.Amount_Reinvested + c.Amount_Paid) > 5
+    and abs(c.Amount_Reinvested) >1
+/*-------------------------------------------------------------------------------------------------------------------------------------------*/
+select
+    t.Trade_Nbr,
+    t.Counterparty,
+    t.InsID,
+    t.Funding_InsType,
+    t.Amount_Reinvested,
+    t.Amount_Paid,
+    t.Amount_Outstanding
+from
+    temp t
+    
+group by t.Trade_Nbr

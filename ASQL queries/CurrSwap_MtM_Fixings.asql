@@ -1,0 +1,30 @@
+/*-----------------------------------------------------------------------------------------------------
+# Name                : CurrSwap_MtM_Fixings
+# Purpose             : This ASQL opens with a tradefilter for the reset date fixings on Fx.
+# Developer           : Tshepo Mabena
+# Department and Desk : Derivatives - PCG Operations
+# Requester           : Julie Ellis
+# Date                : 15/07/2010
+# CR Number           : 371486
+#------------------------------------------------------------------------------------------------------*/
+
+/*Usage for this code*/
+
+select
+ael_i(p,'ASQL_log','CurrSwap_MtM_Fixings') 'Name'
+into ASQL_LOG_TEMP
+from TextObject p where
+p.name = 'CurrSwap_MtM_Fixings' and p.type = 'SQL Query'
+select
+   t.trdnbr
+from
+   instrument i,
+   trade t,
+   leg l
+where 
+   t.insaddr= i.insaddr
+   and l.insaddr = t.insaddr
+   and i.instype in ('CurrSwap')
+   and l.nominal_scaling in ('FX')
+   and t.status not in ('Simulated','Void')
+   and i.exp_day > Today

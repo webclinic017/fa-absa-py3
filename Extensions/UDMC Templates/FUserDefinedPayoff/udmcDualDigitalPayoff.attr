@@ -1,0 +1,30 @@
+[UDMC Templates]FObject:udmcDualDigitalPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for Dual Digital option
+#
+# INTERPRETATION
+# Digital option with a fixed amount payoff that is paid out if each underlying instrument is above (or below) a threshold at the option's expiration date.
+#
+# DEFINITION
+# strikePrices: Strike prices for each of the underlying instruments (expressed in the option's currency).
+# thresholdSign: Can have values +1 or -1. Value is +1 if underlying (expressed in main currency) has a call strike, otherwise value is -1. Entered as 'Average Price' exotic events for each underlying instrument in the combination.
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) strikePrices;
+param matrix(double) thresholdSign;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double optionValue = 0.0;
+
+#MAIN LOOP
+optionValue = 0.0 + (min(thresholdSign.*(S[:,0]-strikePrices)) > 0.0);
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

@@ -1,0 +1,7 @@
+[Core Pricing]FVolatilityInformation:volatilityValueReferenceInstrument = select(needsReferenceInstrument, 
+  true->select(referenceInstrument, 
+    nil->throwError("Volatility surface needs a reference instrument set"), 
+    default->referenceInstrument), 
+  default->select(isMalzParametricVolatilityInformation, 
+    true->volatilityStructure:volatilitySurfaceUnderlyingInstrument, 
+    false->referenceInstrument));

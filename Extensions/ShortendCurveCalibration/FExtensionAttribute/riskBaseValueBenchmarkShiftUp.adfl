@@ -1,0 +1,7 @@
+[ShortendCurveCalibration]FInstrumentAndTrades:riskBaseValueBenchmarkShiftUp = select(benchmarkCurvesInRiskBaseValue.IsKindOf("FCollection"), 
+  true->select(benchmarkCurvesInRiskBaseValue.ContainsAllElementsIn([getObject("FBenchmarkCurve", "ZAR-SWAP-SE"), getObject("FBenchmarkCurve", "ZAR-SWAP")]) or benchmarkCurvesInRiskBaseValue.ContainsAllElementsIn([getObject("FBenchmarkCurve", "ZAR-SWAP-SE-SPREAD"), getObject("FBenchmarkCurve", "ZAR-SWAP")]), 
+    true->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, bump_benchmark benchmarkDeltaShiftParametersUp), 
+    default->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, shiftBenchmarkPriceTimeBucket benchmarkDeltaShiftParametersUp)), 
+  default->select((benchmarkCurvesInRiskBaseValue == getObject("FBenchmarkCurve", "ZAR-SWAP-SE")) or (benchmarkCurvesInRiskBaseValue == getObject("FBenchmarkCurve", "ZAR-SWAP-SE-SPREAD")), 
+    true->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, bump_benchmark benchmarkDeltaShiftParametersUp), 
+    default->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, shiftBenchmarkPriceTimeBucket benchmarkDeltaShiftParametersUp)));

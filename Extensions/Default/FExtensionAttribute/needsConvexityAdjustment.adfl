@@ -1,0 +1,10 @@
+[Default]FAbstractReset:needsConvexityAdjustment = false;
+[Default]FCashFlowInformation:needsConvexityAdjustment = select(cashFlowType, 
+  "Zero Coupon Fixed"->false, 
+  "Return"->false, 
+  "Total Return"->false, 
+  default->needsConvexityAdjustmentRate or needsConvexityAdjustmentQuanto);
+[Default]FCashFlowInstrument:needsConvexityAdjustment = maxOf(staticLegInformations :* "needsConvexityAdjustment");
+[Default]FInstrument:needsConvexityAdjustment = false;
+[Default]FPersistentReset:needsConvexityAdjustment = object.NeedsConvexityAdjustment;
+[Default]FStaticLegInformation:needsConvexityAdjustment = needsConvexityAdjustmentRate or needsConvexityAdjustmentQuanto;

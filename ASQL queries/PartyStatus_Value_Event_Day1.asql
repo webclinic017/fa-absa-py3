@@ -1,0 +1,68 @@
+/*********** Combination***********/
+select
+    t.trdnbr,
+    nominal_amount(t) < 0 ? 'Sell' : 'Buy'  'BuySell',
+    nominal_amount(t)   'nominal',
+    display_id(t,'curr')    'trd_curr',
+    t.value_day,
+    t.time,
+    t.price,
+    t.quantity,
+    t.premium,
+    t.status,
+    display_id(t,'prfnbr')  'prfid',
+    pa.ptyid,
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    'Instrument'  'Instrument',
+    i.insid,
+    i.instype,
+    max(u.exp_day)  'exp_day',
+    display_id(i,'curr')    'ins_curr',
+    display_id(i,'issuer_ptynbr')    'issuer',
+    i.daycount_method   'ins_daycount_method',
+    i.otc,
+    display_id(i,'und_insaddr') 'und_insid',
+    i.und_instype,
+    i.strike_price,
+    i.start_day 'ins_start',
+    i.paytype,
+    i.instype = 'Option' ? (i.call_option ? 'Call' : 'Put') : ''    'CallPut',
+    days_between(today,i.exp_day,'Act/365') 'Time_to_Exp',
+    i.exercise_type,
+    'Leg'   'Leg',
+    l.type,
+    l.fixed_rate,
+    display_id(l,'float_rate')  'float_rate',
+    display_id(l,'curr')    'leg_curr',
+    l.daycount_method   'leg_daycount_method',
+    l.rolling_base_day,
+    l.rolling_period.count  'rolling_period_count',
+    l.rolling_period.unit   'rolling_period_unit',
+    l.start_day 'leg_start'
+into temp
+from
+    trade t,
+    instrument i,
+    instrument u,
+    leg l,
+    combinationlink cl,
+    party pa,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais
+where
+        t.insaddr = i.insaddr
+    and i.insaddr *= l.insaddr
+    and i.insaddr *= cl.owner_insaddr
+    and cl.member_insaddr = u.insaddr
+    and t.counterparty_ptynbr = pa.ptynbr
+    and ai.addinf_specnbr = ais.specnbr
+    and ai.recaddr = pa.ptynbr
+    and t.status in ('FO Confirmed','BO-BO Confirmed','BO Confirmed','Terminated')
+    and i.instype = 'Combination'
+    and event_date(i,'LastPayday') >= today
+    and ais.field_name = 'PartyStatus'
+    and ai.value = 'Internal C/party'
+    and match_portfolio(t,'ABSA CAPITAL')
+group by t.trdnbr
+
+select * from temp

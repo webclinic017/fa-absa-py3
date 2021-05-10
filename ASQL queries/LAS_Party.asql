@@ -1,0 +1,18 @@
+/* update_method=0 */
+/*
+    Purpose: Party data extract for the Legal Agreement Service
+    Developer: Libor Svoboda
+*/
+
+select
+    p.ptynbr 'PTYNBR',
+    p.ptyid 'PTYID',
+    p.fullname 'FULLNAME',
+    p.type 'TYPE',
+    add_info(p, 'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+    add_info(p, 'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID',
+    add_info(p, 'PartyStatus') 'PartyStatus'
+from 
+    party p
+order by 
+    p.ptynbr

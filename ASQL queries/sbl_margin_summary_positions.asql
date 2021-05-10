@@ -1,0 +1,73 @@
+/* update_method=0 */
+/*
+DESCRIPTION
+    Date                : 2020-04-20
+    Purpose             : ASQL to get all open SBL loan positions
+    Department and Desk : SBL and Collateral
+    Requester           : Gasant Thulsie, James Stevens
+    Developer           : Sihle Gaxa
+    JIRA                : PCGDEV-15
+*/
+select distinct
+    t.trdnbr
+from 
+    trade t,
+    instrument i,
+    leg l,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and t.trdnbr *= s.trdnbr
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+and t.acquirer_ptynbr = 32668
+and i.instype = 'SecurityLoan'
+and add_info(t,'SL_G1Counterparty1') ~= ''
+and add_info(t,'SL_G1Counterparty2') ~= ''
+and t.text1 ~= 'FULL_RETURN'
+and to_date(t.time) <= TODAY
+and t.value_day <= TODAY
+and l.start_day <= TODAY
+and l.end_day >= TODAY
+and ael_i(t,'sbl_reporting_utils.include_loan', s) = 1
+
+union
+
+select distinct
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    party c,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and t.trdnbr *= s.trdnbr
+and t.counterparty_ptynbr = c.ptynbr
+and t.status in ('BO Confirmed', 'BO-BO Confirmed')
+and to_date(t.time) <= TODAY
+and c.ptyid like 'SL%' 
+and t.category = 'Collateral' 
+and match_portfolio(t,'SBL_NONCASH_COLLATERAL')
+and ael_i(t,'sbl_reporting_utils.include_coll', s) = 1
+
+union
+
+select
+    t.trdnbr
+from
+    leg l,
+    trade t,
+    cashflow cf,
+    instrument i
+where
+    t.insaddr = i.insaddr
+and to_date(t.time) <= TODAY
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'Deposit'
+and i.insid like 'SBL/%'
+and cf.type = 'Redemption Amount' 
+and abs(projected_cf(cf)) > 0
+and t.trdnbr ~= 117338945
+

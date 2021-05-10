@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:dateRangeSecuritiesTransferTax = sumOf(children :* "dateRangeSecuritiesTransferTax" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FSingleInstrumentAndTrades:dateRangeSecuritiesTransferTax = sumOf(tradesInPosition :* "dateRangeSecuritiesTransferTax" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FTrade:dateRangeSecuritiesTransferTax = switch(isGeneralPortfolio, 
+  true->py("PS_TradeFees", context).ReturnFee([object], "STT", profitAndLossStartDate, profitAndLossEndDate), 
+  false->0);
+[Prime Services]FTradeRow:dateRangeSecuritiesTransferTax = trade :* "dateRangeSecuritiesTransferTax" [profitAndLossStartDate, profitAndLossEndDate];

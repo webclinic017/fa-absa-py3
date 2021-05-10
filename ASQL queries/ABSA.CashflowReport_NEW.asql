@@ -1,0 +1,413 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ABSA.CashflowReport_NEW') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ABSA.CashflowReport_NEW' and p.type = 'SQL Query' 
+/*  DO.Cashflows
+
+Query based on .App/Portfoliocashflows
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+1_StartDay - Cashflows from this date (incl) will be shown
+2_EndDay - Cashflows up to and incl this date are shown
+3_Currency - The currency of the payments. More than one curr can be selected
+4_ShowTOTALCurrRepDay - Totals Cashflows by Currency and PayDay
+5_ShowTOTALInstype - Totals Cashflows by Instrument Type
+6_Show_TradeDetail - Shows Cashflow details
+CashflowType - Either "All" or select from list
+Filter - The tradefilter from which the payments will be presented 
+Instype - Either "All" or ATLAS Instrument Type or Select from List
+
+Columns :
+Day - Payday
+Amount - Amount
+Curr - Currency
+Type - Type of payment: Premium, Cashflow, End Premium/Sec Loan Fee,
+ Additional Payment or Dividend 
+TrdNbr - Trade number
+RecAcc - Receive Account
+PayAcc - Pay Account
+PartyType - 'Issuer' if cashflow from security (Bond,FRN,Zero,PromisLoan,Bill,CD or Convertible),
+ 'CP' otherwise
+Party - Issuer ID if cashflow from security, else Counterparty ID
+Netting - Counterparty netting on or off
+
+
+History:
+When: 		Who:		What:					            CR Number:
+070403		Debbie Osler 	Created
+2003-05-20 	Debbie Osler	Added Cols - Portfolio, Trade Time
+				Trade Status,deal date, B/S 
+2004-02-12	Debbie Osler	Added Col to explain section
+				Fixed Macros so that they are correct
+2012-03-23  Nidheesh Sharma Added Macros section			C128923
+*/ 
+
+/* Macros */
+select
+    @1_StartDay{Yesterday;}                                                                             'StartDay',
+    @2_EndDay{Today;} = 'ThreeMonthsFromToday'  ?   date_add_delta(TODAY, 0, 3, 0) : @2_EndDay{Today;}  'EndDay'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/* List of trades */
+select
+	t.trdnbr,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')  'Portfolio'
+
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@Instype{}))
+	
+
+/* Premium amounts */
+select
+	t.value_day	'day',
+	t.premium	'amount',
+	display_id(t,'curr')	'curr',
+	t.trade_process not in (8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+	t.trade_process not in (8192, 16384,32768) ? trd.Nominal :  t.premium  'Nominal',
+	t.trade_process not in (8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)  'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid,
+	trd.status,
+	trd.time,
+	trd.portfolio
+into
+	CF
+from
+	trade t,
+	TRD trd,
+	macro m
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.value_day >= m.StartDay
+and	t.value_day <= m.EndDay
+and display_id(t,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+
+/* Premium amounts 2*/
+select
+	t.value_day	'day',
+	t.quantity	'amount',
+	display_id(i,'curr')	'curr',
+	t.trade_process not in (8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+    t.trade_process not in (8192, 16384,32768) ? t.quantity : t.premium  'Nominal',
+	t.trade_process not in (8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)   'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid,
+	trd.status,
+	trd.time,
+	trd.portfolio
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	macro m
+where
+	t.trdnbr = trd.trdnbr
+and	t.insaddr = i.insaddr
+and i.instype = 'Curr'
+and	t.premium ~= 0.0
+and	t.value_day >= m.StartDay
+and	t.value_day <= m.EndDay
+and display_id(i,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+/* Cashflows */
+select
+	c.pay_day	'day',
+	projected_cf(c) * t.quantity	'amount',
+	display_id(l,'curr')	'curr',
+	'Cashflow'	'CFType',
+	t.quantity*i.contr_size*c.nominal_factor  'Nominal',
+    c.nominal_factor   'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd,
+	macro m
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+and	('All' in (@CashflowType{All;Cashflow.type*}) or c.type in (@CashflowType{}))
+and	c.pay_day >= m.StartDay
+and	c.pay_day <= m.EndDay
+and display_id(l,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+ 
+/* End premiums and sec loan fees */
+select
+	i.exp_day	'day',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+		t.quantity * projected_cf(i)	'amount',
+	display_id(t,'curr')	'curr',
+	'End Premium/Sec Loan Fee'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	macro m
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and	i.exp_day >= m.StartDay
+and	i.exp_day <= m.EndDay
+and display_id(t,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+
+/* Additional payments */
+select
+	a.payday	'day',
+	a.amount	'amount',
+	display_id(a,'curr')	'curr',
+	'Additional Payment'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	a.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio
+into 
+	CF
+from
+	payment a,
+	TRD trd,
+	macro m
+where
+	a.trdnbr = trd.trdnbr
+and	a.payday >= m.StartDay
+and	a.payday <= m.EndDay
+and display_id(a,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+
+
+/* Dividend payments */
+
+select
+	d.day			'day',
+	d.dividend		'amount',
+	display_id(i,'curr')	'curr',
+	'Dividend'		'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr		'Trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype		'Itype',
+	'Issuer' 'PartyType',
+	trd.issid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio
+	
+into
+	CF
+
+from	
+    instrument	i,
+	dividend	d,
+	trade		t,
+	TRD		trd,
+	macro m
+where
+	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	t.trdnbr=trd.trdnbr
+and	d.day >= m.StartDay
+and	d.day <= m.EndDay
+and display_id(i,'curr') in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+			
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	'Total by Curr & Day'		'Section',
+	c.day > to_date(m.StartDay) ? c.day 
+	: to_date(m.StartDay)	'Day',
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio
+
+from
+	CF c,
+	macro m
+where @4_Show_TOTALCurrRepDay{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3
+
+union
+
+select
+	'Total by Instype'		'Section',	
+	c.day > to_date(m.StartDay) ? c.day 
+	: to_date(m.StartDay)	'Day',
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio
+
+
+from
+	CF c,
+	macro m
+where @5_Show_TOTALInstype{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3,4
+
+union
+
+select
+	'Details'		'Section',
+	c.day 	'Day',
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.Nominal,
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio
+
+
+from
+	CF c
+where @6_Show_TradeDetail{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 2,3,4,5,7,8,9,12
+
+union
+
+select
+	'Total by Curr' 	'Section',
+	c.day 	'Day',
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.Nominal,
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio
+
+
+from
+	CF c
+where @7_Show_TotalCurr{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 3

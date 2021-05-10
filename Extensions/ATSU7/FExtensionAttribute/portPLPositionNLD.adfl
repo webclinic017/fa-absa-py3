@@ -1,0 +1,9 @@
+[ATSU7]FDerivative:portPLPositionNLD = profitAndLossPositionEnd / contractSize;
+[ATSU7]FFuture:portPLPositionNLD = profitAndLossPositionEnd;
+[ATSU7]FFxSwap:portPLPositionNLD = profitAndLossPositionEnd / (ael("NominalCurr", context).get_nomcurr_rate(instrument));
+[ATSU7]FInstrument:portPLPositionNLD = profitAndLossPositionEnd;
+[ATSU7]FMultiInstrumentAndTrades:portPLPositionNLD = sumOf(unSettledInstrumentsNonZero :* "portPLPositionNLD" [positionObject, endDate, displayCurrency, pLPeriodFX]);
+[ATSU7]FPortfolioInstrumentAndTrades:portPLPositionNLD = nil;
+[ATSU7]FSingleInstrumentAndTrades:portPLPositionNLD = select(isCashGrouping, 
+  false->instrument :* "portPLPositionNLD" [positionObject, endDate, displayCurrency, pLPeriodFX]);
+[ATSU7]FTradeRow:portPLPositionNLD = instrument :* "profitAndLossPositionDisplayEnd" [positionObject, endDate, displayCurrency, pLPeriodFX];

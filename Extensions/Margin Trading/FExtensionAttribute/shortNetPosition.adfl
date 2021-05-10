@@ -1,0 +1,5 @@
+[Margin Trading]FCompoundPortfolio:shortNetPosition = sumOf(allPhysicalPortfolios :* "shortNetPosition" [instrument, positionObject, valuationDate]);
+[Margin Trading]FInstrument:shortNetPosition = min(tradesAndSellActiveOrdersQuantity, 0);
+[Margin Trading]FMultiInstrumentAndTrades:shortNetPosition = nil;
+[Margin Trading]FPortfolio:shortNetPosition = instrument:shortNetPosition [activeOrders, positionObject, tradedPortfolio = object, valuationDate];
+[Margin Trading]FSingleInstrumentAndTrades:shortNetPosition = portfolio:shortNetPosition [instrument, positionObject, valuationDate];

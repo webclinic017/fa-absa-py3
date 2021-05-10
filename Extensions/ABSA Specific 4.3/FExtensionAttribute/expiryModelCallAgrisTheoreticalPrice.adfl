@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FInstrument:expiryModelCallAgrisTheoreticalPrice = shunt((valuationDate == object.ExpiryDate) and (marketSpotPrice.Number > 0), 
+  true->{result->denominatedvalue(marketSpotPrice.Number, symbol(currency), symbol("Price"), valuationDate)}, 
+  false->{result->denominatedvalue(agrisCbotUnd:marketSpotPrice.Number * agrisfx * agrisCbotUnd:quotationFactor / (agrisConvFactor), symbol(currency), symbol("Price"), valuationDate)});

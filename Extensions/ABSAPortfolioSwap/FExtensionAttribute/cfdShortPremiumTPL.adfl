@@ -1,0 +1,10 @@
+[ABSAPortfolioSwap]FInstrument:cfdShortPremiumTPL = object :* "plZero" [displayCurrency];
+[ABSAPortfolioSwap]FLeg:cfdShortPremiumTPL = switch(legDescription, 
+  "Short Premium"->object :* "tPL" [positionObject, displayCurrency], 
+  default->object :* "plZero" [displayCurrency]);
+[ABSAPortfolioSwap]FLegAndTrades:cfdShortPremiumTPL = leg :* "cfdShortPremiumTPL";
+[ABSAPortfolioSwap]FMultiInstrumentAndTrades:cfdShortPremiumTPL = sumOf(instruments :* "cfdShortPremiumTPL" [positionObject, displayCurrency]);
+[ABSAPortfolioSwap]FPortfolioSwap:cfdShortPremiumTPL = switch(legs == [], 
+  true->object :* "plZero" [displayCurrency], 
+  false->sumOf(legs :* "cfdShortPremiumTPL" [positionObject, displayCurrency]));
+[ABSAPortfolioSwap]FSingleInstrumentAndTrades:cfdShortPremiumTPL = instrument :* "cfdShortPremiumTPL" [positionObject, displayCurrency];

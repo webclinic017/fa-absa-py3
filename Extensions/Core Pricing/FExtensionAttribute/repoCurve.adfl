@@ -1,0 +1,15 @@
+[Core Pricing]FCashFlowMoneyFlow:repoCurve = leg:repoCurve;
+[Core Pricing]FCombInstrMap:repoCurve = combination:repoCurve;
+[Core Pricing]FInstrument:repoCurve = select(useExplicitRepoCurve, 
+  true->mappedRepoLink :* "repoCurve", 
+  false->repoUnit:moneyMarketCurve);
+[Core Pricing]FInstrumentAndTrades:repoCurve = instrument:repoCurve;
+[Core Pricing]FIrCurveInformation:repoCurve = repoIrCurveInformation;
+[Core Pricing]FLeg:repoCurve = instrument:repoCurve [currency];
+[Core Pricing]FLegAndTrades:repoCurve = leg:repoCurve;
+[Core Pricing]FMappingLink:repoCurve = repoCurveHierarchy;
+[Core Pricing]FOrderBook:repoCurve = instrument:repoCurve;
+[Core Pricing]FPriceIndex:repoCurve = mappedInflationLink :* "inflationCurve";
+[Core Pricing]FYieldCurveHierarchy:repoCurve = select(hideRiskFactorNames, 
+  false->delta(repoYieldCurveComponent :* "repoIrCurveInformation" [component = underlyingComponent], repoCurveShift), 
+  true->repoYieldCurveComponent :* "underlyingIrCurveInformation" [component = underlyingComponent]);

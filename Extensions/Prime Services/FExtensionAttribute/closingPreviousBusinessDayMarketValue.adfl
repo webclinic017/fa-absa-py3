@@ -1,0 +1,5 @@
+[Prime Services]FInstrumentAndTrades:closingPreviousBusinessDayMarketValue = sumOf(children :* "closingPreviousBusinessDayMarketValue");
+[Prime Services]FSingleInstrumentAndTrades:closingPreviousBusinessDayMarketValue = sumOf(tradesInPosition :* "closingPreviousBusinessDayMarketValue");
+[Prime Services]FTrade:closingPreviousBusinessDayMarketValue = switch(withinDateRange and isGeneralPortfolio, 
+  true->py("PreviousBusinessDayData", context).ReturnClosingMarketValue(object, previousBusinessDateStart), 
+  false->0);

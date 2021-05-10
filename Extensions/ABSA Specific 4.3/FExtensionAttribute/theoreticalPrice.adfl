@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FDerivative:theoreticalPrice = switch(isExpiredOnClock, 
+  true->valuationDateZero, 
+  false->select(isCalculatedTheoretically, 
+    true->select(isCouponQuoted, 
+      true->denominatedvalue(parCouponScaled, currency, nil, valuationDate), 
+      false->object.UnitValueToQuote(theoreticalInstrumentSpotValueForPrice, valuationDate, valuationDate, true, legInformations, staticLegInformations, quotation, couponToValueFactor, couponPriceAdjustment, currency, false, roundingInformation, nil, filterCurrency)), 
+    false->marketPrice));

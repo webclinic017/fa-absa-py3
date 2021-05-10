@@ -1,0 +1,3 @@
+[Default]FVolatilityStructure:malzDataToSkewStrikeConverters = select((bottomStrikeDimension <> "Log Moneyness") and atmConverters, 
+  true->nil, 
+  default->CreateMalzStrikeConverters(object:deltaDataToSkewStrikeConverter [spotDelta = true, volatilityInformationForDeltaConverter, instrumentForDeltaConverter = volatilitySurfaceUnderlyingInstrument, priceSource, doSplitAll, exposeForwardValuationTargets], object:deltaDataToSkewStrikeConverter [spotDelta = false, volatilityInformationForDeltaConverter, instrumentForDeltaConverter = volatilitySurfaceUnderlyingInstrument, priceSource, doSplitAll, exposeForwardValuationTargets]));

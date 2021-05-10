@@ -1,0 +1,12 @@
+[Core Pricing]FInstrumentAndTrades:instrumentAccruedInterest = select(singleTradePosition, 
+  nil->nil, 
+  default->scalar(switch(singleTradePositionFlatAccrued, 
+    true->instrumentSpotZero, 
+    false->singleTradePosition.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart)), 0));
+[Core Pricing]FMoneyFlowAndTrades:instrumentAccruedInterest = select(singleTradePosition, 
+  nil->nil, 
+  default->singleTradePosition.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart));
+[Core Pricing]FMultiInstrumentAndTrades:instrumentAccruedInterest = nil;
+[Core Pricing]FTradeRow:instrumentAccruedInterest = scalar(switch(trade.FlatAccrued, 
+  true->instrumentSpotZero, 
+  false->trade.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart)), 0);

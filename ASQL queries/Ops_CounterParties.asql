@@ -1,0 +1,26 @@
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','Ops_CounterParties') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'Ops_CounterParties' and p.type = 'SQL Query' 
+
+
+select
+    p.ptynbr 'PartyID',
+    p.ptyid    'PartyName',
+    p.swift 'Swift',
+    a.account   'AccNumber',
+    a.name  'AccName'
+from
+    party p,
+    account a
+where 
+    p.type in ('Counterparty','Client')
+and  p.ptynbr *= a.ptynbr
+

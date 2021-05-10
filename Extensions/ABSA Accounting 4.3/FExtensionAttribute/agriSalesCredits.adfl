@@ -1,0 +1,8 @@
+[ABSA Accounting 4.3]FDeposit:agriSalesCredits = 0;
+[ABSA Accounting 4.3]FInstrument:agriSalesCredits = addInfoSumFunction(tradesInPosition, "AgriSalesCredits");
+[ABSA Accounting 4.3]FInstrumentAndTrades:agriSalesCredits = sumOf(instrument :* "agriSalesCredits" [positionObject]);
+[ABSA Accounting 4.3]FPortfolioInstrumentAndTrades:agriSalesCredits = sumOf(instruments :* "agriSalesCredits" [positionObject]);
+[ABSA Accounting 4.3]FTrade:agriSalesCredits = select(addInfo.AgriSalesCredits, 
+  nil->0, 
+  default->addInfo.AgriSalesCredits);
+[ABSA Accounting 4.3]FTradeRow:agriSalesCredits = trade :* "agriSalesCredits";

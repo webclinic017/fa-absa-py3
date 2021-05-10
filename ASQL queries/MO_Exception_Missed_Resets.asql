@@ -1,0 +1,34 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_Exception_Missed_Resets') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_Exception_Missed_Resets' and p.type = 'SQL Query' 
+
+
+Select
+
+    @1_Outpath{'F:\\temp\\provision_workings\\'}                'Outpath'
+
+
+into 
+
+    params
+
+from 
+
+    serverdata s
+
+where
+	s.srdnbr > 0
+
+
+
+select
+ 
+    p.Outpath,
+    MO_Exception_MissedResets.Main(Outpath) 'Output Path'
+
+from
+
+params p

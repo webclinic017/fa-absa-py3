@@ -1,0 +1,20 @@
+select
+    i.insid 'Portfolio Swap',
+    ir.insid 'Underlying Instrument',
+    r.day 'Date',
+    r.value 'Position'
+from
+    instrument i,
+    leg l,
+    cashflow cf,
+    reset r,
+    instrument ir
+where
+    i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and ir.insaddr = l.index_ref
+and cf.cfwnbr = r.cfwnbr
+and r.day = @Date{Today}
+and r.type = 'Nominal Scaling'
+and l.type = 'Total Return'
+and i.insid in (@PortfolioSwaps{;Instrument.insid*})

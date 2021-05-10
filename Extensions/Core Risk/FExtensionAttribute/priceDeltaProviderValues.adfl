@@ -1,0 +1,6 @@
+[Core Risk]FCombInstrMapAndTrades:priceDeltaProviderValues = shunt(isOpenPosition, 
+  true->riskPosition * adjustForSpotHandling(instrument :* "priceDeltaProviderValuesInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement, priceGreekProviderShiftSize, priceGreekProviderUseRelativeShift, priceGreekDifferenceForm, priceGreekShiftFilter, useCommodityRiskFactors], valuesOnSpot), 
+  false->spotHandlingZero);
+[Core Risk]FInstrument:priceDeltaProviderValues = adjustForSpotHandling(denominatedValueOrBasket(priceDeltaProviderValuesInstrument * riskPosition), valuesOnSpot);
+[Core Risk]FInstrumentAndTrades:priceDeltaProviderValues = openInstrument :* "collapse(priceDeltaProviderValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekProviderShiftSize, priceGreekProviderUseRelativeShift, priceGreekDifferenceForm, priceGreekShiftFilter, useCommodityRiskFactors];
+[Core Risk]FMultiInstrumentAndTrades:priceDeltaProviderValues = sumOf(openInstruments :* "collapse(priceDeltaProviderValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekProviderShiftSize, priceGreekProviderUseRelativeShift, priceGreekDifferenceForm, priceGreekShiftFilter, useCommodityRiskFactors]);

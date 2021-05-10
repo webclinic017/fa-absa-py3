@@ -1,0 +1,18 @@
+[Default]FGroupingOrder:algoCanBeStarted = algoCanBeStartedCount > 0;
+[Default]FInternalMarketOrder:algoCanBeStarted = switch(algoAgentState, 
+  nil->false, 
+  "Pending Stop"->false, 
+  "Pending Execution"->false, 
+  default->true);
+[Default]FOrderProgram:algoCanBeStarted = algoCanBeStartedCount > 0;
+[Default]FOwnOrder:algoCanBeStarted = false;
+[Default]FSalesOrder:algoCanBeStarted = switch(algoTradingInstruction, 
+  nil->false, 
+  default->switch(algoTradingStrategy.OrderClass.Name, 
+    "FSalesOrder"->switch(algoTradingInstruction.AgentState, 
+      "Pending Stop"->false, 
+      "Pending Execution"->false, 
+      "Agent Done"->false, 
+      "Agent Executing"->false, 
+      default->true), 
+    default->false));

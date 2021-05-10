@@ -1,0 +1,54 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAOps_IRD_Authorisation') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_IRD_Authorisation' and p.type = 'SQL Query' 
+
+/*
+Purpose             :   Report on settlements requiring authorisation
+Department and Desk :   Ops
+Rquester            :   FATLM Project
+Developer           :   Anwar Banoo
+CR Number           :   
+*/
+    
+/*---------- Settlements Requiring Authorization ----------*/
+select    
+    i.instype   'Instrument Type',
+    s.status    'Settlement Status',
+    s.trdnbr    'Trade No',
+    s.amount    'Amount',
+    display_id(s, 'curr')   'Currency',
+    s.value_day 'Pay Date',
+    s.type  'Type',
+    s.acquirer_ptyid    'Acquirer',
+    p.ptyid 'Counterparty'
+from
+    settlement s,
+    trade t,
+    instrument i,
+    party p,
+    confirmation c,
+    ChoiceList cl
+where
+        s.acquirer_ptyid = 'IRD DESK' /*as part of FATLM we only report on the ird desk trades*/
+    and s.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr    
+    and s.counterparty_ptynbr = p.ptynbr
+    and t.trdnbr = c.trdnbr
+    and c.event_chlnbr = cl.seqnbr
+    and cl.entry = 'New Trade'
+    and s.value_day = @1_SettlementDate{Today} 
+    and ((@2_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@2_Counterparty{All;Party.ptyid*})))    
+    and (@3_TradeNbr{All} in ('All', '') or t.trdnbr = @3_TradeNbr{All})
+          /*not in bo-bo confirmed but settlement due*/
+    and ((t.status = 'BO Confirmed') or 
+          /*settlement in bo-bo confirmed but confirmation not matched*/
+         (t.status = 'BO-BO Confirmed' and c.status ~= 'Matched') or 
+          /*settlements agreed and settled*/
+         (s.status in ('Acknowledged', 'Pending Closure', 'Released')) or 
+          /*settlements agreed and not yet settled*/
+         (s.status = 'Authorised' and add_info(s,'Call_Confirmation') ~= ''))    
+
+order by 6

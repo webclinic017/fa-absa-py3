@@ -1,0 +1,72 @@
+/* update_method=0 */
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+------------------------------------------------------------------------------------------------
+2010-09-01     627760		    Natalie Austin     Douglas Finkel     Original
+2020-01-20						Gary Beukes 	   Richard Coppin     https://jira-agl.absa.co.za/browse/FAFO-76
+                                                                      MR_PortfolioSwaps filter change
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_PortfolioSwaps') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_PortfolioSwaps' and p.type = 'SQL Query'
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+    
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_PortfolioSwaps.OpenFile',@1_path{'f:\'},@2_FileName{'MR_PortfolioSwaps.csv'},@3_PositionName{'MR_PortfolioSwaps_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_PortfolioSwaps.Write',@1_path{'f:\'},@2_FileName{'MR_PortfolioSwaps.csv'},@3_PositionName{'MR_PortfolioSwaps_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i,
+	Trade t,
+	valid_portfolios vp
+Where
+        i.insaddr = t.insaddr
+    /*and t.prfnbr = p.prfnbr*/
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and (i.exp_day = 0 or i.exp_day > Today or i.open_end='Open End')
+    and i.instype in ('Portfolio Swap')
+    And (match_portfolio(t, 'ABSA CAPITAL') or match_portfolio(t, 'CLIENT REPORTING') or match_portfolio(t, 'MIDAS_GY') or 
+match_portfolio(t, 'GROUP TREASURY BANKING'))
+    and t.prfnbr = vp.prfnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

@@ -1,0 +1,48 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Fixed_Float_Rate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Fixed_Float_Rate' and p.type = 'SQL Query' 
+
+/*
+Description
+Date        Who                         What
+2009-02-03  Andre Jansen Van Vuuren     Created and send to IT
+2009-02-05  Heinrich Cronje             Deployed
+*/
+
+select
+    to_date(@1_Date{Today}) 'Date'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select 
+    t.trdnbr,
+    t.status,
+    i.instype,
+    t.quantity*1000000 'nominal',
+    p.prfid,
+    l.spread,
+    i.exp_day,
+    i.instype = 'Deposit' ? to_string(l.fixed_rate) : display_id(l,'float_rate') 'reference index'
+from
+    trade t,
+    instrument i,
+    leg l,
+    portfolio p,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed') 
+    and t.prfnbr = p.prfnbr 
+    and i.exp_day > m.Date
+    and time_to_day(t.time) <= m.Date
+    and i.instype in ('FRN','Deposit')
+
+order by p.prfid, i.exp_day

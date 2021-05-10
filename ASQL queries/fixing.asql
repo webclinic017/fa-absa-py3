@@ -1,0 +1,39 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','fixing') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'fixing' and p.type = 'SQL Query' 
+select  distinct
+  trdnbr    'Fo No',
+  t.optional_key	'Dev No',
+  display_id(t,'counterparty_ptynbr')                     'Counterparty',	
+  i.insid   'Instrument',
+  r.resnbr  'ResNbr',
+  r.day     'ResetDay',
+  fr.insid  'RateIndex',
+  r.type    'ResetType',
+  r.value   'Value',
+  c.spread  'Spread',
+  r.read_time   'FixTime'
+from
+  front.reset r,
+  front.cashflow c,
+  front.leg l,
+  front.instrument i,
+  front.instrument fr,
+  front.trade t
+where
+  (r.read_time = 0 or r.value <= 0)
+and r.day <= today
+and r.cfwnbr = c.cfwnbr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and l.float_rate = fr.insaddr
+and i.insaddr = t.insaddr
+and t.status not in ('Terminated','Void','Simulated')
+and ('None' in (@RateIndex{None;instrument.insid* where instype = 'RateIndex'}) or fr.insid  in (@RateIndex{}))
+and ('None' in (@Portfolio{None;portfolio.prfid*}) or display_id(t,'prfnbr')  in (@Portfolio{}))
+and not (r.type in ('Return','Nominal Scaling'))	
+order by 5,7,6,3,4;

@@ -1,0 +1,5 @@
+[SA-CCR (Beta)]FCashFlow:saccrSupervisoryDuration = saccrSupervisoryDuration(object);
+[SA-CCR (Beta)]FInstrument:saccrSupervisoryDuration = saccrSupervisoryDuration(object);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrSupervisoryDuration = select(isOpenPosition and (saccrIsInterestRates(instrument) or saccrIsCredit(instrument)), 
+  true->round(saccrInstrumentComponents :* "saccrSupervisoryDuration", saccrDecimalsDefault), 
+  false->nil);

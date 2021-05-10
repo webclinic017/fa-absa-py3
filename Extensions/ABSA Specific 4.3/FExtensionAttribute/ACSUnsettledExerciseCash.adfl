@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ACSUnsettledExerciseCash = emptyListToZero(sumOf((tradesInPosition.Filter(voidAndSimulatedFilter)) :* "ACSUnsettledExerciseCash" [profitAndLossEndDate]));
+[ABSA Specific 4.3]FPayment:ACSUnsettledExerciseCash = shunt(object.Type, 
+  "Exercise Cash"->shunt(((object.ValidFrom <= profitAndLossEndDate) and (object.PayDay > profitAndLossEndDate)), 
+    true->object.Amount, 
+    default->0), 
+  default->0);
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:ACSUnsettledExerciseCash = nil;
+[ABSA Specific 4.3]FTrade:ACSUnsettledExerciseCash = emptyListToZero(sumOf((object.Payments) :* "ACSUnsettledExerciseCash" [profitAndLossEndDate]));

@@ -1,0 +1,15 @@
+[Default]FCashFlowInstrument:singleProvider = select(usesFutureForwardModel, 
+  true->true, 
+  false->select(isMultiCurrencyInstrument, 
+    false->true, 
+    true->aggregatedForwardValuationLegs));
+[Default]FCombination:singleProvider = select(usesFutureForwardModel, 
+  true->true, 
+  false->select(usesPriceCurveModel, 
+    true->true, 
+    false->select(useCombinationModel, 
+      true->select(startPointFromCombination, 
+        false->aggregatedForwardValuationLegs, 
+        true->false), 
+      false->true)));
+[Default]FInstrument:singleProvider = true;

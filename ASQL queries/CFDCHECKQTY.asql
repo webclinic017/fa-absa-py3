@@ -1,0 +1,89 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CFDCHECKQTY') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CFDCHECKQTY' and p.type = 'SQL Query' 
+ 
+  select
+    p.prfid,
+    i.insid,
+    t.quantity,
+    t.premium,
+    t.quantity > 0 ? 'B' : 'S' 'BUYSELL'
+into
+    stock
+from
+    instrument i,
+    trade t,
+    portfolio p
+where
+    i.instype = 'Stock'
+and t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid = @StockPort{47274;Portfolio.prfid}
+and time_to_day(t.time) <= @ToDate{}
+and time_to_day(t.time) >= @FromDate{}
+and t.status not in ('Void','Simulated')
+    
+select
+    p.prfid,
+    u.insid,
+    t.quantity,
+    -1*t.quantity*t.price/100 'premium',
+    t.quantity > 0 ? 'B' : 'S'  'BUYSELL'
+into
+    cfd
+from
+    instrument i,
+    instrument u,
+    trade t,
+    portfolio p
+where
+    i.instype = 'CFD'
+and t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid = @CFDPort{47274_CFD;Portfolio.prfid}
+and time_to_day(t.time) <= @ToDate{}
+and time_to_day(t.time) >= @FromDate{}
+and i.und_insaddr = u.insaddr
+and t.status not in ('Void','Simulated')
+
+select
+    * 
+into
+    fint
+from
+    cfd
+select
+    *
+into
+    fint
+from
+    stock
+
+select 
+    prfid,
+    insid,
+    sum(quantity)       'Quantity',
+    sum(premium)        'Premium',
+    buysell
+from
+    fint
+group by 
+    1,2,5
+order by
+    1,3
+    
+union
+
+select 
+    prfid,
+    insid,
+    sum(quantity)       'Quantity',
+    sum(premium)        'Premium',
+    buysell
+from
+    fint
+group by 
+    2

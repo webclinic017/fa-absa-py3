@@ -1,0 +1,13 @@
+[Prime Services]FCfd:corporateActionValue = underlying:corporateActionValue;
+[Prime Services]FETF:corporateActionValue = py("PS_CorporateActions", context).GetDividend(object, profitAndLossEndDate, true).Amount;
+[Prime Services]FInstrument:corporateActionValue = nil;
+[Prime Services]FMultiInstrumentAndTrades:corporateActionValue = sumOf((object.Children) :* "sumOf(flattenAndRemoveNil(corporateActionValue))");
+[Prime Services]FSingleInstrumentAndTrades:corporateActionValue = switch(corporateActionType, 
+  "Coupon"->py("PS_CorporateActions", context).CalculateCouponAmount(instrument, corporateActionLDTPosition.Number, profitAndLossEndDate, tradesInPosition), 
+  "Dividend"->switch(instrument:primeDividends <> nil, 
+    true->switch(instrument:primeDividends.IsKindOf("FDividend"), 
+      false->corporateActionFactor * corporateActionLDTPosition, 
+      true->instrument:primeDividends.Amount * corporateActionLDTPosition.Number), 
+    default->nil), 
+  default->nil);
+[Prime Services]FStock:corporateActionValue = py("PS_CorporateActions", context).GetDividend(object, profitAndLossEndDate, true).Amount;

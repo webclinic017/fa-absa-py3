@@ -1,0 +1,6 @@
+#grouping: aef base/price retrieval
+#grouping: setup/price retrieval
+
+[Default]FPriceFinding:marketPriceSearchOrderPriceFindingFallback = select(priceFindingIsCorrectType, 
+  true->[priceFindingPriceTypeName], 
+  false->["EquilibriumPrice", priceFindingPriceTypeName, "LastPriceIfWithinSpread", "SpreadAveragePrice", "AverageBidPrice", "AverageAskPrice", "LastPrice", "ClosePrice"]);

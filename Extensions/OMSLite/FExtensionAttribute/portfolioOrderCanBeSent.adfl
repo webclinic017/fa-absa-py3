@@ -1,0 +1,7 @@
+[OMSLite]FInstrument:portfolioOrderCanBeSent = select(portfolioInstrumentHasOrderBooks, 
+  true->switch(portfolioTrading, 
+    nil->false, 
+    default->portfolioTrading.IsAvailable), 
+  default->nil);
+[OMSLite]FPriceLevelRow:portfolioOrderCanBeSent = instrument:portfolioOrderCanBeSent;
+[OMSLite]FSingleInstrumentAndTrades:portfolioOrderCanBeSent = instrument:portfolioOrderCanBeSent;

@@ -1,0 +1,181 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Accrued_Interest') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Accrued_Interest' and p.type = 'SQL Query' 
+select
+	@Date{Use t+1}	'date'
+into
+	Input
+from
+	instrument	i
+where	
+	i.insid = 'ZAR'
+select
+	t.trdnbr				'TrdNo',
+	display_id(t, 'counterparty_ptynbr')	'CP',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','Fixed')	'Fixed_Cashflow',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','Float')	'Floating_Cashflow',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','Rate')	'Fixed_Rate',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','Rate')	'Floating_Rate',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','Float')	'Daycount',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','PerDay')	'Fixed_Int_per_Day',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','PerDay')	'Float_Int_per_Day',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','SeqNo')	'Fixed_Seq_No',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','SeqNo')	'Float_Seq_No',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','Accrued')	'Fixed_Accrued',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','Accrued')	'Float_Accrued',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Fixed','Accrued')+
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Float','Accrued')	'Accrued_Interest',
+	t.optional_key				'DevNo',
+	display_id(t,'optkey1_chlnbr')		'Trade_Area',
+	display_id(t,'prfnbr')			'Portfolio',
+	ael_s(t,'InstrType.InstrumentType')				'Instrument',
+	nominal_amount(t,d.date)			'Nominal'
+into
+	temp
+	
+from
+	trade	t,
+	instrument	i,
+	leg	l,
+	portfolio	p,
+	Input	d
+where
+	t.insaddr = i.insaddr
+/*and	t.optional_key = 'DEVIRP288670'*/ /*287120'*/
+and	i.instype = 'Swap'
+/*and	display_id(t, 'prfnbr') = 'IRP'*/
+and	l.start_day =< d.date
+and	i.exp_day >= d.date
+and	l.insaddr = i.insaddr
+and	l.type = 'Fixed'
+and	t.status in (@Status{FO Confirmed;trade.status*})
+and	i.free_text ~= 'ZARMM/OCE'
+and	l.start_day <= d.date
+and	p.prfnbr = t.prfnbr
+and	p.prfid in (@Portfolio{ALCO;portfolio.prfid*})
+
+
+
+select
+	t.trdnbr				'TrdNo',
+	display_id(t, 'counterparty_ptynbr')	'CP',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Fixed')	'Fixed_Cashflow',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Float')	'Floating_Cashflow',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Rate')		'Fixed_Rate',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Rate')		'Floating_Rate',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Float')	'Daycount',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','PerDay')	'Fixed_Int_per_Day',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','PerDay')	'Float_Int_per_Day',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','SeqNo')	'Fixed_Seq_No',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','SeqNo')	'Float_Seq_No',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Accrued')	'Fixed_Accrued',
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Accrued')	'Float_Accrued',
+	t.quantity > 0 ? (ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Accrued')+
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Accrued') < 0 ? 0.0 :
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Accrued')+
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Accrued')) :
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Fixed','Accrued')+
+	ael_f(t,'AccruedInterest2.accrued_interest',d.date,'Option Float','Accrued')	'Accrued_Interest',
+	t.optional_key				'DevNo',
+	display_id(t,'optkey1_chlnbr')		'Trade_Area',
+	display_id(t,'prfnbr')			'Portfolio',
+	ael_s(t,'InstrType.InstrumentType')				'Instrument',
+	nominal_amount(t,d.date)			'Nominal'
+into
+	temp
+
+from
+	trade	t,
+	instrument	i,
+	leg	l,
+	portfolio	p,
+	Input	d
+where
+	t.insaddr = i.insaddr
+/*and	t.optional_key = 'DEVIRP277950'*/ /*319030'*/
+and	i.instype in ('CAP','FLOOR')
+/*and	display_id(t, 'prfnbr') = 'IRP'*/
+and	l.start_day < d.date
+and	i.exp_day >= d.date
+and	l.insaddr = i.insaddr
+and	l.type in ('CAP','FLOOR')
+and	t.status in (@Status{FO Confirmed;trade.status*})
+and	i.free_text ~= 'ZARMM/OCE'
+and	l.start_day <= d.date
+and	p.prfnbr = t.prfnbr
+and	p.prfid in (@Portfolio{ALCO;portfolio.prfid*})
+
+select
+	tt.TrdNo,
+	tt.CP,
+	tt.Fixed_Cashflow,
+	tt.Floating_Cashflow,
+	tt.Fixed_Rate,
+	tt.Floating_Rate,
+	tt.Daycount,
+	tt.Fixed_Int_per_Day,
+	tt.Float_Int_per_Day,
+	tt.Fixed_Seq_No,
+	tt.Float_Seq_No,
+	tt.Fixed_Accrued,
+	tt.Float_Accrued,
+	tt.Accrued_Interest,
+	tt.DevNo,
+	tt.Trade_Area,
+	tt.Portfolio,
+	tt.Instrument,
+	tt.Nominal
+from
+	temp tt
+union
+select
+	count(tt.TrdNo),
+	tt.CP,
+	sum(tt.Fixed_Cashflow),
+	sum(tt.Floating_Cashflow),
+	tt.Fixed_Rate,
+	tt.Floating_Rate,
+	tt.Daycount,
+	sum(tt.Fixed_Int_per_Day),
+	sum(tt.Float_Int_per_Day),
+	tt.Fixed_Seq_No,
+	tt.Float_Seq_No,
+	tt.Fixed_Accrued,
+	tt.Float_Accrued,
+	sum(tt.Accrued_Interest),
+	tt.DevNo,
+	tt.Trade_Area,
+	tt.Portfolio,
+	tt.Instrument,
+	sum(tt.Nominal)
+	
+from
+	temp tt
+group by tt.Trade_Area
+union
+select
+	count(tt.TrdNo),
+	tt.CP,
+	sum(tt.Fixed_Cashflow),
+	sum(tt.Floating_Cashflow),
+	tt.Fixed_Rate,
+	tt.Floating_Rate,
+	tt.Daycount,
+	sum(tt.Fixed_Int_per_Day),
+	sum(tt.Float_Int_per_Day),
+	tt.Fixed_Seq_No,
+	tt.Float_Seq_No,
+	tt.Fixed_Accrued,
+	tt.Float_Accrued,
+	sum(tt.Accrued_Interest),
+	tt.DevNo,
+	tt.Trade_Area,
+	tt.Portfolio,
+	tt.Instrument,
+	sum(tt.Nominal)
+from
+	temp tt
+group by tt.Portfolio

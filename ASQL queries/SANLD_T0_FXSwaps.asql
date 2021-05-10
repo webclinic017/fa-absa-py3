@@ -1,0 +1,110 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_T0_FXSwaps') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_T0_FXSwaps' and p.type = 'SQL Query' 
+
+/*
+Query based on SANLD_Cashflow_Report.
+
+This query displays all the future cashflows for trades booked on a certain trade date.
+This query has been optimized to show only future cashflows for FXSwaps and Options.
+*/
+
+/* List of trades */
+select
+	t.trdnbr,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	t.time
+into 
+	TRD
+from
+	trade 		t,
+	instrument  i
+where
+	match_filter(t, @Filter{NLD_All_Trades;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and t.time = to_date(@1_TradeDay{Yesterday;'Today','Yesterday'})
+
+/* Premium amounts */
+select
+	t.value_day	'day',
+	t.premium	'amount',
+	display_id(t,'curr')	'curr',
+	trd.itype = 'FXSwap' ?  'Cashflow' : 'Premium'	'CFType',
+	t.trdnbr,
+	trd.insid,
+	trd.itype,
+	trd.time
+into
+	CF
+from
+	trade t,
+	TRD trd
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+
+
+/* Cashflows */
+select
+	c.pay_day	'day',
+	projected_cf(c) * t.quantity	'amount',
+	display_id(l,'curr')	'curr',
+	'Cashflow'	'CFType',
+	trd.trdnbr,
+	trd.insid,
+	trd.itype,
+	trd.time
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+ /*t.acquire_day to_date(t.time)*/
+
+/* Additional payments */
+select
+	a.payday	'day',
+	a.amount	'amount',
+	display_id(a,'curr')	'curr',
+	'Additional Payment'	'CFType',
+	a.trdnbr,
+	trd.insid,
+	trd.itype,
+	trd.time
+into 
+	CF
+from
+	payment a,
+	TRD trd
+where
+	a.trdnbr = trd.trdnbr
+
+
+        
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+    c.time      'Trade Day',
+    c.trdnbr	'TrdNbr',
+    c.itype     'Ins Type',
+	c.insid     'Ins ID',
+	c.day 	    'CF Day',	
+    c.CFType	'CF Type',
+	c.curr		'CF Curr',
+	c.amount	'CF Amount'
+from
+	CF c
+

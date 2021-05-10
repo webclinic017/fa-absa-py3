@@ -1,0 +1,858 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Cashflow_amount') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Cashflow_amount' and p.type = 'SQL Query' 
+ 
+/*
+Query based on .App/Portfoliocashflows
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+1_StartDay - Cashflows from this date (incl) will be shown
+2_EndDay - Cashflows up to and incl this date are shown
+3_Currency - The currency of the payments. More than one curr can be selected
+Filter - The tradefilter from which the payments will be presented 
+
+
+History:
+When: 		Who:		What:
+2004-09-10	Hardus Jacobs 	Created
+2009-10-12	Jaysen Naicker 	Changes for 4.3 upgrade - FXSwap replaced by FXCash
+*/ 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{TODAY})							'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+
+
+	/*to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		'ME',
+		
+
+	to_date(@5_YearEndDate{2003-03-31;})					'YE',*/
+	
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+	
+
+	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay'
+	/*mtm_price(hc, m.ME, curr.insid)				'fxME',
+	mtm_price(hc, m.YE, curr.insid)				'fxYE'*/
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+/* List of trades EXCLUDING COMBINATION Instruments*/
+select
+	t.trdnbr,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	display_id(t, 'counterparty_ptynbr')		'Cpty',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')  'Portfolio',
+	t.your_ref		'CPRef'
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and t.trdnbr not in (856050,856099,856324,856348,858985,858999,859000)
+and i.instype ~= 'Combination'
+and	((@Selection{Both;'Open','Detail','Both'} = 'Open'  and t.value_day <= @1_StartDay{Yesterday;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Detail' and i.exp_day >= @1_StartDay{Yesterday;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Both'))
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+
+/* List of trades ONLY COMBINATION Instruments*/
+select
+	t.trdnbr,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	display_id(t, 'counterparty_ptynbr')		'Cpty',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')  'Portfolio',
+	t.your_ref		'CPRef'
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi,
+    combinationlink cl,
+    instrument member
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and t.trdnbr not in (856050,856099,856324,856348,858985,858999,859000)
+and cl.owner_insaddr = I.insaddr
+and member.insaddr = cl.member_insaddr
+and i.instype = 'Combination'
+and	((@Selection{Both;'Open','Detail','Both'} = 'Open'  and t.value_day <= @1_StartDay{Yesterday;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Detail' and member.exp_day >= @1_StartDay{Yesterday;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Both'))
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+
+
+/* Premium amounts */
+select
+	t.value_day	'day',
+	t.premium	'amount',
+	display_id(t,'curr')	'curr',
+	t.trade_process not in (4096,8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+	t.trade_process not in (4096,8192, 16384,32768) ? trd.Nominal :  t.premium  'Nominal',
+	i.insid ~= j.insid ? 1.00 : abs(t.quantity/t.premium)  'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid,
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(i.creat_time)	'CreateDate',
+	display_id(i,'creat_usrnbr')	'CreateUser',
+	i.creat_usrnbr			'CreateUserRef',
+	time_to_day(i.updat_time)	'UpdatDate',
+	display_id(i,'updat_usrnbr')	'UpdatUser',
+	i.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	present_value(t,,,,j.insid)/t.premium				'Discount',
+	present_value(t,,,,j.insid)  		'PV',
+	''				'Daycount_method',
+	0			'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'	
+
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	t.curr = j.insaddr
+and t.trdnbr not in (856050,
+856099,
+856324,
+856348,
+858985,
+858999,
+859000)
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+
+
+
+/* Premium amounts 2 */
+select
+	t.value_day	'day',
+	t.quantity	'amount',
+	display_id(i,'curr')	'curr',
+	t.trade_process not in (4096,8192, 16384, 32768) ? 'Premium' : 'Cashflow'	'CFType',
+    	t.trade_process not in (4096,8192, 16384, 32768) ?  t.premium  : t.quantity  'Nominal',
+	i.insid ~= j.insid ?  1.00 : abs(t.quantity/t.premium)   'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid,
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(i.creat_time)	'CreateDate',
+	display_id(i,'creat_usrnbr')	'CreateUser',
+	i.creat_usrnbr			'CreateUserRef',
+	time_to_day(i.updat_time)	'UpdatDate',
+	display_id(i,'updat_usrnbr')	'UpdatUser',
+	i.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	present_value(t,,,,j.insid)/t.quantity				'Discount',
+    present_value(t,,,,j.insid)			'PV',
+	''				'Daycount_method',
+	0				'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'	
+
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	i.curr = j.insaddr
+and i.instype = 'Curr'
+and t.trdnbr not in (856050,
+856099,
+856324,
+856348,
+858985,
+858999,
+859000)
+
+/* Cashflows for all instruments excluding COMBINATION*/
+select
+	c.pay_day	'day',
+	(i.instype = 'Bond' or i.und_instype = 'Bond') ? (ex_coupon_date(c) > t.value_day ? projected_cf(c) * t.quantity : 0.0) : (i.instype IN ('CreditDefaultSwap', 'Swap', 'FRA') ? (projected_cf(c) * t.quantity) : projected_cf(c))	'amount',
+	display_id(l,'curr')		'curr',
+	'Cashflow'			'CFType',
+	/*i.instype = 'FxSwap' ? nominal_amount(t, c.pay_day) : ((i.instype = 'CreditDefaultSwap' and c.type = 'Credit Default') ? nominal_amount(t,TODAY) : nominal_amount(t, c.start_day))  'Nominal',*/
+	/*nominal_amount(c,c.start_day,,l.curr)* t.quantity 'Nominal',*/
+	i.instype = 'CurrSwap' ? nominal_amount(c,c.pay_day,,l.curr) : t.quantity * i.contr_size * l.nominal_factor * c.nominal_factor  'Nominal',
+	/*i.instype='FXSwap' ? l.nominal_factor : c.nominal_factor   'NominalFactor',*/
+	c.nominal_factor   'NominalFactor',
+	t.trdnbr,
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	i.instype IN ('CreditDefaultSwap', 'Swap', 'FRA') ? present_value(c) * t.quantity : 0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	l.legnbr,
+	c.cfwnbr,
+	c.start_day,
+	c.end_day,
+	time_to_day(c.creat_time)	'CreateDate',
+	display_id(c,'creat_usrnbr')	'CreateUser',
+	c.creat_usrnbr			'CreateUserRef',
+	time_to_day(c.updat_time)	'UpdatDate',
+	display_id(c,'updat_usrnbr')	'UpdatUser',
+	c.updat_usrnbr			'UpdatUserRef',	
+	period_rate(c),
+	c.spread,
+	c.float_rate_factor,
+	c.float_rate_offset,
+	c.strike_rate,
+	days_between(c.start_day,c.end_day,l.daycount_method),
+	discount_factor(c),
+	present_value(c) * t.quantity  'PV',
+	l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method	'Daycount_method',
+	l.rolling_period.count		'Rolling_period_count',
+	l.rolling_period.unit = 'Months' ? 'Months' : l.rolling_period.unit	'Rolling_period_unit',
+	display_id(l,'float_rate'),
+	l.type = 'Float' ? 'Float' : l.type	'legtype',
+	c.type = 'Fixed Rate' ? 'Fixed Rate' : c.type				'Front_CFType'
+	
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd,
+	instrument j
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+/*and	('All' in (@CashflowType{All;Cashflow.type*}) or c.type in (@CashflowType{;Cashflow.type*}))*/
+and	l.curr = j.insaddr
+and t.trdnbr not in (856050,
+856099,
+856324,
+856348,
+858985,
+858999,
+859000)
+and	((@Selection{Both;'Open','Detail','Both'} = 'Open'  and c.pay_day < @1_StartDay{Yesterday;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Detail' and c.pay_day >= @1_StartDay{Yesterday;} and c.pay_day <= @2_EndDay{Today;})
+or 	(@Selection{Both;'Open','Detail','Both'} = 'Both'))
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+
+/* Cashflows for COMBINATION instruments ONLY*/
+select
+	c.pay_day	'day',
+	(i.instype = 'Bond' or i.und_instype = 'Bond') ? (ex_coupon_date(c) > t.value_day ? projected_cf(c) * (t.quantity/i.index_factor) : 0.0) : (i.instype IN ('CreditDefaultSwap', 'Swap', 'FRA') ? (projected_cf(c) * (t.quantity/i.index_factor)) : projected_cf(c))	'amount',
+	display_id(l,'curr')		'curr',
+	'Cashflow'			'CFType',
+	/*i.instype = 'FxSwap' ? nominal_amount(t, c.pay_day) : ((i.instype = 'CreditDefaultSwap' and c.type = 'Credit Default') ? nominal_amount(t,TODAY) : nominal_amount(t, c.start_day))  'Nominal',*/
+	/*nominal_amount(c,c.start_day,,l.curr)* t.quantity 'Nominal',*/
+	i.instype = 'CurrSwap' ? nominal_amount(c,c.pay_day,,l.curr) : t.quantity * i.contr_size * l.nominal_factor * c.nominal_factor  'Nominal',
+	/*i.instype='FXSwap' ? l.nominal_factor : c.nominal_factor   'NominalFactor',*/
+	c.nominal_factor   'NominalFactor',
+	t.trdnbr,
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	i.instype IN ('CreditDefaultSwap', 'Swap', 'FRA') ? present_value(c) * (t.quantity/i.index_factor) : 0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	l.legnbr,
+	c.cfwnbr,
+	c.start_day,
+	c.end_day,
+	time_to_day(c.creat_time)	'CreateDate',
+	display_id(c,'creat_usrnbr')	'CreateUser',
+	c.creat_usrnbr			'CreateUserRef',
+	time_to_day(c.updat_time)	'UpdatDate',
+	display_id(c,'updat_usrnbr')	'UpdatUser',
+	c.updat_usrnbr			'UpdatUserRef',	
+	period_rate(c),
+	c.spread,
+	c.float_rate_factor,
+	c.float_rate_offset,
+	c.strike_rate,
+	days_between(c.start_day,c.end_day,l.daycount_method),
+	discount_factor(c),
+	present_value(c) * (t.quantity/i.index_factor)  'PV',
+	l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method	'Daycount_method',
+	l.rolling_period.count		'Rolling_period_count',
+	l.rolling_period.unit = 'Months' ? 'Months' : l.rolling_period.unit	'Rolling_period_unit',
+	display_id(l,'float_rate'),
+	l.type = 'Float' ? 'Float' : l.type	'legtype',
+	c.type = 'Fixed Rate' ? 'Fixed Rate' : c.type				'Front_CFType'
+	
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd,
+	instrument j,
+    combinationlink cl
+where
+	i.insaddr = t.insaddr
+    and cl.owner_insaddr = I.insaddr
+    and l.insaddr = cl.member_insaddr
+    and	l.legnbr = c.legnbr
+    and	t.trdnbr = trd.trdnbr
+    and	c.pay_day >= t.acquire_day
+    and	l.curr = j.insaddr
+    and i.instype = 'Combination'
+    and t.trdnbr not in (856050,856099,856324,856348,858985,858999,859000)
+    and	((@Selection{Both;'Open','Detail','Both'} = 'Open'  and c.pay_day < @1_StartDay{Yesterday;})
+        or 	(@Selection{Both;'Open','Detail','Both'} = 'Detail' and c.pay_day >= @1_StartDay{Yesterday;} and c.pay_day <= @2_EndDay{Today;})
+        or 	(@Selection{Both;'Open','Detail','Both'} = 'Both'))
+
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'
+and display_id(c,'creat_usrnbr') ~= 'ABHC164'*/
+
+ 
+/* Futures on Oil */
+select
+	i.exp_day	'day',
+	nominal_amount(t)*t.price*-1	'amount',
+	display_id(t,'curr')	'curr',
+	'Commodity Future'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(i.creat_time)	'CreateDate',
+	display_id(i,'creat_usrnbr')	'CreateUser',
+	i.creat_usrnbr			'CreateUserRef',
+	time_to_day(i.updat_time)	'UpdatDate',
+	display_id(i,'updat_usrnbr')	'UpdatUser',
+	i.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	0.0				'Discount',
+	present_value(t)		'PV',
+	''				'Daycount_method',
+	0				'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'	
+
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and	i.und_instype = 'Commodity'
+and	t.curr = j.insaddr
+and t.trdnbr not in (856050,
+856099,
+856324,
+856348,
+858985,
+858999,
+859000)
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+
+/* End premiums and sec loan fees */
+select
+	i.exp_day	'day',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+		t.quantity * projected_cf(i)	'amount',
+	display_id(t,'curr')	'curr',
+	'End Premium/Sec Loan Fee'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(i.creat_time)	'CreateDate',
+	display_id(i,'creat_usrnbr')	'CreateUser',
+	i.creat_usrnbr			'CreateUserRef',
+	time_to_day(i.updat_time)	'UpdatDate',
+	display_id(i,'updat_usrnbr')	'UpdatUser',
+	i.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	0.0				'Discount',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+		t.quantity * projected_cf(i)				'PV',
+	''				'Daycount_method',
+	0				'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'	
+
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and	t.curr = j.insaddr
+and t.trdnbr not in (856050,
+856099,
+856324,
+856348,
+858985,
+858999,
+859000)
+/*and display_id(t,'prfnbr') not like 'Call%'
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'*/
+/* Additional payments */
+select
+	a.payday	'day',
+	a.amount	'amount',
+	display_id(a,'curr')	'curr',
+	'Additional Payment'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	a.trdnbr,
+	j.instype 'instype',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 	'PartyType',
+	trd.cpid 	'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	trd.CPRef,
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(a.creat_time)	'CreateDate',
+	display_id(a,'creat_usrnbr')	'CreateUser',
+	a.creat_usrnbr			'CreateUserRef',
+	time_to_day(a.updat_time)	'UpdatDate',
+	display_id(a,'updat_usrnbr')	'UpdatUser',
+	a.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	0.0				'Discount',
+	a.amount			'PV',
+	''				'Daycount_method',
+	0				'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'
+
+
+into 
+	CF
+from
+	payment a,
+	TRD trd,
+	instrument j
+where
+	a.trdnbr = trd.trdnbr
+and	a.curr = j.insaddr
+and display_id(a,'creat_usrnbr') ~= 'ABHC164'
+and display_id(j,'creat_usrnbr') ~= 'ABHC164'
+
+/* Dividend payments */
+select
+	d.day			'day',
+	d.dividend		'amount',
+	display_id(i,'curr')	'curr',
+	'Dividend'		'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr		'Trdnbr',
+	i.instype,
+	trd.devonref,
+	trd.insid,
+	trd.itype		'Itype',
+	'Issuer' 'PartyType',
+	trd.issid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	0.0	'HVAL',
+	mtm_price(j, YESTERDAY, 'ZAR') 'Mtm_price',
+	t.your_ref		'CPRef',
+	0			'Legnbr',
+	0			'CfwNbr',
+	to_date('0000-01-01')		'Startdate',
+	to_date('0000-01-01')		'Enddate',
+	time_to_day(d.creat_time)	'CreateDate',
+	display_id(d,'creat_usrnbr')	'CreateUser',
+	d.creat_usrnbr			'CreateUserRef',
+	time_to_day(d.updat_time)	'UpdatDate',
+	display_id(d,'updat_usrnbr')	'UpdatUser',
+	d.updat_usrnbr			'UpdatUserRef',
+	0.0				'Rate',
+	0.0				'Spread',
+	1.0				'FloatRateFactor',
+	0.0				'FloatRateOffset',
+	0.0				'StrikeRate',
+	0.0				'Days',
+	0.0				'Discount',
+	d.dividend			'PV',
+	''				'Daycount_method',
+	0				'Rolling_period_count',
+	''				'Rolling_period_unit',
+	''				'Float_Rate',
+	''				'legtype',
+	''				'Front_CFType'
+	
+into
+	CF
+from	
+	instrument	i,
+	dividend	d,
+	trade		t,
+	TRD		trd,
+	instrument	j
+where
+	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	t.trdnbr=trd.trdnbr
+and	t.curr = j.insaddr
+and display_id(t,'creat_usrnbr') ~= 'ABHC164'
+
+/*Opening ballances into temp*/
+select
+	'Opening Balance'		'Section',
+	c.day 	'PayDay',
+	cur.insaddr	'CurrPrimaryKey',
+	c.curr		'Curr',
+	i.insaddr	'Insaddr',
+	c.insid,
+	c.Nominal,
+	sum(c.amount)	'Amount',
+/*	c.instype IN ('CreditDefaultSwap', 'Swap') ? sum(c.HVAL) : sum(c.Mtm_price * c.amount) 'HVAL',*/
+	sum(c.pv*(1/fx.fxRepDay)) 'HVAL',
+/*	c.Mtm_price,*/
+	c.trdnbr	'TrdNbr',
+	p.ptynbr	'PartyNumber',
+	c.Party,
+	pr.prfnbr	'PortfolioNumber',
+	c.portfolio,
+	c.Legnbr,
+	c.CfwNbr,
+	c.CFType,
+	c.NominalFactor,
+	c.Startdate,
+	c.Enddate,
+	c.CreateDate,
+	c.CreateUser,
+	c.CreateUserRef,
+	c.UpdatDate,
+	c.UpdatUser,
+	c.UpdatUserRef,
+	c.Rate,
+	c.Spread,
+	c.FloatRateFactor,
+	c.FloatRateOffset,
+	c.StrikeRate,
+	c.Days,
+	c.Discount,
+	c.PV,
+	c.Daycount_method,
+	c.Rolling_period_count,
+	c.Rolling_period_unit,
+	c.Float_Rate,
+	c.legtype,
+	c.Front_CFType	,
+	0.0 'fxRepDay'
+
+into
+	open
+from
+	CF c,
+	instrument i,
+	instrument cur,
+	party p,
+	portfolio pr,
+	fxrates fx
+where
+	(('All' in (@3_Currency{})) or (c.curr in (@3_Currency{All;instrument.insid* where instype = 'Curr'})))
+and	c.day < @1_StartDay{Yesterday;}
+and	c.curr = cur.insid
+and	c.insid = i.insid
+and	c.Party = p.ptyid
+and	c.portfolio = pr.prfid
+AND cur.instype = 'Curr'
+AND fx.curr = cur.insid
+group by 3,14
+		
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	*
+from
+	open
+where
+	@Selection{Both;'Open','Detail','Both'} = 'Open'
+or	@Selection{Both;'Open','Detail','Both'} = 'Both'	
+
+union
+
+select
+	'Details'		'Section',
+	c.day 	'PayDay',
+	cur.insaddr	'CurrPrimaryKey',
+	c.curr		'Curr',
+	i.insaddr	'Insaddr',
+	c.insid,
+	c.Nominal,
+	sum(c.amount)	'Amount',
+	/*c.instype IN ('CreditDefaultSwap', 'Swap') ? sum(c.HVAL) : sum(c.Mtm_price * c.amount) 'HVAL',*/
+	c.pv*(1/fx.fxRepDay) 'HVAL',
+	c.trdnbr	'TrdNbr',
+	p.ptynbr	'PartyNumber',
+	c.Party,
+	pr.prfnbr	'PortfolioNumber',
+	c.portfolio,
+	c.Legnbr,
+	c.CfwNbr,
+	c.CFType,
+	c.NominalFactor,
+	c.Startdate,
+	c.Enddate,
+	c.CreateDate,
+	c.CreateUser,
+	c.CreateUserRef,
+	c.UpdatDate,
+	c.UpdatUser,
+	c.UpdatUserRef,
+	c.Rate,
+	c.Spread,
+	c.FloatRateFactor,
+	c.FloatRateOffset,
+	c.StrikeRate,
+	c.Days,
+	c.Discount,
+	c.PV,
+	c.Daycount_method,
+	c.Rolling_period_count,
+	c.Rolling_period_unit,
+	c.Float_Rate,
+	c.legtype,
+	c.Front_CFType,
+	fx.fxRepDay
+	
+	
+from
+	CF c,
+	instrument i,
+	instrument cur,
+	party p,
+	portfolio pr,
+	fxrates fx
+
+where 	
+	(@Selection{Both;'Open','Detail','Both'} = 'Detail'
+or	@Selection{Both;'Open','Detail','Both'} = 'Both')
+and	(('All' in (@3_Currency{})) or (c.curr in (@3_Currency{All;instrument.insid* where instype = 'Curr'})))
+and	c.day >= @1_StartDay{Yesterday;}
+and	c.day <= @2_EndDay{Today;}
+and	c.curr = cur.insid
+and	c.insid = i.insid
+and	c.Party = p.ptyid
+and	c.portfolio = pr.prfid
+AND cur.instype = 'Curr'
+AND fx.curr = cur.insid
+
+
+
+/*group by 2,3,4,5,7,8,9*/
+

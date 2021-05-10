@@ -1,0 +1,27 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FO_CONFIRMED_TRADES') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FO_CONFIRMED_TRADES' and p.type = 'SQL Query' 
+select
+t.trdnbr ,
+time_to_day(t.time),
+i.instype,
+l.end_day
+
+from 
+trade t,
+instrument i,
+leg l
+
+where
+i.instype='fra'
+and i.insaddr=t.insaddr
+and l.insaddr=i.insaddr
+
+
+and t.status = 'FO Confirmed'
+and t.time < TODAY
+
+

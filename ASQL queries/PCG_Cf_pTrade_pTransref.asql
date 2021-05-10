@@ -1,0 +1,157 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_Cf_pTrade_pTransref') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_Cf_pTrade_pTransref' and p.type = 'SQL Query' 
+/* Standard_Queries:1.0.0 */
+
+/*Name:	.Print/CashFlow
+
+EDIT HISTORY
+
+Date	Who	What
+-------------------------------------------------------
+980416  AGY	Use display_id
+941101	CE	Created
+
+
+
+
+
+/************************************Check for Combinations********/
+
+select 
+
+i.insaddr 'Address',
+i.instype 'Type'
+/*c.member_insaddr*/
+
+into temp
+
+from
+ instrument i,
+ trade t
+
+where
+/*match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})*/
+t.trx_trdnbr in (@1_TransRef{})
+and match_filter(t, @2_Filter{SND_All_Trades;tradefilter.fltid})
+and t.insaddr = i.insaddr
+
+
+
+select 
+c.member_insaddr 'Address',
+ic.instype 'Type'
+
+into temp2
+
+from 
+
+instrument i,
+combinationlink c,
+instrument ic,
+temp t
+
+where
+
+t.address = i.insaddr
+and i.insaddr = c.owner_insaddr
+and c.member_insaddr = ic.insaddr
+
+select 
+
+t.trdnbr,
+p.address
+
+into temp3
+
+from 
+
+trade t,
+temp2 p
+
+where
+
+t.insaddr = p.address
+
+
+/************************************End*****************************/
+
+
+
+
+
+select
+        t.trdnbr                            'Trdnbr',
+    	i.insid    	    	    		    'instr',/*
+    	cf.creat_time	    	    		'c_ctime',
+    	cf.updat_time	    	    		'c_utime',
+    	display_id(i,'creat_usrnbr')   		'c_cuser',
+    	display_id(i,'updat_usrnbr')   		'c_uuser',
+    	i.instype				            'i_type',
+    	cf.cfwnbr  	    	    		    'cashflow',
+    	r.resnbr   	    	    		    'reset',*/
+    	
+    	(l.payleg ? 'Pay' : 'Receive')  	'Pay_Rec',
+        l.legnbr   	    	    		    'Leg Nbr',
+        cf.type 	    	    	        'Type',
+
+    	nominal_amount(t)
+        /*l.nominal_factor *  i.contr_size*/	            'Nominal',
+
+        (cf.type in('Fixed Amount') ? '' : cf.start_day)    'Start Day',
+        (cf.type in('Fixed Amount') ? '' : cf.end_day)      'End Day',
+        (cf.type in('Fixed Amount') ? '' : 
+            days_between(cf.start_day, cf.end_day, 'Act/365'))          'Days',
+        cf.pay_day  	    	    		                            'Pay Day',
+        cf.type = 'Fixed Rate' ? cf.rate : '' 	                        'Rate',
+    
+        (cf.type in('Fixed Amount','Fixed Rate') ? '' : cf.spread )     'Spread',
+
+        (cf.type in('Fixed Amount','Fixed Rate') ? '' : period_rate(cf))'Forward',
+        
+        projected_cf(cf) * t.quantity                                    'Proj',
+        present_value(cf) * t.quantity                                   'PV',
+        display_id(l,'curr')          'Curr',
+        
+        abs(projected_cf(cf)*t.quantity) 'Abs Proj',
+        abs(present_value(cf) * t.quantity) 'Abs PV'
+        
+
+
+	 
+
+
+
+from
+    trade t,
+	instrument i,
+	leg l,
+	CashFlow cf,
+	combinationlink c,
+	temp3 p
+
+where
+
+t.trdnbr = p.trdnbr
+and i.insaddr = t.insaddr  	
+/*and	i.insaddr = l.insaddr*/
+and l.insaddr in (i.insaddr, c.member_insaddr)
+
+and	l.legnbr = cf.legnbr
+and i.insaddr = c.member_insaddr
+
+
+
+
+order by 10, 17
+
+
+
+
+
+
+
+

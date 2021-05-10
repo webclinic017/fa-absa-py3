@@ -1,0 +1,22 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_Position(Basic)') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_Position(Basic)' and p.type = 'SQL Query' 
+ 
+  select
+    i.insid     'Instrument',
+    i.instype    'Type',
+    sum(t.quantity) 'Nominal',
+    mtm_price(i,yesterday)  'MTM',
+    sum(t.quantity)*mtm_price(i,yesterday)/100  'ZARNominal'
+from
+        instrument  i,
+        trade   t
+where i.insaddr=t.insaddr
+and match_filter(t,@Filter{'EQ_Arb_Baskets';'EQ_Arb_Baskets','EQ_SA_Opportunity','EQ_SA_Pairs','EQ_SA_RelativeVol','EQ_SA_StockVol','EQ_SA_IndexArb','EQ_SA_IndexVol','EQ_SA_Spreads','EQ_SA_TrendA'})
+Group by 1
+
+Having sum(t.quantity) ~= 0.0
+Order by 2

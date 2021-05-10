@@ -1,0 +1,6 @@
+[Profit and Loss]FInstrumentAndTrades:cashProfitAndLossPositionStart = nil;
+[Profit and Loss]FMultiInstrumentAndTrades:cashProfitAndLossPositionStart = select(calculateCash and (cashGrouperFilterCurrency <> nil), 
+  true->shunt(profitAndLossStartDate == longTimeAgo, 
+    true->plCashZeroPosition, 
+    false->cashProfitAndLossPositionStartCalculation), 
+  false->nil);

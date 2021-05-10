@@ -1,0 +1,180 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-08-31                      McEwan Kieron      Mpaki Elephant    Ensuring that Barrier trades are not marked as Vanilla
+2018-06-13                      McEwan Kieron      Lehakoe Mothobi    Ensuring that FX Asian options are included in the FXO feeds
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select
+ael_i(p,'ASQL_log','EAGLE_FXO_ABSA_TRADE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p 
+where p.name = 'EAGLE_FXO_ABSA_TRADE' and p.type = 'SQL Query' 
+
+/*live trades*/
+select
+t.trdnbr 'TRDNBR',
+ex.barrier_crossed_status 'CROSSED_STATUS',
+i.insaddr 'INS_INSADDR',
+ex.insaddr 'EX_INSADDR',
+/*ex.average_method_type in ('Arithmetic', 'Geometric', 'Custom') ? 'Yes' : 'No' 'TypeA',*/
+ex.double_barrier                                                       'double_barrier',
+ex.barrier_option_type                                                  'Barrier_Type',
+i.digital                                                               'Digital',
+t.insaddr = ex.insaddr ? 'Yes' : 'No'                                   'Exotic',
+'ABS-FXO'                                                               'SOURCE_ID',
+ael_s(t,'Eagle_Date.FXONbr')                                            'SOURCE_TRADE_ID',
+''                                                                      'PRODUCT_TYPE',
+''                                                                      'SUB_TYPE',
+convert('string', display_id(t,'prfnbr'),15)                            'BOOK',
+convert('time', t.time, '%Y%m%d')                                       'TRADE_DATE',
+convert('time', i.exp_day, '%Y%m%d')                                    'MATURITY_DATE',
+add_info(p,'BarCap_SMS_LE_SDSID')                                       'LEGAL_ENTITY',
+'NEW'                                                                   'TRADE_EVENT',
+add_info(p,'BarCap_Eagle_SDSID')                                        'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                   'ABSA_COUNTERPARTY_ID',
+''                                                                      'COUNTERPARTY_TYPE',
+display_id(t,'trader_usrnbr')                                           'TRADER_ID',
+t.premium                                                               'PREMIUM_AMOUNT',
+display_id(t,'curr')                                                    'PREMIUM_CURRENCY',
+convert('time', t.value_day, '%Y%m%d')                                  'PREMIUM_DELIVERY_DATE',
+0                                                                       'VALIDATION_FLAG',
+''                                                                      'TRADE_STRATEGY',
+i.strike_price                                                          'STRIKE_FLOOR',
+convert('time', t.time, '%Y%m%d')                                         'EFFECTIVE_DATE'
+
+
+into temp
+
+from
+
+
+trade t,
+instrument i,
+party p,
+exotic ex ,
+instrument und
+
+where   
+
+    t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and i.und_insaddr = und.insaddr
+and i.instype = 'Option'
+and i.und_instype = 'Curr'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and i.insaddr *= ex.insaddr 
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and (add_info(p,'BarCap_SMS_LE_SDSID') ~= '' and add_info(p,'BarCap_SMS_CP_SDSID') ~= '')*/
+/*and ex.barrier_crossed_status not in ('Confirmed')*/
+/* exclude nonempty Commodity Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')
+/*and t.trdnbr in ('67225282','67223575','67223555','67223548')*/
+/*Vanilla*/
+
+
+select *
+into tempA
+from temp
+where CROSSED_STATUS not in('Confirmed')
+
+
+select
+SOURCE_ID,
+SOURCE_TRADE_ID,
+'OE'                'PRODUCT_TYPE',
+'Vanilla'           'SUB_TYPE',
+BOOK,
+TRADE_DATE,
+MATURITY_DATE,
+LEGAL_ENTITY,
+TRADE_EVENT ,
+SDS_COUNTERPARTY_ID,
+ABSA_COUNTERPARTY_ID,
+COUNTERPARTY_TYPE,
+TRADER_ID,
+PREMIUM_AMOUNT,
+PREMIUM_CURRENCY,
+PREMIUM_DELIVERY_DATE,
+VALIDATION_FLAG,
+'VANILLA'        'TRADE_STRATEGY',
+STRIKE_FLOOR,
+EFFECTIVE_DATE
+
+from 
+
+tempA
+
+where Exotic = '' and Barrier_Type = 'None'
+
+
+UNION
+
+/*Exotic*/
+
+select
+SOURCE_ID,
+SOURCE_TRADE_ID,
+digital = 'No' ? 
+			(ael_s(,'OptionBaseType.GetBaseType', TRDNBR) = 'Asian')? 
+			  'OE' 
+			: ((double_barrier = 0.00)? 
+			    'BAR/SGL'
+			  : 'BAR/DBL') 
+		  :  (digital = 'Yes' and barrier_type  in ('Down & In', 'Down & Out', 'Up & In','Up & Out', 'Double In', 'Double Out')) ? 
+			  'RBT' 
+			 :  (ael_s(,'OptionBaseType.GetBaseType', TRDNBR) = 'Asian')? 
+			     'OE'
+			    :  barrier_type                   'PRODUCT_TYPE',
+digital = 'No' ? 
+            (double_barrier = 0.00 ? 
+			  (ael_s(,'OptionBaseType.GetBaseType', TRDNBR) = 'Asian')? 
+			    'Vanilla' 
+			  : 'SingleBarrier' 
+            : 'DoubleBarrier') 
+		  :
+digital = 'Yes' ?
+            (barrier_type  in ('Down & In', 'Down & Out', 'Double In') ? 
+			  'OneTouchDown' 
+			:  (barrier_type  in ('Up & In','Up & Out', 'Double Out') ? 
+			     'OneTouchUp' 
+			   :  barrier_type)) 
+		  :  barrier_type                       'SUB_TYPE',
+BOOK,
+TRADE_DATE,
+MATURITY_DATE,
+LEGAL_ENTITY,
+CROSSED_STATUS = 'Confirmed' ? 'CANCEL': TRADE_EVENT  'TRADE_EVENT', 
+SDS_COUNTERPARTY_ID,
+ABSA_COUNTERPARTY_ID,
+COUNTERPARTY_TYPE,
+TRADER_ID,
+PREMIUM_AMOUNT,
+PREMIUM_CURRENCY,
+PREMIUM_DELIVERY_DATE,
+VALIDATION_FLAG,
+digital = 'No' ? 
+            (double_barrier = 0.00 ? 
+			  (ael_s(,'OptionBaseType.GetBaseType', TRDNBR) = 'Asian')? 
+			     'VANILLA' 
+			  :  'BARRIER' 
+            :  'DOUBLBARR') 
+		  :
+(digital = 'Yes' ? 
+             'DIGITAL' 
+		   :  barrier_type)                    'TRADE_STRATEGY',
+STRIKE_FLOOR,
+EFFECTIVE_DATE
+
+from 
+
+temp
+
+where Exotic = 'Yes' /*and TypeA ~= 'Yes'*/
+

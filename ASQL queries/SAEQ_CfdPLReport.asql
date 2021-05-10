@@ -1,0 +1,135 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_CfdPLReport') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_CfdPLReport' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	                        Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+	 
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	                       FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	(m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)	)	'fxRepDay'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+/*--------------------------------------------------------------------------
+         Selecting base data into the 'result' temp table 
+----------------------------------------------------------------------------*/
+
+SELECT distinct
+	t.trdnbr,
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			        'Desk',
+	display_id(t, 'prfnbr')					            'portfolio',
+	curr.insid							                'curr',
+	ael_s(t,'InstrType.InstrumentType')			        'instype',
+	i.contr_size *t.nominal_amount                      'Position',
+	i.instype = 'Bond' ? i.contr_size *t.nominal_amount : nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00	'Premium',
+	i.exp_day							                'Exp_day',
+	m.RepDay							                'RepDay',
+	t.status							                'Status',
+	1/fx.fxRepDay							            'fxRepDay',
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	(accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None') - accumulated_dividend(t,m.RepDay,curr.insid,2,0, ,1,'None'))
+                                                        'cash_RepDate',
+	accumulated_dividend(t,m.RepDay,curr.insid,2,0, ,1,'None')      'Dividend_cash',
+	display_id(t,'counterparty_ptynbr')	                'Cpty'
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND i.instype in ('CFD')
+
+/*------------------------------------------------------------------
+	             Creating Final DATA table
+------------------------------------------------------------------*/
+
+SELECT
+	r.trdnbr,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.curr,
+	r.instype,
+	r.Cpty,
+	r.exp_day,
+	r.status,
+	r.repday,
+	sum(r.position) 	  'Position',
+	sum(r.nominal)		  'Nominal',
+	sum(r.premium)		  'Premium',	
+    sum(r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay)	'HPLIncep',
+    sum(r.Dividend_cash)  'Dividend_cash'
+	
+INTO
+	final
+
+FROM
+	result		r
+
+/*------------------------------------------------------------------
+                        DETAILS
+------------------------------------------------------------------*/
+
+SELECT
+	r.trdnbr,
+	r.insid,
+	r.desk,
+	r.portfolio,
+	r.cpty,
+	r.curr,
+	r.instype,
+	r.exp_day,
+	r.status,
+	sum(r.position)		    'Position',
+	sum(r.nominal)		    'Nominal',
+	sum(r.premium)		    'Premium',
+    sum(r.HPLIncep)	        'HPLIncep',
+    sum(r.Dividend_cash)    'Dividend_cash'
+						
+FROM
+	final			r
+	
+
+

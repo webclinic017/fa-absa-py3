@@ -1,0 +1,6 @@
+[Default]FCurrency:historicalImmediateOrSpotFxRate = fxRateInstrument :* "historicalImmediateOrSpotFxRate" [fxHistoricalDate, fxHistoricalForwardDate];
+[Default]FFxRate:historicalImmediateOrSpotFxRate = select(foreignEqualsDomestic, 
+  true->1.0, 
+  false->select(immediateFxRates, 
+    true->fxRateWithHistoricalParameters, 
+    false->stripDateTimePart(historicalSimplisticFXSpotRate)));

@@ -1,0 +1,75 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austinr
+Developer               :Douglas Finkel
+CR Number               :264536
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Total_Return_Swap') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Total_Return_Swap' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(, 'MR_Total_Return_Swap.OpenFile', @1_path{'f:\'}, @2_FileName{'MR_Total_Return_Swap.csv'}, @3_PositionName{'MR_Total_Return_Swap_Position.csv'}) 	   'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+	
+select
+    i.insaddr,
+    ir.instype in ('Bond','IndexLinkedBond') ? 'Yes' : 'No' 'instype'
+into
+    eqswap
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+    i.insaddr = l.insaddr
+and l.index_ref = ir.insaddr
+and (i.exp_day = 0 or i.exp_day > Today)
+and i.instype in ('TotalReturnSwap')
+
+Select distinct
+    'Write File' 'Process', 
+    ael_s(i, 'MR_Total_Return_Swap.Write', @1_path{'f:\'}, @2_FileName{'MR_Total_Return_Swap.csv'}, @3_PositionName{'MR_Total_Return_Swap_Position.csv'})     'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i,
+    trade t,
+    instrument ir,
+     leg l,
+    eqswap e
+where
+    i.insaddr = e.insaddr
+and i.insaddr = l.insaddr
+and i.insaddr = t.insaddr
+and l.index_ref = ir.insaddr
+and (i.exp_day = 0 or i.exp_day > Today)
+and i.instype in ('TotalReturnSwap')
+and e.instype not like '%No%'
+And t.status not in ('Void', 'Terminated', 'Simulated', 'Confirmed Void') 
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

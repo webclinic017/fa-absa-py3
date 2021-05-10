@@ -1,0 +1,9 @@
+[Pegasus]FInstrumentAndTrades:deprecRPLColumnHedgeRef = collapse(deprecAmountHedgeRef);
+[Pegasus]FMultiInstrumentAndTrades:deprecRPLColumnHedgeRef = sumOf(children :* "deprecRPLColumnHedgeRef");
+[Pegasus]FPriceAggregate:deprecRPLColumnHedgeRef = collapse(deprecAmountHedgeRef);
+[Pegasus]FTradeRow:deprecRPLColumnHedgeRef = select(instrument.InsType, 
+  "Bill"->object:deprecAmountHedgeRef [select(object.Parent, 
+    nil->hegdeGrouper, 
+    default->tradeSetUsedInProfitandLoss = hegdeGrouper), displayCurrency, calculateTradeEffectInPosition := true], 
+  "IndexLinkedBond"->denominatedvalue(((cleanPricePLDate * nominal / 100) - currentNominal), instrument.Currency, , ) - deprecTotalRPLColumn, 
+  default->object:deprecAmountHedgeRef [displayCurrency, calculateTradeEffectInPosition := true]);

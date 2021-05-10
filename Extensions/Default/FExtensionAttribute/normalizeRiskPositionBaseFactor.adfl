@@ -1,0 +1,6 @@
+[Default]FInstrument:normalizeRiskPositionBaseFactor = 1.0;
+[Default]FOption:normalizeRiskPositionBaseFactor = select(isReciprocal, 
+  true->select(isDigital, 
+    true->double(underlying :* "fxSpotRate" [priceSource, doSplitAll]), 
+    false->double(strikeValue)), 
+  false->1.0);

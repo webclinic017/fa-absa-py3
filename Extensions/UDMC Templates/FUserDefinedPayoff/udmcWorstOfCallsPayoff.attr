@@ -1,0 +1,31 @@
+[UDMC Templates]FObject:udmcWorstOfCallsPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Worst of calls payoff
+#
+# INTERPRETATION
+# Option with payment equal to the worst in a set of call options. Pays min(call_1, call_2, ...) where call_i = max(settlement[i]/strikePrices[i] - relativeStrikes[i], 0).
+# This is equivalent to max(min(settlement[1]/strikePrices[1] - relativeStrikes[1], settlement[2]/strikePrices[2] - relativeStrikes[2], ...), 0).
+#
+# DEFINITION
+# relativeStrikes: the strike for each of the call options, entered as 'Average strike' exotic events;
+# strikesPrices: the strike price for each of the assets, entered as 'Price Fixing' exotic events;
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) relativeStrikes;
+param matrix(double) strikePrices;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double optionValue = 0.0;
+
+#MAIN LOOP
+optionValue = max(min(S[:,-1] ./ strikePrices - relativeStrikes), 0.0);        
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

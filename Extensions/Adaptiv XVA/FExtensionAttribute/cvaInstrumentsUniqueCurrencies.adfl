@@ -1,0 +1,13 @@
+[Adaptiv XVA]FInstrument:cvaInstrumentsUniqueCurrencies = select(forwardFxRateConversion, 
+  true->flattenAndRemoveDuplicates([instrumentCurrencies, currency, forwardDateBasisCurrency, cvaBaseCurrency()]), 
+  default->flattenAndRemoveDuplicates([instrumentCurrencies, currency, cvaBaseCurrency()]));
+[Adaptiv XVA]FMultiInstrumentAndTrades:cvaInstrumentsUniqueCurrencies = select(forwardFxRateConversion, 
+  true->select(collateralAgreement, 
+    nil->flattenAndRemoveDuplicates(flattenAndRemoveNil([cvaInstrumentCurrencies, currency, creditBalanceCollateralAgreementCurrency, collateralValueCurrencies, forwardDateBasisCurrency, cvaBaseCurrency()])), 
+    default->flattenAndRemoveDuplicates([cvaInstrumentCurrencies, currency, collateralAgreementCurrency, collateralValueCurrencies, forwardDateBasisCurrency, cvaBaseCurrency()])), 
+  default->select(collateralAgreement, 
+    nil->flattenAndRemoveDuplicates(flattenAndRemoveNil([cvaInstrumentCurrencies, creditBalanceCollateralAgreementCurrency, collateralValueCurrencies, currency, cvaBaseCurrency()])), 
+    default->flattenAndRemoveDuplicates([cvaInstrumentCurrencies, currency, collateralAgreementCurrency, collateralValueCurrencies, cvaBaseCurrency()])));
+[Adaptiv XVA]FOption:cvaInstrumentsUniqueCurrencies = select(forwardFxRateConversion, 
+  true->flattenAndRemoveDuplicates([instrumentCurrencies, underlyingInstCurrencies, currency, forwardDateBasisCurrency, cvaBaseCurrency()]), 
+  default->flattenAndRemoveDuplicates([instrumentCurrencies, underlyingInstCurrencies, currency, cvaBaseCurrency()]));

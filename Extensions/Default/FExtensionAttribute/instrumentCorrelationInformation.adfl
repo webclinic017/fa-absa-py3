@@ -1,0 +1,7 @@
+#grouping: risk factors/correlation
+
+[Default]FCorrelationMatrix:instrumentCorrelationInformation = correlationMatrix.InstrumentCorrelationInformation;
+[Default]FInstrument:instrumentCorrelationInformation = select(mappedCorrelationLink, 
+  nil->nil, 
+  default->mappedCorrelationLink :* "instrumentCorrelationInformation");
+[Default]FMappingLink:instrumentCorrelationInformation = (object.Link(liveOrSnapshotParameterDate)) :* "instrumentCorrelationInformation";

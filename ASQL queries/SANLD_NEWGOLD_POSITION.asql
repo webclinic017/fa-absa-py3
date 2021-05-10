@@ -1,0 +1,134 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_NEWGOLD_POSITION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_NEWGOLD_POSITION' and p.type = 'SQL Query' 
+
+
+  /*
+Developer			:Zaakirah Kajee
+Purpose				:Updated- Open and closing position with movements during the day
+Deparment and Desk	:Front Office
+Requester			:Byron Woods
+CR Number			:382843
+Date				:2010-07-26
+*/
+select
+	@Date{TODAY}		'date'
+into
+	Input
+from
+	instrument i
+where	
+	i.insid = 'ZAR'
+
+
+
+select
+	'Opening Balance'						'Section',
+	t.trdnbr							'Trdnbr',
+	i.insid								'Insid',
+	used_price(i, date_add_delta(d.date,-1,0,0), ,,, 'SPOT')	'Price',
+	sum(nominal_amount(t))						'Nominal'
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Input d
+
+where
+	t.insaddr = i.insaddr
+and	time_to_day(t.time) < @Date
+and	match_filter(t,@Filter{;TradeFilter.fltid})
+
+group by 3, 4
+
+
+
+select
+	'Details'						'Section',
+	t.trdnbr						'Trdnbr',
+	i.insid							'Insid',
+	t.price							'Price',
+	nominal_amount(t)					'Nominal'
+into
+	temp2
+
+from
+	Trade t,
+	Instrument i
+
+where
+	t.insaddr = i.insaddr
+and	time_to_day(t.time) = @Date
+and	match_filter(t,@Filter{;TradeFilter.fltid})
+
+
+
+select
+	'Closing Balance'			'Section',
+	t.trdnbr				'Trdnbr',
+	t.insid					'Insid',
+	used_price(i, d.date, ,,, 'SPOT')	'Price',
+	t.Nominal + sum(t2.Nominal)		'Nominal'
+into	
+	temp3
+
+from
+	temp t,
+	temp2 t2,
+	Instrument i,
+	Input d
+
+where
+	t.insid = t2.insid
+and	t2.insid = i.insid
+
+group by 3, 4
+
+
+
+
+select
+	t.Section,
+	t.trdnbr,
+	t.insid,
+	t.price,
+	t.nominal		'Nominal',
+	t.price * t.nominal	'Value'
+from
+	temp t
+
+
+union
+
+
+select
+	t.Section,
+	t.trdnbr,
+	t.insid,
+	t.price,
+	t.nominal		'Nominal',
+	t.price * t.nominal	'Value'
+from
+	temp2 t
+
+
+union
+
+
+select
+	t.Section,
+	t.trdnbr,
+	t.insid,
+	t.price,
+	t.nominal,
+	t.price * t.nominal	'Value'
+
+from
+	temp3 t
+
+group by t.insid

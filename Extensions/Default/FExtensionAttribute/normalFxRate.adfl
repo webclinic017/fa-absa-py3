@@ -1,0 +1,9 @@
+[Default]FCurrencyPair:normalFxRate = CreateFxRate(foreignCurrency, domesticCurrency);
+[Default]FCurrencySwap:normalFxRate = currencyPair:normalFxRate;
+[Default]FDerivative:normalFxRate = select(isFXDerivative, 
+  true->underlying:normalFxRate, 
+  default->nil);
+[Default]FFxRate:normalFxRate = currencyPair:normalFxRate;
+[Default]FFxSwap:normalFxRate = currencyPair:normalFxRate;
+[Default]FObject:normalFxRate = nil;
+[Default]FPreciousMetalPair:normalFxRate = CreatePreciousMetalRate(commodityVariant, currency);

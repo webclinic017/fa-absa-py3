@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = instrument :* "barrierDoubleRelativeDistanceSpotUpperBarrierPercent" [isSplitAllGrouped, priceSource];
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = nil;
+[Equity Pricing and Risk]FOption:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = select(isDoubleBarrier, 
+  true->switch(barrierCrossedStatus, 
+    "None"->relativeDistanceSpotBarrierPercent(underlyingValueForBarrierMonitoringAdjusted, barrierNoRiskManagementUpperValueAdjusted, true), 
+    default->nil), 
+  false->nil);
+[Equity Pricing and Risk]FPriceAggregate:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = instrument :* "barrierDoubleRelativeDistanceSpotUpperBarrierPercent";

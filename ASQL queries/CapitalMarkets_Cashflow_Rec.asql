@@ -1,0 +1,1046 @@
+/*------------------------------------------------------------------
+    This query supplies all cashflows, dividends and payments in Front Arena for a specific date as well as the reversals for voided trades.
+    
+Purpose                 :[Initial deployment],[Updated with Netted Amendments fix, new Exclusion Criteria and grouping according to trade number],[Added reversal of Voided Future/Forwards, updated Exclusions],
+                        [Updated handling of dividends, CDS, Future/Forwards and Exclusion Criteria],[Updated Exclusions],[Amended
+                        Funding_Instype like 'Call%' check]
+Department and Desk     :[PCG],[PCG],[PCG],[PCG],[PCG],[PCG]
+Requester:              :[Nick Bance],[Martin Kariuki],[Martin Kariuki],[Martin Kariuki],[Martin Kariuki],[Martin Kariuki]
+Developer               :[Willie van der Bank],[Willie van der Bank],[Willie van der Bank],[Willie van der Bank],[Willie van der Bank],[Willie van der Bank]
+CR Number               :[131939 12/04/2012],[CHNG0000210797 24/04/2012],[238154 2012-06-07],[303927 2012-07-05],[332355 2012-07-19],[354288 2012-07-27]
+------------------------------------------------------------------*/
+
+select
+    ael_i(p,'ASQL_log','CapitalMarkets_Cashflow_Rec') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'CapitalMarkets_Cashflow_Rec' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_FromReportDate{yesterday}        'FromRepDate',
+    @2_ToReportDate{yesterday}          'ToRepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Trades
+------------------------------------------------------------------*/
+/*Filter1*/
+select
+    t.trdnbr,
+    add_info(t,'Funding Instype')  'Funding_Instype',
+    add_info(t,'MM_Instype')  'MM_Instype',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    display_id(t,'prfnbr')  'prfid',
+    t.prfnbr
+into TempTrades
+from
+    trade t
+where
+        match_filter(t, @4_PrimaryFilter{;tradefilter.fltid}, @3_TrdNbrs{})
+   
+/*Filter2*/ 
+Select
+    t.trdnbr,
+    add_info(t,'Funding Instype')  'Funding_Instype',
+    add_info(t,'MM_Instype')  'MM_Instype',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    display_id(t,'prfnbr')  'prfid',
+    t.prfnbr
+into TempTrades
+from
+    trade t
+where
+    match_filter(t, @5_Filter{;tradefilter.fltid})
+    and @5_Filter{;tradefilter.fltid} ~= ''   
+
+
+select
+    t.trdnbr,
+    t.insaddr,
+    t.status,
+    /*display_id(t,'prfnbr')  'prfid',*/
+    tt.prfid,
+    t.prfnbr,
+    t.quantity,
+    t.value_day,
+    t.premium,
+    to_date(t.execution_time)   'execution_time',
+    t.your_ref,
+    t.trx_trdnbr,
+    display_id(t,'curr')	'Curr',
+    to_date(t.updat_time)   'updat_time',
+    nominal_amount(t)   'Nominal',
+    
+    i.insid,
+    i.paytype,
+    i.instype,
+    i.index_factor,
+    i.ref_value,
+    i.exp_day,
+    to_date(i.updat_time)   'InsUpdat_time',
+    
+    accumulated_cash(t,i.exp_day, display_id(t,'curr'), 2, 0, , 1, 'None')  'ExpAccuCash',
+    accumulated_cash(t,m.ToRepDate, curr.insid, 2, 0, , 1, 'None')  'RepToAccuCash',
+    i.instype not in ('Bond','Stock') ? to_date(t.value_day) : ael_s(,'Derivatives_Cashflow_Recon.ExDivDate',t.trdnbr) 'ExDiv',
+    
+    tt.Acquirer,
+    
+    curr.insid  'InsCurr',
+    
+    pty.ptyid 'Counterparty',
+    pty.type    'CptyType'
+into trades
+from
+    trade t,
+    TempTrades tt,
+    instrument i,
+    instrument curr,
+    party pty,
+    macros m
+where
+        i.insaddr = t.insaddr
+    And i.curr = curr.insaddr
+    And pty.ptynbr = t.counterparty_ptynbr
+    And t.trdnbr = tt.trdnbr
+    
+
+/*------------------------------------------------------------------
+	Cashflows
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    t.status,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    display_id(l,'curr')	        'Curr',
+	projected_cf(cf) * t.quantity	'Amount',
+	to_string(l.type)               'LegType'
+into
+	cfTrade
+from
+	trades t,
+	leg l,
+	cashflow cf,
+	macros m
+where
+        t.instype not in ('Stock','Option','CFD','Future/Forward','Combination','Curr')
+    and t.insid not like 'fd_%'
+    and t.insaddr = l.insaddr
+    and	l.legnbr  = cf.legnbr
+
+    /* **For voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and cf.pay_day < m.FromRepDate
+    and ((cf.end_day not in ('','01/01/0000')  /*Certain cash flow types dont have End Dates*/
+    and cf.end_day > t.ExDiv)
+    or cf.pay_day > t.ExDiv))
+
+    or (t.status ~= 'Void'
+    and ((cf.pay_day <= m.ToRepDate
+    and cf.pay_day >= m.FromRepDate
+    and ((cf.end_day not in ('','01/01/0000')  /*Certain cash flow types dont have End Dates*/
+    and cf.end_day > t.ExDiv)
+    or cf.pay_day > t.ExDiv))
+    /* **For back dated trades** */
+    or (t.execution_time >= m.ToRepDate
+    and t.execution_time <= m.FromRepDate
+    and cf.pay_day < m.ToRepDate
+    and cf.end_day > t.ExDiv))))
+/*------------------------------------------------------------------
+	Cashflows for Combination trades
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    t.status,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    display_id(l,'curr')	        'Curr',
+	projected_cf(cf)*(t.quantity/t.index_factor)*cl.weight	'Amount',
+    to_string(l.type)                                       'LegType'
+into
+	cfTrade
+from
+    trades          t,
+    leg             l,
+    combinationlink cl,
+    instrument  memins,
+    cashflow        cf,
+	macros m
+where
+        t.instype = 'Combination'
+    and t.insaddr = cl.owner_insaddr 
+    and cl.member_insaddr = memins.InsAddr 
+    and cl.member_insaddr *= l.insaddr
+    and l.legnbr          *= cf.legnbr 
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and cf.pay_day < m.FromRepDate
+    and ((cf.end_day not in ('','01/01/0000')  /*Certain cash flow types dont have End Dates*/
+    and cf.end_day > t.ExDiv)
+    or cf.pay_day > t.ExDiv))
+
+    or (t.status ~= 'Void'
+    and ((cf.pay_day <= m.ToRepDate
+    and cf.pay_day >= m.FromRepDate
+    and ((cf.end_day not in ('','01/01/0000')  /*Certain cash flow types dont have End Dates*/
+    and cf.end_day > t.ExDiv)
+    or cf.pay_day > t.ExDiv))
+    /* **For back dated trades** */
+    or (t.execution_time >= m.ToRepDate
+    and t.execution_time <= m.FromRepDate
+    and cf.pay_day < m.ToRepDate
+    and cf.end_day > t.ExDiv))))
+
+/*------------------------------------------------------------------
+    Select the Cashflow Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.cfwnbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias,
+    ael_i(,'Derivatives_Cashflow_Recon.TopParentSeq',s.seqnbr)  'parent_seqnbr',
+    s.split_parent_seqnbr
+into
+    cfSettle
+from
+    settlement s,
+    cfTrade cft,
+    account a,
+    partyalias pa
+where
+    s.trdnbr = cft.trdnbr
+and s.cfwnbr = cft.cfwnbr
+and (s.status in ('Acknowledged','Pending Closure','Closed','Authorised') or ael_s(,'Derivatives_Cashflow_Recon.SettlemStatus',s.seqnbr) in ('Acknowledged','Pending Closure','Closed','Authorised'))
+and s.party_accname = a.name
+and a.bic_seqnbr = pa.seqnbr
+
+/*------------------------------------------------------------------
+    Join the Casflow Settlements back to all the cashflows
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift',
+    cfs.parent_seqnbr     'NettingSeqnbr',
+    cfs.split_parent_seqnbr
+into
+    FinalCF
+from
+    cfSettle cfs,
+    cfTrade  cft
+where
+    cft.trdnbr *= cfs.trdnbr
+and cft.cfwnbr *= cfs.cfwnbr
+
+
+/*------------------------------------------------------------------
+    Premiums
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                      'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Premium'	            'CFType',
+    t.updat_time            'UpdateDate',
+	t.value_day	            'PayDate',
+    t.Curr,
+	t.premium	            'Amount',
+	''                      'LegType'
+into
+	premTrade
+from
+	trades t,
+	macros m
+where
+        t.premium ~= 0.0
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and t.value_day < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((t.value_day <= m.ToRepDate
+    and t.value_day >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time >= m.ToRepDate
+    and t.execution_time <= m.FromRepDate
+    and t.value_day < m.ToRepDate))))
+
+/*------------------------------------------------------------------
+    Select the Premium Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias,
+    ael_i(,'Derivatives_Cashflow_Recon.TopParentSeq',s.seqnbr)  'parent_seqnbr',
+    s.split_parent_seqnbr
+into
+    premSettle
+from
+    settlement s,
+    premTrade cft,
+    account a,
+    partyalias pa
+where
+        s.trdnbr = cft.trdnbr
+    and (s.status in ('Acknowledged','Pending Closure','Closed','Authorised') or ael_s(,'Derivatives_Cashflow_Recon.SettlemStatus',s.seqnbr) in ('Acknowledged','Pending Closure','Closed','Authorised'))
+    and s.party_accname = a.name
+    and a.bic_seqnbr = pa.seqnbr
+    and s.type = 'Premium'
+
+/*------------------------------------------------------------------
+    Join the Premiums Settlements back to all the Premiums
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift',
+    cfs.parent_seqnbr   'NettingSeqnbr',
+    cfs.split_parent_seqnbr
+into
+    FinalCF
+from
+    premSettle cfs,
+    premTrade  cft
+where
+    cft.trdnbr *= cfs.trdnbr
+
+/*------------------------------------------------------------------
+    Additional Payments
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    a.paynbr                'cfwnbr',
+    t.trdnbr,
+    t.status,
+    a.type = 'Broker Fee' ? 'Broker Fee' : 'Additional Payment' 'CFType',
+    to_date(a.updat_time)   'UpdateDate',
+	a.payday	            'PayDate',
+    display_id(a,'curr')	'Curr',
+	a.amount	            'Amount',
+	''                      'LegType'
+into 
+	payTrade
+from
+	payment a,
+	trades t,
+	macros m
+where
+        a.trdnbr = t.trdnbr
+    and not (t.instype = 'Future/Forward'
+            and t.paytype = 'Future') /*Add payment value is already included in the daily cash for Future/Forward*/
+
+    /*For Voids*/
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and a.payday < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((a.payday <= m.ToRepDate
+    and a.payday >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time <= m.ToRepDate
+    and t.execution_time >= m.FromRepDate
+    and a.payday < m.FromRepDate)
+    /* **Back dated Payments** */
+    or (a.valid_from <= m.ToRepDate
+    and a.valid_from >= m.FromRepDate
+    and a.payday < m.FromRepDate))))
+
+/*------------------------------------------------------------------
+    Select the Additional Payments Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.paynbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias,
+    ael_i(,'Derivatives_Cashflow_Recon.TopParentSeq',s.seqnbr)  'parent_seqnbr',
+    s.split_parent_seqnbr
+into
+    paySettle
+from
+    settlement s,
+    payTrade cft,
+    account a,
+    partyalias pa
+where
+        s.trdnbr = cft.trdnbr
+    and s.paynbr = cft.cfwnbr
+    and (s.status in ('Acknowledged','Pending Closure','Closed','Authorised') or ael_s(,'Derivatives_Cashflow_Recon.SettlemStatus',s.seqnbr) in ('Acknowledged','Pending Closure','Closed','Authorised'))
+    and s.party_accname = a.name
+    and a.bic_seqnbr = pa.seqnbr
+
+/*------------------------------------------------------------------
+    Join the Additional Payments Settlements back to all the Additional Payments
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift',
+    cfs.parent_seqnbr   'NettingSeqnbr',
+    cfs.split_parent_seqnbr
+into
+    FinalCF
+from
+    paySettle cfs,
+    payTrade  cft
+where
+        cft.trdnbr *= cfs.trdnbr
+    and cft.cfwnbr *= cfs.paynbr
+
+
+/*------------------------------------------------------------------
+	Cashflows for Currency trades - FX Swap and FX Cash
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                               'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Fixed Amount'	                'CFType',
+    t.updat_time                    'UpdateDate',
+	t.value_day	                    'PayDate',
+    t.insid             	        'Curr',
+	t.quantity	                    'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+        t.instype = 'Curr'
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and t.value_day < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((t.value_day <= m.ToRepDate
+    and t.value_day >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time <= m.ToRepDate
+    and t.execution_time >= m.FromRepDate
+    and t.value_day < m.FromRepDate))))
+
+/*------------------------------------------------------------------
+    End premiums for BuySellBack 
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                                                       'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'End Premium'	                                        'CFType',
+    t.InsUpdat_time                                         'UpdateDate',
+	t.exp_day	                                            'PayDate',
+	t.Curr,
+    t.quantity * t.ref_value                                'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+    t.instype = 'BuySellback'
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and t.exp_day < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((t.exp_day <= m.ToRepDate
+    and t.exp_day >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time <= m.ToRepDate
+    and t.execution_time >= m.FromRepDate
+    and t.exp_day < m.FromRepDate))))
+
+/*------------------------------------------------------------------
+    Forward Payout on Expiry
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                       'cfwnbr',
+    t.trdnbr,
+    t.status,
+	'Future Cash Balance'	          'CFType',
+	t.updat_time            'UpdateDate',
+	t.exp_day	            'PayDate',
+	t.Curr,
+    t.ExpAccuCash           'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+        t.instype in ('Future/Forward')
+    and t.paytype ~= 'Future'
+    
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and t.exp_day < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((t.exp_day <= m.ToRepDate
+    and t.exp_day >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time <= m.ToRepDate
+    and t.execution_time >= m.FromRepDate
+    and t.exp_day < m.FromRepDate))))
+
+/*------------------------------------------------------------------
+    Dividend Payments
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    d.seqnbr                'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Dividend'		        'CFType',
+    to_date(d.updat_time)   'UpdateDate',
+	d.pay_day   	        'PayDate',
+    display_id(d,'curr')	'Curr',
+	t.quantity * d.dividend		        'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from	
+	dividend d,
+	trades t,
+	macros m
+where
+        d.insaddr = t.insaddr
+    and t.instype = 'Stock'
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    and d.pay_day < m.FromRepDate)
+
+    or (t.status ~= 'Void'
+    and ((d.pay_day <= m.ToRepDate
+    and d.pay_day >= m.FromRepDate)
+    /* **For back dated trades** */
+    or (t.execution_time <= m.ToRepDate
+    and t.execution_time >= m.FromRepDate
+    and d.pay_day < m.FromRepDate
+    and d.pay_day > t.ExDiv))))
+    
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                       'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Dividend'		        'CFType',
+    t.updat_time            'UpdateDate',
+	to_date(m.ToRepDate)   	 'PayDate',
+    t.Curr  'Curr',
+	ael_f(,'Derivatives_Cashflow_Recon.get_underlyingDividend',t.trdnbr, to_date(m.FromRepDate), to_date(m.ToRepDate)) 'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from	
+	trades t,
+	macros m
+where
+        t.instype = 'EquityIndex'
+
+    /* **For Voids** */
+    and ((t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate)
+
+    or t.status ~= 'Void')
+
+/*------------------------------------------------------------------
+    Cash End for Future pay types on portfolio PB_CR_LIVE
+------------------------------------------------------------------*/
+select
+	p1.ptynbr,
+	count(p2.ptynbr)-1	'Nbr'
+into
+	TMP
+from
+	party p1,
+	party p2
+where
+        p1.ptynbr<p2.ptynbr
+    and	p1.ptynbr < 500
+    and	p2.ptynbr < 500
+group by p1.ptynbr
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+        t1.Nbr<10
+    and	t2.Nbr<10
+    and	t3.Nbr<150
+
+select distinct
+    /*date_add_delta(m.FromRepDate,s.Nbr-1,0,0)                   'Pay_Day'*/
+    bankday_adjust(date_add_delta(m.FromRepDate,s.Nbr-1,0,0),'ZAR','Following')    'Pay_Day'
+into FutureDates
+from
+    SCEN s,
+    macros m
+where
+    s.Nbr <= ((to_date(m.ToRepDate) - to_date(m.FromRepDate)+1))
+  
+/*select
+    FD.*
+from
+  FutureDates FD*/
+    
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                       'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'DailyEndCash'		    'CFType',
+    t.updat_time,
+	to_date(FD.Pay_Day)  	        'PayDate',
+    t.Curr,
+	ael_f(,'Derivatives_Cashflow_Recon.DailyEndCash', t.trdnbr, FD.Pay_Day)		        'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from	
+	trades t,
+	FutureDates FD,
+	macros m
+where
+        t.instype in ('Future/Forward')
+    and t.paytype = 'Future'
+    and t.exp_day >= m.FromRepDate
+    and t.value_day <= FD.Pay_Day   /*To exclude 0 amounts*/
+    and t.status ~= 'Void'
+    
+/* **For voids** */
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                       'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'DailyEndCash'		    'CFType',
+    t.updat_time,
+	to_date(t.updat_time)  	        'PayDate',
+    t.Curr,
+	ael_f(,'Derivatives_Cashflow_Recon.DailyEndCash', t.trdnbr, to_date(t.updat_time - 1))		        'Amount',
+	''                      'LegType',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift',
+    0                       'NettingSeqnbr',
+    0                       'split_parent_seqnbr'
+into
+	FinalCF
+from	
+	trades t,
+	macros m
+where
+        t.instype in ('Future/Forward')
+    and t.paytype = 'Future'
+    
+    and t.status = 'Void'
+    and t.updat_time >= m.FromRepDate
+    and t.updat_time <= m.ToRepDate
+    
+/*------------------------------------------------------------------
+    Select all the Cashflow data
+------------------------------------------------------------------*/
+
+Select
+    CFC.ToRepDate,
+    CFC.FromRepDate,
+    CFC.status  'TrdStatus',
+    CFC.trdnbr  'Trdnbr',
+    CFC.PayDate,
+    CFC.Amount 'Amount',
+    CFC.Amount > 0 ? 'Buy' : 'Sell'  'BS',
+    CFC.CFType,
+    CFC.SeqNo   'SettlementID',
+    CFC.NettingSeqnbr   'NettingID',
+    CFC.split_parent_seqnbr,
+    CFC.cfwnbr,
+    t.exp_day   'InsExpiry',
+    t.Counterparty,
+    t.CptyType,
+    t.Curr  'TrdCurrency',
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.your_ref   'CptyRef',
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.trx_trdnbr  'TransRef',
+    t.updat_time   'TrdUpdateTime'
+into FinalExclusion
+From
+    FinalCF CFC,
+    Trades t,
+    leg l
+Where
+        l.insaddr = t.insaddr
+    and t.trdnbr = CFC.trdnbr
+    and t.instype = 'Deposit'
+    /* **Product specific exclusions** */
+    /* **These should be updated in the Python script as well** */
+    and CFC.Curr = 'ZAR'
+    and not (l.type = 'Fixed'
+            and not (t.Acquirer = 'STRUCT NOTES DESK'))
+            
+    and (CFC.Amount > 0 or CFC.Amount < 0)
+    
+Select
+    CFC.ToRepDate,
+    CFC.FromRepDate,
+    CFC.status  'TrdStatus',
+    CFC.trdnbr  'Trdnbr',
+    CFC.PayDate,
+    CFC.Amount 'Amount',
+    CFC.Amount > 0 ? 'Buy' : 'Sell'  'BS',
+    CFC.CFType,
+    CFC.SeqNo   'SettlementID',
+    CFC.NettingSeqnbr   'NettingID',
+    CFC.split_parent_seqnbr,
+    CFC.cfwnbr,
+    t.exp_day   'InsExpiry',
+    t.Counterparty,
+    t.CptyType,
+    t.Curr  'TrdCurrency',
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.your_ref   'CptyRef',
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.trx_trdnbr  'TransRef',
+    t.updat_time   'TrdUpdateTime'
+into FinalExclusion
+From
+    FinalCF CFC,
+    Trades t
+Where
+        t.trdnbr = CFC.trdnbr
+    and t.instype = 'CreditDefaultSwap'
+    /* **Product specific exclusions** */
+    /* **For CreditDefaultSwap the Python script shouldn't be updated, because TM already includes the below logic** */
+    and not (CFC.CFType = 'Credit Default'
+            and CFC.PayDate = t.exp_day)
+    and CFC.Curr = 'ZAR'
+    and (CFC.Amount > 0 or CFC.Amount < 0)
+    
+Select
+    CFC.ToRepDate,
+    CFC.FromRepDate,
+    CFC.status  'TrdStatus',
+    CFC.trdnbr  'Trdnbr',
+    CFC.PayDate,
+    CFC.Amount 'Amount',
+    CFC.Amount > 0 ? 'Buy' : 'Sell'  'BS',
+    CFC.CFType,
+    CFC.SeqNo   'SettlementID',
+    CFC.NettingSeqnbr   'NettingID',
+    CFC.split_parent_seqnbr,
+    CFC.cfwnbr,
+    
+    t.exp_day   'InsExpiry',
+    t.Counterparty,
+    t.CptyType,
+    t.Curr  'TrdCurrency',
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.your_ref   'CptyRef',
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.trx_trdnbr  'TransRef',
+    t.updat_time   'TrdUpdateTime'
+into FinalExclusion
+From
+    FinalCF CFC,
+    Trades t
+Where
+        t.trdnbr = CFC.trdnbr
+    and t.instype not in ('Deposit', 'CreditDefaultSwap')
+    /* **Product specific exclusions** */
+    and CFC.Curr = 'ZAR'
+    and (CFC.Amount > 0 or CFC.Amount < 0)
+    
+/*----------------------------------------------
+    Split cashflows
+----------------------------------------------*/
+/* **Settlement amounts for split cashflows** */
+select
+    t.FromRepDate,
+    t.ToRepDate,
+    t.TrdStatus,
+    t.Trdnbr,
+    t.PayDate,
+    t.InsExpiry,
+    t.Counterparty,
+    s.amount,
+    s.amount > 0 ? 'Buy' : 'Sell'  'BS',
+    t.TrdCurrency,
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.CFType,
+    t.CptyRef,
+    t.SettlementID,
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.CptyType,
+    t.cfwnbr,
+    t.TransRef,
+    t.TrdUpdateTime
+into Final
+from
+    FinalExclusion t,
+    settlement s
+where
+        t.SettlementID = s.seqnbr
+    and t.split_parent_seqnbr ~= 0
+   
+/* **Settlement amounts for netted cashflows** */ 
+select
+    t.FromRepDate,
+    t.ToRepDate,
+    t.TrdStatus,
+    t.Trdnbr,
+    t.PayDate,
+    t.InsExpiry,
+    t.Counterparty,
+    s.amount,
+    s.amount > 0 ? 'Buy' : 'Sell'  'BS',
+    t.TrdCurrency,
+    t.insid,
+    t.instype,
+    t.Nominal,
+    'NettedFlow'    'CFType',
+    t.CptyRef,
+    t.NettingID 'SettlementID',
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.CptyType,
+    t.cfwnbr,
+    t.TransRef,
+    t.TrdUpdateTime
+into Final
+from
+    FinalExclusion t,
+    settlement s
+where
+        t.NettingID = s.seqnbr  /*To display the netted amount - must include grouping*/
+        /*t.SettlementID = s.seqnbr*/   /*To display individual settlement amount - must exclude grouping*/
+    and t.NettingID ~= 0
+group by
+    t.Trdnbr, t.NettingID
+    
+/* **Cash flow amounts for other cashflows** */ 
+select
+    t.FromRepDate,
+    t.ToRepDate,
+    t.TrdStatus,
+    t.Trdnbr,
+    t.PayDate,
+    t.InsExpiry,
+    t.Counterparty,
+    t.amount,
+    t.BS,
+    t.TrdCurrency,
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.CFType,
+    t.CptyRef,
+    t.SettlementID,
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.CptyType,
+    t.cfwnbr,
+    t.TransRef,
+    t.TrdUpdateTime
+into Final
+from
+    FinalExclusion t
+where
+        t.split_parent_seqnbr = 0
+    and t.NettingID = 0
+
+/*----------------------------------------
+    Final select
+-----------------------------------------*/
+select distinct
+    t.FromRepDate,
+    t.ToRepDate,
+    t.TrdStatus,
+    t.Trdnbr,
+    t.PayDate,
+    t.InsExpiry,
+    t.Counterparty,
+    sum(t.Amount)   'Amount',
+    /*t.Amount,*/
+    t.BS,
+    t.TrdCurrency,
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.CFType,
+    t.CptyRef,
+    t.SettlementID,
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.CptyType,
+    t.cfwnbr,
+    t.TransRef
+from
+    Final t
+where
+    t.TrdStatus ~= 'Void'
+group by t.Trdnbr,t.PayDate,t.SettlementID
+
+union
+
+select distinct
+    t.FromRepDate,
+    t.ToRepDate,
+    t.TrdStatus,
+    t.Trdnbr,
+    t.TrdUpdateTime   'PayDay',
+    t.InsExpiry,
+    t.Counterparty,
+    sum(-1 * t.Amount)  'Amount',
+    /*-1 * t.Amount  'Amount',*/
+    t.BS,
+    t.TrdCurrency,
+    t.insid,
+    t.instype,
+    t.Nominal,
+    t.CFType,
+    t.CptyRef,
+    t.SettlementID,
+    t.prfid,
+    t.prfnbr,
+    t.Acquirer,
+    t.CptyType,
+    t.cfwnbr,
+    t.TransRef
+from
+    Final t
+where
+    t.TrdStatus = 'Void'
+Group by t.Trdnbr,t.TrdUpdateTime,t.SettlementID

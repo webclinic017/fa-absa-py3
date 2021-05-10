@@ -1,0 +1,16 @@
+[_compliance_rule_definitions_standard_exts]FCreditDefaultSwap:securityExposure = cdsExposureFactor * (markToMarketRealizedInstrumentValues - setDateTimePart(riskPosition * creditDefaultLeg:nominalValue, valuationDate));
+[_compliance_rule_definitions_standard_exts]FFuture:securityExposure = select(isCreditFuture, 
+  true->securityExposureCreditDerivative, 
+  false->markToMarketRealizedInstrumentValues);
+[_compliance_rule_definitions_standard_exts]FFxRate:securityExposure = 100 * (priceDeltaPercentValues + priceDeltaPercentTradeAdjustment);
+[_compliance_rule_definitions_standard_exts]FInstrument:securityExposure = markToMarketRealizedInstrumentValues;
+[_compliance_rule_definitions_standard_exts]FOption:securityExposure = select(isIRDPriceDeltaSensitive, 
+  true->securityExposureIRD, 
+  false->select(isCreditOption, 
+    true->securityExposureCreditDerivative, 
+    false->select(isCandidateForPremiumAdjustedDelta, 
+      false->100 * priceDeltaPercentValues, 
+      true->100 * (priceDeltaPercentValues + priceDeltaPercentTradeAdjustment))));
+[_compliance_rule_definitions_standard_exts]FRepo:securityExposure = plZero;
+[_compliance_rule_definitions_standard_exts]FSwap:securityExposure = instrument:markToMarketRealizedInstrumentValues [priceSource, positionObject, groupingSpotDiscountDate, displayCurrency, legs = [object.FirstFixedLeg]];
+[_compliance_rule_definitions_standard_exts]FTotalReturnSwap:securityExposure = instrument:markToMarketRealizedInstrumentValues [priceSource, positionObject, groupingSpotDiscountDate, displayCurrency, legs = legs.AsArray.RemoveAll([object.FirstTotalReturnLeg])];

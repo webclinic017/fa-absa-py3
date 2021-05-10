@@ -1,0 +1,6 @@
+[Prime Services]FSingleInstrumentAndTrades:getCounterparty = switch(firstOf((getPSwapTrades).AsIndexedCollection).IsKindOf("FTrade"), 
+  true->firstOf((getPSwapTrades).AsIndexedCollection).Counterparty, 
+  false->nil);
+[Prime Services]FTrade:getCounterparty = switch(firstOf(getPSwapTrades).IsKindOf("FTrade"), 
+  true->firstOf(getPSwapTrades).Counterparty, 
+  false->nil);

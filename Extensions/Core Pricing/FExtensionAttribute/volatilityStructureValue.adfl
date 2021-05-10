@@ -1,0 +1,23 @@
+#grouping: risk factors/volatility value
+
+[Core Pricing]FInstrument:volatilityStructureValue = select(volatilityInformationHasGenericValueFunction, 
+  true->collapse(genericParametricVolatilityValue), 
+  false->select(volatilityInformationType, 
+    "Parametric"->select(volatilityInformation.ParametricVolatilityType, 
+      "Sabr"->collapse(sabrParametricVolatilityValue), 
+      default->nan), 
+    "Point"->select(volatilityInformation.StructureType, 
+      "Instrument Factor"->collapse(betaVolatilityValue), 
+      default->nan), 
+    "Single"->collapse(singlePointVolatilityValue), 
+    default->volatilityInformation.Value(underlyingMaturityDate, expiryDate, volatilityStrikePrice, isCallForVolatility, underlyingIsGeneric, calculateTotalVolatility, underlyingForwardPriceForVolatility, exactOrSurroundingSkewForwardPrices, foreignRateForVolatility, domesticRateForVolatility)));
+[Core Pricing]FVolatilityPoint:volatilityStructureValue = select(volatilityInformationHasGenericValueFunction, 
+  default->select(volatilityInformationType, 
+    "Parametric"->select(volatilityInformation.ParametricVolatilityType, 
+      "SVI"->volatilityInformation.Value(object.ActualExpiryDay, object.ActualUnderlyingMaturityDay, object.ConvertedStrike, volatilitySkew.A2, (volatilityStructure.Skews) :* "object.A2", object.Call), 
+      "Eq"->genericPointVolatilityValue, 
+      default->nan), 
+    "Heston"->volatilityInformation.Value(object.ActualExpiryDay, object.ConvertedStrike, object.Call), 
+    "Point"->select(volatilityInformation.StructureType, 
+      default->volatilityInformation.Value(object.ActualUnderlyingMaturityDay, object.ActualExpiryDay, object.ConvertedStrike, object.Call, object.IsGenericUnderlyingMaturity)), 
+    default->volatilityInformation.Value(object.ActualUnderlyingMaturityDay, object.ActualExpiryDay, object.ConvertedStrike, object.Call, object.IsGenericUnderlyingMaturity)));

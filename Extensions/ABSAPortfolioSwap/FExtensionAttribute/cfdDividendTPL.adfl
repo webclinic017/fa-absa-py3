@@ -1,0 +1,10 @@
+[ABSAPortfolioSwap]FInstrument:cfdDividendTPL = object :* "plZero" [displayCurrency];
+[ABSAPortfolioSwap]FLeg:cfdDividendTPL = switch(legDescription, 
+  "Dividend"->object :* "tPL" [positionObject], 
+  default->object :* "plZero" [displayCurrency]);
+[ABSAPortfolioSwap]FLegAndTrades:cfdDividendTPL = leg :* "cfdDividendTPL";
+[ABSAPortfolioSwap]FMultiInstrumentAndTrades:cfdDividendTPL = sumOf(instruments :* "cfdDividendTPL" [positionObject, displayCurrency]);
+[ABSAPortfolioSwap]FPortfolioSwap:cfdDividendTPL = switch(legs == [], 
+  true->object :* "plZero" [displayCurrency], 
+  false->sumOf(legs :* "cfdDividendTPL" [positionObject]));
+[ABSAPortfolioSwap]FSingleInstrumentAndTrades:cfdDividendTPL = instrument :* "cfdDividendTPL" [positionObject, displayCurrency];

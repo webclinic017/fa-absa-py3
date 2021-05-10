@@ -1,0 +1,9 @@
+[_wso_bank_debt_exts]FObject:wSOUploadTradeTemplateExternalFAAcquireDayBkg = select(wSOUploadTradeTemplateExternalFAAcquireDay, 
+  default->select(object.IsKindOf("FBusinessProcess"), 
+    true->select(object.Subject.Subject, 
+      default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFAAcquireDay, wSOUploadTradeTemplateExternalFAAcquireDay, "string"), 
+        true->1, 
+        default->0)), 
+    default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFAAcquireDay, wSOUploadTradeTemplateExternalFAAcquireDay, "string"), 
+      true->1, 
+      default->0)));

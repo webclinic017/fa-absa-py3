@@ -1,0 +1,7 @@
+[Default]FInstrument:tradedPhysicalPortfolios = select(positionObject, 
+  nil->select(singleTradePosition, 
+    nil->[nil], 
+    default->[singleTradePosition.Portfolio]), 
+  default->value(positionObject.TradedPhysicalPortfolios(object)));
+[Default]FMultiInstrumentAndTrades:tradedPhysicalPortfolios = object.PhysicalPortfolios;
+[Default]FSingleInstrumentAndTrades:tradedPhysicalPortfolios = instrument:tradedPhysicalPortfolios [positionObject];

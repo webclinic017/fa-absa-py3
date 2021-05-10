@@ -1,0 +1,61 @@
+select
+    trd.trdnbr,ins.extern_id1
+from
+    Instrument ins,
+    Trade trd,
+    Portfolio prf
+where
+    prf.prfnbr = trd.prfnbr
+and
+    ins.insaddr = trd.insaddr
+and
+    prf.prfid in ('Delta One 2 45070',
+'MKETF',
+'DELPR',
+'VOLPR',
+'EXOVH',
+'AOPT',
+'BOPT',
+'EXOTS',
+'PARPR',
+'PROPT',
+'40741 ACS_FLOW',
+'42721 ACS_Flow 2',
+'BARXX',
+'Prime ARM',
+'BRAD_OTC',
+'IARBF',
+'EQJFE',
+'EQ_SA_Spreads',
+'Allocate_Pfolio_Equities',
+'Brad_OTC',
+'45153 SSF1')
+and
+    ins.instype = 'Deposit'
+and
+    ins.extern_id1 in ('CADIZ',
+'D1ARB',
+'MKETF',
+'DELPR',
+'VOLPR',
+'EXOV',
+'AOPTS',
+'BOPTS',
+'EXOTS',
+'PARPR',
+'PROPT',
+'OOP381',
+'BQU181',
+'BARXX',
+'FHENR',
+'STLIB',
+'IARBF',
+'LEONS',
+'ARBFO',
+'ABLM',
+'BRADS',
+'FSWAP',
+'SSFMM',
+'46029')
+and
+    trd.status not in ('Void')

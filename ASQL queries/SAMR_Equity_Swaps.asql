@@ -1,0 +1,140 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_Equity_Swaps') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMR_Equity_Swaps' and p.type = 'SQL Query' 
+
+
+
+
+/* Where the swap has both legs of type float additional select to identify these */
+
+select 
+	distinct
+    /*'BAS'							                                            'Type',*/
+	t.trdnbr					                                                'DealID',
+	convert('date', time_to_day(t.time))			                            'DealDate',
+	display_id(t, 'trader_usrnbr')				                                'Dealer',
+	display_id(t, 'prfnbr')					                                    'Portfolio',
+	display_id(t, 'counterparty_ptynbr')			                            'CounterParty',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status	                    'Status',
+	convert('double',mtm_value_fo(t))			                                'MtM_Currency',
+	t.quantity > 0 ? 'Buy' : 'Sell'				                                'Buy_Sell',
+	ael_s(t,'get_discountcurve',i,'Pay')                                        'DiscountCurvePay',
+	ael_s(t,'get_discountcurve',i,'Receive')                                    'DiscountCurveReceive',
+	c.type =  'Total Return' ? 'Float Rate' : c.type		                        'StructuredPaymentType',
+    c.type =  'Total Return' ? 'TRUE' : 'FALSE'                                 'EquityLeg',
+
+    ael_s(t,'get_discountcurve',i,'Receive')                                    'GrowthCurve',
+    /*(l.nominal_scaling = 'FX' ? nominal_amount(l,c.start_day,,l.curr) 
+            : nominal_amount(c) * t.quantity) / l.initial_index_value / 100     'SharesUnderlying',*/
+	(l.nominal_scaling = 'FX' ? nominal_amount(l,c.start_day,,l.curr) 
+            : abs(nominal_amount(c)) * t.quantity)				                    'PaymentAmount',
+	display_id(l, 'curr')					                                    'Currency',
+	convert('date', c.start_day)				                                'RealStartDate',
+	c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day) 		    'RealEndDate',
+	0.0							                                                'CouponRate',
+	l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method	            'Daycount',
+	c.cfwnbr						                                            'cfwnbr',
+	ael_f(,'ResetDates.getResetValue', c, 1)		                            'CurrentRateValue',
+	convert('date', ael_d(,'ResetDates.CurrentResetDay', c, 0))	                'ResetDate',
+	c.type =  'Float Rate' ? display_id(l,'float_rate')  :  c.type =  'Total Return' ? index.insid :  ''    'CurveIndex',
+	c.spread						                                            'InsSpread',
+	l.nominal_factor					                                        'InsFactor',
+	l.payleg = 'No' ? 'Rec' : 'Pay'				                                'Pay_Rec',
+	0.0							                                                'NominalScaling',
+	index.quote_type = 'Per 100 Units'? l.initial_index_value / 100
+    : index.quote_type = 'Per 100 Contracts' ? l.initial_index_value / 100 : l.initial_index_value 'Initial_Price',
+    
+	/*index.instype = 'Stock'? l.initial_index_value / 100 : l.initial_index_value 'Initial_Price',*/
+	i.contr_size                                                                'Contract_Size',
+	i.insid                                                                     'Instrument_Name',	
+	/*ael_f(t,'ResetDates.nominal_Scale')			                            'NominalScaling'*/
+    l.rolling_period.count                                                      'RollingPeriod_Count',
+    l.rolling_period.unit                                                       'RollingPeriod_Unit'
+
+into 
+	temptrd
+
+from
+	Trade t,
+	Instrument i,
+	Instrument IR,
+	leg l,
+	cashflow c,
+	Instrument ccy,
+    Instrument index
+    /*leg fl2*/
+
+where
+	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+
+and l.index_ref = IR.insaddr 
+
+and IR.instype in ('Stock','EquityIndex')
+/*and	l2.insaddr = i.insaddr
+and	fl1.legnbr ~= fl2.legnbr
+and fl1.type = 'Float'*/
+/*and	l.type = 'Float'*/
+and i.insid not like '%Divswap%'
+and i.insid not like '%DIVSWAP%'
+and i.insid not like '%divswap%'
+and i.insid not like '%DivSwap%'
+/*and	fl1.nominal_scaling ~= 'FX'*/
+and	l.nominal_scaling ~= 'FX'
+/*and i.instype IN ('EquitySwap')*/ and i.instype = ('TotalReturnSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and	i.exp_day > Today
+and l.index_ref = index.insaddr
+/*	t.trdnbr = tmp.DealId*/
+and	l.legnbr = c.legnbr
+and	c.pay_day > TODAY
+and i.curr = ccy.insaddr
+
+
+
+/******* main *******/
+select
+	/*t.Type,*/
+	t.DealId,
+	t.DealDate,
+	t.Dealer,
+	t.Portfolio,
+	t.CounterParty,
+	t.Status,
+	t.MtM_Currency,
+	t.Buy_Sell,
+	t.DiscountCurvePay,
+	t.StructuredPaymentType,
+    t.EquityLeg,
+    t.GrowthCurve,
+	t.PaymentAmount,
+	t.Initial_Price = 0.0 ? 0.0 : t.PaymentAmount / t.Initial_Price       'SharesUnderlying',
+	t.Currency,
+	t.RealStartDate,
+	t.RealEndDate,
+	t.CouponRate,
+	t.Daycount,
+	t.cfwnbr,
+	t.CurrentRateValue,
+	t.ResetDate,
+	t.CurveIndex,
+	t.InsSpread,	
+	t.InsFactor,
+	t.Pay_Rec,
+	TODAY     'DATE_TODAY',
+	t.DiscountCurveReceive,
+	t.NominalScaling,
+	t.Initial_Price,
+	t.Contract_Size,
+	t.Instrument_Name,
+    t.RollingPeriod_Count,
+    t.RollingPeriod_Unit
+
+from 
+	temptrd t
+
+order by
+	t.DealId

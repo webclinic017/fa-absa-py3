@@ -1,0 +1,17 @@
+[Pegasus]FInstrumentAndTrades:deprecTotalRPLColumnHedgeRef = sumOf(children :* "deprecTotalRPLColumnHedgeRef");
+[Pegasus]FPriceIndex:deprecTotalRPLColumnHedgeRef = interpolatedIndexPriceAtDate;
+[Pegasus]FSingleInstrumentAndTrades:deprecTotalRPLColumnHedgeRef = (convertToCurrency(object :* "profitAndLossValuesHedgeRefGrouping.DepreciatedAmount" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1);
+[Pegasus]FTradeRow:deprecTotalRPLColumnHedgeRef = shunt((premium == nil) and (trade.tradeDate == today), 
+  true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+  false->shunt(trade:tradeDate <= profitAndLossEndDate, 
+    true->select(instrument.InsType, 
+      "Bill"->(convertToCurrency(object :* "profitAndLossValuesHedgeRefGrouping.DepreciatedAmount" [select(object.Parent, 
+        nil->hegdeGrouper, 
+        default->tradeSetUsedInProfitandLoss = hegdeGrouper), profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1), 
+      "IndexLinkedBond"->denominatedvalue(trade.Nominal * ((0.01 * cleanPrice) - (sumOf((instrument:firstFixedLeg.InflationScalingRef) :* "deprecTotalRPLColumn" [valuationDate = select(trade.HedgeTrade, 
+        nil->trade.ValueDay, 
+        default->trade.HedgeTrade.ValueDay)]).Number / instrument:firstFixedLeg.InflationBaseValue)), instrument.Currency, , ), 
+      default->(convertToCurrency(object :* "profitAndLossValuesHedgeRefGrouping.DepreciatedAmount" [select(object.Parent, 
+        nil->hegdeGrouper, 
+        default->tradeSetUsedInProfitandLoss = hegdeGrouper), profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1)), 
+    false->denominatedvalue(0.0, object.Trade.Currency, , )));

@@ -1,0 +1,5 @@
+[Default]FInstrument:portfolioOrderCanBeRemoved = select(switch(orderHandlers.IsEmpty, 
+    true->0.0, 
+    default->sumOf(orderHandlers :* "activeOrderQuantity * bidOrAskSign")) == 0, 
+  0.0->false, 
+  default->true);

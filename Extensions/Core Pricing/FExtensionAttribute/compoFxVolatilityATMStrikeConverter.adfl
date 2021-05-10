@@ -1,0 +1,5 @@
+[Core Pricing]FOption:compoFxVolatilityATMStrikeConverter = select(useCompoAdjustmentForVolatility, 
+  true->select(compoFxVolatilityInformation:bottomStrikeDimension == "Delta", 
+    true->compoFxVolatilityATMDeltaConverters, 
+    false->object:singleVolatilityStrikeConverters [instrument = quantoFxRate:normalFxRate, toQuotation = compoFxVolatilityInformation:bottomSurfaceStrikeQuotation, bottomStrikeDimension = compoFxVolatilityInformation:bottomStrikeDimension, fromQuotation = perUnitQuotation, fromStrikeType = "None", relativeConversionValueModel = nil, priceSource, doSplitAll]), 
+  false->nil);

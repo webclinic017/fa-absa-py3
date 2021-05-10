@@ -1,0 +1,85 @@
+/*
+Purpose: To be used to generate input data for
+         the inflation feed in the Market Data
+         feeds framework
+Developer: Paul Jacot-Guillarmod
+CR Number: 454689
+
+Updates:
+CHNG0000778020, Paul Jacot-Guillarmod, Adjusted end date to business day using the day method on the curve.
+CHNG0002573271, Nico Louw, Logic to use annual compounding for the ZAR-CPI curve.
+
+*/
+
+select 
+    ael_i(p,'ASQL_log','EOD_YieldCurve') 'Name' 
+into
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where p.name = 'EOD_YieldCurve' and p.type = 'SQL Query' 
+
+select 
+    bm.instrument 'insaddr',
+    yc.pay_day_method 'day_method'
+into 
+    _Instrument
+from 
+    YieldCurve yc, 
+    Benchmark bm
+where 
+    yc.yield_curve_name = @CurveName{ZAR-CPI;yieldcurve.yield_curve_name}
+and bm.yield_curve_seqnbr = yc.seqnbr
+
+select 
+    i.insaddr, 
+    i.day_method,
+    MIN(legnbr) 'legnbr'
+into 
+    _FirstLeg
+from 
+    _Instrument i, 
+    Leg l
+where 
+    l.insaddr = i.insaddr
+group by i.insaddr 
+
+select 
+    fl.insaddr, 
+    l.start_period.unit = 'Years' ?  date_add_delta(@Date{today}, 0, 0, l.start_period.count)
+        : l.start_period.unit = 'Months' ? date_add_delta(@Date{today}, 0, l.start_period.count, 0)
+        : l.start_period.unit = 'Weeks' ? date_add_delta(@Date{today}, l.start_period.count*7, 0, 0)
+        : date_add_delta(@Date{today}, l.start_period.count, 0, 0) 'start_date',
+    to_string(l.start_period.count, convert('string', l.start_period.unit, 1)) 'start_tenor',
+    l.end_period.unit = 'Years' ?  date_add_delta(@Date{today}, 0, 0, l.end_period.count)
+        : l.end_period.unit = 'Months' ? date_add_delta(@Date{today}, 0, l.end_period.count, 0)
+        : l.end_period.unit = 'Weeks' ? date_add_delta(@Date{today}, l.end_period.count*7, 0, 0)
+        : date_add_delta(@Date{today}, l.end_period.count, 0, 0) 'end_date',
+    to_string(l.end_period.count, convert('string', l.end_period.unit, 1)) 'end_tenor', 
+    fl.day_method
+into 
+    _FirstLegDetails
+from 
+    _FirstLeg fl, 
+    Leg l
+where 
+    fl.legnbr = l.legnbr
+
+select 
+    insid, 
+    instype, 
+    start_date, 
+    start_tenor, 
+    bankday_adjust(end_date, insid, day_method) 'end_date', 
+    end_tenor, 
+    yc.yield_curve_name = 'ZAR-CPI'
+        ? convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name,TODAY,bankday_adjust(end_date, insid, day_method),'Semi Annual','Act/365','Spot Rate',i.insid), 10)
+        : used_price(i, @Date{today}, 'ZAR')/100 'rate'
+from 
+    _FirstLegDetails l,
+    YieldCurve yc, 
+    Instrument i
+where 
+    i.insaddr = l.insaddr and
+    yc.yield_curve_name = @CurveName{ZAR-CPI;yieldcurve.yield_curve_name}
+order by 5, 3, 2

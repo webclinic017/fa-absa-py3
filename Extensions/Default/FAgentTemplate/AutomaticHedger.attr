@@ -1,0 +1,231 @@
+[Default]FObject:AutomaticHedger
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=No
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=Automatic Hedger
+  EditPermission=System
+  Granularity=100
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TraceLog=100
+  TradingEnabled=Yes
+
+State Hedge =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Listen =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Start =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Stop =
+  Description=
+  OnEntry=CleanUp
+  OnExit=<none>
+
+Transitions =
+  t0=Start -> alwaysTrue / ActionStart -> Listen
+  t1=Listen -> sourceNotEmpty / ActionCreateHedgeOrder -> Hedge
+  t2=Hedge -> alwaysTrue / SendHedgeOrder -> Listen
+  updateTradingInterface=Listen -> updateTradingInterface / <none> -> Start
+
+Panel Information =
+  DisplayName=Information
+  Orientation=Vertical
+  Variables=allowInternalTrade, hedgeAccount, hedgeReference, hedgeDelta, hedgeInstrument, hedgeMarket, hedgeMinimumRoundLots, hedgeOrderBook, hedgeOrderType, hedgePriceType
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Information
+
+Conditions =
+  alwaysTrue=true
+  sourceNotEmpty=tradeSource.Size > 0
+  updateTradingInterface=(currentHedgeTradingStrategy <> hedgeTradingStrategy) or (currentAggressiveOrderPart <> aggressiveOrderPart)
+
+Actions =
+  CleanUp=!CleanUp
+  CreateHedgeOrder=!CreateHedgeOrder
+  CreateTradeFilter=!CreateTradeFilter
+  CreateTradeSource=tradeFilter.CreateSource(true, -1, false) => tradeSource
+  CreateTradingInterface=!CreateTradingInterface
+  GetTrade=tradeSource.Get => currentTrade
+  SendHedgeOrder=!SendHedgeOrder
+
+ActionLists =
+  ActionCreateHedgeOrder=GetTrade, CreateHedgeOrder
+  ActionHedge=CreateHedgeOrder
+  ActionStart=CreateTradeFilter, CreateTradeSource, CreateTradingInterface
+
+Variable aggressiveOrderPart =
+  DisplayName=Aggressive Part
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAggressiveOrderPart
+
+Variable algoServer =
+  Domain=FAlgoServer
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAlgoServer
+
+Variable allowInternalTrade =
+  Description=Indicates whether to allow internal trades
+  DisplayName=Allow Internal Trade
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAllowInternalTrade
+
+Variable currentAggressiveOrderPart =
+  Domain=double
+  Type=Private
+  Value=
+
+Variable currentHedgeTradingStrategy =
+  Type=Private
+  Value=
+
+Variable currentTrade =
+  Type=Private
+  Value=
+
+Variable extendedLogEnabled =
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerExtendedLog
+
+Variable hedgeAccount =
+  Description=The account to add on hedge orders
+  DisplayName=Account
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAccount
+
+Variable hedgeAccountFilter =
+  Description=The account filter, that when set, allows to filter orders conforming to those accounts.
+  DisplayName=Account Filter
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAccountFilter
+
+Variable hedgeDelta =
+  Description=The current (local) delta used when performing a hedge
+  DisplayName=Delta
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerDelta
+
+Variable hedgeInstrument =
+  Description=The underlying instrument used in the automatic hedge
+  DisplayName=Instrument
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerInstrument
+
+Variable hedgeInstrumentIsCombination =
+  Description=Contains information if the hedge instrument is a combination or not.
+  DisplayName=InstrumentIsCombination
+  Domain=bool
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerInstrumentIsCombination
+
+Variable hedgeMarket =
+  Description=The market where the (selected) underlying instrument should be hedged
+  DisplayName=Market
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerMarket
+
+Variable hedgeMinimumRoundLots =
+  Description=The minimum number of round lots a hedge need to take before a trade takes place
+  DisplayName=Min Round Lots
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerMinRoundLots
+
+Variable hedgeOrder =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable hedgeOrderBook =
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTradingInterface
+
+Variable hedgeOrderType =
+  Description=The type of order that should be used by the autohedger (Fill or Kill, Fill and Kill etc)
+  DisplayName=Order Type
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerOrderType
+
+Variable hedgePriceType =
+  Description=The price type that should be used by the autohedger (Match, Join, Best etc)
+  DisplayName=Price Type
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerPriceType
+
+Variable hedgeReference =
+  Description=The reference to add on hedge orders
+  DisplayName=Reference
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerReference
+
+Variable hedgeReferenceFilter =
+  Description=The reference filter, that when set, allows to filter trades based on their reference.
+  DisplayName=Reference Filter
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerReferenceFilter
+
+Variable hedgeTradingStrategy =
+  Description=The trading strategy to be used for SMART
+  DisplayName=Trading Strategy
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTradingStrategy
+
+Variable quoteController =
+  Domain=FQuoteController
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable smartOrder =
+  DisplayName=SMART Order
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable smartTrading =
+  Domain=FTradingInterface
+  Type=Private
+  Value=
+
+Variable tag =
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable tickOffset =
+  DisplayName=Tick Offset
+  Domain=int
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTickOffset
+
+Variable tradeFilter =
+  Type=Private
+  Value=
+
+Variable tradeSource =
+  Type=Private
+  Value=
+
+Variable trading =
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=quoteController.TradingInterface
+
+<end>

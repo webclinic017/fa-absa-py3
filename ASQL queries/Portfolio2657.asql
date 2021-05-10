@@ -1,0 +1,98 @@
+/*
+Date            Who             What
+23-05-2007      Heinrich Cronje Added Interest Frequency
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Portfolio2657') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Portfolio2657' and p.type = 'SQL Query' 
+
+
+
+select
+Today 'Date',
+t.trdnbr'Trade',
+i.instype'Ins_Type',
+p.prfid'portfolio',
+time_to_day(t.time)'Trade_Time',
+t.status,
+i.instype in ('Deposit', 'CD') ? l.fixed_rate : i.instype = 'FRN' ? to_double(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,Today,8)) : i.instype = 'Bill' ? ael_f(,'IssuedRate.ReturnRate',i) : t.price			'Rate',
+t.quantity*l.nominal_factor*i.contr_size'nominal',
+
+l.type'Leg_Type',
+
+l.start_day,
+l.end_day,
+to_string(i.instype = 'Deposit' and add_info(t, 'Funding Instype') = 'FRN' ? 	ael_s(,'SAGEN_str_functions.concat', convert('float', round(days_between(l.start_day, i.exp_day, 'Act/365') / 365 * 12)), 'm', '')
+	: ael_s(,'RollingPeriod.RP',l))					'InterestFrequency'
+
+
+
+from
+
+instrument i,
+trade t,
+leg l,
+portfolio p
+
+where
+
+i.insaddr=t.insaddr
+
+and i.insaddr=l.insaddr
+and p.prfnbr=t.prfnbr
+and i.instype in ('FRN','Deposit')
+and p.prfid in ('GT Term Funding' , 'GT Funding','AMMF')
+and t.status not in ('Terminated','Simulated','Void')
+
+order by 5 /* trade time*/
+
+union
+
+
+select
+Today 'Date',
+t.trdnbr'Trade',
+i.instype'Ins_Type',
+p.prfid'portfolio',
+time_to_day(t.time)'Trade_Time',
+t.status,
+i.instype in ('Deposit', 'CD') ? l.fixed_rate : i.instype = 'FRN' ? to_double(ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr,Today,8)) : i.instype = 'Bill' ? ael_f(,'IssuedRate.ReturnRate',i) : t.price			'Rate',
+t.quantity*l.nominal_factor*i.contr_size'nominal',
+
+l.type'Leg_Type',
+
+l.start_day,
+l.end_day,
+to_string(i.instype = 'Deposit' and add_info(t, 'Funding Instype') = 'FRN' ? 	ael_s(,'SAGEN_str_functions.concat', convert('float', round(days_between(l.start_day, i.exp_day, 'Act/365') / 365 * 12)), 'm', '')
+	: ael_s(,'RollingPeriod.RP',l))					'InterestFrequency'
+
+
+from
+
+instrument i,
+trade t,
+leg l,
+portfolio p
+
+where
+
+i.insaddr=t.insaddr
+
+and i.insaddr=l.insaddr
+and p.prfnbr=t.prfnbr
+and i.instype not in ('FRN','Deposit')
+and p.prfid in ('GT Term Funding' , 'GT Funding','AMMF')
+and t.status not in ('Terminated','Simulated','Void')
+
+order by 5 /* trade time*/
+
+
+
+
+
+
+

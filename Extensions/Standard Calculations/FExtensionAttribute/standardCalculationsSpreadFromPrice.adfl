@@ -1,0 +1,7 @@
+[Standard Calculations]FInstrument:standardCalculationsSpreadFromPrice = select(standardCalculationsSpreadType, 
+  "YTMspread"->marketYieldToMaturitySpread, 
+  "Zspread"->impliedFlatYieldSpread, 
+  default->throwError("Unsupported spread type " + standardCalculationsSpreadType));
+[Standard Calculations]FInstrumentAndTrades:standardCalculationsSpreadFromPrice = select(yieldCurve, 
+  nil->instrument:standardCalculationsSpreadFromPrice [standardCalculationsSpreadType, marketPrice = marketPriceForSpreadFromPrice, fromQuoteValueDate, instrumentSpotDate = max(fromQuoteValueDate, instrument:startDate)], 
+  default->instrument:standardCalculationsSpreadFromPrice [standardCalculationsSpreadType, marketPrice = marketPriceForStandardCalculations, fromQuoteValueDate, riskFreeDiscountCurve = irCurveInformationForStandardCalculationsInstrumentSpecific, riskFreeDiscountCurveNames = "irCurveInformationForStandardCalculationsInstrumentSpecific", instrumentSpotDate = max(fromQuoteValueDate, instrument:startDate)]);

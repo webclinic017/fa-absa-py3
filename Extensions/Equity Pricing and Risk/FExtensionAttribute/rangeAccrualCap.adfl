@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:rangeAccrualCap = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:rangeAccrualCap = instrument:rangeAccrualCap;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:rangeAccrualCap = nil;
+[Equity Pricing and Risk]FOption:rangeAccrualCap = select(isRangeAccrual, 
+  true->select(storedStrikeType, 
+    Absolute->denominatedvalue(object.Exotic.RangeAccrualCap, strikeCurrency, storedStrikeType, ), 
+    default->absoluteStrikePriceFromRelative(underlyingPriceForStrike, denominatedvalue(object.Exotic.RangeAccrualCap, strikeCurrency, storedStrikeType, ))), 
+  default->nil);
+[Equity Pricing and Risk]FPriceAggregate:rangeAccrualCap = instrument:rangeAccrualCap;

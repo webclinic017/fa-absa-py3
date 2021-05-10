@@ -1,0 +1,201 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_FX_Exposure') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_FX_Exposure' and p.type = 'SQL Query' 
+
+
+
+
+SELECT
+
+t.trdnbr    'TrdNumber',
+display_id(l,'curr')    'Curr',
+c.pay_day   'PayDay',
+present_value(c) ~= 0 ? projected_cf(c) * t.quantity : 0 'CashFlow',
+present_value(c) * t.quantity 'PV',
+c.pay_day <= Today ? accumulated_cash(t,,display_id(l,'curr')) : 0.00 'AC'
+
+Into temp
+
+from 
+
+trade t,
+instrument i,
+instrument leg_curr,
+cashflow	c,
+leg	l
+
+where
+
+	t.insaddr=i.insaddr
+and	c.legnbr=l.legnbr
+and	l.insaddr=i.insaddr
+and projected_cf(c) ~= 0
+/*and present_value(c) ~= 0*/
+and l.curr = leg_curr.insaddr
+and leg_curr.insid in ('EUR','GBP','USD','JPY','CHF','AUD','BWP','CAD','SGD','SEK','HKD')
+AND	match_filter (t, @Filter{All Trades;tradefilter.fltid})
+
+SELECT
+
+t.trdnbr    'TrdNumber',
+display_id(p,'curr')    'Curr',
+p.payday   'PayDay',
+p.payday > Today ? p.amount : 0 'CashFlow',
+p.payday > Today ? p.amount /*present_value(t) * t.quantity*/ : 0 'PV',
+p.payday <= Today ? accumulated_cash(t,,display_id(p,'curr')) : 0 'AC'
+
+Into temp
+
+from 
+
+trade t,
+instrument i,
+instrument p_curr,
+payment p
+
+where
+
+	t.insaddr=i.insaddr
+and p.trdnbr = t.trdnbr
+and p.curr = p_curr.insaddr
+and p_curr.insid in ('EUR','GBP','USD','JPY','CHF','AUD','BWP','CAD','SGD','SEK','HKD')
+AND	match_filter (t, @Filter{All Trades;tradefilter.fltid})
+/*and p.payday >= Today*/
+
+
+/* ----- (Curr)  ----- */    
+select Distinct
+    t.trdnbr				        'TrdNumber',
+	t.quantity              'Nom',
+	present_value(t,,,,i.insid)              'PV',
+	display_id(c,'curr1')           'Curr',
+	display_id(cr,'curr')           'CurrI',
+	accumulated_cash(t) 'AC',
+	cr.insaddr
+	
+into tempCurr
+
+from
+    instrument i,
+ 	trade t,
+    currencypair c,
+    instrument cr
+where
+	t.insaddr = i.insaddr
+and i.instype = 'Curr'
+and i.curr = c.curr1
+AND c.curr1 = cr.insaddr
+AND	match_filter (t, @Filter{All Trades;tradefilter.fltid})
+and t.value_day >= today
+
+
+select Distinct
+    t.trdnbr				    'TrdNumber',
+	t.premium                   'Nom',
+	present_value(t,,,,i.insid)      'PV',
+	display_id(c,'curr2')       'Curr',
+	display_id(cr,'curr')       'CurrI',
+	accumulated_cash(t) 'AC',
+	cr.insaddr
+into tempCurr
+from
+    instrument i,
+ 	trade t,
+    currencypair c,
+    instrument cr
+where
+	t.insaddr = i.insaddr
+and i.instype = 'Curr'
+and t.curr = c.curr2
+AND c.curr2 = cr.insaddr
+AND	match_filter (t, @Filter{All Trades;tradefilter.fltid})
+and t.value_day >= today
+
+
+SELECT  Distinct
+    t.trdnbr 'TrdNumber',
+    tc.Curr                                                             'Curr',
+    t.value_day                                                         'PayDay',
+    Sum(tc.Nom)                                          	            'CashFlow',
+    pv                                                                  'PV',
+    AC  'ac'
+   
+into temp  
+FROM trade t, instrument i,tempCurr tc  
+WHERE
+	t.insaddr = i.insaddr
+AND tc.TrdNumber = t.trdnbr
+AND	i.instype in ('Curr')
+and t.status not in ('Simulated','Void','Reserved')
+and tc.Curr  in ('EUR','GBP','USD')
+AND	match_filter (t, @Filter{All Trades;tradefilter.fltid})
+and t.value_day >= today
+
+
+/*---------Display Results -----------------*/
+
+
+Select Distinct
+
+'DisplayAll'   'Section',
+t.TrdNumber,
+t.Curr,
+t.PayDay,
+t.CashFlow 'Future Cash',
+t.PV 'Present Value',
+t.AC 'Accumulated Cash',
+t.AC + t.CashFlow 'TotalSettledandUnSettled'
+
+
+from temp t
+
+where t.cashflow ~= 1
+
+order by 4
+
+union
+
+
+Select Distinct
+
+'GroupByDate'    'Section',
+t.TrdNumber,
+t.Curr,
+t.PayDay,
+sum(t.CashFlow) 'Future Cash',
+sum(t.PV) 'Present Value',
+sum(t.AC) 'Accumulated Cash',
+sum(t.AC) + sum(t.CashFlow) 'TotalSettledandUnSettled'
+
+
+from temp t
+
+where t.cashflow ~= 1
+
+
+Group by 3,4
+Order by t.PayDay
+
+Union
+
+Select Distinct
+
+'Total'    'Section',
+t.TrdNumber,
+t.Curr,
+t.PayDay,
+sum(t.CashFlow) 'Future Cash',
+sum(t.PV) 'Present Value',
+sum(t.AC) 'Accumulated Cash',
+sum(t.AC) + sum(t.CashFlow) 'TotalSettledandUnSettled'
+
+
+from temp t
+
+where t.cashflow ~= 1
+
+
+Group by 3

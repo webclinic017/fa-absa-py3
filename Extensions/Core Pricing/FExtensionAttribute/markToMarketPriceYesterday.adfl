@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:markToMarketPriceYesterday = markToMarketPriceSourceYesterday.Get;
+[Core Pricing]FInstrumentAndTrades:markToMarketPriceYesterday = shunt(portfoliosAccountingParameters.Size == 1, 
+  true->instrument:markToMarketPriceYesterday [accountingParameters = portfoliosAccountingParameters.First], 
+  false->instrument:markToMarketPriceYesterday);
+[Core Pricing]FMultiInstrumentAndTrades:markToMarketPriceYesterday = nil;
+[Core Pricing]FPriceAggregate:markToMarketPriceYesterday = instrument:markToMarketPriceYesterday;

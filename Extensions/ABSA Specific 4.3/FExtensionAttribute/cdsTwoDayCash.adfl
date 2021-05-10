@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:cdsTwoDayCash = sumOf(trades :* "cdsTwoDayCash");
+[ABSA Specific 4.3]FTrade:cdsTwoDayCash = select(instrument.InsType, 
+  "CreditDefaultSwap"->py("CDSTwoDayCash", context).getNextCashflow(object, "Fixed", instrument:profitAndLossEndDate, 2), 
+  default->0);
+[ABSA Specific 4.3]FTradeRow:cdsTwoDayCash = trade:cdsTwoDayCash;

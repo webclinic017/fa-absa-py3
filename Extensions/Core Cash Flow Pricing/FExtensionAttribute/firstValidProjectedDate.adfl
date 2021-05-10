@@ -1,0 +1,8 @@
+[Core Cash Flow Pricing]FCashFlow:firstValidProjectedDate = switch(trade, 
+  nil->valuationOrSpotDate, 
+  default->trade.AcquireDay);
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:firstValidProjectedDate = select(isFixedAmountCashFlow and (exCouponDate == staticLegInformation:startDate), 
+  true->max(valuationOrSpotDate, acquireDayOrSpotDate) - 1, 
+  false->max(valuationOrSpotDate, acquireDayOrSpotDate));
+[Core Cash Flow Pricing]FDividendMoneyFlow:firstValidProjectedDate = max(valuationOrSpotDate, acquireDayOrSpotDate);
+[Core Cash Flow Pricing]FMoneyFlow:firstValidProjectedDate = valuationOrSpotDate;

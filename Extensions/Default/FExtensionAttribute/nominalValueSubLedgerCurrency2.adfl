@@ -1,0 +1,14 @@
+[Default]FCashFlowInstrument:nominalValueSubLedgerCurrency2 = nil;
+[Default]FCombInstrMapAndTrades:nominalValueSubLedgerCurrency2 = instrument :* "nominalValueSubLedgerCurrency2" [profitAndLossEndDate, singleTradePosition];
+[Default]FCurrency:nominalValueSubLedgerCurrency2 = denominatedvalue(singleTradePosition.Trade.Premium / riskPosition, singleTradePosition.Trade.Currency, , profitAndLossEndDate);
+[Default]FFuture:nominalValueSubLedgerCurrency2 = select(isFxNdf, 
+  true->denominatedvalue(-ndfPricePerUnitQuoted, currency, , profitAndLossEndDate), 
+  false->nil);
+[Default]FFxRate:nominalValueSubLedgerCurrency2 = denominatedvalue(singleTradePosition.Premium / singleTradePosition.Quantity, domesticCurrency, , profitAndLossEndDate);
+[Default]FInstrument:nominalValueSubLedgerCurrency2 = nil;
+[Default]FLeg:nominalValueSubLedgerCurrency2 = nil;
+[Default]FLegAndTrades:nominalValueSubLedgerCurrency2 = nil;
+[Default]FOption:nominalValueSubLedgerCurrency2 = select(isFXOption, 
+  true->callCurrNominalValue, 
+  default->nil);
+[Default]FTradeRow:nominalValueSubLedgerCurrency2 = instrument :* "nominalValueSubLedgerCurrency2" [profitAndLossEndDate, singleTradePosition];

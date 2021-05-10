@@ -1,0 +1,9 @@
+[Default]FInstrument:strikeQuotation = select(object.StrikeQuotation, 
+  nil->underlyingQuotation, 
+  default->select(isForwardStart and forwardStartHasPassedInitialFixing, 
+    true->underlyingQuotation, 
+    false->object.StrikeQuotation));
+[Default]FVolatilityInformation:strikeQuotation = object.StrikeQuotation;
+[Default]FVolatilityStructure:strikeQuotation = select(object.StrikeQuotation, 
+  nil->getObject("FQuotation", "Per Unit"), 
+  default->object.StrikeQuotation);

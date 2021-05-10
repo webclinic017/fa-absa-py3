@@ -1,0 +1,9 @@
+[Core Pricing]FFxRate:historicalDiscountCurve = select(useFXDiscountCurve, 
+  true->fxHistoricalDiscountCurve, 
+  false->mappedDiscountLink :* "historicalCurve" [historicalCurveDate]);
+[Core Pricing]FInstrument:historicalDiscountCurve = select(useFXDiscountCurve, 
+  true->currency :* "fxHistoricalDiscountCurve" [historicalCurveDate], 
+  false->mappedDiscountLink :* "historicalCurve" [historicalCurveDate]);
+[Core Pricing]FInstrumentAndTrades:historicalDiscountCurve = instrument :* "historicalDiscountCurve" [historicalCurveDate, useFXDiscountCurve];
+[Core Pricing]FLeg:historicalDiscountCurve = mappedDiscountLink :* "historicalCurve" [historicalCurveDate];
+[Core Pricing]FLegAndTrades:historicalDiscountCurve = leg :* "historicalDiscountCurve" [historicalCurveDate];

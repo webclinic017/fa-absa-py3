@@ -1,0 +1,26 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_CFD_TEREFI_CR','PB_FRA_TEREFI_CR','PB_IRS_TEREFI_CR','PB_OPTION_FI_TEREFI_CR','PB_SAFEX_TEREFI_CR','PB_YIELDX_TEREFI_CR','PB_CE_TEREFI_CR','PB_CORPBOND_TEREFI_CR','PB_GOVIBOND_TEREFI_CR','PB_MONEYMARKET_FF_TEREFI_CR','PB_CORPBOND_FF_TEREFI_CR','PB_GOVIBOND_FF_TEREFI_CR','PB_CE_FF_TEREFI_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+(
+i.instype in ('Stock')
+OR
+i.und_instype in ('Stock', 'EquityIndex')
+)
+AND
+t.status not in ('Simulated', 'Void')

@@ -1,0 +1,3 @@
+[VannaVolga]FOption:vannaVolgaExoticSinglePriceGreekRiskFactorConverted = select(isFXDerivative or (currency(unit(vannaVolgaExoticSinglePriceGreekRiskFactor)) == calculationCurrency), 
+  false->vannaVolgaExoticSinglePriceGreekRiskFactor * currency(unit(vannaVolgaExoticSinglePriceGreekRiskFactor)) :* "fxForwardRate" [fxToCurrency = calculationCurrency, fxForwardDate = date(vannaVolgaExoticSinglePriceGreekRiskFactor), discountingType], 
+  true->collapse(vannaVolgaExoticSinglePriceGreekRiskFactor));

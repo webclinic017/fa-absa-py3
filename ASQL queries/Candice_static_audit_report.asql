@@ -1,0 +1,189 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candice_static_audit_report') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candice_static_audit_report' and p.type = 'SQL Query' 
+ 
+  
+select 
+  date_add_delta(date_add_banking_day(TODAY,, -1),1)            'PrevBiz'
+into
+    parms
+from
+    serverdata
+where
+    srdnbr > 0
+
+
+select
+    'YieldCurve'                                                        'Obj',
+    p.PrevBiz,
+    yc.yield_curve_name                                                 'name',
+    /*yc.creat_time ~= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time ~= p.PrevBiz ? uc.name : '-'                          'create_user',*/
+    yc.updat_time < p.PrevBiz ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time < p.PrevBiz ? uu.name : '-'                'update_user',
+    /*yc.creat_time <p.PrevBiz ? 'Yes' : '-'                            'new',*/
+    yc.updat_time < p.PrevBiz ? 'Yes' : '-'                  'updated'
+from
+    YieldCurve yc,
+    user uc,
+    user uu,
+    parms p
+where
+   /* yc.creat_usrnbr = uc.usrnbr
+    and */yc.updat_usrnbr = uu.usrnbr
+    and  yc.yield_curve_name not like 'TBR_%'
+    and (yc.updat_time < p.PrevBiz /*or yc.creat_time >= p.PrevBiz*/)
+order by 2,3,4,5
+
+/*union
+
+select
+    'Context'                                                        'Obj',
+    yc.name                                                          'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    Context yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5
+
+union
+
+select
+    'ValuationParameters'                                                        'Obj',
+    yc.name                                                             'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    ValuationParameters yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5
+
+union
+
+select
+    'Volatility'                                                        'Obj',
+    yc.vol_name                                                             'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    Volatility yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5
+
+union
+
+select
+    'AccountingParameters'                                                        'Obj',
+    yc.name                                                             'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    AccountingParameters yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5
+
+union
+
+select
+    'Portfolio'                                                        'Obj',
+    yc.prfid                                                             'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    Portfolio yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5
+
+union
+
+select
+    'Benchmark'                                                        'Obj',
+    display_id(yc, 'instrument')                                                             'name',
+    yc.creat_time >= p.PrevBiz ? yc.creat_time : '-'                    'creat_time',
+    yc.creat_time >= p.PrevBiz ? uc.name : '-'                          'create_user',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time ? yc.updat_time : '-'         'updat_time',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? uu.name : '-'                'update_user',
+    yc.creat_time >= p.PrevBiz ? 'Yes' : '-'                            'new',
+    yc.updat_time >= p.PrevBiz 
+        and yc.updat_time > yc.creat_time? 'Yes' : '-'                  'updated'
+from
+    Benchmark yc,
+    user uc,
+    user uu,
+    parms p
+where
+    yc.creat_usrnbr = uc.usrnbr
+    and yc.updat_usrnbr = uu.usrnbr
+    and (yc.updat_time >= p.PrevBiz or yc.creat_time >= p.PrevBiz)
+order by 2,3,4,5*/

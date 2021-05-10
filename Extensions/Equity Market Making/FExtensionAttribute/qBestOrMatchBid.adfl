@@ -1,0 +1,6 @@
+[Equity Market Making]FProposedQuoteLevelLink:qBestOrMatchBid = select(qQuoteController:qIsPrivate, 
+  true->nil, 
+  default->switch(qProposedQuoteLevel, 
+    nil->nil, 
+    default->qProposedQuoteLevel.BestOrMatch("Bid", object.PriceFeed.BidPriceDepth)));
+[Equity Market Making]FQuoteLevelRow:qBestOrMatchBid = qProposedQuoteLevelLink:qBestOrMatchBid;

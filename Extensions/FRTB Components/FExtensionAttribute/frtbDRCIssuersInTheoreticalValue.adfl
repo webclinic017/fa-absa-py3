@@ -1,0 +1,8 @@
+[FRTB Components]FCombInstrMap:frtbDRCIssuersInTheoreticalValue = instrument:frtbDRCIssuersInTheoreticalValue [frtbDRCInclusionCriteria];
+[FRTB Components]FCombination:frtbDRCIssuersInTheoreticalValue = createArray(instrumentMaps :* "frtbDRCIssuersInTheoreticalValue" [frtbDRCInclusionCriteria]);
+[FRTB Components]FDerivative:frtbDRCIssuersInTheoreticalValue = underlying:frtbDRCIssuersInTheoreticalValue [frtbDRCInclusionCriteria];
+[FRTB Components]FInstrument:frtbDRCIssuersInTheoreticalValue = select(creditReference, 
+  nil->createArray(referenceInstruments :* "frtbDRCConditionalIssuer" [frtbDRCInclusionCriteria]), 
+  default->creditReference:frtbDRCIssuersInTheoreticalValue [frtbDRCInclusionCriteria]);
+[FRTB Components]FInstrumentAndTrades:frtbDRCIssuersInTheoreticalValue = createArray(instrument:frtbDRCIssuersInTheoreticalValue [frtbDRCInclusionCriteria]);
+[FRTB Components]FMultiInstrumentAndTrades:frtbDRCIssuersInTheoreticalValue = createArray(instruments :* "frtbDRCIssuersInTheoreticalValue" [frtbDRCInclusionCriteria]);

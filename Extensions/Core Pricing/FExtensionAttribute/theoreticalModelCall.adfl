@@ -1,0 +1,9 @@
+[Core Pricing]FCashFlowInstrument:theoreticalModelCall = switch(valuationModelNameValue, 
+  default->shunt[priceSource, doSplitAll, forwardPriceDate, modelValuationDate, ctd, ctdFactor, legs](isExpired, 
+    false->collapse(theoreticalModelCallLive), 
+    true->collapse(theoreticalModelCallAfterExpiry)));
+[Core Pricing]FInstrument:theoreticalModelCall = switch(valuationModelNameValue, 
+  default->shunt[priceSource, doSplitAll, forwardPriceDate, modelValuationDate, ctd, ctdFactor, legs](isExpired, 
+    false->collapse(theoreticalModelCallLive), 
+    true->theoreticalModelCallAfterExpiry));
+[Core Pricing]FLeg:theoreticalModelCall = object :* theoreticalModelCallLookUp [priceSource, doSplitAll, valuationDate, genericBaseDate, timeDistributionFactor];

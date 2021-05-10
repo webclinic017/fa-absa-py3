@@ -1,0 +1,53 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_pvs_and_cash') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_pvs_and_cash' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+    date_add_delta(FIRSTDAYOFYEAR,0,0,0)              'ye'
+into
+    parms
+from
+    serverdata
+where
+    srdnbr > 0
+
+select
+	t.trdnbr
+into
+    trds
+from
+	trade	t,
+	instrument	i,
+	portfolio port
+where
+	t.insaddr = i.insaddr
+    and	t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+    and t.prfnbr = port.prfnbr
+    and port.prfid in ('Swap Flow', 'IRP_PROPRIETARY', 'MAN_Swap', 'IRP_0 TO 2 YEARS', 'IRD_PROP_2', 'PRIME', 'IRP_STRUCT', 'IRD_BarCapIlovo', 'IRD_BarCapLondon', 'IRP_STRUCT_CT', 'MAN_Swap_2', 'CPI', 'LTFX', 'ERM_IRP_STRUCT', 'ERM_IRP', 'IRP_0to2_Prop', 'LTFX_BASIS_PROP', 'Swap Risk')
+    and	(
+        (time_to_day(i.updat_time) >= TODAY and	time_to_day(i.creat_time) < TODAY)
+    or 
+        (time_to_day(t.updat_time) >= TODAY and	time_to_day(t.creat_time) < TODAY)
+        )
+
+
+select
+    trd.trdnbr,        
+    p.ye,
+    present_value(trd)              'pv',
+    accumulated_cash(trd, p.ye, 'ZAR', 1, 0, ,1)         'cash_start',
+    accumulated_cash(trd)   'cash_end'
+
+from 
+    trade trd,
+    parms p,
+    trds
+where
+    trd.trdnbr = trds.trdnbr

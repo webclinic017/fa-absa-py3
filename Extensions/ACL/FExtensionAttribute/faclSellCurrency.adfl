@@ -1,0 +1,15 @@
+[ACL]FCurrency:faclSellCurrency = select(faclTradeObject.Quantity >= 0, 
+  true->faclTradeObject.Currency.Name, 
+  false->object.Name);
+[ACL]FFuture:faclSellCurrency = select(faclTradeObject.Quantity >= 0, 
+  true->object.Currency.Name, 
+  false->select(actualUnderlying, 
+    nil->nil, 
+    default->actualUnderlying.Name));
+[ACL]FInstrument:faclSellCurrency = nil;
+[ACL]FOdf:faclSellCurrency = select(object :* "faclAttrIsBuy" [faclTradeObject], 
+  true->object.Currency.Name, 
+  false->select(actualUnderlying, 
+    nil->nil, 
+    default->actualUnderlying.Currency.Name));
+[ACL]FTrade:faclSellCurrency = instrument :* "faclSellCurrency" [faclTradeObject = object];

@@ -1,0 +1,10 @@
+[Profit and Loss]FInstrument:marketRealizedValueForProfitAndLoss = select(doCostAdjustment, 
+  true->select(isValuedAtCost, 
+    true->collapse(marketRealizedValueForProfitAndLossDiscounted), 
+    false->valuationDateZero), 
+  false->collapse(marketRealizedValueForProfitAndLossDiscounted));
+[Profit and Loss]FInstrumentAndTrades:marketRealizedValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, instrument, valuesOnSpot, openPositionInstrumentProvider]);
+[Profit and Loss]FMultiInstrumentAndTrades:marketRealizedValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketRealizedValueForProfitAndLossOpenInstruments)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, openPositions, onlySpotValuedInstruments]);
+[Profit and Loss]FPortfolio:marketRealizedValueForProfitAndLoss = openInstrument :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends, accountingParameters, tradedPortfolio];
+[Profit and Loss]FTrade:marketRealizedValueForProfitAndLoss = instrument:marketRealizedValueForProfitAndLoss [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, valuationBaseDateTimeInput, plSpotGroupingReference, filterUnit, projectedPaymentsExcludeDividends];
+[Profit and Loss]FTradeRow:marketRealizedValueForProfitAndLoss = openInstrumentOrTaxLotInstrument :* "collapse(marketRealizedValueForProfitAndLoss)" [doCostAdjustment, priceSource, valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, plSpotGroupingReference, filterUnit, taxLotPositionObject, taxLotValuation := taxLotPnL, projectedPaymentsExcludeDividends];

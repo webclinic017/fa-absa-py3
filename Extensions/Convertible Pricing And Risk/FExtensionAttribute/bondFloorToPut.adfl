@@ -1,0 +1,11 @@
+[Convertible Pricing And Risk]FCashFlowInstrument:bondFloorToPut = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->select(bondFloorSupported, 
+    true->bondFloorToPutAsQuote, 
+    false->nil));
+[Convertible Pricing And Risk]FInstrument:bondFloorToPut = nil;
+[Convertible Pricing And Risk]FInstrumentAndTrades:bondFloorToPut = openInstrumentOrInstrument :* "bondFloorToPut" [priceSource, filterCurrency];
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:bondFloorToPut = nil;
+[Convertible Pricing And Risk]FOrderBook:bondFloorToPut = instrument :* "bondFloorToPut" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Convertible Pricing And Risk]FPriceAggregate:bondFloorToPut = priceFeed:bondFloorToPut [priceSource];
+[Convertible Pricing And Risk]FPriceFeed:bondFloorToPut = instrument :* "bondFloorToPut" [priceSource, quotation] * fxInstrumentToPriceFeed;

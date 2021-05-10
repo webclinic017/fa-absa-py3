@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrumentAndTrades:sl_position = sumOf(tradesInPosition :* "sl_position" [positionObject]);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:sl_position = nil;
+[Securities Lending ABSA]FTrade:sl_position = switch(sl_startDate <= profitAndLossEndDate, 
+  true->switch(instrument:sl_isExpired, 
+    true->0, 
+    false->sl_quantity), 
+  false->0);

@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FInstrumentAndTrades:slCollateralMarketValue = sumOf(trades :* "slCollateralMarketValue" [includeAllTrades = false, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FTrade:slCollateralMarketValue = select(slIsCollateral, 
+  true->double(instrument :* "slMarketValue" [singleTradePosition, profitAndLossEndFXRates]) / instrument:slCollateralHaircut, 
+  default->0.0);
+[Securities Lending ABSA]FTradeRow:slCollateralMarketValue = trade :* "slCollateralMarketValue" [includeAllTrades = true, profitAndLossEndFXRates];

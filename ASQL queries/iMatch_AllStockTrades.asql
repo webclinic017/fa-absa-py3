@@ -1,0 +1,115 @@
+/* update_method=0 */
+/*
+Purpose             :   [ACS Trade Level Recon ]
+                        [Update selection criteria to include ETF trades]
+                        [Amended to exclude same day voids]
+                        [ECR raised to change back the columns swopped around(t.Inst and t.Qty,)]
+                        [Strategies on PS Desk changed the way assigninfo was populated - recon only requires the bda account code of 5 chars]
+Department and Desk :   iMatch
+Rquester            :   [ACS Project][Anesh Polly][Marli Penzhorn]
+Developer           :   [Anwar Banoo],[Tshepo Mabena],[Anwar Banoo]
+CR Number           :   [453399],[468183],[623008],[628462],[PSB-216]
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','iMatch_AllStockTrades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'iMatch_AllStockTrades' and p.type = 'SQL Query' 
+ 
+/* ********** List all stock trades done for a given day *****/
+select
+   display_id(t,'prfnbr')                              'Portfolio',
+    t.trdnbr                                            'Trade_Number',           
+    i.insid                                             'Inst',
+    t.quantity                                          'Qty',
+    t.price                                             'Price',
+    convert('time',t.execution_time,'%d/%m/%Y')         'Execution_Time',
+    convert('time',t.time,'%d/%m/%Y')                   'Trade_Time',
+    convert('time',t.creat_time,'%d/%m/%Y')             'Create_Time',
+    display_id(t, 'counterparty_ptynbr')                'Counterparty',
+    t.optional_key                                      'JSE_Ref',
+    convert('time',t.value_day,'%d/%m/%Y')              'Value_Day',
+    i.spot_banking_days_offset                          'Spot_Offset',
+    add_info(t,'XtpJseRef')                             'XtpJseRef',
+    convert('time',t.updat_time,'%d/%m/%Y')             'Update_Time',
+    t.premium,
+    used_price(t,@Date{Yesterday})                      'used_price',
+    p.assinf  											'AssignPortfolio',
+    t.status                                            'Status',
+    display_id(t, 'trader_usrnbr')                      'Trader'
+into
+    temp        
+from    
+    instrument i,
+    trade t,
+    portfolio p
+where   
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.instype in ('Stock', 'ETF')
+    and (time_to_day(t.updat_time) = @Date{Yesterday})
+    and (time_to_day(t.updat_time) ~= time_to_day(t.creat_time) and t.status in ('void'))
+    and match_filter(t,@Filter{IMATCH_ACS_RTM V2;'IMATCH_ACS_RTM V2','EQ 9806 ALL','EQ Arbitrage baskets ALL','EQ Equity Hybrid Products ALL','EQ Forward Structures all','EQ Index ALL','EQ LinTrading ALL','EQ Single Stocks ALL','EQ Structures ALL','EQ Warrants ALL'})
+    and not (display_id(t, 'trader_usrnbr') = 'FMAINTENANCE' and t.type = 'Aggregate')
+
+select
+    display_id(t,'prfnbr')                              'Portfolio',
+    t.trdnbr                                            'Trade_Number',           
+    i.insid                                             'Inst',
+    t.quantity                                          'Qty',
+    t.price                                             'Price',
+    convert('time',t.execution_time,'%d/%m/%Y')         'Execution_Time',
+    convert('time',t.time,'%d/%m/%Y')                   'Trade_Time',
+    convert('time',t.creat_time,'%d/%m/%Y')             'Create_Time',
+    display_id(t, 'counterparty_ptynbr')                'Counterparty',
+    t.optional_key                                      'JSE_Ref',
+    convert('time',t.value_day,'%d/%m/%Y')              'Value_Day',
+    i.spot_banking_days_offset                          'Spot_Offset',
+    add_info(t,'XtpJseRef')                             'XtpJseRef',
+    convert('time',t.updat_time,'%d/%m/%Y')             'Update_Time',
+    t.premium,
+    used_price(t,@Date{Yesterday})                      'used_price',
+    p.assinf  											'AssignPortfolio',
+    t.status                                            'Status',
+    display_id(t, 'trader_usrnbr')                      'Trader'
+into
+   temp         
+from    
+    instrument i,
+    trade t,
+    portfolio p
+where   
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.instype in ('Stock', 'ETF')
+    and (time_to_day(t.updat_time) = @Date{Yesterday})
+    and  t.status not in ('void')
+    and match_filter(t,@Filter{IMATCH_ACS_RTM V2;'IMATCH_ACS_RTM V2','EQ 9806 ALL','EQ Arbitrage baskets ALL','EQ Equity Hybrid Products ALL','EQ Forward Structures all','EQ Index ALL','EQ LinTrading ALL','EQ Single Stocks ALL','EQ Structures ALL','EQ Warrants ALL'})
+    and not (display_id(t, 'trader_usrnbr') = 'FMAINTENANCE' and t.type = 'Aggregate')
+
+select
+    t.Portfolio,
+    t.Trade_Number,
+    t.Inst,
+    t.Qty,
+    t.Price,
+    t.Execution_Time,
+    t.Trade_Time,
+    t.Create_Time,
+    t.Counterparty,
+    t.JSE_Ref,
+    t.Value_Day,
+    t.Spot_Offset,
+    t.XtpJseRef,
+    t.Update_Time,
+    t.premium,
+    t.used_price,
+    t.AssignPortfolio,
+    t.Status,
+    t.Trader
+from
+    temp t
+    
+group by 1,2,5

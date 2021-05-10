@@ -1,0 +1,13 @@
+[Customer 4.3]FMultiInstrumentAndTrades:eqLocalGammaHedge = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.InstrumentAndTrades) == "ZAR/ALSI3", 
+    true->priceDeltaPercent / 10, 
+    default->(priceGammaPercent / priceDeltaPercentForHedge) / 10), 
+  default->(priceGammaPercent / priceDeltaPercentForHedge) / 10);
+[Customer 4.3]FPortfolioInstrumentAndTrades:eqLocalGammaHedge = shunt(value(portfolio.Name) == "AOPT", 
+  true->priceDeltaPercent / 10, 
+  default->(priceGammaPercent / priceDeltaPercentForHedge) / 10);
+[Customer 4.3]FSingleInstrumentAndTrades:eqLocalGammaHedge = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.Parent) == "ZAR/ALSI3", 
+    true->priceDeltaPercent / 10, 
+    default->(priceGammaPercent / priceDeltaPercentForHedge) / 10), 
+  default->(priceGammaPercent / priceDeltaPercentForHedge) / 10);

@@ -1,0 +1,6 @@
+[CRE Pricing]FInstrument:creTimeSeriesTheorVal = 
+# Shunt contition used as a trigger for getting time series objects
+shunt(lastOrNil(getTimeSeriesDvSpecificationObject("CRE_TheorVal").TimeSeriesDv), 
+  default->shunt(lastOrNil(getTimeSeriesDvObjects(getTimeSeriesDvSpecificationObject("CRE_TheorVal"), [object.OriginalOrSelf], valuationBaseDate)), 
+    nil->lastOrNil(getTimeSeriesDvObjects(getTimeSeriesDvSpecificationObject("CRE_TheorVal"), [object.OriginalOrSelf], nilObject:previousBusinessDate)), 
+    default->lastOrNil(getTimeSeriesDvObjects(getTimeSeriesDvSpecificationObject("CRE_TheorVal"), [object.OriginalOrSelf], valuationBaseDate))));

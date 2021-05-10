@@ -1,0 +1,51 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL Fee asql') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL Fee asql' and p.type = 'SQL Query' 
+
+/*
+Purpose: query folder 'SL Fee' does not work in 2010.2
+Department : Securities Lending
+Desk : Prime Services
+Requester :  Linada Breytenbach
+Developer : Anil Parbhoo
+
+*/
+
+
+
+
+
+
+
+select
+
+
+t.trdnbr
+/*
+,
+t.status,
+p.prfid,
+add_info(p , 'SL_Portfolio_Type')'SL_Portfolio_Type',
+i.insid,
+add_info(i,'SL_SweepingBatchNo')'SL_SweepingBatchNo',
+i.instype
+*/
+
+from
+trade t,
+instrument i,
+portfolio p
+
+
+where
+
+t.insaddr=i.insaddr
+and i.instype in ('securityloan')
+and t.prfnbr=p.prfnbr
+and add_info(p , 'SL_Portfolio_Type')='Loan'
+and t.status not in ('FO Confirmed','Simulated','Void')
+and to_string(add_info(i,'SL_SweepingBatchNo'))=''
+

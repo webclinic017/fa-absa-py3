@@ -1,0 +1,12 @@
+[Fixed Income Pricing and Risk]FInstrument:val01 = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->object:val01FromYield [yieldValue = theoreticalYieldToMaturity], 
+    true->object:val01FromYield [yieldValue = marketYieldToMaturity]), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:val01 = instrument :* "val01" [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:val01 = nil;
+[Fixed Income Pricing and Risk]FOption:val01 = select(underlyingType, 
+  "Bond"->double(underlying:val01 [priceSource]) * priceDeltaInstrumentIRD, 
+  default->nil);
+[Fixed Income Pricing and Risk]FOrderBook:val01 = instrument:val01;
+[Fixed Income Pricing and Risk]FPriceAggregate:val01 = instrument:val01;

@@ -1,0 +1,27 @@
+[Fixed Income Pricing and Risk]FCap:parSpread = nil;
+[Fixed Income Pricing and Risk]FCashFlowInstrument:parSpread = select(isGenericSpreadQuoted, 
+  false->select(numberOfFloatOrCapFloorLegs, 
+    1->firstNonFixedLeg :* "parSpread" [priceSource, parSpreadTargetValue], 
+    default->select(floatOrCapFloorPayLegOrNil, 
+      nil->nil, 
+      default->floatOrCapFloorPayLegOrNil :* "parSpread" [priceSource, parSpreadTargetValue])), 
+  true->object.UnitValueToUnitQuote((unitGoalValueForParOnParRateDate - nonCouponValue) / couponFactor, valuationDate, 1.0));
+[Fixed Income Pricing and Risk]FDeposit:parSpread = select(isGenericCouponQuoted or isGenericSpreadQuoted, 
+  false->select(firstNonFixedLeg, 
+    nil->nil, 
+    default->firstNonFixedLeg :* "parSpread" [priceSource, parSpreadTargetValue]), 
+  true->object.UnitValueToUnitQuote((unitGoalValueForParOnParRateDate - nonCouponValue) / couponFactor, valuationDate, 1.0));
+[Fixed Income Pricing and Risk]FFloor:parSpread = nil;
+[Fixed Income Pricing and Risk]FFra:parSpread = nil;
+[Fixed Income Pricing and Risk]FInstrument:parSpread = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:parSpread = instrument :* "parSpread" [isSplitAllGrouped, priceSource];
+[Fixed Income Pricing and Risk]FLeg:parSpread = shunt[priceSource, parSpreadTargetValue](uniqueSpreadInParSpreadTargetValue, 
+  nil->nil, 
+  default->imply(uniqueSpreadInParSpreadTargetValue, parSpreadTargetValue, instrument:unitGoalValueForPar, 1e-06, impliedSpreadMinValue, impliedSpreadMaxValue, 100));
+[Fixed Income Pricing and Risk]FLegAndTrades:parSpread = select(instrument:isGenericSpreadQuoted, 
+  false->leg :* "parSpread" [priceSource], 
+  true->nil);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:parSpread = nil;
+[Fixed Income Pricing and Risk]FTotalReturnSwap:parSpread = select(object.TotalReturnFundingLeg, 
+  nil->nil, 
+  default->(object.TotalReturnFundingLeg) :* "parSpread" [priceSource]);

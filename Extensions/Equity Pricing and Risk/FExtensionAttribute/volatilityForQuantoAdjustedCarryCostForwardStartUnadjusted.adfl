@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FOption:volatilityForQuantoAdjustedCarryCostForwardStartUnadjusted = select(volatilityNeedsNormalizing, 
+  true->normalizedVolatilityConversionFactor, 
+  false->1.0) * select(volatilityInformationHasGenericValueFunction, 
+  true->volatilityInformation:volatilityValue [volatilityValueVolatilityInformation = volatilityInformation, volatilityValueExpiryDate = expiryDate, volatilityValueUnderlyingMaturity = underlyingMaturityValue, volatilityValueStrikePrice = value(underlyingPriceMovedToForwardStartADS), volatilityValueCallPutType = callPutTypeForVolatility, volatilityValueInputToSurfaceStrikeConverters = volatilityStrikeConverter, priceSource, doSplitAll], 
+  false->volatilityInformation.Value(underlyingMaturityDate, expiryDate, value(underlyingPriceMovedToForwardStartADS), isCall, underlyingIsGeneric, true, value(underlyingPriceMovedToForwardStartADS), skewExpiriesForwardPriceForVolatility, foreignRateForVolatility, domesticRateForVolatility));

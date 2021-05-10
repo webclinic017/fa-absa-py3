@@ -1,0 +1,247 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Funding_Sendero') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Funding_Sendero' and p.type = 'SQL Query' 
+
+/*
+
+Report with rates, balances and interest used by MM
+
+Purpose: [Change rate, average balance and interest calcualtions to be more accurate]
+Department: [PCG Fixed income (NLD)]
+Requester: [Haroon Mansoor],[Haroon Mansoor]
+Developer: [Jaysen Naicker],[Sanele Macanda]
+CR Number: [705440 (07/07/2011)], []
+
+*/
+
+select
+	@3_StartDate{}				'sDay',
+	@4_EndDate{}				'eDay',
+	days_between(@3_StartDate{}, @4_EndDate{}, 'Act/365')		'DinM'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+
+
+	
+select
+	t.trdnbr,
+	i.insaddr,
+	i.insid,
+	i.instype,
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'Product_Code',
+
+	l.type,
+	l.start_day,
+	i.exp_day,
+	t.value_day,
+
+	l.type = 'Fixed' ? t.price
+		: display_id(l, 'float_rate')		'Price',
+
+
+	p.prfid = 'MONB 0681' ? t.premium 
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= m.sDay and i.exp_day <= m.eDay) ? nominal_amount(t, t.value_day)
+			/*trades acquired during month 2*/
+			: (l.start_day >= m.sDay and i.exp_day >= m.eDay) ? nominal_amount(t, t.value_day)
+				/*trades matured during month 3*/
+				: (i.exp_day >= m.sDay and i.exp_day < m.eDay) ? nominal_amount(t, m.sDay)
+                    /*trades expiring on first day of next month*/
+					: i.exp_day = m.eDay ? nominal_amount(t, date_add_delta(m.eDay, -1, 0, 0))
+                        /*other*/
+                        : nominal_amount(t, m.eDay)		'Amount',
+
+
+
+	l.type = 'Fixed' ? days_between(l.start_day,  i.exp_day, 'Act/365')
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= m.sDay and i.exp_day < m.eDay) ? to_double(ael_s(,'SAGEN_Cashflows_Sendero.GetCashflow_Ins', i, t.value_day, 4, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: (l.start_day >= m.sDay and i.exp_day >= m.eDay) ? to_double(ael_s(,'SAGEN_Cashflows_Sendero.GetCashflow_Ins', i, l.start_day, 4, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: (i.exp_day >= m.sDay and i.exp_day < m.eDay) ? to_double(ael_s(,'SAGEN_Cashflows_Sendero.GetCashflow_Ins', i, date_add_delta(i.exp_day, -1,0,0), 4, 'CurrentCF'))
+					/*trades expiring on first day of next month*/
+					: i.exp_day = m.eDay ? to_double(ael_s(,'SAGEN_Cashflows_Sendero.GetCashflow_Ins', i, date_add_delta(m.eDay, -1, 0, 0), 4, 'CurrentCF'))
+                        /*other*/
+                        : to_double(ael_s(,'SAGEN_Cashflows_Sendero.GetCashflow_Ins', i, m.eDay, 4, 'CurrentCF'))	'Tenor',
+
+
+
+	/*trades alive before and after month 1*/
+	(l.start_day < m.sDay and i.exp_day > m.eDay) ?	-99 :
+		/*trades acquired during month 2*/
+		(l.start_day >= m.sDay and i.exp_day >= m.eDay) ? days_between(l.start_day, m.eDay, 'Act/365') :
+			/*trades acquired and matured during month 4*/
+			(l.start_day >= m.sDay and i.exp_day < m.eDay) ? days_between(l.start_day, i.exp_day, 'Act/365') : 
+				/*trades matured during month 3*/
+				(i.exp_day >= m.sDay and i.exp_day < m.eDay) ? days_between(m.sDay, i.exp_day, 'Act/365') : 0.0		'DaysinPeriod',
+
+
+
+	/*trades alive before and after month*/
+	(l.start_day < m.sDay and i.exp_day >= m.eDay) ?	1 :
+		/*trades acquired during month*/
+		(l.start_day >= m.sDay and i.exp_day >= m.eDay) ? 2 :
+			/*trades acquired and matured during month*/
+			(l.start_day >= m.sDay and i.exp_day < m.eDay) ? 4 : 
+				/*trades matured during month*/
+				(i.exp_day >= m.sDay and i.exp_day < m.eDay) ? 3 : 0.0	'Num',
+
+	ael_s(,'RollingPeriod.RP', l)			'Rolling',
+	p.prfid						            'Portfolio',
+	display_id(t, 'counterparty_ptynbr')    'Counterparty',
+	t.status					            'Status',
+	interest_accrued(t,m.sDay,m.eDay,,,) + interest_settled(t,m.sDay,m.eDay,,,) 'Interest',
+	add_info(pty,'BarCap_SMS_CP_SDSID')     'SDS_ID',
+	add_info(t,'MM_Profit_Spread')          'MM_Profit_Spread'
+
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Portfolio p,
+	Macros m,
+	Leg l,
+	Party pty
+
+where
+	t.insaddr = i.insaddr
+and	i.insaddr = l.insaddr
+and	p.prfnbr = t.prfnbr
+and	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+and	i.exp_day >= m.sDay
+/*and	p.prfid in ('MONB 0681', 'LIABILITIES 9830', 'NLD Funding Hybrid', 'IRD Funding Hybrid')*/
+and	t.status not in ('Terminated' , 'Simulated', 'Void')
+and	i.instype in ('FRN', 'Deposit', 'CD', 'Bill', 'FreeDefCF')
+
+/*and	l.start_day >= m.sDay*/
+and	l.start_day < m.eDay	
+and t.counterparty_ptynbr *= pty.ptynbr
+
+	
+select
+
+	t.trdnbr			'Trdnbr',
+	t.insid				'Instrument',
+	t.instype			'Instype',
+	t.Product_Code,
+	
+	t.Product_Code in ('CD', 'CL') ? 193104010 : t.Product_Code in ('FDE', 'FDI') ? 293140022
+		: t.Product_Code = 'FDC' ? 292800231 : t.Product_Code = 'NDB' ? 293110069 
+            : t.Product_Code  in ('NCD', 'NCC', 'NCF') ? 292800088 : t.Product_Code = 'PRN' ? 292510106 
+                : t.Product_Code in ('FTL', 'FLI') ? 192500125 : t.Product_Code = 'FRN' ? 292610157 
+                    : t.Product_Code = 'SNR' ? 292800223 : t.Product_Code = 'CpNCD' ? 192800005 
+                        : t.Product_Code = 'RDL' ? 182500001 : t.Product_Code = 'SRP' ? 292510020 : 000000	'GL_Acc_Number',
+
+	t.type				'Leg_Type',
+	t.start_day			'Original_StartDate',
+	t.exp_day			'Original_MatDate',
+	t.value_day			'Value_Day',
+	t.Portfolio,
+	t.Counterparty,
+	t.Tenor,
+	round(t.Tenor / 30) 	                            'Months',
+	t.DaysinPeriod = -99 ? t.Tenor : t.DaysinPeriod		'DaysinPeriod',
+	t.Portfolio = 'LIABILITIES 9830' ? '9830'
+        : t.Portfolio = 'LIABILITIES 2474' ? '2474'
+        : t.Portfolio = 'ABCAP FUND 2475' ? '2475'
+        : t.Portfolio = 'GROUP FUND 2476' ? '2476'
+        : t.Portfolio = 'MONB 0681' ? '0681'
+        : t.Portfolio = 'CORPORATE LEND 3304' ? '3304'
+        : '0'                                           'Branch',
+	'8149'						                        'Site',
+	t.Product_Code = 'NCF' ? 'P' : 'F'			        'Rate_Flag',
+
+	t.type = 'Fixed' ? t.Price : ael_f(,'SAGEN_Cashflows_Sendero.Get_MostCommonRateData', t.trdnbr, m.sDay, m.eDay, 3) 'Price',
+	t.type = 'Fixed' ? t.start_day : ael_s(,'SAGEN_Cashflows_Sendero.Get_MostCommonRateData',t.trdnbr, m.sDay, m.eDay, 1)	'Interest_StartDate',
+	t.type = 'Fixed' ? t.exp_day: ael_s(,'SAGEN_Cashflows_Sendero.Get_MostCommonRateData', t.trdnbr, m.sDay, m.eDay, 2)	'Interest_MatDate',
+
+
+	t.Rolling = '1m' ? 1 : t.Rolling = '1y' ? 0 : t.Rolling = '3m' ? 3 
+		: t.Rolling = '6m' ? 6 : 9			    'Int_Frequency',
+
+
+	/*Zero for trades acquired and matured during month 4 and trades matured during month 3*/
+	t.Num in (3,4) ? 0.0 : t.Amount				'Month_End_Balance',
+
+
+	ael_f(,'SAGEN_Cashflows_Sendero.Get_MostCommonRateData', t.trdnbr, m.sDay, m.eDay, 4)	'Average_Balance',
+
+/*4 (t.Tenor * t.amount)*/
+
+
+	m.DinM,
+
+
+	/*trades alive before and after month 1*/
+	t.Num = 1 ? 'trades alive before and after month'
+		/*trades acquired during month 2*/
+		: t.Num = 2 ? 'trades acquired during month'
+			/*trades acquired and matured during month 4*/
+			: t.Num = 4 ? 'trades acquired and matured during month'
+				/*trades matured during month 3*/
+				: t.Num = 3 ? 'trades matured during month' : 0.0	'Reason',
+	t.Status,
+	t.Interest,
+	t.SDS_ID,
+	t.MM_Profit_Spread
+
+into
+	final
+	
+from
+	temp t,
+	macros m,
+	Instrument i
+
+where
+	t.insaddr = i.insaddr
+
+select
+	t.Trdnbr,
+	t.Product_Code,
+	t.GL_Acc_Number,
+	t.Leg_Type,
+	t.Original_StartDate,
+	t.Original_MatDate,
+	t.Interest_StartDate,
+	t.Interest_MatDate,
+	t.Value_Day,
+	t.Tenor,
+	t.Months,
+	t.Price,
+	t.Month_End_Balance,
+	t.DaysinPeriod,
+	t.Int_Frequency,
+	t.Average_Balance,
+	t.Site,
+	t.Branch,	
+	t.Rate_Flag,
+	t.Portfolio,
+
+	t.Status,
+	t.Instrument,
+	t.Instype,
+	t.Counterparty,
+	t.Reason,
+    t.DinM,
+	t.Interest,
+	t.SDS_ID,
+    t.MM_Profit_Spread
+
+from
+	Final t
+

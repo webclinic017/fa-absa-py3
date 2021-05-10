@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:fxDisplayToInstrument = switch(displayCurrency == (instrument:currency), 
+  true->1.0, 
+  default->displayCurrency :* "immediateOrSpotFxRate" [fxToCurrency = (instrument:currency)]);
+[Default]FMultiInstrumentAndTrades:fxDisplayToInstrument = select(portfolio:currency, 
+  nil->nil, 
+  default->switch(displayCurrency == (portfolio:currency), 
+    true->1.0, 
+    default->displayCurrency :* "immediateOrSpotFxRate" [fxToCurrency = (portfolio:currency)]));

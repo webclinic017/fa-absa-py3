@@ -1,0 +1,37 @@
+/*
+Purpose: To be used to generate input data for
+         the CSA feed in the Market Data
+         feeds framework
+Developer: Jan Mach
+CR Number: CHNG0001871129
+
+Updates:
+
+*/
+
+select 
+    ael_i(p,'ASQL_log','EOD_SpreadCurve') 'Name' 
+into
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where p.name = 'EOD_SpreadCurve' and p.type = 'SQL Query' 
+
+select 
+    date_period.unit = 'Years' ?  date_add_delta(today, 0, 0, date_period.count)
+        : date_period.unit = 'Months' ? date_add_delta(today, 0, date_period.count, 0)
+        : date_period.unit = 'Weeks' ? date_add_delta(today, date_period.count*7, 0, 0)
+        : date_add_delta(today, date_period.count, 0, 0) 'end_date',
+    to_string(date_period.count, convert('string', date_period.unit, 1)) 'end_tenor',
+    spread
+from 
+    YieldCurve yc, 
+    YCAttribute attr,
+    YCSpread spread,
+    YieldCurvePoint point
+where 
+    yc.yield_curve_name = @CurveName{ZAR-BASIS;yieldcurve.yield_curve_name}
+    and attr.yield_curve_seqnbr=yc.seqnbr
+    and spread.attribute_seqnbr=attr.seqnbr
+    and point.seqnbr=spread.point_seqnbr
+order by 1    

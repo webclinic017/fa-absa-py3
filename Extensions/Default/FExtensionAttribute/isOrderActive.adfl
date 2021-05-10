@@ -1,0 +1,10 @@
+[Default]FInternalMarketOrder:isOrderActive = switch(orderStatus, 
+  "Moved"->true, 
+  "PartiallyMoved"->true, 
+  default->false);
+[Default]FOrderHandler:isOrderActive = select(isExchangeOrder or not exchangeOrdersOnly, 
+  true->object.IsOrderActive, 
+  false->false);
+[Default]FOwnOrder:isOrderActive = switch(orderStatus, 
+  "Active"->true, 
+  default->false);

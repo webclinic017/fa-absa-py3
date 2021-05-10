@@ -1,0 +1,8 @@
+[Pegasus]FInstrumentAndTrades:deprecRemainingRPLColumnHedgeRef = deprecTotalRPLColumnHedgeRef - (deprecRPLColumnHedgeRef * (-1));
+[Pegasus]FTradeRow:deprecRemainingRPLColumnHedgeRef = shunt((premium == nil) and (trade.tradeDate == today), 
+  true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+  false->select(instrument.InsType, 
+    "IndexLinkedBond"->select(instrument.IsExpired, 
+      true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+      false->deprecTotalRPLColumnHedgeRef - (deprecRPLColumnHedgeRef * (-1))), 
+    default->deprecTotalRPLColumnHedgeRef - (deprecRPLColumnHedgeRef * (-1))));

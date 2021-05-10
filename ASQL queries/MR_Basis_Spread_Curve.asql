@@ -1,0 +1,96 @@
+/*
+Purpose                 :[Market Risk feed files],[Added Write2]
+Department and Desk     :[IT],[MR]
+Requester:              :[Natalie Austin],[Susan Kruger]
+Developer               :[Douglas Finkel],[Willie van der Bank]
+CR Number               :[264536,316586],[796426 14/10/2011]
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-28     CHNG0001946630   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-420
+2018-04-12     CHG1000334621    Richard Coppin     Edmore Chagwedera  To add more context in the code ACMD Global plus OIS
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Basis_Spread_Curve') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Basis_Spread_Curve' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Basis_Spread_Curve.OpenFile',@1_path{'F:\'},@2_FileName{'MR_Basis_Spread_Curve.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Basis_Spread_Curve.Write',@1_path{'F:\'},@2_FileName{'MR_Basis_Spread_Curve.csv'},uyc)     'BuildConfirmation'
+Into
+    macro
+from    
+    Context c,
+    ContextLink cl,
+    YieldCurve yc,
+    YieldCurve uyc
+where  
+    c.name in ('ACMB Global','OIS')
+and c.seqnbr = cl.context_seqnbr
+and cl.name = yc.yield_curve_name
+and cl.mapping_type in ('Val Group','Instrument')
+and yc.yield_curve_type not in ('Benchmark','Spread','Composite')
+and yc.ir_format not in ('Hazard Rate Curve')
+and yc.underlying_yield_curve_seqnbr = uyc.seqnbr
+
+Select
+    ael_s(,'MR_Basis_Spread_Curve.ClearList')    'Clear',
+    s.srdnbr
+into temp
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Basis_Spread_Curve.Write2',@1_path{'F:\'},@2_FileName{'MR_Basis_Spread_Curve.csv'})     'BuildConfirmation'
+Into
+    macro
+from    
+    Context c,
+    ContextLink cl,
+    YieldCurve yc
+where  
+    c.name in ('ACMB Global','OIS')
+and c.seqnbr = cl.context_seqnbr
+and cl.name = yc.yield_curve_name
+and cl.mapping_type in ('Val Group','Instrument')
+and yc.ir_format not in ('Hazard Rate Curve')
+and yc.yield_curve_type = 'Instrument Spread'
+and yc.risk_type = 'Interest Rate'
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select 
+	* 
+From 
+	Macro
+Where 
+	Process In ('Create File','Close File')
+
+

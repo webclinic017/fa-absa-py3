@@ -1,0 +1,69 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Average_Balances') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Average_Balances' and p.type = 'SQL Query' 
+
+/*
+Date        CR Number   Who             Issue#      What
+2008-12-09  4601        Heinrich Cronje             Created
+2009-09-04              Heinrich Cronje 1920        Added Credit Limit Column
+2014-02-28              Godfrey Dire                Added BarCap_SMS_CP_SDSID Column
+2019-06-12              Snowy Mabilu                Changed the rates methods to use Rates provided by Front Arena
+Description
+
+Calculate the average balance on call account
+and the average rate on call accounts.
+*/
+
+select
+    @3_Date{Today}  'Date'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr')  'Portfolio',
+    t.status    'Status',
+    add_info(t,'Funding Instype')   'Funding_Instype',
+    ael_f(,'Call_Average_Balances.averageBalance',t.trdnbr,m.Date)  'Average_Balance',
+    ael_f(,'Call_Average_Balances.totalInterest',t.trdnbr,m.Date)  'Interest',
+    ael_f(,'SAIT_LandingArea_Functions.CreditLimitCP',t) 'Credit_Limit_CP',
+    add_info(p,'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+    add_info(p,'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    macro m,
+    party p
+where
+        t.insaddr = i.insaddr
+    and match_filter(t, @1_Filter{Call_All_Trades;tradefilter.fltid}, @2_TrdNos{})
+    and i.exp_day >= m.Date
+    and t.counterparty_ptynbr = p.ptynbr
+
+select
+    t.Trdnbr,
+    t.Insid,
+    t.Counterparty,
+    t.BarCap_SMS_CP_SDSID,
+    t.BarCap_SMS_LE_SDSID,
+    t.Portfolio,
+    t.Status,
+    t.Funding_Instype,
+    t.Average_Balance,
+    t.Interest,
+    ael_f(,'Call_Average_Balances.interestRate',m.Date,t.Trdnbr)  'Rate',
+    t.Credit_Limit_CP
+from
+    temp t,
+    macro m

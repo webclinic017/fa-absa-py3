@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+/*2007/12/11 changed by D Wentzel to allow the 6m point to come through as 6m and not 6y*/
+
+select
+ael_i(p,'ASQL_log','DW_SACD_ERM_Constants') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'DW_SACD_ERM_Constants' and p.type = 'SQL Query' 
+
+
+select
+    party.ptyid 'Party',
+    add_info(party, 'CDSQuanto1') 'CDSQuanto1',
+    add_info(party, 'CDSQuanto2') 'CDSQuanto2',
+    add_info(party, 'CDSQuanto3') 'CDSQuanto3',
+    @Date{today}                               'DATADATE' 
+    
+
+from
+    YieldCurve y,
+    YCAttribute a,
+    YCSpread s,
+    YieldCurvePoint p,
+    Party party
+    
+   
+    
+where
+    y.seqnbr = a.yield_curve_seqnbr
+and a.seqnbr = s.attribute_seqnbr
+and y.seqnbr = p.yield_curve_seqnbr
+and point_seqnbr = p.seqnbr
+and a.issuer_ptynbr = party.ptynbr
+and y.yield_curve_name = @YieldCurveName{CDIssuerCurve_HR;yieldcurve.yield_curve_name}
+    
+    
+group by party.ptyid
+
+
+

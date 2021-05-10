@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FDeliverableLinkAndTrades:impliedFlatRepoRate = tradedInstrument :* "impliedFlatRepoRate" [priceSource, ctdFactor, ctd = instrument];
+[Fixed Income Pricing and Risk]FInstrument:impliedFlatRepoRate = shunt((nil <> repoCurvesInTheoreticalPrice) and implyValid, 
+  false->nil, 
+  true->imply(flatRepoRate, theoreticalPriceFromFlatRepoRate, marketPrice, implyPrecision, -0.99, 1.0, implyMaxIterations));
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedFlatRepoRate = instrument :* "impliedFlatRepoRate" [marketPrice];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedFlatRepoRate = nil;

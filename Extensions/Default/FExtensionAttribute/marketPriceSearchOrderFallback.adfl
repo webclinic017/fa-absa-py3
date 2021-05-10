@@ -1,0 +1,7 @@
+#grouping: aef base/price retrieval
+#grouping: setup/price retrieval
+
+[Default]FObject:marketPriceSearchOrderFallback = nilObject:marketPriceSearchOrderFallback;
+[Default]FUndefinedObject:marketPriceSearchOrderFallback = select(useValuationParameterPriceType, 
+  true->[valuationParameterPriceType], 
+  false->["EquilibriumPrice", valuationParameterPriceType, "LastPriceIfWithinSpread", "SpreadAveragePrice", "AverageBidPrice", "AverageAskPrice", "LastPrice", "ClosePrice"]);

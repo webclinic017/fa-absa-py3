@@ -1,0 +1,5 @@
+[Securities Lending]FMultiInstrumentAndTrades:exposureMarginPerCounterparty = select(grouper == "Counterparty", 
+  default->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->thresholdExposurePerCounterparty - exposurePerCounterpartyNormalized));

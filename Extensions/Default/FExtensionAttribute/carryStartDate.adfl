@@ -1,0 +1,10 @@
+[Default]FBuySellBack:carryStartDate = instrumentSpotDate;
+[Default]FCertificate:carryStartDate = underlying:carryStartDate;
+[Default]FCfd:carryStartDate = underlying:carryStartDate;
+[Default]FConvertible:carryStartDate = underlying:carryStartDate;
+[Default]FDerivative:carryStartDate = select(isFXDerivative, 
+  true->object.CarryStartDateFX(underlying, valuationStartDateTime), 
+  false->select(isForwardStarting, 
+    true->underlying :* "carryStartDate" [valuationStartDateTime], 
+    false->underlying:carryStartDate));
+[Default]FInstrument:carryStartDate = object:forwardValuationDate [forwardPriceDate = valuationStartDateTime, exposeForwardValuationTargets = false];

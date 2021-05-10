@@ -1,0 +1,113 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAIT_SDSID_LiveDeals') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAIT_SDSID_LiveDeals' and p.type = 'SQL Query' 
+
+/* **************************************** */
+ 
+select
+    p.ptynbr,
+    p.ptyid,
+    add_info(p, 'BarCap_SMS_CP_SDSID')  'SDS'
+into 
+    sds_pty
+from
+    Party p
+
+/* **************************************** */
+
+select
+    t.trdnbr                            'TradeNumber',
+    t.execution_time                    'ExecutionTime',
+    t.value_day                         'ValueDate',
+    i.exp_day                           'ExpiryDate',
+    i.insid                             'InstrumentName',
+    i.instype                           'InstrumentType',
+    i.und_instype                       'UnderlyingType',
+    i.paytype                           'InstrumentPayType',
+    t.status                            'Status',
+    display_id(t, 'prfnbr')             'Portfolio',
+    display_id(t, 'acquirer_ptynbr')    'Acquirer',
+    t.quantity                          'Quantity',
+    nominal_amount(t, t.value_day)      'Nominal',
+    p.ptyid                             'CounterpartyName',
+    p.fullname                          'CounterpartyFullName',
+    p.city                              'City',
+    p.country                           'Country',
+    s.SDS                               'SDSID',
+    add_info(t, 'Funding Instype') ~= '' 
+        ? add_info(t, 'Funding Instype')
+        : add_info(t, 'MM_Instype') ~= '' 
+            ? add_info(t, 'MM_Instype') : '' 'MM_Instype'
+
+into
+    temp
+
+from
+    trade t,
+    party p,
+    instrument i,
+    sds_pty s
+    
+where
+    match_filter(t, @1_Filter{DoddFrank_Trades;tradefilter.fltid})
+and time_to_day(t.execution_time) >= '2012-10-01'
+and t.execution_time >= @2_StartDate{2014-05-01}
+and t.execution_time <= @3_EndDate{2014-05-31}
+and t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and p.ptynbr = s.ptynbr
+and i.instype not in ('Bill','Bond','BuySellback','CLN','Curr','Deposit', 'FRN',
+                    'IndexLinkedBond', 'Portfolio Swap', 'Repo/Reverse', 'SecurityLoan', 'Stock')
+and s.SDS in (40267737,41169502,41078047,41260340,10400898,40009820,40193348,40688730,40463524,41417880,
+              40387977,40011902,40486701,10301708,40011893,40013135,40011896,40014102,40011910,40033107,
+              41328032,40486701,40011913,40011906,40018359,10201719,10201719,40013605,40013604,40013601,
+              41366294,41042452,10000659,10201716,40587520,40216949,10406438,40957194,40478425,10401057,
+              10009289,40481823,10451676,10001646,10100662,41114871,41188020,10301676,10007767,10401699,
+              40185494,40185494,40012531,40012515,40012555,40478669,41249485,40012515,40012549,40113020,
+              40117979,40113273,10006672,40012520,10001700,40169948,10055768,10050742,10351700,10054734,
+              10350978,40227022,80007815,10406847,41494557,40609206,10007702,40013216,40316317,10351090,
+              40138217,40598154,40109963,40309723,40006553,40941298,40261356,10350648,10350648,10251673,
+              40004971,10055556,10105556,40138278,10259448,40276593,41165210,41303442,40319903,40421175,
+              40421175,10251694,40018474,40012412,10251694,40013142,40012401,40013151,40012415,40015022,
+              40018474,40012412,40012432,40012428,40012422,40012432,40020684,10251662,10301650,40900702,
+              41263288,40948853,40891910,41254125,10455148,10151188,10101189,40014033,40486662,40119782,
+              40771724,40020265,40157400,10301468,10301469,10301469,41366696,40361007,10401633,40372205,
+              41336307,40478486,41353466,10451646,40170988,10457844,10106282,10106282,40684428,41334790,
+              40486606,10201616,40486783,40328990,10051618,10106001,40014776,41086199,40153632,10459464,
+              10156691,10301619,41102967,10351715,40014732,41069333,40014739,10151649,10009291,40731330,
+              40886031,10101689,40368439,10257912,40032499,40014451,40013191,40603521,10401660,10101714,
+              41415471,40195267,40015283,40892266,40742139)
+
+
+/* **************************************** */
+
+select
+    t.TradeNumber,
+    t.ExecutionTime,
+    t.ValueDate,
+    t.ExpiryDate,
+    t.InstrumentName,
+    t.InstrumentType,
+    t.UnderlyingType,
+    t.InstrumentPayType,
+    t.Status,
+    t.Portfolio,
+    t.Acquirer,
+    t.Quantity,
+    t.Nominal,
+    t.CounterpartyName,
+    t.CounterpartyFullName,
+    t.City,
+    t.Country,
+    t.SDSID
+    
+from
+    temp t
+
+where
+    t.InstrumentPayType ~= 'Future'
+and t.MM_Instype ~= 'NCD'
+order by t.CounterpartyName, t.InstrumentType, t.ValueDate

@@ -1,0 +1,6 @@
+[Default]FCashFlowInstrument:pLCombinationLegInformationsForMoveValue = select(excludePlLegInformations, 
+  true->legs :* "nilObject", 
+  false->pLLegInformationsForMoveValue);
+[Default]FCombInstrMap:pLCombinationLegInformationsForMoveValue = instrument:pLCombinationLegInformationsForMoveValue [priceSource, includeLegInformationsFromCustomValuedInstrument];
+[Default]FCombination:pLCombinationLegInformationsForMoveValue = (instrumentMaps :* "pLCombinationLegInformationsForMoveValue" [priceSource, includeLegInformationsFromCustomValuedInstrument]).Flatten;
+[Default]FInstrument:pLCombinationLegInformationsForMoveValue = nil;

@@ -1,0 +1,6 @@
+#grouping: greek perimeters/price greek perimeters
+#grouping: risk factors
+
+[Core Pricing]FOption:rangeAccrualCapVolatility = select(isForwardStarting and useForwardVolatility, 
+  default->arrayAny(rangeAccrualCapSpotToExpiryVolatility), 
+  true->arrayAny(rangeAccrualForwardStartCapVolatility));

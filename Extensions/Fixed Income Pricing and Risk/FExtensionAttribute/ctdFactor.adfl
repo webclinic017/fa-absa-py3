@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FDeliverableLink:ctdFactor = object.ConversionFactor;
+[Fixed Income Pricing and Risk]FDeliverableLinkAndTrades:ctdFactor = deliverableLink:ctdFactor;
+[Fixed Income Pricing and Risk]FFuture:ctdFactor = select(isFutureOnNotional, 
+  true->select(isAUDF, 
+    true->1.0, 
+    false->select(nil == deliverableLink, 
+      true->1.0, 
+      false->deliverableLink.ConversionFactor)), 
+  false->nan);
+[Fixed Income Pricing and Risk]FInstrument:ctdFactor = nan;
+[Fixed Income Pricing and Risk]FLeg:ctdFactor = nan;

@@ -1,0 +1,37 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Break_Event_Report') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Break_Event_Report' and p.type = 'SQL Query' 
+
+select distinct
+    cp.ptyid 'Counterparty',
+    t.trdnbr 'Trade Number',
+    e.day 'Break Event Date',
+    time_to_day(t.time) 'Trade Date',
+    i.exp_day 'Ins Expiry Day',
+    t.value_day 'Trade Value Day',
+    i.instype 'Instrument Type',
+    i.insid 'Instrument Name',
+    t.status 'Trade Status'
+from
+    instrument i,
+    trade t,
+    exerciseevent e,
+    party cp
+where
+    i.insaddr = e.insaddr
+and i.insaddr = t.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and e.type = 'Break'
+and t.status not in ('Void', 'Simulated')
+and e.day >= date_add_delta(FIRSTDAYOFMONTH, 0, 1, 0)
+and e.day < date_add_delta(FIRSTDAYOFMONTH, 0, 4, 0)
+and i.exp_day >= TODAY
+and ('Any' in (@CounterParty{Any;}) or cp.ptyid in (@CounterParty{;party.ptyid}))
+and ('Any' in (@ValueDay{Any;}) or t.value_day in (@ValueDay{;}))
+and ('Any' in (@BreakDay{Any;}) or e.day in (@BreakDay{;}))
+and ('Any' in (@InsExpiryDay{Any;}) or i.exp_day in (@InsExpiryDay{;}))
+and ('Any' in (@TradeNumber{Any;}) or t.trdnbr in (@TradeNumber{;}))
+and ('Any' in (@TradeDate{Any;}) or time_to_day(t.time) in (@TradeDate{;}))

@@ -1,0 +1,446 @@
+/*------------------------------------------------------------------
+    MO_CD_Cashflows
+
+    Purpose             : Correct the duplication of additional payments
+    Department and Desk : PCG SM Credit Derivatives
+    Requester           : Ameet Lalloo
+    Developer           : Herman Hoon
+    CR Number           : 221242
+
+    Purpose             : Add premiums and additional payments to the report
+    Department and Desk : PCG SM Credit Derivatives
+    Requester           : Ameet Lalloo
+    Developer           : Herman Hoon
+    CR Number           : 217617
+    
+    Purpose             : [Add column CP-Ref on the report][Modified the report to calculate Nominals correctly for Repo/Reverse and added status column]
+    Department and Desk : Ops - Derivatives
+    Requester           : Christo Davids
+    Developer           : Tshepo Mabena
+    CR Number           : [541495][620149]
+    
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG
+------------------------------------------------------------------*/ 
+select 
+  ael_i(p,'ASQL_log','MO_CD_Cashflows') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'MO_CD_Cashflows' and p.type = 'SQL Query' 
+
+/*Edit of .Maint/PayCal/Interest Comb CDS Louw 21 Jul 08*/
+
+
+/*------------------------------------------------------------------
+	FX Rates, ZAR quoted curr
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	@4_EndDay{today} = today ? used_price(hc, @4_EndDay{today}, curr.insid) :
+		mtm_price(hc, @4_EndDay{today}, curr.insid)		'fxRepDay'
+INTO
+	fxrates 
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+    hc.insid = @5_HomeCurr{ZAR;instrument.insid where instype='Curr'}
+AND curr.instype = 'Curr'
+
+
+/*------------------------------------------------------------------
+  ------------------------------------------------------------------
+    NON-COMBINATIONS TRADES
+------------------------------------------------------------------
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+    Cashflows
+------------------------------------------------------------------*/
+select
+	t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)       'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'CashFlow'                      'PayType',
+    cf.pay_day                      'PayDay',
+	display_id(l,'curr')            'Curr',
+	(projected_cf(cf,,,display_id(l,'curr'))*t.quantity)    'Payment',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	t.time							'TradeTime',
+	1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+    t.your_ref                      'CPRef',
+    t.status 	
+into 
+    temp
+from
+    instrument i,
+    trade t,
+    leg l,
+    cashflow cf,
+    fxrates fx,
+    instrument curr
+where
+    cf.pay_day between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and cf.legnbr = l.legnbr
+and l.type ~= 'Credit Default'
+
+and i.instype not in('Future/Forward','Option','Warrant')
+
+and	curr.instype = 'Curr'
+and fx.curr = curr.insid
+and	curr.insaddr= l.curr
+and match_filter(t, @1_Filter{CredDer_All_Cashflow;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+    Premiums
+------------------------------------------------------------------*/
+select
+	t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)       'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'Premium'                       'PayType',
+    t.value_day                     'PayDay',
+	display_id(t,'curr')            'Curr',
+	t.premium                       'Payment',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	t.time							'TradeTime',
+	1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+    t.your_ref                      'CPRef',
+    t.status 	 	
+into 
+    temp
+from
+    instrument i,
+    trade t,
+    leg l,
+    fxrates fx,
+    instrument curr
+where
+    t.value_day between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and l.type ~= 'Credit Default'
+
+and i.instype not in('Future/Forward','Option','Warrant')
+
+and	curr.instype = 'Curr'
+and fx.curr = curr.insid
+and	curr.insaddr= t.curr
+and match_filter(t, @1_Filter{CredDer_All_Cashflow;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+	Cashflows for Currency trades - FX Swap and FX Cash
+------------------------------------------------------------------*/
+select
+	t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)       'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'Premium'                       'PayType',
+    t.value_day                     'PayDay',
+	display_id(t,'insaddr')         'Curr',
+	t.quantity                      'Payment',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	t.time							'TradeTime',
+	1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+	t.your_ref                      'CPRef',
+	t.status 	
+into
+	temp
+from
+    instrument i,
+    trade t,
+    fxrates fx,
+    instrument curr
+where
+    t.value_day between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and i.instype = 'Curr'
+
+and	curr.instype = 'Curr'
+and fx.curr = curr.insid
+and	curr.insaddr= t.insaddr
+and match_filter(t, @1_Filter{CredDer_All_Cashflow;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+    Additional Payments
+------------------------------------------------------------------*/
+select
+	t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)      'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'Additional Payment'            'PayType',
+    a.payday                        'PayDay',
+	display_id(a,'curr')            'Curr',
+	a.amount                        'Payment',
+    display_id(t,'counterparty_ptynbr')         'Counterparty',
+	t.time							'TradeTime',
+	1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+    t.your_ref                      'CPRef',
+    t.status 		
+into 
+    temp
+from
+    instrument i,
+    trade t,
+    leg l,
+    payment a,
+    user u,
+    fxrates fx,
+    instrument curr
+where
+    a.payday between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and	t.creat_usrnbr = u.usrnbr
+and l.insaddr = i.insaddr
+and l.type ~= 'Credit Default'
+and a.trdnbr = t.trdnbr
+
+and i.instype not in('Future/Forward','Option','Warrant')
+
+and	curr.instype = 'Curr'
+and fx.curr = curr.insid
+and	curr.insaddr= a.curr
+and match_filter(t, @1_Filter{CredDer_All_Cashflow;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+  ------------------------------------------------------------------ 
+    COMBINATIONS TRADES
+------------------------------------------------------------------
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+    Cashflows
+------------------------------------------------------------------*/
+select
+	t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)      'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'CashFlow'                      'PayType',
+    cf.pay_day                      'PayDay',
+	display_id(l,'curr')            'Curr',
+	(projected_cf(cf,,,display_id(l,'curr'))*t.quantity / i.index_factor * cl.weight)   'Payment',
+	display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	t.time							'TradeTime',
+    1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	MemIns.instype                  'InsType',
+	MemIns.insid                    'UndIns',
+	t.your_ref                      'CPRef',
+	t.status 	
+into 
+    temp
+from
+    instrument i,
+    trade t,
+    leg l,
+    cashflow cf,
+    fxrates fx,
+    instrument curr,
+    combinationlink cl,
+    Instrument MemIns
+where
+    cl.owner_insaddr = I.insaddr
+and MemIns.InsAddr = cl.member_insaddr
+and l.insaddr =  MemIns.InsAddr    
+and cf.pay_day between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and l.insaddr = MemIns.insaddr
+and cf.legnbr = l.legnbr
+and l.type ~= 'Credit Default'
+and i.instype  in ('Combination')
+
+and	curr.instype = 'Curr'
+and	fx.curr = curr.insid
+and	curr.insaddr= l.curr
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+    Premiums
+------------------------------------------------------------------*/
+select distinct
+    t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)       'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'Premium'                       'PayType',
+    t.value_day                     'PayDay',
+	display_id(t,'curr')            'Curr',
+	t.premium                       'Payment',
+	display_id(t,'counterparty_ptynbr')       'Counterparty',
+	t.time							'TradeTime',
+    1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+	t.your_ref                      'CPRef',
+	t.status 	
+into  
+    temp
+from
+    instrument i,
+    trade t,
+    fxrates fx,
+    instrument curr
+where
+    t.value_day between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and i.instype  in ('Combination')
+
+and	curr.instype = 'Curr'
+and	fx.curr = curr.insid
+and	curr.insaddr= t.curr
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+    Additional Payments
+------------------------------------------------------------------*/
+select distinct
+    t.trdnbr                        'TrdNo',
+    i.insid                         'Instrument',
+	i.instype						'Type',
+	display_id(t,'prfnbr')			'Portfolio',
+    i.instype = 'Repo/Reverse'? t.quantity*i.ref_value : (t.quantity*i.contr_size)       'Nom',
+    @3_StartDay                     'StartDay',
+    @4_EndDay                       'EndDay',
+    'Additional Payment'            'PayType',
+    a.payday                        'PayDay',
+	display_id(a,'curr')            'Curr',
+	a.amount                        'Payment',
+	display_id(t,'counterparty_ptynbr')       'Counterparty',
+	t.time							'TradeTime',
+    1/fx.fxRepDay					'fxRepDay',
+	i.extern_id1                    'extID1',
+	i.instype                       'InsType',
+	i.insid                         'UndIns',
+	t.your_ref                      'CPRef',
+	t.status 	
+into  
+    temp
+from
+    instrument i,
+    trade t,
+    payment a,
+    fxrates fx,
+    instrument curr
+where
+    a.payday between @3_StartDay{today} and @4_EndDay{today}
+and i.insaddr = t.insaddr
+and i.instype  in ('Combination')
+and t.trdnbr = a.trdnbr
+
+and	curr.instype = 'Curr'
+and	fx.curr = curr.insid
+and	curr.insaddr= a.curr
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+    Final Data
+------------------------------------------------------------------*/
+select 
+    TrdNo,
+    Instrument,
+    extID1          'Ins ID',
+    Type            'Ins Type',
+    UndIns          'CF Ins ID',
+    InsType         'CF Ins Type',
+    Portfolio,
+    Counterparty,
+    (Nom)           'Nominal',
+    StartDay,
+    EndDay,
+    PayType,
+    PayDay,
+    Curr,
+    sum(Payment)            'Payment',
+    sum(Payment*fxRepDay)   'HPayment',
+    TradeTime,
+    CPRef,
+    status 	
+from 
+    temp
+where 
+    sum(Payment)~= 0
+order by 
+    1,11,4,3
+
+union
+
+select
+    TrdNo,
+    Instrument,
+    extID1          'Ins ID',
+    Type            'Ins Type',
+    UndIns          'CF Ins ID',
+    InsType         'CF Ins Type',
+    Portfolio,
+    Counterparty,
+    (Nom)           'Nominal',
+    StartDay,
+    EndDay,
+    PayType,
+    PayDay,
+    Curr,
+    sum(Payment)            'Payment',
+    sum(Payment*fxRepDay)   'HPayment',
+    TradeTime,
+    CPRef,
+    status 	
+from 
+    temp
+where 
+    sum(Payment)~= 0
+group by 
+    1
+order by 
+    1,11,4,3
+

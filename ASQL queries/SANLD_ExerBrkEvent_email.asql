@@ -1,0 +1,52 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_ExerBrkEvent_email') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_ExerBrkEvent_email' and p.type = 'SQL Query' 
+
+
+
+/*  SC Email sent to specific recipients indicating trade exercise/break dates according to specified trade filter 2007-09-18  */
+
+
+
+select
+	@Date{today}				'Date',
+	tf.fltid				'tf',
+	@User1{herman.levin@absa.co.za;}	'User1',
+	@User2{etiennes@absa.co.za;}		'User2',
+	@User3{chris.paizis@absa.co.za;}    'User3',
+	@User4{rochellemcc@absa.co.za;}		'User4',
+	@User5{leanieo@absa.co.za;}		    'User5',
+	@User6{paulsid@absa.co.za;}		    'User6',
+	@User7{tracy.spence@absa.co.za;}	'User7',
+	@User8{Eugeneb@absa.co.za;}     	'User8'
+
+into
+	temp
+
+from
+	TradeFilter tf
+	
+
+where
+	tf.fltid = @TradeFilter{IR_Opts_OPEN;Tradefilter.fltid}	
+
+	
+
+select
+	t.Date,
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User1) 'User1', 
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User2) 'User2',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User3) 'User3',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User4) 'User4',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User5) 'User5',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User6) 'User6',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User6) 'User7',
+	ael_s(,'NLD_ExerBrkEvent_email.CheckInstruments', t.tf, t.Date, t.User6) 'User8'
+from
+	temp t
+
+	

@@ -1,0 +1,16 @@
+[Core Pricing]FInstrumentAndTrades:domesticOrRepoCurveDayCountMethod = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultDayCount, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageDayCount), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageDayCount);
+[Core Pricing]FOrderBook:domesticOrRepoCurveDayCountMethod = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultDayCount, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageDayCount), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageDayCount);
+[Core Pricing]FPriceAggregate:domesticOrRepoCurveDayCountMethod = priceFeed:domesticOrRepoCurveDayCountMethod;
+[Core Pricing]FPriceFeed:domesticOrRepoCurveDayCountMethod = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultDayCount, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageDayCount), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageDayCount);

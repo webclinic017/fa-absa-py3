@@ -1,0 +1,11 @@
+[Convertible Pricing And Risk]FCashFlowInstrument:bondOnlyValue = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->select(bondFloorSupported, 
+    true->bondOnlyValueAsQuote, 
+    false->nil));
+[Convertible Pricing And Risk]FInstrument:bondOnlyValue = nil;
+[Convertible Pricing And Risk]FInstrumentAndTrades:bondOnlyValue = openInstrumentOrInstrument :* "bondOnlyValue" [priceSource, filterCurrency];
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:bondOnlyValue = nil;
+[Convertible Pricing And Risk]FOrderBook:bondOnlyValue = instrument :* "bondOnlyValue" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Convertible Pricing And Risk]FPriceAggregate:bondOnlyValue = priceFeed:bondOnlyValue [priceSource];
+[Convertible Pricing And Risk]FPriceFeed:bondOnlyValue = instrument :* "bondOnlyValue" [priceSource, quotation] * fxInstrumentToPriceFeed;

@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:underlyingQuotation = select(underlying, 
+  nil->nil, 
+  default->select(isSwaption or isSwapFuture, 
+    true->collapse(couponQuotation), 
+    false->underlying:quotation));

@@ -1,0 +1,19 @@
+select
+    'PriceDefinition',
+    p.defnbr,
+    i.insid,
+    pa.ptyid,
+    i.instype,
+    p.data[0],
+    p.data[1],
+    p.data[2]
+
+    
+from
+    PriceDefinition p,
+    Instrument i,
+    Party pa
+where
+    i.insaddr = p.insaddr
+and pa.ptynbr = p.source_ptynbr
+order by 2

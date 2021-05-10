@@ -1,0 +1,72 @@
+/*
+**************Developments******************
+
+Purpose               : FX traders require an upload of current FX Exotic instrument prices
+                        from CRE into Front Arena. This script selects currently active
+                        Exotic FX Trades and extracts required details so the associated
+                        instruments can be priced in CRE.
+Department and Desk   : IT Pricing and Risk
+Requester             : Matthew Berry
+Developer             : Simon Grest
+CR Number             : xxxxxxx
+Date                  : xxxxxxx
+
+Date                		: 2012-07-26
+Purpose             		: Updated query to include instrument paytype
+Department and Desk 	    : IT pricing and Risk - CRE FX  
+Requester           		: Matthew Berry 
+Developer           		: Matthew Berry 
+CR Number           		: CHNG0000352795
+
+
+Date                		: 2012-08-16
+Purpose             		: Updated query where clause to include instrument paytype
+Department and Desk 	    : IT pricing and Risk - CRE FX  
+Requester           		: Matthew Berry 
+Developer           		: Paul Jacot-Guillarmod 
+CR Number           		: TBC
+**********************************************************************************/
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FXExoticTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where
+p.name = 'FXExoticTrades' and p.type = 'SQL Query'
+
+select recaddr 'prfnbr'
+into IncludePofo
+from AdditionalInfoSpec ais, AdditionalInfo ai
+where ais.field_name = 'BarCap_TMS_Feed'
+and ai.addinf_specnbr = ais.specnbr
+and ai.value = 'Production'
+
+select i.insaddr, MAX(t.trdnbr) 'trdnbr'
+into MostRecentTrade
+from trade t, IncludePofo p, instrument i
+where t.prfnbr = p.prfnbr
+and t.status not in ('Void', 'Simulated')
+and i.insaddr = t.insaddr
+and i.instype = 'Option'
+and i.und_instype = 'Curr'
+and (i.digital = 'Yes' or i.exotic_type ~= 'None' or i.paytype = 'Future')
+and i.exp_day + 7 > today
+group by i.insaddr
+
+select i.insid,
+       m.trdnbr,
+       display_id(t, 'prfnbr') 'prfid',
+       display_id(i, 'curr') 'curr',
+       t.quantity,
+       i.contr_size,
+       i.exp_day,
+       e.barrier_crossed_status,
+       display_id(i, 'quotation_seqnbr') 'Quotation Type',
+       i.mtm_from_feed 'MTM from Feed',
+       i.paytype
+from MostRecentTrade m, Trade t, Instrument i, Exotic e
+where t.trdnbr = m.trdnbr
+and i.insaddr = m.insaddr
+and i.insaddr *= e.insaddr
+order by i.mtm_from_feed, i.exp_day, i.insid

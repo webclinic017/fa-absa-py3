@@ -1,0 +1,10 @@
+[Brokerage Risk]FCurrency:initialMarginSimpleModel = currencyZero;
+[Brokerage Risk]FDeposit:initialMarginSimpleModel = currencyZero;
+[Brokerage Risk]FInstrument:initialMarginSimpleModel = switch(isZeroMargin, 
+  true->currencyZero, 
+  default->switch(initialMarginCondition <> nil, 
+    true->switch(initialMarginCurve.CurveType, 
+      "Percentage"->initialMarginCurve.MinValue / 100.0 * abs(object:exposureValue [portfolio, priceSource, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault]), 
+      "Per unit"->convertToCurrency(denominatedvalue(initialMarginCurve.MinValue, initialMarginCurve.Currency, , ) * abs(marginPosition), initialMarginFxRates, displayCurrencySymbol), 
+      default->nil), 
+    default->abs(object:exposureValue [portfolio, priceSource, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault])));

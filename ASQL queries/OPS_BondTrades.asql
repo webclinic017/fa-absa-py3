@@ -1,0 +1,35 @@
+select
+    t.trdnbr           'Trade',
+    t.time             'Trade Time',
+    t.value_day        'Value Day',
+    t.quantity*1000000 'Quantity',
+    p.prfid            'Portfolio',
+    mirror_p.prfid     'CR Portfolio',
+    i.insid            'Instrument',
+    i.instype          'Type',
+    acq.ptyid          'Acquirer',
+    ctpy.ptyid         'Counterparty'
+from
+    Trade t,
+    Trade mirror_t,
+    Instrument i,
+    Portfolio p,
+    Portfolio mirror_p,
+    Party ctpy,
+    Party acq
+where
+        t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and t.counterparty_ptynbr = ctpy.ptynbr
+    and t.acquirer_ptynbr = acq.ptynbr
+    and t.mirror_trdnbr *= mirror_t.trdnbr
+    and mirror_t.prfnbr *= mirror_p.prfnbr
+    and (
+        i.insid = @1_Bond{;Instrument.insid where instype = 'Bond'} or 
+        i.insid = @2_IndexLinkedBond{;Instrument.insid where instype = 'IndexLinkedBond'}
+    )
+    and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+    and i.exp_day >= to_date(TODAY)
+    and match_portfolio(t, 'ABSA BANK LTD')
+    and t.value_day >= to_date(@3_StartValueDay{'01/06/2013'})
+    and t.value_day <= to_date(@4_EndValueDay{Yesterday})

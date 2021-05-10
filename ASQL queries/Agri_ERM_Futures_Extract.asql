@@ -1,0 +1,49 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Agri_ERM_Futures_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Agri_ERM_Futures_Extract' and p.type = 'SQL Query' 
+
+/*
+Query	:	Agri_ERM_Futures_Extract
+Purpose	:	Show all future/forward trades in trade filter 'SAFEX_Agris_Portfolio'.
+Logic	:	Straightforward.
+History	:	
+	2001/04/01 - jg - initial query
+	2002/06/04 - ap - point portfolio to tarde filter
+	2002/06/04 - ap - conversion factors based on individual portfolio definition	
+	2003/10/27 - Russel Webber - Amended selection criteria to always return trades whenever
+				 possible. Removed unnecessary table joins. Idea is to rather
+				 have trades with missing values than exclude trades.
+	2003/10/28 - Russel Webber - Modified to use a macro for user selection of the trade
+				 filter.
+	2007/11/27 - Kepler Klynsmith - added CBOT trades			 
+    2010/03/01 - Rishaan Ramnarain - added filter and WTI trades to filter and condition with pay type = Future 
+CR	:	 247369 		 
+*/
+
+select
+	t.trdnbr			                        'Deal Reference #',
+	display_id(t, 'updat_usrnbr')	            'Trader',
+	display_id(t, 'counterparty_ptynbr')        'Counter Party',
+	t.acquire_day			                    'Deal Date',
+	i.exp_day			                        'Expiry Date',
+	i.insid				                        'Instrument',
+	t.price				                        'Deal Price',
+	mtm_price(i)			                    'Market Price',
+	nominal_amount(t) > 0 ? 'B' : 'S'           'Buy/Sell',
+	t.quantity			                        'No of Contracts',
+	today			                            'Last_Update',
+	display_id(t,'prfnbr')  	                'Profit Centre',
+	t.text1				                        'Principal',
+	mtm_price(i) * t.quantity * i.contr_size    'MtM',
+	display_id(t,'prfnbr')		                'Sub Account'
+	
+from
+	Instrument i,
+	Trade t
+	
+where
+    match_filter(t, @TradeFilter{Agri_ERM_Futures_Filter; tradefilter.fltid})
+and i.insaddr = t.insaddr

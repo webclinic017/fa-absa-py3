@@ -1,0 +1,31 @@
+[UDMC Templates]FObject:udmcWorstOfFXCallsAndPutsPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for Worst of calls and puts option
+#
+# INTERPRETATION
+# Option with payment equal to the worst in a set of options. Pays min(call_1, call_2, ..., put_1, put_2, ...) where 
+# call_i = amount[i]*max(settlement[i] - strikePrices[i], 0) and put_i = |amount[i]|*max(strikePrices - settlement[i], 0).
+#
+# DEFINITION
+# strikePrices: the strike price for each of the assets, positive for calls and negative for puts. Entered as 'Average strike' exotic events;
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) strikePrices;
+
+#PROCESS
+process matrix(double) S;
+
+#LOCAL VARIABLES
+matrix(double) absStrikePrices = strikePrices .* ((2.0 * (strikePrices > 0.0)) - 1.0);
+matrix(double) strikeRates = (1.0 + zeros(rows(strikePrices), 1))./absStrikePrices;
+double optionValue = 0.0;
+
+#MAIN LOOP
+optionValue = min(max(strikePrices.*(S[:,-1] - strikeRates), 0.0));
+
+#CASHFLOW
+cashFlow(0, 0.0 + optionValue);
+
+...

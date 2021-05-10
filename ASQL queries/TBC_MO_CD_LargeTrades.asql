@@ -1,0 +1,57 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_MO_CD_LargeTrades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_MO_CD_LargeTrades' and p.type = 'SQL Query' 
+ 
+ 
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	@2_EndDay{today} = today ? used_price(hc, @2_EndDay{today}, curr.insid) :
+		mtm_price(hc, @2_EndDay{today}, curr.insid)		'fxRepDay'
+
+
+
+INTO
+	fxrates 
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	    hc.insid = @3_HomeCurr{ZAR;instrument.insid where instype='Curr'}
+	AND curr.instype = 'Curr'
+	
+	
+select 
+
+t.trdnbr,
+i.insid 'Ins',
+i.instype   'Instype',
+/*1/fx.fxRepDay,*/
+nominal_amount(t)*(1/fx.fxRepDay)   'Nominal ZAR',
+/*display_id(i,'curr')    'Curr',*/
+maturity_date(i)    'Expiry',
+pty.ptyid 'Ctpy'
+
+
+
+from
+trade   t,
+instrument i,
+instrument curr,
+party pty,
+fxrates fx
+
+
+where
+match_filter(t,@1_Filter{Louw_temp1;tradefilter.fltid})
+
+and t.insaddr = i.insaddr
+and t.counterparty_ptynbr = pty.ptynbr
+and nominal_amount(t)*(1/fx.fxRepDay) > 450000000
+
+and	curr.instype = 'Curr'
+and fx.curr = curr.insid
+and	curr.insaddr= i.curr

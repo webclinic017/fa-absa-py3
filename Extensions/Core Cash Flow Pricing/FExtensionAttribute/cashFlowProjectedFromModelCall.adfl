@@ -1,0 +1,9 @@
+[Core Cash Flow Pricing]FAbstractReset:cashFlowProjectedFromModelCall = instrument:cashFlowProjectedFromModelCall;
+[Core Cash Flow Pricing]FCashFlowInstrument:cashFlowProjectedFromModelCall = select(onlyObservedValues and not isCustomValued, 
+  true->false, 
+  false->select(valuationModelDescription, 
+    nil->false, 
+    default->valuationModelDescription.Includes("theoreticalModelCashFlowProjected")));
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:cashFlowProjectedFromModelCall = instrument:cashFlowProjectedFromModelCall [onlyObservedValues];
+[Core Cash Flow Pricing]FInstrument:cashFlowProjectedFromModelCall = false;
+[Core Cash Flow Pricing]FResetMoneyFlow:cashFlowProjectedFromModelCall = instrument:cashFlowProjectedFromModelCall;

@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:multiUnderlyingComponentVolatilityUnadjusted = select(volatilityInformationHasGenericValueFunction, 
+  true->collapse(genericParametricMultiVolatilityValue), 
+  false->select(volatilityInformationType, 
+    "Parametric"->select(volatilityInformation.ParametricVolatilityType, 
+      "Sabr"->sabrParametricMultiVolatilityValue, 
+      default->nan), 
+    "Single"->singlePointMultiVolatilityValue, 
+    default->volatilityInformation.Value(0, optionParent:expiryDate, multiUnderlyingComponentVolatilityStrikePrice, optionParent:isCall, false, true, multiUnderlyingComponentForwardPriceForVolatility, skewExpiriesMultiComponentForwardPriceForVolatility, foreignRateForVolatility, domesticRateForVolatility)));

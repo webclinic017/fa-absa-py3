@@ -1,0 +1,102 @@
+[Default]FObject:udmcBarrierBasketPerformancePayoff
+# ------------------------------------------
+# PAYOFF EXPRESSION
+# Barrier Basket Performance Payoff
+#
+#
+# INTERPRETATION
+# Call:         max(A1/A0*w1 + B1/B0*w2 ... L1/L0*w10 - K, 0);
+# Put :         max(K - A1/A0*w1 + B1/B0*w2 ... L1/L0*w10, 0);
+#
+# The option may be knocked in or knocked out based on basket performance.
+# 
+#
+# DEFINITION
+# Strike K expressed in % of the underlying basket value (strike type = rel spot pct 100)
+#     Example: Strike level is 100 % => Strike used = 1
+#     Example: Strike level is 110 % => Strike used = 1.1
+#     Example: Strike level is 90 % => Strike used = 0.9
+#
+# Basket weights w1, w2 ...
+#    Note that the weights must sum up to 1 in order for the model to be consistent with the volatilities passed to the processes.
+#
+# Barrier level expressed in % of the underlying basket value; 
+#    Example: Barrier level is 10% => Specify 110% in Barrier field on Barrier Exotic tab;
+#    Example: Barrier level is -10 % => Specify 90% in Barrier field on Barrier Exotic tab;
+#
+# Barrier type: 'Barrier Type' in the Barrier Exotic tab;
+# Observation days: Exotic Events of type 'Barrier date', specified for the underlying components;
+# Initial Fixings: Exotic Events of type 'Price Fixing', specified for the underlying components, represent the initial fixings for the instrument.
+# ------------------------------------------
+
+#PARAMETERS
+param double barrierLevel;
+param int isCall;
+param int isUp;
+param int isIn;
+param int barrierIsHit;
+param matrix(double) timeSteps;
+param matrix(double) weights;
+param double strike;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double callOrPut = (2.0 * isCall) - 1.0;
+double inOrOut = (2.0 * isIn) - 1.0;
+double downOrUp = (2.0 * (1-isUp)) - 1.0;
+double hit = 0.0;
+double optionValue = 0.0;
+int last = length(timeSteps)-1;
+matrix(double) basketPerf = S;
+
+#MAIN LOOP
+basketPerf = colSum(S.* transpose(weights)./ S[:,0]);
+
+if(barrierIsHit)
+{
+    hit = barrierIsHit*2.0 - 1.0;
+}
+else
+{
+   if(isUp) 
+  {
+      hit = (sum(basketPerf > barrierLevel/100.0) > 0.0) *2.0 - 1.0;  
+   }
+   else 
+   {
+       hit = (sum(basketPerf < barrierLevel/100.0) > 0.0)*2.0 - 1.0;  
+    }
+};
+
+
+optionValue = ((hit * inOrOut) > 0.0 ) * max(callOrPut* (basketPerf[last]-strike/100.0), 0.0);
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+
+# ------------------------------------------
+#PEL IMPLEMENTATION
+#
+# barrierLevel: A percentage value that will be compared to the basket performance for a certain date.
+# isCall: Has 1 or 0 value, dependent on if the option is call or put
+# isUp: Has 1 or 0 value, dependent on if the 'Barrier Type' is Up or Down;
+# isIn: Has 1 or 0 value, dependent on if the 'Barrier Type' is In or Out;
+# barrierIsHit: Has 1 or 0 value, dependent on if barrier 'Crossed Status' is confirmed or not;
+# weights: An array of component weights;
+# strike: The strike value expressed in percent;
+#
+# S: Matrix of component prices. The number of rows is equal to the number of components, the number of columns is equal to the number of observation dates;
+#
+# callorPut: Has value 1 or -1, dependent on if the option is a call or put;
+# inOrOut: Has value 1 or -1, dependent on if the option is knock in or knock out;
+# downOrUp: Has value 1 or -1, dependent on if the option is down&in/down&out or up&in/up&out; 
+# hit = Has value 1 or -1, dependent on if the barrier has been hit or not;
+# basketPerf: An array with basket performance values for each barrier date;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# last: the last column index of the matrix;
+# ------------------------------------------
+
+...

@@ -1,0 +1,7 @@
+[Default]FCombInstrMap:theoreticalInstrumentValueBid = shunt[priceSource, doSplitAll](combinationLegsUnadjusted, 
+  true->setDateTimePart(valuationInstrument :* "theoreticalInstrumentValueBid" [priceSource, doSplitAll], (combination:instrumentSpotDate)), 
+  false->valuationInstrument :* "theoreticalInstrumentValueBid" [priceSource, doSplitAll]) * timeDistributionFactor;
+[Default]FCombination:theoreticalInstrumentValueBid = shunt[priceSource, doSplitAll](splitCombination, 
+  true->sumOf((instrumentMaps) :* "theoreticalInstrumentValueBid * object.Weight * instrument:contractSize * fxLegToInstrument" [priceSource, doSplitAll]) / combinationDivisionFactor, 
+  false->marketSpotValueBid);
+[Default]FInstrument:theoreticalInstrumentValueBid = shift(theoreticalInstrumentValue, snoop(theoreticalInstrumentValue, "marketPrice"), fixedvariant underlyingOrSelfBidPrice);

@@ -1,0 +1,7 @@
+[_securities_lending_exts]FInstrument:secLendAverageRateInputPairs = nil;
+[_securities_lending_exts]FMultiInstrumentAndTrades:secLendAverageRateInputPairs = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->inventoryPositionOpenInstruments :* "secLendAverageRateInputPairs" [positionObject, instrumentGroupingReference]);
+[_securities_lending_exts]FPortfolioInstrumentAndTrades:secLendAverageRateInputPairs = nil;
+[_securities_lending_exts]FSecurityLoan:secLendAverageRateInputPairs = createPair(secLendRate, secLendInventoryPositionAtSpotDate);
+[_securities_lending_exts]FSingleInstrumentAndTrades:secLendAverageRateInputPairs = instrument:secLendAverageRateInputPairs [positionObject];

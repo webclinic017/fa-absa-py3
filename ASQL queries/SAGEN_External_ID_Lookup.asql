@@ -1,0 +1,54 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_External_ID_Lookup') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_External_ID_Lookup' and p.type = 'SQL Query' 
+
+/*Description
+
+Date        Who             Tracker#    CR#     What
+2009-07-31  Heinrich Cronje 1334                Created
+
+Retrieve the Front trade number when External number is specified
+or retrieve the External number when the Front trade number is
+specified.
+*/
+
+select
+    to_int(@1_Front_Trade_Number{})   'trdnbr',
+    @2_External_Trade_Number{}  'ext_trdnbr'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    t.trdnbr 'Front_Trdnbr',
+    t.optional_key  'External_Trdnbr',
+    i.insid
+from
+    macro m,
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and m.trdnbr >0
+    and t.trdnbr = m.trdnbr
+
+union
+
+select
+    t.trdnbr 'Front_Trdnbr',
+    t.optional_key  'External_Trdnbr',
+    i.insid
+from
+    macro m,
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and m.ext_trdnbr ~= ''
+    and t.optional_key = m.ext_trdnbr

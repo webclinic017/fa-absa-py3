@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FSecurityLoan:sl_quantity = sumOf((object.Trades.At(0)) :* "sl_quantity");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:sl_quantity = sumOf(tradesInPosition :* "sl_quantity" [positionObject]);
+[Securities Lending ABSA]FStock:sl_quantity = sumOf(trades :* "sl_quantity");
+[Securities Lending ABSA]FTrade:sl_quantity = select(sl_instype, 
+  "SecurityLoan"->object.Quantity * object.Instrument.RefValue, 
+  default->object.FaceValue);
+[Securities Lending ABSA]FTradeRow:sl_quantity = trade:sl_quantity;

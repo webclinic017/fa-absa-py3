@@ -1,0 +1,6 @@
+[Default]FGroupingOrder:preTradeParticipationRateDayAverage = preTradeInitValue / preTradeValueAverage;
+[Default]FOrderProgram:preTradeParticipationRateDayAverage = switch(customerCurrency, 
+  nil->preTradeInitValue / preTradeValueAverage, 
+  default->preTradeInitValueCustomerCurrency / preTradeValueAverageCustomerCurrency);
+[Default]FPrePostTradeAnalysis:preTradeParticipationRateDayAverage = preTradeInitValue / preTradeValueAverage;
+[Default]FSalesOrder:preTradeParticipationRateDayAverage = prePostTradeAnalysis:preTradeParticipationRateDayAverage;

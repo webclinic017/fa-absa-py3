@@ -1,0 +1,122 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-08-31                      McEwan Kieron      Mpaki Elephant     Ensuring that Barrier trades are not marked as Vanilla
+2018-06-13                      McEwan Kieron      Lehakoe Mothobi    Ensuring that FX Asian options are included in the FXO feeds
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select
+ael_i(p,'ASQL_log','EAGLE_FXO_ABSA_LEG') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p 
+where p.name = 'EAGLE_FXO_ABSA_LEG' and p.type = 'SQL Query' 
+
+/*FindAsians*/
+
+select
+/*ex.average_method_type in ('Arithmetic', 'Geometric', 'Custom') ? 'Yes' : 'No' 'TypeA',*/
+t.trdnbr,
+ex.barrier_crossed_status 'CROSSED_STATUS'
+into temp
+
+from
+
+
+trade t,
+instrument i,
+party p,
+exotic ex 
+
+where   
+
+    t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and i.instype = 'Option'
+and i.und_instype = 'Curr'
+and i.exp_day >= Today
+and i.insaddr *= ex.insaddr 
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and ex.barrier_crossed_status not in ('Confirmed')*/
+/* exclude nonempty Commodity Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')
+/**************************/
+
+select *
+into tempA
+from temp
+where CROSSED_STATUS not in ('Confirmed')
+
+
+select
+
+'ABS-FXO'                                                                               'SOURCE_ID',
+ael_s(t,'Eagle_Date.FXONbr')                                                            'SOURCE_TRADE_ID',
+'1'                                                                                     'LEG_NUMBER',
+convert('string', display_id(t,'prfnbr'),15)                                            'BOOK',
+/*''                                                                                      'DEALT_RATE',*/
+0                                                                                      'QUOTING_TERMS',
+t.quantity < 0 ? 'SELL' : 'BUY'                                                         'BUY_OR_SELL',
+abs(nominal_amount(t))                                                                  'PRIMARY_AMOUNT',
+display_id(und,'curr')                                                                  'PRIMARY_CURRENCY',
+abs(round(t.quantity * i.strike_price, 2))                                                            'COUNTER_AMOUNT',
+display_id(i,'strike_curr')                                                                    'COUNTER_CURRENCY',
+/*''                                                                                      'CCY2_AMOUNT_NPVGBP',*/
+i.settlement = 'Physical Delivery' ? 'D' :
+i.settlement = 'Cash' ? 'C' : ''                                                        'SETTLEMENT_TYPE',
+i.digital = 'No' ? display_id(und,'curr') :  display_id(i,'strike_curr')                       'SETTLEMENT_CURRENCY',
+/*''                                                                                      'VALUE_DATE',*/
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                                   'EXPIRY_DATE',
+ael_s(,'Eagle_Date.CDate',(date_add_banking_day(i.exp_day, ,i.spot_banking_days_offset)))    'DELIVERY_DATE',
+/*''                                                                                      'OPTION_START_DATE',*/
+i.exercise_type = 'American' ? 'A' : i.exercise_type = 'Bermudan'
+ ? 'B' : i.exercise_type = 'European' ? 'E' : 'None'                                    'OPTION_STYLE',
+i.call_option = 'Yes' ? 'Call' : 'Put'                                                  'OPTION_TYPE',
+round(i.strike_price,10)                                                                          'STRIKE',
+''                                                                                      'FIXING_DATE',
+''                                                                                      'FIXING_RATE',
+/*''                                                                                      'QUOTING_TERMS',*/
+/*''                                                                                      'SPOT_RATE',*/
+mtm_value_fo(t,@Date{},display_id(und,'curr'))                                              'CCY1_AMOUNT_NPVCCY',
+'ModelIR'                                                                                'VALUATION_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                               'EXERCISE_DATE'
+
+
+
+
+from
+
+    trade t,
+    instrument i,
+    instrument und,
+    party p,
+    tempA tp
+    
+where 
+
+    t.insaddr = i.insaddr
+and t.trdnbr = tp.trdnbr
+and i.und_insaddr = und.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+/*and tp.TypeA ~= 'Yes'*/
+and i.instype = 'Option'
+and und.instype = 'Curr'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= TODAY
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/* exclude nonempty Commodity Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')
+/*and (add_info(p,'BarCap_SMS_LE_SDSID') ~= '' and add_info(p,'BarCap_SMS_CP_SDSID') ~= '')*/
+
+/*and t.trdnbr  in( 1132070,
+1132097,
+1136868,
+1136869)*/
+
+/*and display_id(und,'curr') = 'ZAR'*/

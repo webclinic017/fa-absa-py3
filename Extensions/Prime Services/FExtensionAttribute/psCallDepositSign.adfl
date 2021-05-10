@@ -1,0 +1,7 @@
+[Prime Services]FSingleInstrumentAndTrades:psCallDepositSign = switch(instrument.OpenEnd, 
+  "Open End"->switch(firstLeg.LegType, 
+    "Call Fixed Adjustable"->switch(py("PS_Functions", context).is_client_callaccnt(instrument), 
+      true->1.0, 
+      default->-1.0), 
+    default->1.0), 
+  default->1.0);

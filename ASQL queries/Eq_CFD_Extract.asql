@@ -1,0 +1,133 @@
+/* Usage code for this ASQL */                                                                  
+select                                                                    
+    ael_i(p,'ASQL_log','Eq_CFD_Extract') 'Name'                                   
+into  
+    ASQL_LOG_TEMP                                                                        
+from 
+    TextObject p 
+where                                                                   
+    p.name = 'Eq_CFD_Extract' 
+and p.type = 'SQL Query'                                                                              
+                                                                                
+                
+select                                                                    
+                t.trdnbr                                                                                                'TradeNumber',
+                display_id(t,'trader_usrnbr')                                           'Trader'             ,                                               
+                display_id(t,'counterparty_ptynbr')                            'Counterparty'                                                               ,
+                time_to_day(t.time)                                                                              'DealDate'                                                                   ,
+                i.exp_day                                                                                'ExpiryDate'                                                    ,               
+                i.insid                                                                'Instrument'                                                           ,               
+                i.instype                                                           'InstrumentType'                                 ,                               
+                ii.insid                                               'Underlying'                                                            ,               
+                i.und_instype                                             'Underlying_Type'                                   ,                               
+                t.price                                                                                       'Price'                                                                                ,
+                i.contr_size                                                                         'Contract_Size'                                  ,                               
+                t.quantity < 0 ?'S':'B'                                                   'BuySell'                                                   ,               
+                t.quantity < 0 ? (t.quantity * -1) : t.quantity                                         'Number_of_Contracts'                ,                                                               
+                @Date{TODAY}                                                                 'DATA_DATE'                                                     ,               
+                parent_port.prfid                                                'Portfolio'                                                        ,               
+                port.prfid                                                                    'SubPortFolio'                                            ,                                               
+                mtm_price(t,@Date,display_id(i,'curr'),0,0)                 'MTM',
+                (add_info(ii,'DividendYield') = '')                                                               
+        ? 0 : add_info(ii,'DividendYield')                  'DividendYield'                                                         
+into                                                                        
+    TempTable                                                                     
+from                                                                      
+                instrument i       ,                                                               
+                instrument ii      ,                                                               
+                trade t                                  ,                               
+                party p                                  ,                               
+                portfolio port     ,                                                               
+                portfolio parent_port                                                                    ,
+                portfoliolink pr                                                                  
+                                                                                                
+where                                                                   
+    t.insaddr *= i.insaddr
+                and t.status not in ('Reserved','Simulated','Void')
+                and t.acquirer_ptynbr = p.ptynbr
+                and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','FMAINTENANCE','Equity Deriv','Equity_OTC','Gold Desk','JSE', 'EQUITY DERIVATIVES', 'PRIME SERVICES DESK', 'Credit Derivs', 'Metals Desk', 'ETN ISSUANCE', 'Agris Desk')
+                and i.instype in ('CFD','ETF')
+                and port.prfid ~= 'SAFEX Unallocated'
+                and time_to_day(t.time) <= @Date
+/*           and i.exp_day > @Date */
+                and i.und_insaddr *= ii.insaddr
+                and t.prfnbr = port.prfnbr
+                and t.prfnbr = pr.member_prfnbr
+                and pr.owner_prfnbr = parent_port.prfnbr
+                and parent_port.prfid not in ('CFD_Test', 'EQ EXPIRED TRADES')                                                                
+
+
+/* Extract for Portfolio Swaps */                                                                               
+                
+select                                                                    
+                t.trdnbr                                                                                                'TradeNumber'                                 ,                               
+    display_id(t,'trader_usrnbr')                                       'Trader'                                             ,               
+                display_id(t,'counterparty_ptynbr')                            'Counterparty'                               ,                               
+    time_to_day(t.time)                                                                          'DealDate'                                                   ,               
+                i.exp_day                                                                                'ExpiryDate'                                    ,                               
+                i.insid                                                                'Instrument'                                           ,                               
+                i.instype                                                           'InstrumentType'                 ,                                               
+    ci.insid                                                'Underlying'                                      ,                               
+                ci.instype                                                        'Underlying_Type'                               ,                                               
+    ct.price                                                'Price'                                                                 ,
+                i.contr_size                                                                         'Contract_Size'                  ,                                               
+    sum(ct.quantity)*t.quantity < 0 ?'S':'B'                'BuySell'                                                              ,               
+                abs(sum(ct.quantity)*t.quantity)                        'Number_of_Contracts'     ,                                                               
+                @Date{TODAY}                                                                 'DATA_DATE'                                                     ,               
+                parent_port.prfid                                                'Portfolio'                                                        ,               
+                port.prfid                                                                    'SubPortFolio'                                            ,                                               
+                mtm_price(ct,@Date,display_id(ci,'curr'),0,0)             'MTM',
+                (add_info(ci,'DividendYield') = '')                                                              
+        ? 0 : add_info(ci,'DividendYield')                  'DividendYield'                                                        
+into                                                                        
+                TempTable                                                                         
+from                                                                      
+    instrument i                                  ,                               
+    trade t                                                                              ,
+    instrument ci      ,
+    trade ct                     ,
+    portfolio port                                 ,                               
+                portfolio parent_port,                                                                   
+                portfoliolink pr                                                                  
+Where                                                                                  
+        i.insaddr = t.insaddr                                                                                
+    and match_portfolio(t,'ABSA CAPITAL')                                                             
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and (i.exp_day = 0 or i.exp_day > Today)                                                                          
+    and i.instype in ('Portfolio Swap')                                                                         
+    and i.fund_prfnbr *= ct.prfnbr                                                                              
+    and ct.insaddr = ci.insaddr                                                                       
+                and t.prfnbr = pr.member_prfnbr                                                                            
+    and t.prfnbr = port.prfnbr                                                                        
+                and pr.owner_prfnbr = parent_port.prfnbr                                                                         
+group by 1,8
+
+
+
+
+Select                                                                    
+    TradeNumber,
+    Trader,
+    Counterparty,
+    DealDate,
+    ExpiryDate,
+    Instrument,
+    InstrumentType,
+    Underlying,
+    Underlying_Type,
+    Price,
+    Contract_Size,
+    BuySell,
+    Number_of_Contracts,
+    DATA_DATE,
+    Portfolio,
+    SubPortFolio,
+    MTM,
+    DividendYield
+From TempTable
+
+
+
+
+
+

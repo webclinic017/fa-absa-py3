@@ -1,0 +1,13 @@
+[Core Pricing]FCashFlow:instrumentSpotOrStartDate = leg:instrumentSpotOrStartDate;
+[Core Pricing]FCashFlowInstrument:instrumentSpotOrStartDate = select(valuesUntilForwardStartingInstrument and valuesOnSpot, 
+  true->instrumentSpotDate, 
+  false->object.SpotDate(valuationDateTime));
+[Core Pricing]FCombInstrMap:instrumentSpotOrStartDate = instrument:instrumentSpotOrStartDate;
+[Core Pricing]FCreditDefaultSwap:instrumentSpotOrStartDate = select(valuesUntilForwardStartingInstrument and valuesOnSpot, 
+  true->instrumentSpotDate, 
+  false->instrumentValueOrEffectiveDate);
+[Core Pricing]FInstrument:instrumentSpotOrStartDate = instrumentSpotDate;
+[Core Pricing]FLeg:instrumentSpotOrStartDate = instrument:instrumentSpotOrStartDate;
+[Core Pricing]FMoneyFlow:instrumentSpotOrStartDate = tradedInstrument :* "instrumentSpotOrStartDate" [valuesOnSpotOverride];
+[Core Pricing]FMoneyFlowAndTrades:instrumentSpotOrStartDate = moneyFlow :* "instrumentSpotOrStartDate" [valuesOnSpotOverride];
+[Core Pricing]FOrderBook:instrumentSpotOrStartDate = instrument:instrumentSpotOrStartDate;

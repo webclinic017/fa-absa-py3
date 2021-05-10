@@ -1,0 +1,10 @@
+[Prime Services]FInstrumentAndTrades:psNominal = sumOf(children :* "psNominal");
+[Prime Services]FSingleInstrumentAndTrades:psNominal = switch(instrument.IsExpiredAt(profitAndLossEndDate), 
+  false->sumOf(tradesInPosition :* "psNominal"), 
+  true->0);
+[Prime Services]FTrade:psNominal = switch(withinDateRange and activeTrade, 
+  true->switch(instrument.InsType, 
+    "Repo/Reverse"->object.Quantity * instrument.RefValue, 
+    default->object.Nominal), 
+  false->0);
+[Prime Services]FTradeRow:psNominal = trade :* "psNominal";

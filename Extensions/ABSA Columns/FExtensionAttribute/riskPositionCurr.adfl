@@ -1,0 +1,7 @@
+[ABSA Columns]FMultiInstrumentAndTrades:riskPositionCurr = select(dispPosOnMultiRow, 
+  true->sumOf(openInstruments :* "riskPositionDisplay" [positionObject, filterUnit]), 
+  default->select(instrumentGroupingReferenceRow, 
+    nil->nil, 
+    default->instrumentGroupingReferenceRow :* "riskPositionDisplay" [positionObject, filterUnit]));
+[ABSA Columns]FSingleInstrumentAndTrades:riskPositionCurr = object :* "riskPositionDisplay" [displayCurrency = instrument.Currency];
+[ABSA Columns]FTradeRow:riskPositionCurr = object :* "riskPositionDisplay" [displayCurrency = trade.Currency];

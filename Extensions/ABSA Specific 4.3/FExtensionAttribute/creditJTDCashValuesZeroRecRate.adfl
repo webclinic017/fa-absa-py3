@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrument:creditJTDCashValuesZeroRecRate = currencyZero;
+[ABSA Specific 4.3]FInstrumentAndTrades:creditJTDCashValuesZeroRecRate = select(isSettled, 
+  true->currencyZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->currencyZero, 
+    false->instrument :* "creditJTDCashValuesZeroRecRate" [creditIssuerGroupingReference] * riskPosition));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:creditJTDCashValuesZeroRecRate = unSettledInstrumentsNonZero :* "creditJTDCashValuesZeroRecRate" [creditIssuerGroupingReference] * riskPositionsNonZero;

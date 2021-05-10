@@ -1,0 +1,6 @@
+[Core Risk]FInstrument:vegaInstrumentWeighted = select(noVolatilityGreekRiskFactorsExist, 
+  true->instrumentSpotZero, 
+  false->convertToCurrency(object:vegaValuesInstrument [vegaCalculationType := "vegaWeighted"], priceGreekFxRates, currencySymbol, filterUnit));
+[Core Risk]FInstrumentAndTrades:vegaInstrumentWeighted = openInstrumentOrInstrument :* "vegaInstrumentWeighted" [isSplitAllGrouped, priceSource] * combinationInstrumentMapFactor;
+[Core Risk]FMultiInstrumentAndTrades:vegaInstrumentWeighted = nil;
+[Core Risk]FPriceAggregate:vegaInstrumentWeighted = instrument :* "vegaInstrumentWeighted" [priceSource, valuesOnSpot := true];

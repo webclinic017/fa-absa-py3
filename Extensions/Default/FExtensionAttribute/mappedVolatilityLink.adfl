@@ -1,0 +1,9 @@
+#grouping: risk factors/volatility mapped parameter
+
+[Default]FFxRate:mappedVolatilityLink = select(quoteContext, 
+  nil->mappingObject.MappedFXVolatilityLink(domesticCurrency, discountingTypeForVolatilityLink), 
+  default->mappingObject.MappedVolatilityLink(domesticCurrency, contextAlternativeChosenOid, discountingTypeForVolatilityLink));
+[Default]FInstrument:mappedVolatilityLink = select(quoteContext, 
+  nil->mappingObject.MappedVolatilityLink(alternativeContextOid, discountingTypeForVolatilityLink), 
+  default->mappingObject.MappedVolatilityLink(contextAlternativeChosenOid, discountingTypeForVolatilityLink));
+[Default]FLeg:mappedVolatilityLink = mappingObject.MappedVolatilityLink(discountingTypeForVolatilityLink);

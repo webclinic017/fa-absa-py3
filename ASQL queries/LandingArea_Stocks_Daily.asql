@@ -1,0 +1,70 @@
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','LandingArea_Stocks_Daily') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Stocks_Daily' and p.type = 'SQL Query' */
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding') 	                                'RepDay',
+
+	date_add_banking_day(bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding'), 'ZAR', -1)   'PrevRepDay',
+
+	to_date(@4_YearEndDate{2009-12-31;})					                                    'YE'
+	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table - ZAR
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+
+	mtm_value_fo(t, m.RepDay, 'ZAR', 2, 0, 1)		                                                    'Val',
+	mtm_value_fo(t, m.PrevRepDay, 'ZAR', 2, 0, 1)		                                                'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, 'ZAR', 2, 0, 1)		                                                        'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, 'ZAR', 2, 0, , 1, 'None')                                             'CashIncep',
+	accumulated_cash(t, m.PrevRepDay, 'ZAR', 2, 0, , 1, 'None')								            'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, 'ZAR', 2, 0, , 1, 'None')								                    'cash_YE'
+	
+INTO
+	result
+	
+FROM
+	trade		t,
+	instrument	i,
+	macros		m
+	
+WHERE
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.instype = 'Stock'
+and i.curr = 2
+
+/*--------------------------------------------------------------------------
+   Final 
+----------------------------------------------------------------------------*/
+SELECT
+	r.trdnbr,
+	r.Val			                                                                                    'Val',
+	r.CashIncep		                                                                                    'CashIncep',
+	r.Val - r.mtm_YE                                                                                    'ChangeUnRealsd_YTD',
+	r.CashIncep - r.cash_YE                                                                             'ChangeCash_YTD',
+	r.Val - r.mtm_PrevRepDate                                                                           'HChangeUnRealsd_ON',
+    r.CashIncep - r.cash_PrevRepDate                                                                    'HChangeCash_ON'
+	
+FROM
+	result r
+
+GROUP BY 
+    r.trdnbr

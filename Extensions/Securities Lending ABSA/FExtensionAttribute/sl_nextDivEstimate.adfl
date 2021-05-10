@@ -1,0 +1,9 @@
+[Securities Lending ABSA]FInstrument:sl_nextDivEstimate = nil;
+[Securities Lending ABSA]FMultiInstrumentAndTrades:sl_nextDivEstimate = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference:sl_nextDivEstimate);
+[Securities Lending ABSA]FSecurityLoan:sl_nextDivEstimate = underlying:sl_nextDivEstimate;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:sl_nextDivEstimate = instrument:sl_nextDivEstimate;
+[Securities Lending ABSA]FStock:sl_nextDivEstimate = shunt(hasDividendsInStream, 
+  false->nil, 
+  true->dividendStream.Dividends.At(0));

@@ -1,0 +1,120 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Exception_StaleBigMove') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_StaleBigMove' and p.type = 'SQL Query' 
+ 
+  
+/**********************************************************************************************/
+/********Create temp table for prev day*******************************************************/
+select 
+    p.settle,
+    p.day,
+    display_id(p,'curr')    'Curr',
+    display_id(p,'insaddr') 'Insid',
+    display_id(p,'ptynbr')  'Market',
+    i.instype,
+    i.und_instype
+into
+    temp1 
+from
+    price p, 
+    instrument i,
+    party pr       
+where
+    p.day = date_add_banking_day(@Date{today},'ZAR',-1)
+and i.insaddr = p.insaddr
+and p.settle ~= 0.0
+and pr.ptyid ~= 'internal'
+and p.ptynbr = pr.ptynbr
+
+/**********************************************************************************************/
+/********Create temp table for  report day*******************************************************/
+
+select 
+    p.settle,
+    p.day,
+    display_id(p,'curr')    'Curr',
+    display_id(p,'insaddr') 'Insid',
+    display_id(p,'ptynbr')  'Market'
+into 
+    temp2
+from
+    price p, 
+    instrument i,
+    party pr
+where
+    p.day = @Date{today}
+and i.insaddr = p.insaddr
+and p.settle ~= 0.0
+and pr.ptyid ~= 'internal'
+and p.ptynbr = pr.ptynbr
+
+
+/**************************************************************************************************/
+/******************Combine tables for report and prev day*****************************************/    
+select
+    t1.insid,
+    t1.instype,
+    t1.und_instype,
+    t1.day                  'PreviousDay',
+    t2.day                  'CurrentDay',
+    to_double(t1.settle)    'PreviousPrice',
+    to_double(t2.settle)     'CurrentPrice',
+    t1.curr,
+    t1.Market
+into 
+    fin
+from
+    temp1 t1,
+    temp2 t2
+where
+    t1.curr *= t2.curr
+and t1.insid *= t2.insid
+and t1.market *= t2.market
+
+
+/*************************************************************************************************************/
+/**********************Test for big moves and stale data*******************************************************/
+select
+    'Big Move'       'Exception',
+    f.Insid,
+    f.Instype,
+    f.und_instype     'UnderlyingType',
+    f.PreviousDay,
+    f.CurrentDay,
+    f.PreviousPrice,
+    f.CurrentPrice,
+    f.Curr,
+    f.Market
+    
+from
+    fin f
+where
+    f.currentday ~= 0
+    and f.Market = 'SPOT'    
+    and (f.CurrentPrice / f.PreviousPrice > 1.20
+    or f.CurrentPrice / f.PreviousPrice < 0.8)
+order by 3,2
+    
+union
+
+select
+    'Stale'       'Exception',
+    f.Insid,
+    f.Instype,
+    f.und_instype     'UnderlyingType',
+    f.PreviousDay,
+    f.CurrentDay,
+    f.PreviousPrice,
+    f.CurrentPrice,
+    f.Curr,
+    f.Market
+from
+    fin f
+where
+    f.CurrentPrice = f.PreviousPrice
+    and f.Market = 'SPOT'
+order by 3,2
+        

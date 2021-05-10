@@ -1,0 +1,8 @@
+[Default]FBuySellBack:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues + positionValues;
+[Default]FCombInstrMapAndTrades:cashInventoryTheoreticalValues = combinationInstrumentMapFactor * openInstrument :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionTradeQuantities, includeInceptionCash];
+[Default]FCurrency:cashInventoryTheoreticalValues = positionValues;
+[Default]FFxRate:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues + positionValues;
+[Default]FInstrument:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues * timeDistributionFactor + positionValues;
+[Default]FInstrumentAndTrades:cashInventoryTheoreticalValues = openInstrument :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, includeInceptionCash];
+[Default]FMultiInstrumentAndTrades:cashInventoryTheoreticalValues = sumOf(openInstruments :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, includeInceptionCash]);
+[Default]FPreciousMetalRate:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues + positionValues;

@@ -1,0 +1,48 @@
+/*
+Purpose:    Include fields Trade date, Termination date, Fixed Rate, Notional, Status, CPref.
+Department: Confirmations
+Requester:  Deidre Brooker
+Developer:  Jaysen Naicker
+CR Number:  C423468 (06/09/2010)
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Trades_By_Counterparty') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Trades_By_Counterparty' and p.type = 'SQL Query' 
+ 
+  select
+
+t.trdnbr,
+i.insid,
+ap.ptyid  'Acquirer',
+p.ptyid 'ShortName',
+p.fullname,
+t.status,
+i.instype,
+display_id(t,'counterparty_ptynbr'),
+t.time                                  'TradeDate',
+i.exp_day							    'TerminationDate',
+l.fixed_rate                             'FixedRate',
+nominal_amount(t)                        'Nominal',
+t.status                                'Status',
+t.your_ref                              'CPref'
+
+from 
+    trade t, 
+    instrument i, 
+    party p,
+    Party ap,
+    leg l
+
+where t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and t.acquirer_ptynbr = ap.ptynbr
+and p.ptyid in (@Party{;Party.ptyid*})
+and l.insaddr =* t.insaddr
+
+/*and t.trdnbr in ('567871','542998','543752','632455','235445','827942','820567','816290','816332','791720','799781','813921','806085','784479','789465','781334','658763','661162','663662','663540','701622','753610','763894','764601','746513','731482'
+,'906800','723099','661379','781242','800654','746514','753609','181185','820766','193814','181187','2375519','2375520','2357094','2357095','331120','181186','193813','199725','723259','731481','764598','772437','664394','685394','556438','836067','822550','832090','820566','820781','787092','791715','792056','781243','782421','784128','888737','2375521','2357093')*/
+ 

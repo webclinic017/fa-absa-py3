@@ -1,0 +1,27 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_TRADE_PER_DATE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_TRADE_PER_DATE' and p.type = 'SQL Query' 
+
+
+select 
+
+t.trdnbr  'Trade',
+display_id(t, 'prfnbr')       'Portfolio',
+t.status 'Status',
+t.acquire_day  'Acquire Date', 
+t.time 'Time of Trade',
+display_id(t, 'counterparty_ptynbr') 'CPTY'
+
+from
+Trade t
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.time => @2_StartDay{today}
+and t.time =< @3_EndDay{today}
+
+
+

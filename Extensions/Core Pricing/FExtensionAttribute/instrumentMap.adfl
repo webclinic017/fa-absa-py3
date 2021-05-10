@@ -1,0 +1,7 @@
+[Core Pricing]FInstrumentAndTrades:instrumentMap = nil;
+[Core Pricing]FOwnOrder:instrumentMap = select(parentCombination, 
+  nil->nil, 
+  default->parentCombination.MapAtOrderBook(orderBook));
+[Core Pricing]FPriceAggregate:instrumentMap = select(parentPriceFeed, 
+  nil->nil, 
+  default->parentPriceFeed:instrument.MapAtInstrument(instrument, valuationBaseDate));

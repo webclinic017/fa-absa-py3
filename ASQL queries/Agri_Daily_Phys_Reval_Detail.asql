@@ -1,0 +1,76 @@
+/* Agri_Daily_Phys_Reval_Detail: last updated on Tue Jan 22 09:32:57 2008. Extracted by Stowaway on 18/08/2009.*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Agri_Daily_Phys_Reval_Detail') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Agri_Daily_Phys_Reval_Detail' and p.type = 'SQL Query' 
+/* Query Take On:
+
+When	Who	What
+---------------------------------------------
+001004	jg	Take On Summary
+
+Shows Take On deals with summary totals
+
+2001-05-20	AP 	macro values to run query for any 2 dates
+2002-05-29	AP	point portfolios to trade filters
+
+
+ */
+
+
+SELECT
+	
+	i.insid					'InsId',
+	t.trdnbr				'TrdNbr',
+	time_to_day(t.creat_time)		'Trade_Date',
+	t.your_ref				'CP_Ref',
+	
+	display_id(t, 'prfnbr')			'TrdPortfolio',
+	display_id(t, 'optkey1_chlnbr')		'TrdTradeArea',
+	
+	t.price					'Price',
+	mtm_price(t,@DateTo{Today;})		'Mkt_Price_Curr',
+	mtm_price(t,@DateFrom{Yesterday;})	'Mkt_Price_Prev',
+	add_info(t,'AgriTransportDiff')		'Trans_Diff',
+/*
+	convert('double',t.quantity,4)				'Tonnage',*/
+	t.quantity				'Tonnage',
+	(mtm_price(t,@DateTo{Today;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity 	'Curr_Reval',
+
+	
+	
+		
+	(mtm_price(t,@DateTo{Today;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity 
+	- t.price*t.quantity		'Curr_PL',
+	
+	t.price*t.quantity		'Consideration',
+
+	time_to_day(t.time)<=@DateFrom{Yesterday;} ? (mtm_price(t,@DateFrom{Yesterday;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity : 0 	'Prev_Reval',
+	
+	
+	time_to_day(t.time)<=@DateFrom{Yesterday;} ? (mtm_price(t,@DateFrom{Yesterday;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity 
+	- t.price*t.quantity : 0		'Prev_PL',
+	
+	
+	((mtm_price(t,@DateTo{Today;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity- t.price*t.quantity)-
+	(time_to_day(t.time)<=@DateFrom{Yesterday;} ? (mtm_price(t,@DateFrom{Yesterday;}) - to_double(add_info(t,'AgriTransportDiff'))) * t.quantity- t.price*t.quantity : 0)'Period_Move'
+FROM
+	instrument i,
+	trade t,
+	portfolio p
+
+WHERE
+	t.insaddr = i.insaddr
+
+and	i.instype in ('Stock','Commodity')
+and 	t.prfnbr=p.prfnbr
+and 	fit_filter(t,'Physicals_Agri_Portfolio')
+
+and 	add_info(t,'AgriStatus') ~='Matured'
+
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+order by 1,3
+
+

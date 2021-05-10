@@ -1,0 +1,4 @@
+[ABSA Accounting 4.3]FCashFlow:periodDaysRatio = dateDifference(periodToDate, periodFromDate) / 365;
+[ABSA Accounting 4.3]FReset:periodDaysRatio = switch((startDate > periodToDate) or (endDate < periodFromDate), 
+  true->0.0, 
+  default->dateDifference(min(endDate, periodToDate), max(startDate, periodFromDate)) / 365);

@@ -1,0 +1,8 @@
+#grouping: greek perimeters/price greek perimeters
+
+[Default]FCertificate:carryCostQuanto = select(baseValuationOnUnderlyingComponents, 
+  true->multiUnderlyingCarryCostQuanto, 
+  default->carryCost);
+[Default]FInstrument:carryCostQuanto = select(isQuanto and not mappedModelIsBasketAsSingleUnderlying, 
+  true->quantoAdjustedCarryCost(carryCost, underlyingFXCorrelation, volatilityForQuantoAdjustedCarryCost, fxVolatilityForQuantoAdjustedCarryCost), 
+  false->carryCost);

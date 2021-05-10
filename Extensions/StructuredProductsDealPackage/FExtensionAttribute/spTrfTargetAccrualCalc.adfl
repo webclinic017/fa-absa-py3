@@ -1,0 +1,5 @@
+[StructuredProductsDealPackage]FExoticEvent:spTrfTargetAccrualCalc = switch((object.EventValue == 0.0) or (object.EventValue == -1.0), 
+  true->0.0, 
+  default->switch(instrument:spTrfInvertedTargetLevel, 
+    false->spTrfFixingValue - strikeToUse, 
+    true->1.0 / strikeToUse - 1.0 / spTrfFixingValue));

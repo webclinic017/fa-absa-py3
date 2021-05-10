@@ -1,0 +1,54 @@
+select
+p.prfid,
+p.prfnbr,
+count(t.trdnbr) 'cnt',
+max(t.time) 'last'
+
+into normal
+
+from
+trade t,
+portfolio p,
+instrument i
+where
+t.insaddr = i.insaddr 
+and t.prfnbr = p.prfnbr
+and i.instype = 'Stock'
+group by 1
+
+
+select
+p.prfid,
+p.prfnbr,
+count(t.trdnbr) 'cnt',
+max(t.time) 'last'
+
+into aggd
+from
+trade t,
+portfolio p,
+instrument i
+
+where
+t.insaddr = i.insaddr 
+and t.prfnbr = p.prfnbr
+and i.instype = 'Stock'
+and t.aggregate ~= 0
+group by 1
+
+
+select
+t.prfid,
+t.prfnbr,
+t.cnt     '#normal trades',
+t.last    'last normal trade',
+t_agg.cnt '#aggregate trades',
+t_agg.last'last agg trade'
+from 
+normal t,
+aggd t_agg
+
+where
+t.prfid *= t_agg.prfid
+
+order by 3 desc

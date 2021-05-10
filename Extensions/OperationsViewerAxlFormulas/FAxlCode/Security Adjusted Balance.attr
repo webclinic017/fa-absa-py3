@@ -1,0 +1,87 @@
+[OperationsViewerAxlFormulas]FObject:Security Adjusted Balance
+{
+  Parameters:
+  [
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+  
+}
+temporaryInstrumentAmount = If(Compare.IsEqual(&'type', $settlementType), Switch(&['trdnbr','insaddr','instype'], ['Repo/Reverse', &'amount', 'SecurityLoan', &'amount', 'BuySellback', &'amount', 0.0]), 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    }
+  ]
+  
+}
+collateralAmount = If(And(Compare.IsEqual(&'type', 'Security Nominal'), Compare.IsEqual(&['trdnbr','type'], $tradeType)), &'amount', 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    },
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+}
+temporaryAmount = If(Compare.IsEqual(&['trdnbr','category'], 'Collateral'), @collateralAmount($tradeType), @temporaryInstrumentAmount($settlementType));
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+tempOut = Aggregate.Sum(If(&'settledSecurityExtAttr', If(@isAmountPositive(), @temporaryAmount('Closing', 'End Security'), @temporaryAmount('Normal','Security Nominal')), 0.0));
+
+{
+}
+tempIn = Aggregate.Sum(If(&'settledSecurityExtAttr', If(@isAmountPositive(), @temporaryAmount('Normal','Security Nominal'), @temporaryAmount('Closing', 'End Security')), 0.0));
+
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isSecurityDvPNominalRedemptionEnd = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, 'End Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+currentCustody = Aggregate.Sum(If(And(And(Not(@isTradePrimaryIssuance()), @isSecurityDvPNominalRedemptionEnd()), @isSettledDaySet() ), &'amount', 0.0));
+
+{
+  DisplayInformation:
+  {
+    Label:'Adjusted Balance',
+    GroupLabel:'Security',
+    Description:'Custody Position adjusted for balances in Temporary In and Temporary Out columns.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = @currentCustody() - @tempIn() - @tempOut();
+
+
+...

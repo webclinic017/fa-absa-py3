@@ -1,0 +1,9 @@
+[Securities Lending]FInstrumentAndTrades:secLendCollCostSourcing = py("FPricingHooks", context).GetCollateralSourcingCost(secLendDefaultSourcingCpty);
+[Securities Lending]FMultiInstrumentAndTrades:secLendCollCostSourcing = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->py("FPricingHooks", context).GetCollateralSourcingCost(secLendDefaultSourcingCpty));
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendCollCostSourcing = nil;
+[Securities Lending]FSingleInstrumentAndTrades:secLendCollCostSourcing = select(instrument.InsType == "SecurityLoan", 
+  true->py("FPricingHooks", context).GetCollateralSourcingCost(secLendDefaultSourcingCpty), 
+  default->nil);
+[Securities Lending]FTrade:secLendCollCostSourcing = py("FPricingHooks", context).GetCollateralSourcingCost(secLendDefaultSourcingCpty);

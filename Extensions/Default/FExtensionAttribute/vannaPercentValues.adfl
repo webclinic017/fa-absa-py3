@@ -1,0 +1,9 @@
+[Default]FCombInstrMapAndTrades:vannaPercentValues = instrument :* "vannaPercentValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, priceGreekOnSpot, priceGreekIncludeVolatilityMovement, positionTradeQuantities, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate, contractSize := contractSizeWeighted];
+[Default]FInstrument:vannaPercentValues = select(isSettled or noVolatilityGreekRiskFactorsExist, 
+  true->instrumentSpotZero, 
+  false->select(priceGreekOnSpot, 
+    true->vannaPercentSpotValues, 
+    false->discountAndFilterCurrency(vannaPercentSpotValues, instrumentMoneyMarketCurvesNoDiscountingType, discountAndConvertToBaseDate, filterUnit)));
+[Default]FInstrumentAndTrades:vannaPercentValues = openInstrument :* "collapse(vannaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekShiftFilter, priceGreekOnSpot, priceGreekIncludeVolatilityMovement, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:vannaPercentValues = sumOf(openInstruments :* "collapse(vannaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekShiftFilter, priceGreekOnSpot, priceGreekIncludeVolatilityMovement, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate]);
+[Default]FTradeRow:vannaPercentValues = openInstrument :* "vannaPercentValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, priceGreekOnSpot, singleTradePosition, includeAllTrades, priceGreekIncludeVolatilityMovement, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate];

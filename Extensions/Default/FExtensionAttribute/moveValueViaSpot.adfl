@@ -1,0 +1,17 @@
+[Default]FAverageForward:moveValueViaSpot = collapse(moveValue);
+[Default]FCashFlowInstrument:moveValueViaSpot = select(hasCustomMoveFunction, 
+  true->customMoveValueViaSpot, 
+  false->select(isCredit, 
+    true->select(isMultiCurrencyInstrument, 
+      true->moveValuesHazardViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, creditDiscountCurves, riskFreeDiscountCurves, instrumentMoneyMarketCurves, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, true, true, nil, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation), 
+      false->moveValueHazardViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, creditDiscountCurves, riskFreeDiscountCurves, repoCurve, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, true, true, nil, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation)), 
+    false->select(isMultiCurrencyInstrument, 
+      true->moveValuesViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, discountCurves, instrumentMoneyMarketCurves, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, 0.0, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation), 
+      false->moveValueViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, discountCurves, repoCurve, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, 0.0, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation))));
+[Default]FCombination:moveValueViaSpot = select(needsLegInformation, 
+  true->select(isCredit, 
+    true->moveValueHazardViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, combinationLegInformationsForMoveValue, combinationStaticLegInformationsForMoveValue, combinationCreditCurvesForMoveValue, combinationDiscountOrRiskFreeCurvesForMoveValue, repoCurve, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, true, true, nil, theoreticalModelCashFlowProjectedValue, false, roundingInformation), 
+    false->moveValueViaSpot(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, combinationLegInformationsForMoveValue, combinationStaticLegInformationsForMoveValue, combinationDiscountCurvesForMoveValue, repoCurve, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, contractSize, nil, false, roundingInformation)), 
+  false->select(isMultiCurrencyInstrument, 
+    true->moveValues(moveStartValue, valuationOrSpotDate, instrumentSpotDate, moveToDate, repoCurvesPerCurrency, roundingInformation), 
+    false->moveValue(moveStartValue, valuationOrSpotDate, instrumentSpotDate, moveToDate, repoCurve, roundingInformation)));

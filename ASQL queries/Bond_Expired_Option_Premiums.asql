@@ -1,0 +1,125 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Bond_Expired_Option_Premiums') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Bond_Expired_Option_Premiums' and p.type = 'SQL Query' 
+/*
+
+name = Bond_Expired_Option_Premiums
+
+coded by AP
+
+last updated = 1 April 2003
+
+*/
+
+
+
+
+
+select
+s.srdnbr,
+date_add_banking_day(@PremFrom{2006-01-01; },,0)'from',
+date_add_banking_day(@PremTo{Today; },,0)'to',
+date_add_banking_day(@ExpBefore{Today; },,0)'exp'
+
+
+into
+temp
+
+from
+serverdata s
+
+/*-------------------------------*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+select
+t.trdnbr,
+i.insid,
+p.prfid,
+display_id(t,'counterparty_ptynbr')	'Counterparty',
+'YES' ? t.value_day : '''value_day',
+t.premium,
+'Yes' ? i.exp_day : '' 'exp_day',
+mtm_value_bo(t),
+t.updat_time
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+
+where
+i.instype='Option'
+and i.und_instype='Bond'
+and i.insaddr=t.insaddr
+
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Simulated')
+/*and p.prfid=@Portfolio{ ;portfolio.prfid}*/
+
+and t.value_day>=tt.from
+and t.value_day<=tt.to
+
+and i.exp_day<tt.exp
+
+
+
+
+order by 5,3 /*i.exp_day,t.value_day*/
+
+UNION
+
+select
+t.trdnbr,
+'Portfolio Total',
+p.prfid,
+display_id(t,'counterparty_ptynbr'),
+' ',
+sum(t.premium),
+' ',
+sum(mtm_value_bo(t)),
+t.updat_time
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+
+where
+i.instype='Option'
+and i.und_instype='Bond'
+and i.insaddr=t.insaddr
+
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Simulated')
+/*and p.prfid=@Portfolio{ ;portfolio.prfid}*/
+
+and t.value_day>=tt.from
+and t.value_day<=tt.to
+
+and i.exp_day<tt.exp
+
+
+
+
+group by p.prfid
+

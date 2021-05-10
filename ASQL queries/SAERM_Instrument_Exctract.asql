@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_Instrument_Exctract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_Instrument_Exctract' and p.type = 'SQL Query' 
+select
+	i.insid				'Instrument',
+	max(time_to_day(t.time))	'LastTraded',
+	i.creat_time			'Created',
+	i.updat_time			'Updated',
+	Today				'BusinessDay'
+from
+	trade t,
+	instrument i
+where
+	t.insaddr = i.insaddr
+and	(i.exp_day >= today or i.exp_day = '000-01-01')
+group by 
+	1

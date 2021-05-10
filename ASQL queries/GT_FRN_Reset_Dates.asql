@@ -1,0 +1,209 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_FRN_Reset_Dates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_FRN_Reset_Dates' and p.type = 'SQL Query' 
+
+
+/* coded by AP on 3 Oct 2007
+in the case where the kast reset date has occured WRT the report date
+then the exp date is used to bucket the nominal i.e. assume FRN will we rolled at exp
+*/ 
+
+
+/*-defines buckets into temp-----*/
+
+select 
+s.srdnbr,
+@report_date{Today;}'rd',
+
+date_add_banking_day(@report_date{Today;},'ZAR',1)'demand',
+
+date_add_delta(@report_date{Today;},0,1,0)'1m',
+date_add_delta(@report_date{Today;},0,2,0)'2m',
+date_add_delta(@report_date{Today;},0,3,0)'3m',
+date_add_delta(@report_date{Today;},0,4,0)'4m',
+date_add_delta(@report_date{Today;},0,5,0)'5m',
+date_add_delta(@report_date{Today;},0,6,0)'6m',
+date_add_delta(@report_date{Today;},0,7,0)'7m',
+date_add_delta(@report_date{Today;},0,8,0)'8m',
+date_add_delta(@report_date{Today;},0,9,0)'9m',
+date_add_delta(@report_date{Today;},0,10,0)'10m',
+date_add_delta(@report_date{Today;},0,11,0)'11m',
+date_add_delta(@report_date{Today;},0,12,0)'12m',
+date_add_delta(@report_date{Today;},0,24,0)'24m',
+date_add_delta(@report_date{Today;},0,36,0)'36m',
+date_add_delta(@report_date{Today;},0,48,0)'48m',
+date_add_delta(@report_date{Today;},0,60,0)'60m',
+date_add_delta(@report_date{Today;},0,120,0)'120m'
+
+into temp
+
+
+from 
+
+serverdata s
+
+
+
+
+/*---select all non-expired trades into table = 'noresets'  -----*/
+
+
+
+select
+@report_date{Today;}'date',
+avg(nominal_amount(t,@report_date{Today;}))'Nominal',
+t.trdnbr,
+t.status,
+i.instype,
+i.exp_day'next_reset',/* next_reset is defined as exp_day*/
+p.prfid,
+i.exp_day,
+max(r.start_day)'max_start'
+
+into noresets
+
+from 
+trade t,
+instrument i,
+portfolio p,
+leg l,
+reset r
+
+
+where
+
+match_filter(t,'LA_FUND_TOTAL_MONB0681')
+and t.trdnbr not in (1052454,749923,768239)/*eur issue and R205*/
+and i.instype='FRN'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.exp_day>@report_date{Today;}
+and t.time<=@report_date{Today;}
+/*and (r.start_day)>@report_date{Today;}*/  /* list all the reset dates*/
+and l.insaddr=i.insaddr
+and l.type='Float'
+and l.legnbr=r.legnbr
+
+
+
+
+
+group by t.trdnbr
+
+
+
+/*---select trades that have no resets left from table noresets---- */
+
+select
+nr.date,
+nr.Nominal,
+nr.trdnbr,
+nr.status,
+nr.instype,
+nr.next_reset,
+nr.prfid,
+nr.exp_day,
+nr.max_start
+
+into tradedetails
+
+from 
+noresets nr
+
+
+
+where 
+nr.max_start<=nr.date
+
+
+
+/* trades that have resets left*/
+
+
+select 
+@report_date{Today;}'date',
+avg(nominal_amount(t,@report_date{Today;}))'Nominal',
+t.trdnbr,
+t.status,
+i.instype,
+min(r.start_day)'next_reset',
+p.prfid,
+i.exp_day,
+max(r.start_day)'max_start'
+
+
+into tradedetails
+
+from 
+trade t,
+instrument i,
+portfolio p,
+leg l,
+reset r
+
+
+
+
+where
+
+match_filter(t,'LA_FUND_TOTAL_MONB0681')
+and t.trdnbr not in (1052454,749923,768239)/*eur issue and R205*/
+and i.instype='FRN'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.exp_day>@report_date{Today;}
+and t.time<=@report_date{Today;}
+and (r.start_day)>@report_date{Today;}
+and l.insaddr=i.insaddr
+and l.type='Float'
+and l.legnbr=r.legnbr
+
+
+
+
+group by t.trdnbr
+
+
+
+
+
+select
+
+t.date,
+t.Nominal,
+t.trdnbr,
+t.status,
+t.instype,
+t.next_reset'next_reset_exp',
+t.prfid'Portfolio',
+t.exp_day,
+
+(t.next_reset = dd.demand ? t.Nominal : 0) '1d',
+(t.next_reset > dd.demand ? (t.next_reset <= dd.1m ? t.Nominal : 0 ) : 0) '1m',
+(t.next_reset > dd.1m ? (t.next_reset <= dd.2m ? t.Nominal : 0 ) : 0) '2m',
+(t.next_reset > dd.2m ? (t.next_reset <= dd.3m ? t.Nominal : 0 ) : 0) '3m',
+(t.next_reset > dd.3m ? (t.next_reset <= dd.4m ? t.Nominal : 0 ) : 0) '4m',
+(t.next_reset > dd.4m ? (t.next_reset <= dd.5m ? t.Nominal : 0 ) : 0) '5m',
+(t.next_reset > dd.5m ? (t.next_reset <= dd.6m ? t.Nominal : 0 ) : 0) '6m',
+(t.next_reset > dd.6m ? (t.next_reset <= dd.7m ? t.Nominal : 0 ) : 0) '7m',
+(t.next_reset > dd.7m ? (t.next_reset <= dd.8m ? t.Nominal : 0 ) : 0) '8m',
+(t.next_reset > dd.8m ? (t.next_reset <= dd.9m ? t.Nominal : 0 ) : 0) '9m',
+(t.next_reset > dd.9m ? (t.next_reset <= dd.10m ? t.Nominal : 0 ) : 0) '10m',
+(t.next_reset > dd.10m ? (t.next_reset <= dd.11m ? t.Nominal : 0 ) : 0) '11m',
+(t.next_reset > dd.11m ? (t.next_reset <= dd.12m ? t.Nominal : 0 ) : 0) '12m',
+(t.next_reset > dd.12m ? (t.next_reset <= dd.24m ? t.Nominal : 0 ) : 0) '24m',
+(t.next_reset > dd.24m ? (t.next_reset <= dd.36m ? t.Nominal : 0 ) : 0) '36m',
+(t.next_reset > dd.36m ? (t.next_reset <= dd.48m ? t.Nominal : 0 ) : 0) '48m',
+(t.next_reset > dd.48m ? (t.next_reset <= dd.60m ? t.Nominal : 0 ) : 0) '60m',
+(t.next_reset > dd.60m ? (t.next_reset <= dd.120m ? t.Nominal : 0 ) : 0) '120m',
+(t.next_reset > dd.120m ? t.nominal : 0) '120m_plus'
+
+
+from 
+tradedetails t,
+temp dd
+
+order by t.exp_day

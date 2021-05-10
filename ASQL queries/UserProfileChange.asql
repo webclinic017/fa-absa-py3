@@ -1,0 +1,46 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','UserProfileChange') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'UserProfileChange' and p.type = 'SQL Query' 
+
+/*
+Purpose                       :  Display user profiles that have been changed
+Department and Desk           :  IT
+Requester                     :  Rod Jardine
+Developer                     :  Ickin Vural
+CR Number                     :  C000000419316,C000000477924
+
+*/
+
+
+select distinct
+    
+    up.profid       'Profile',
+    c.type          'Type',
+    c.compname      'Component',
+    pc.creat_time >= @Date{today} ? 'Yes' : 'No' 'Component Added?',
+    pc.allow_write,
+    pc.allow_create,
+    pc.allow_delete,
+    pc.allow_authorize,
+    up.updat_time       'UserProfile Update',
+    pc.updat_time,
+    display_id(up,'updat_usrnbr')
+ 
+from
+   
+    UserProfile      up,
+    Component        c,
+    Profilecomponent pc
+    
+where
+
+    up.profnbr = pc.profnbr
+and pc.compnbr = c.compnbr
+and up.updat_time >= @Date{today}
+and pc.updat_time >= @Date{today}
+
+
+ 

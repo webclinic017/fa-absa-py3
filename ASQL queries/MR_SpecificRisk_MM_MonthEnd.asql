@@ -1,0 +1,99 @@
+/*
+
+Purpose                 :Market Risk feed files - Month End Specific Risk (Standardised Approach)
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger
+CR Number               :C000000342851
+
+/*
+
+Purpose                 :Market Risk feed files
+Department and Desk     :?????
+Requester:              :Susan Kruger
+Developer               :?????
+CR Number               :?????
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_SpecificRisk_MM_MonthEnd') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_SpecificRisk_MM_MonthEnd' and p.type = 'SQL Query' 
+
+
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	@Date{today}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)		            'fxRepDay'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+
+
+
+
+
+select
+    t.trdnbr                        'TradeID',
+    i.insid                         'Instrument',
+    i.instype                       'Instype',
+    i.exp_day                       'Expiry',
+    display_id(t, 'prfnbr')         'Portfolio',
+    display_id(t,'curr')            'Currency',
+    sum(i.contr_size*t.quantity*1/fx.fxRepDay)    'Position',
+    display_id(i,'issuer_ptynbr')   'Issuer'
+    
+into
+    mmtemp
+
+from
+    trade t,
+    instrument i,
+    instrument c,
+    /*portfolio p,*/
+    fxrates fx
+   
+where
+    t.insaddr = i.insaddr    
+and i.curr = c.insaddr
+/*and t.prfnbr  = p.prfnbr*/
+and fx.curr =* c.insid
+and i.instype in ('FRN', 'Bill', 'CD')
+and add_info(t,'MM_Instype') ~= 'BA'
+/*and p.prfid in ('MONY 9802', 'Conduit Trading','Africa_Bonds')*/
+and match_portfolio (t, 'SECONDARY MARKETS TRADING')
+and t.status not in ('Reserved','Simulated','Terminated','Void')
+and display_id(i,'issuer_ptynbr')~= 'ABSA BANK LTD'
+and i.exp_day > today
+
+Group by 2,4,5 
+
+
+select
+    m.TradeID       'TradeID',
+    m.Instrument    'Instrument',
+    m.Instype       'Instype',
+    m.Expiry        'Expiry',
+    m.Portfolio     'Portfolio',
+    m.Currency      'Currency',
+    m.Position      'Position',
+    m.Issuer        'Issuer'
+
+from mmtemp m
+
+where m.Position ~= 0 
+    

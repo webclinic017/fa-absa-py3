@@ -1,0 +1,86 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET PT incl PV') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET PT incl PV' and p.type = 'SQL Query' 
+ 
+  /* ****************all bonds  */
+
+select
+@Calc_Day{Yesterday}	'Calc_Day',
+p.prfid 'Portfolio',
+pp.prfid  'Cost_Centre',
+'YES' ? i.extern_id1: '' 'Bond',
+i.instype 'Instype',
+display_id(i,'issuer_ptynbr')'Issuer',
+
+sum(nominal_amount(t)) 'Nominal',
+sum(nominal_amount(t))/100*(Dirty_from_yield(i, date_add_banking_day(@Calc_Day{Yesterday}  ,,3) ,,, mtm_price(i, @Calc_Day{Yesterday}))) 'PV',
+
+mtm_price(i,@Calc_Day{Yesterday}) 'Front_Yield',
+
+ ((Dirty_from_yield(i, date_add_banking_day(  @Calc_Day{Yesterday}  ,,3) ,,, (mtm_price(i, @Calc_Day{Yesterday}))+0.01  ) - 
+Dirty_from_yield(i, date_add_banking_day(  @Calc_Day{Yesterday}  ,,3) ,,, (mtm_price(i, @Calc_Day{Yesterday}))-0.01 ) ) / (0.01+0.01)) 'delta' /*the delta per bond - uses this column temporarily*/
+
+into bonds
+
+from
+ 
+instrument i ,
+trade t ,
+portfolio p ,
+portfolio pp ,
+portfolioLink pl 
+
+where
+p.prfnbr = pl.member_prfnbr and	
+pl.owner_prfnbr = pp.prfnbr and
+t.insaddr = i.insaddr and
+t.prfnbr = p.prfnbr and 
+i.instype in ('Bond','IndexLinkedBond') and
+time_to_day(t.creat_time) <= @Calc_Day{Yesterday} and
+t.status not in ('Simulated','Void','Reserved','Terminated','Confirmed Void') and
+i.exp_day >= @Calc_Day{Yesterday} and 
+ i.extern_id1 not like '%FUTURE%'
+ and i.exp_day >= @Calc_Day{Yesterday}
+/*and display_id(t,'counterparty_ptynbr') not like '%DRA TRANSAKSIES%'*/
+and i.insid not like 'ZAR/ABN%'
+
+
+group by 1,2,3,4,5,6,9,10
+
+
+/*
+select
+Calc_Day,
+Portfolio ,
+Cost_Centre,
+Bond,
+sum(Nominal)'Nominal',
+Front_Yield,
+delta
+
+from bonds
+where Round(Nominal*100,1)~= 0
+order by 1,3,2,4,6,7
+
+union*/
+select
+Calc_Day,
+Portfolio 'Portfolio',
+Cost_Centre,
+Bond ,
+Instype,
+Issuer,
+
+sum(Nominal)'Nominal',
+PV 'PV',
+Front_Yield,
+
+delta  /*currently calculates the BO adj only in this section of report due to nominal being subtotalled per cost centre - bo is calculated per bond per cc, not per trade or per port*/
+ 
+from bonds
+where Round(Nominal *100,1)~= 0
+group by 1,/*2,*/3,4,5,6,8,9
+

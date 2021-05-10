@@ -1,0 +1,5 @@
+[Default]FInstrumentMoneyFlow:firstTradePriceImpl = select(instrument:isExpired, 
+  true->select(object:hasMarkToMarketPriceMtmPriceDay [mtmPriceDay = instrument:expiryDate], 
+    true->denominatedvalue(trades.First.Price, trades.First.Currency, , instrument:expiryDate), 
+    false->denominatedvalue(trades.First.Price, trades.First.Currency, , valuationDate)), 
+  false->denominatedvalue(trades.First.Price, trades.First.Currency, , valuationDate));

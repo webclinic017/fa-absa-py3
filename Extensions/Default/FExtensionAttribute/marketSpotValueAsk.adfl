@@ -1,0 +1,8 @@
+[Default]FCombInstrMap:marketSpotValueAsk = (instrumentCurrency:discountCurve).DiscountValue(instrument :* "marketSpotValueAsk" [priceSource], combination:instrumentSpotDate);
+[Default]FCombination:marketSpotValueAsk = select(splitCombinationPrice, 
+  true->sumOf((instrumentMaps) :* "marketSpotValueAsk * object.Weight * instrument:contractSize * fxLegToInstrument" [priceSource, doSplitAll]) / combinationDivisionFactor, 
+  false->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceAsk, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll]);
+[Default]FCurrency:marketSpotValueAsk = marketSpotValue;
+[Default]FInstrument:marketSpotValueAsk = select(pricingCurrency == currency, 
+  true->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceAsk, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll], 
+  false->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceAsk, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll] * fxMarketToInstrument);

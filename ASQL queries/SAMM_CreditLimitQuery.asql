@@ -1,0 +1,39 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_CreditLimitQuery') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_CreditLimitQuery' and p.type = 'SQL Query' 
+
+
+select t.trdnbr 'TradeN',
+        ael_f(p,'FCreditLimit.credit_tot_cp_asql',p) 'CreditU',
+        ael_f(p,'FCreditLimit.limit_cp_asql',p) 'CreditL',
+        p.ptyid 'Counterparty',
+        i.insid 'Instrument',
+        add_info(t,'Funding Instype') 'InstrumentT',
+        add_info(p,'FICA SBU') 'InstrumentF',
+        add_info(p,'Credit Limit Exp') 'CreditE'
+into temp
+from trade t,
+    party p,
+    instrument i
+where
+match_filter(t,@Filter{;Tradefilter.fltid}) 
+and t.counterparty_ptynbr = p.ptynbr
+and t.insaddr = i.insaddr
+and add_info(t,'Funding Instype') ~= 'Call Bond Loan'
+
+select
+    t.Counterparty,
+    t.CreditL 'Credit Limit',
+    t.CreditU 'Credit Utilization',
+    (t.CreditL = 0)? 0 : (t.CreditL - t.CreditU) 'Available',
+    (t.CreditL = 0)? (-1*t.CreditU) : ((t.CreditL - t.CreditU) < 0)? (t.CreditL - t.CreditU): 0 'Excess',
+    t.Instrument,
+    t.InstrumentT 'Funding Instype',
+    t.InstrumentF 'FICA SBU',
+    t.CreditE 'Limit Expiry Date',
+    t.TradeN 'Trade Number'
+from temp t
+group by 1

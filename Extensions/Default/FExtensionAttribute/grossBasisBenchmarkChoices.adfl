@@ -1,0 +1,11 @@
+[Default]FInstrument:grossBasisBenchmarkChoices = select(isFutureOnNotional, 
+  true->object.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Default]FOrderBook:grossBasisBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Default]FQuoteController:grossBasisBenchmarkChoices = instrument:grossBasisBenchmarkChoices;
+[Default]FTradingInterface:grossBasisBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Default]FUndefinedObject:grossBasisBenchmarkChoices = getObject("FPhysInstrGroup", "GrossBasisBenchmarks").Instruments.AsArray.SortByProperty("Name", true);

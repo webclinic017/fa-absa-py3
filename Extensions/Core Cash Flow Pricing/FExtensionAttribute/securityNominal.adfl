@@ -1,0 +1,6 @@
+[Core Cash Flow Pricing]FSecurityMoneyFlow:securityNominal = select(instrument.InsType, 
+  "Repo/Reverse"->tradeQuantities * instrument.RefValue, 
+  "SecurityLoan"->select(security:isPhysicalQuotation, 
+    true->tradeQuantities * security:contractSizeInQuotation, 
+    false->tradeQuantities * instrument.RefValue), 
+  default->tradeQuantities * weight * nominalOrContractSize);

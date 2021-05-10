@@ -1,0 +1,41 @@
+[Instrument Definition API]FMethod:InsDef.UpdateInstrument$5
+This method is used when updating an existing instrument in a similar way as when updating it from the instrument definition window.
+
+Similar UI scenario:
+
+	1. Open existing instrument in the instrument definition window
+	2. Modify fields in the instrument section
+	3. Press Save
+	4. Answer all pop up questions
+
+@param
+The instrument
+
+@param
+Parameters that should be set before saving the instrument. Parameters are specified using methods and method chains that can be reached from the FInstrumentLogicDecorator. When a value is set, it will behave as when setting the value in the instrument definition window, which means that all side effects that occur when setting the value will occur here as well.
+
+@param
+An object holding answers to questions. When saving from the instrument definition window, these questions are answered in pop ups.
+
+@param
+A callback that will be run before commiting the instrument. See example for the  CreateTrade method on how to use it.
+
+@param
+A callback that will be run if the commit fails. This callback is used to roll back changes that were made in the *'preCommitBlock'*
+
+@return
+The saved instrument if save is successful. Exceptions will be raised if the save is not successful
+
+Example::
+
+	ins = acm.InsDef.CreateInstrument('Swap', parameters)
+	parameters = acm.FOrderedDictionary()
+	parameters['FirstReceiveLeg.Spread'] = 2
+	answers = acm.FUpdateInstrumentAnswers()
+	answers.RegenerateCashFlows = 'no'
+	answers.SetSpread = 'no'
+	ins = acm.InsDef.UpdateInstrument(ins, parameters, answers)
+	acm.StartApplication('Instrument Definition', ins)
+
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

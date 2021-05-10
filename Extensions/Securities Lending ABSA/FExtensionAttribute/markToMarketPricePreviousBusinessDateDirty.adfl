@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FBond:markToMarketPricePreviousBusinessDateDirty = py("sl_functions", context).YTM_To_Price(object, currency.Calendar.AdjustBankingDays(previousBusinessDateStart, object.SpotBankingDaysOffset), object.UsedPrice(previousBusinessDateStart, "ZAR", "SPOT_BESA"), true) / 100;
+[Securities Lending ABSA]FIndexLinkedBond:markToMarketPricePreviousBusinessDateDirty = py("sl_functions", context).YTM_To_Price(object, currency.Calendar.AdjustBankingDays(previousBusinessDateStart, object.SpotBankingDaysOffset), object.UsedPrice(previousBusinessDateStart, "ZAR", "SPOT_BESA"), true) / 100;
+[Securities Lending ABSA]FInstrument:markToMarketPricePreviousBusinessDateDirty = 
+# UPGRADE 2016.5 (H)
+# QuoteToRoundedCleanUnitValueOverrideUnitDate => QuoteToUnitValueBase
+object.QuoteToUnitValueBase(markToMarketPricePreviousBusinessDate, valuationDate, instrumentSpotDate, true, legInformations, staticLegInformations, priceOrderBook.Quotation, couponToValueFactor, couponPriceAdjustment);

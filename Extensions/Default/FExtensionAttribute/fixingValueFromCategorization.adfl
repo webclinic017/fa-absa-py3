@@ -1,0 +1,4 @@
+[Default]FLeg:fixingValueFromCategorization[resetTypeForFixingCategorization, fixingDateForFixingCategorization, fixingCurrencyForFixingCategorization] = shunt(valuationDate > valuationSystemDate, 
+  true->setDateTimePart(denominatedValueZero, fixingDateForFixingCategorization), 
+  false->fixingReferenceInstrumentAndTrades :* extensionAttributeFromFixingCategorization [fixingDateForFixingCategorization, fixingCurrencyForFixingCategorization]);
+[Default]FLegAndTrades:fixingValueFromCategorization = leg:fixingValueFromCategorization [resetTypeForFixingCategorization = resetTypeForStandardCalculations, fixingDateForFixingCategorization = fixingDateForStandardCalculations, fixingCurrencyForFixingCategorization = fixingCurrencyForStandardCalculations];

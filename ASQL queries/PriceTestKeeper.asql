@@ -1,0 +1,65 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PriceTestKeeper') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PriceTestKeeper' and p.type = 'SQL Query' 
+
+
+/* Benchmarks */
+select
+    distinct
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.insaddr
+    
+into
+    temp
+    
+from
+    Instrument i,
+    Benchmark B
+    
+where
+    i.insaddr = b.instrument
+    
+    
+
+    
+select
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.insaddr
+    
+into
+    temp
+    
+from
+    Instrument i
+    
+where
+    i.exp_day >= today
+or i.exp_day in ('0000-01-01', '9999-12-31', '2007-01-01')
+or i.generic = 'Yes'
+    
+    
+    
+    
+    
+select
+    'PriceCopy',
+    t.insid,
+    t.instype = 'Bond' ? 'Bond' : t.instype 'Type',
+    t.exp_day,
+    ael_s(,'as_CopyPrice.PriceTestKeeper', i)     'PriceTestKeeper'
+    
+from
+    temp t,
+    instrument i
+    
+where
+    i.insaddr = t.insaddr
+    
+  

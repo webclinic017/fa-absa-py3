@@ -1,0 +1,56 @@
+[Default]FObject:Cash To Receive XD
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+}
+
+isValueDayTodayPlusXDays = Compare.IsEqual(&'value_day', DateTime.AddWeekday($X));
+
+{
+}
+
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+        Label:'Number of weekdays',
+        Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'To Receive XD',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day equal to today + given number of weekdays and positive amount.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'To Receive {X.Label}D',
+    Description:'Total unsettled cash with value day equal to today + {X.Label} weekdays and positive amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(If(And(Not(Compare.IsNegative($X)), And(And(@isValueDayTodayPlusXDays($X), @isAmountPositive()), &'unSettledCashExtAttr')), &'amount', 0.0)), AttributeDimensions = AttributeList(['curr']));
+
+
+...

@@ -1,0 +1,48 @@
+/*----------------------------------------------------------------------------------------------------------------------------------------------------------
+    Purpose               : The purpose of this extract is to notify of any Private Individuals of any Fixed Term Agreements that are due expire in 80 days.
+    Department and Desk   : Finance IT
+    Requester             : Steve Smit
+    Developer             : Tshepo Mabena 
+    CR Number             : 694892
+------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+select
+ael_i(p,'ASQL_log','FTA_CPA_Reminders')   'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FTA_CPA_Reminders' and p.type = 'SQL Query' 
+
+select
+    p.fullname                          'Counterparty Name',
+    ac.account                          'Account Number' ,
+    t.trdnbr                            'Trade Number',
+    u.name                              'Trader',
+    t.time                              'Trade Date',
+    i.exp_day                           'Expiry Date',
+    t.price                             'Price',
+    t.premium                           'Premium',
+    t.status                            'Status',
+    i.insid                             'Insid',
+    display_id(t, 'prfnbr')             'Portfolio',
+    nominal_amount(t)                   'Nominal Value',
+    display_id(t, 'acquirer_ptynbr')    'Desk'
+from
+    party p,
+    ChoiceList cl,
+    trade t,
+    instrument i,
+    Account ac,
+    user u
+where
+         p.business_status_chlnbr = cl.seqnbr
+     and t.counterparty_ptynbr    = p.ptynbr
+     and t.insaddr = i.insaddr
+     and p.ptynbr  = ac.ptynbr
+     and t.creat_usrnbr = u.usrnbr
+     and cl.entry in ('Private Individual')
+     and days_between(Today,i.exp_day, 'Act/365') = 80
+     and i.exp_day > Today
+     and t.status not in ('Void','Simulated')
+     and i.instype not in (@Exclude{;instrument.instype *})
+     
+     group by 2,3

@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+
+/*
+Date                Who                 What                                  CR Number
+
+2008-04-29          Heinrich Cronje     Changed t.time to t.execution_time    2700
+
+*/
+
+select
+ael_i(p,'ASQL_log','SAGEN_Trades_Done') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Trades_Done' and p.type = 'SQL Query' 
+
+select
+	t.trdnbr		'Trdnbr',
+	i.insid			'Instrument',
+	i.instype		'InsType',
+	t.status		'Status',
+	p.ptyid			'Acquirer',
+	time_to_day(t.time)	'Trade Time',
+	po.prfid        'Portfolio',
+	display_id(t,'counterparty_ptynbr') 'Counterparty',
+	time_to_day(t.creat_time)  'Create Time',
+	time_to_day(t.execution_time)   'Execution Time'
+
+from
+	Trade t,
+	Instrument i,
+	Party p,
+    portfolio po
+
+where
+	t.insaddr = i.insaddr
+and	t.acquirer_ptynbr = p.ptynbr
+and po.prfid not in ('CFD','Equity Script Lending','4440798','4440806')
+and t.prfnbr = po.prfnbr
+and t.execution_time >= @FromTime{yesterday}
+and t.execution_time <= @ToTime{today}

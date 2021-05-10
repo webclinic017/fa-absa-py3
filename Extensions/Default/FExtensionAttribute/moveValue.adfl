@@ -1,0 +1,6 @@
+[Default]FInstrument:moveValue = select(hasCustomMoveFunction, 
+  true->collapse(customMoveValue), 
+  false->shunt[priceSource, doSplitAll, moveStartValue, moveToDate, legs, useRiskFreeDiscounting, doFlatAccruedAdjustment, moveValueStartPoint, moveValueStartPointFromCombination](forwardValuationType, 
+    None->moveStartValue, 
+    NoCashFlow->collapse(moveValueNoCashFlow), 
+    CashFlow->collapse(moveValueCashFlow)));

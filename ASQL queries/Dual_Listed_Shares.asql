@@ -1,0 +1,248 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Dual_Listed_Shares') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Dual_Listed_Shares' and p.type = 'SQL Query' 
+
+/*
+Date                Who                     What
+2007-04-17          Heinrich Cronje         Created
+2007-10-04          Heinrich Cronje         Hard Coded Registered Holder to "Fradey Nominees Pty Ltd"
+Barcleys report for dual listed shares
+/*
+
+/*-----------------------------------Macro-----------------------------------*/
+select
+    @3_Position{Net_Position;'Net_Position','Long_Short_Position'} 'Position'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------Short Position----------------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    sum(t.quantity)  'Natural_Holdings',
+    'Y' 'Beneficial_Owned_Flag',
+    'ABSA GROUP' 'Beneficial_Holders_Name',
+    'Y' 'Investment_Discretion',
+    'D' 'Investment_Category',
+    i.isin  'Natural_ISIN',
+    'E' 'Secuirity_Category',
+    'P' 'Holding_Type',
+    'S' 'Shareholding_Long_Or_Short_Positions',
+    'EA'   'Sub_Secuirity_Category',
+    'PA'   'Sub_Holding_Type',
+    sum(t.quantity)  'Underlying_Holdings',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    'Y' 'Discretionary_Type',
+    'S' 'Voting_Rights',
+    'SH'    'Holdings_Classification',
+    to_date(@2_ReportDate{yesterday})  'Deal_Date',
+    display_id(t,'prfnbr')  'Portfolio',
+    i.insid,
+    i.instype
+into
+    temp
+from
+    instrument i,
+    trade t,
+    macro m,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and t.quantity < 0
+    and m.Position = 'Long_Short_Position'
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr    
+    and time_to_day(t.time) <= @2_ReportDate{yesterday}
+    
+group by 23
+/*----------------------------------------------------------------------------*/
+
+/*---------------------------------Short To Long Positions--------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    sum(abs(t.quantity))  'Natural_Holdings',
+    'Y' 'Beneficial_Owned_Flag',
+    'ABSA GROUP' 'Beneficial_Holders_Name',
+    'Y' 'Investment_Discretion',
+    'D' 'Investment_Category',
+    i.isin  'Natural_ISIN',
+    'E' 'Secuirity_Category',
+    'B' 'Holding_Type',
+    'L' 'Shareholding_Long_Or_Short_Positions',
+    'EA'   'Sub_Secuirity_Category',
+    'PA'   'Sub_Holding_Type',
+    sum(abs(t.quantity))  'Underlying_Holdings',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    'Y' 'Discretionary_Type',
+    'S' 'Voting_Rights',
+    'SH'    'Holdings_Classification',
+    to_date(@2_ReportDate{yesterday})  'Deal_Date',
+    display_id(t,'prfnbr')  'Portfolio',
+    i.insid,
+    i.instype
+into
+    temp
+from
+    instrument i,
+    trade t,
+    macro m,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and t.quantity < 0
+    and m.Position = 'Long_Short_Position'
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr
+    and time_to_day(t.time) <= @2_ReportDate{yesterday}
+    
+group by 23
+
+/*----------------------------------------------------------------------------*/
+
+/*-----------------------------------Long Position----------------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    sum(t.quantity)  'Natural_Holdings',
+    'Y' 'Beneficial_Owned_Flag',
+    'ABSA GROUP' 'Beneficial_Holders_Name',
+    'Y' 'Investment_Discretion',
+    'D' 'Investment_Category',
+    i.isin  'Natural_ISIN',
+    'E' 'Secuirity_Category',
+    'P' 'Holding_Type',
+    'L' 'Shareholding_Long_Or_Short_Positions',
+    'EA'   'Sub_Secuirity_Category',
+    'PA'   'Sub_Holding_Type',
+    sum(t.quantity)  'Underlying_Holdings',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    'Y' 'Discretionary_Type',
+    'S' 'Voting_Rights',
+    'SH'    'Holdings_Classification',
+    to_date(@2_ReportDate{yesterday})  'Deal_Date',
+    display_id(t,'prfnbr')  'Portfolio',
+    i.insid,
+    i.instype
+into
+    temp
+from
+    instrument i,
+    trade t,
+    macro m,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and t.quantity > 0
+    and m.Position = 'Long_Short_Position'
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr
+    and time_to_day(t.time) <= @2_ReportDate{yesterday}
+    
+group by 23
+/*-----------------------------------------------------------------------------*/
+
+/*--------------------------------Net Position---------------------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    sum(t.quantity)  'Natural_Holdings',
+    'Y' 'Beneficial_Owned_Flag',
+    'ABSA GROUP' 'Beneficial_Holders_Name',
+    'Y' 'Investment_Discretion',
+    'D' 'Investment_Category',
+    i.isin  'Natural_ISIN',
+    'E' 'Secuirity_Category',
+    'P' 'Holding_Type',
+    t.quantity > 0 ? 'L' : 'S' 'Shareholding_Long_Or_Short_Positions',
+    'EA'   'Sub_Secuirity_Category',
+    'PA'   'Sub_Holding_Type',
+    sum(t.quantity)  'Underlying_Holdings',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    'Y' 'Discretionary_Type',
+    'S' 'Voting_Rights',
+    'SH'    'Holdings_Classification',
+    to_date(@2_ReportDate{yesterday})  'Deal_Date',
+    display_id(t,'prfnbr')  'Portfolio',
+    i.insid,
+    i.instype
+into
+    temp
+from
+    instrument i,
+    trade t,
+    macro m,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and m.Position = 'Net_Position'
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr
+    and time_to_day(t.time) <= @2_ReportDate{yesterday}
+    
+group by 23
+/*-----------------------------------------------------------------------------*/
+
+/*--------------------------------Final----------------------------------------*/
+select
+    t.Natural_SEDOL 'Natural SEDOL',
+    t.Company_Name 'Company Name',
+    t.Share_Type   'Share Type',
+    abs(t.Natural_Holdings)  'Natural Holdings',
+    'Fradey Nominees Pty Ltd ' 'Registered Holder',
+    ' ' 'Fund Name',
+    t.Beneficial_Owned_Flag 'Beneficial Owned Flag',
+    t.Beneficial_Holders_Name 'Beneficial Holders Name',
+    t.Investment_Discretion 'Investment Discretion',
+    t.Investment_Category 'Investment Category',
+    ' ' 'Natural CUSIP',
+    t.Natural_ISIN  'Natural ISIN',
+    '' 'Natural Japanese Quick Code',
+    ' ' 'Account Number',
+    t.Secuirity_Category 'Secuirity Category',
+    t.Holding_Type 'Holding Type',
+    t.Underlying_Holdings >= 0 ? 'L' : 'S' 'Shareholding - Long or Short Positions',
+    /*t.Shareholding_Long_Or_Short_Positions 'Shareholding - Long or Short Positions',*/
+    t.Sub_Secuirity_Category   'Sub Secuirity Category',
+    t.Sub_Holding_Type   'Sub Holding Type',
+    abs(t.Underlying_Holdings)  'Underlying Holdings',
+    ' ' 'Underlyimg SEDOL',
+    ' ' 'Underlying CUSIP',
+    '' 'Underlying Japanese Quick Code',
+    t.Underlying_ISIN_Number  'Underlying ISIN Number',
+    t.Discretionary_Type 'Discretionary Type',
+    t.Voting_Rights 'Voting Rights',
+    t.Holdings_Classification    'Holdings Classification',
+    ' ' 'Option Exercisable Date',
+    t.Deal_Date  'Deal Date'
+from
+    temp t
+where
+    abs(t.Natural_Holdings) > 0
+    
+order by 16 desc, 12
+

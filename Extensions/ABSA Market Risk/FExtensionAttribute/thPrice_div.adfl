@@ -1,0 +1,5 @@
+[ABSA Market Risk]FInstrument:thPrice_div = switch(object.InsType == "Stock", 
+  true->marketPrice + (dividendStreamPV - opaque(dividendStreamPV)) * 100, 
+  false->denominatedvalue(theoreticalPrice.Number, currency, , valuationDate));
+[ABSA Market Risk]FInstrumentAndTrades:thPrice_div = instrument:thPrice_div [positionObject, theoreticalValueDiscountCurves, displayDate, theoreticalValueFxRates];
+[ABSA Market Risk]FMultiInstrumentAndTrades:thPrice_div = sumOf(instruments :* "thPrice_div" [positionObject, theoreticalValueDiscountCurves, displayDate, theoreticalValueFxRates]);

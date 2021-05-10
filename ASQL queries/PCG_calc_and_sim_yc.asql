@@ -1,0 +1,17 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_calc_and_sim_yc') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_calc_and_sim_yc' and p.type = 'SQL Query' 
+
+
+
+
+select
+    yc.yield_curve_name,
+    ael_s(yc, 'dirk_utils.recalc_yc_sim')           'calc_res'
+from
+    yieldcurve yc
+where
+    yc.yield_curve_name in ('ZAR-SWAP', 'EUR-SWAP', 'USD-SWAP', 'GBP-SWAP')

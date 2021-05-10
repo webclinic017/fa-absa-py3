@@ -1,0 +1,5 @@
+[SA-CCR (Beta)]FCashFlow:saccrUnmarginedMaturityFactor = saccrMaturityFactor(saccrMaturity);
+[SA-CCR (Beta)]FInstrument:saccrUnmarginedMaturityFactor = saccrMaturityFactor(saccrMaturity);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrUnmarginedMaturityFactor = select(isOpenPosition and saccrAssetClassDefined, 
+  true->round(saccrInstrumentComponents :* "saccrUnmarginedMaturityFactor" [tradesInPosition], saccrDecimalsDefault), 
+  false->nil);

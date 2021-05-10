@@ -1,0 +1,10 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRelationshipNumber = shunt(usedInHedge, 
+  true->getHedgeRelationshipNumber(object), 
+  default->nil);
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRelationshipNumber = shunt(usedInHedge, 
+  true->getHedgeRelationshipNumber(lowestChild.OriginalTrade.DealPackage, lowestChild.OriginalTrade), 
+  default->nil);
+[HedgeAccountingMod]FPortfolioInstrumentAndTrades:hedgeRelationshipNumber = nil;
+[HedgeAccountingMod]FTradeRow:hedgeRelationshipNumber = shunt(usedInHedge, 
+  true->getHedgeRelationshipNumber(object.OriginalTrade.DealPackage, object.OriginalTrade), 
+  default->nil);

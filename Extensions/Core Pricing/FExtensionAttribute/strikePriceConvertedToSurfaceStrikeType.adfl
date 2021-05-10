@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:strikePriceConvertedToSurfaceStrikeType = select(strikeInTheoreticalPrice, 
+  nil->nil, 
+  default->select(volatilityStructureInTheoreticalPriceObject, 
+    nil->nil, 
+    default->getRelativeStrike(volatilityStructureInTheoreticalPriceObject :* "strikeType", strikePriceConvertedToAbsolute, relativePriceForSurfaceStrikeType)));
+[Core Pricing]FInstrumentAndTrades:strikePriceConvertedToSurfaceStrikeType = openInstrumentOrInstrument:strikePriceConvertedToSurfaceStrikeType [theoreticalPrice, priceSource, isSplitAllGrouped];
+[Core Pricing]FMultiInstrumentAndTrades:strikePriceConvertedToSurfaceStrikeType = nil;
+[Core Pricing]FPriceAggregate:strikePriceConvertedToSurfaceStrikeType = instrument:strikePriceConvertedToSurfaceStrikeType [theoreticalPrice, priceSource, isSplitAllGrouped];
+[Core Pricing]FVolatilityPoint:strikePriceConvertedToSurfaceStrikeType = object.Strike;

@@ -1,0 +1,8 @@
+[ABSA Greeks 4.3]FCfd:calculatePriceDeltaHedgeEquivalent = true;
+[ABSA Greeks 4.3]FConvertible:calculatePriceDeltaHedgeEquivalent = select(underlying, 
+  nil->false, 
+  default->underlying:calculatePriceDeltaHedgeEquivalent);
+[ABSA Greeks 4.3]FInstrument:calculatePriceDeltaHedgeEquivalent = object.IsBasedOnEquity;
+[ABSA Greeks 4.3]FPortfolioSwap:calculatePriceDeltaHedgeEquivalent = (indexReferences :* "calculatePriceDeltaHedgeEquivalent").OccurencesOf(true) > 0;
+[ABSA Greeks 4.3]FTotalReturnSwap:calculatePriceDeltaHedgeEquivalent = (indexReferences :* "calculatePriceDeltaHedgeEquivalent").OccurencesOf(true) > 0;
+[ABSA Greeks 4.3]FWarrant:calculatePriceDeltaHedgeEquivalent = true;

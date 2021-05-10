@@ -1,0 +1,5 @@
+[Default]FObject:volatilityQuoteToQuoteConverter[instrument, quoteConversionFromQuotation, quoteConversionToQuotation, priceSource, doSplitAll] = select((quoteConversionToQuotation == nil) or (quoteConversionFromQuotation == nil), 
+  true->nil, 
+  default->select(quoteConversionToQuotation.IsEqual(quoteConversionFromQuotation), 
+    true->nil, 
+    default->collapse(volatilityQuoteConversionQuoteToQuoteConverter)));

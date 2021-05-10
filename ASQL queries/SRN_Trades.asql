@@ -1,0 +1,10 @@
+SELECT t.trdnbr
+FROM
+AdditionalInfo ai,
+trade t
+WHERE
+    addinf_specnbr in (492, 493) /* MM Instype, Funding Instype */
+AND value in ('FRD Pre Payable', 'FRD Pre Payable 13M', 'FRD Pre Payable 1M',
+'FRD Pre Payable 3M', 'FRD Pre Payable 6M')
+and t.trdnbr=ai.recaddr
+and t.status not in ('Terminated', 'Simulated', 'Void')

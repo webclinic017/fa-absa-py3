@@ -1,0 +1,7 @@
+[Default]FFxRate:profitAndLossFXRateCalculation = shunt[profitAndLossFXRateDate, profitAndLossFXRateForwardDate, allowMarkToMarketPrice, useMarkToMarketPriceToday](profitAndLossFXRateDateIsHistorical, 
+  true->select(immediateFxRates, 
+    true->object:fxRateWithHistoricalParameters [fxHistoricalDate = profitAndLossFXRateDate, fxHistoricalForwardDate = profitAndLossFXRateForwardDate], 
+    false->object:historicalSimplisticFXSpotRate [fxHistoricalDate = profitAndLossFXRateDate]), 
+  false->select(immediateFxRates, 
+    true->object:fxForwardRate [allowMarkToMarketPrice, fxForwardDate = profitAndLossFXRateForwardDate], 
+    false->object:simplisticFXSpotRate [useMarkToMarketPriceToday, allowMarkToMarketPrice]));

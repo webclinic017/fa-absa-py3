@@ -1,0 +1,32 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Daily_Rates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Daily_Rates' and p.type = 'SQL Query' 
+
+
+/*
+'''
+Purpose                 :Daily report to get daily rates for specified curve writen to a file
+Department and Desk     :Group Treasury
+Requester:              :Coen de Beer
+Developer               :Jaysen Naicker
+Date			:02/07/2010
+CR Number               :362029
+'''
+*/
+
+
+select
+
+    ael_s(yc,'GT_Daily_Rates.yc_rate_extract',yc.yield_curve_name,TODAY,@Nbr_7000_is_29years[8000],'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Spot Rate',i.insid,@FilePath{f:/;})  'status'
+
+from
+
+	yieldcurve	yc,
+	instrument	i
+where
+	yc.yield_curve_name=@YieldCurve{;yieldcurve.yield_curve_name}
+    and i.insid=@Instrument{}
+

@@ -1,0 +1,30 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP_MARKET_Bond_Data') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP_MARKET_Bond_Data' and p.type = 'SQL Query' 
+ 
+  select
+@Day{Today} 'Date',
+i.insid 'Bond',
+i.isin 'ISIN',
+i.instype 'InstrumentType',
+display_id(i,'issuer_ptynbr') 'Issuer',
+i.exp_day 'BondExpiry',
+mtm_price(i,@Day{Today}) 'YTM',
+Clean_from_yield(i , date_add_banking_day(  @Day{Today}  ,,3) ,,, mtm_price(i,@Day{Today})) 'Clean Price',
+Dirty_from_yield(i , date_add_banking_day(  @Day{Today}  ,,3) ,,, mtm_price(i,@Day{Today})) 'Dirty Price'
+
+
+from
+instrument i
+
+where
+
+i.instype in ('Bond','IndexLinkedBond')
+and i.exp_day >= today
+and display_id(i,'issuer_ptynbr') = 'S A GOVERNMENT DOMESTIC'
+and i.insid not like '%JFUTURE%'
+and i.insid not like '%R194%'
+and i.insid not like '%R178%'

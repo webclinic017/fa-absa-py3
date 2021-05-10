@@ -1,0 +1,4 @@
+[Fixed Income Pricing and Risk]FCashFlowInformation:fraNonCouponValue = fraFactor * participationRate * totalFloatRate * object.Period * nominal;
+[Fixed Income Pricing and Risk]FLeg:fraNonCouponValue = select(firstCashFlow, 
+  nil->denominatedvalue(0), 
+  default->discountCurve.DiscountValue(firstCashFlow :* "fraNonCouponValue" [legInformation], forwardValueDate));

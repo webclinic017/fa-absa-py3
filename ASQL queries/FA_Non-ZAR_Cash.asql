@@ -1,0 +1,301 @@
+/* update_method=0 */
+/*----------------------------------------------------------------------------------------
+    FA_Non-ZAR_Cash
+
+    This query calculate extracts all trade cash movements across all instrument types.
+    The cash is extracted in its original currency.
+    The result is used for the Cash Recon.
+
+    Department and Desk : Product Control
+    Requester           : Suveshan Iyaloo
+    Developer           : Manyano Dlulane
+
+    History:
+    When: 	        CR Number:      Who:		        What:       
+    2019-06-19      FTF-201         Manyano Dlulane	    Created
+--------------------------------------------------------------------------------------------*/
+
+/* ***********************************  FX Rates *******************************************/
+select
+    cur.insaddr,
+    cur.insid           'Currency',
+    ael_f(cur,'CFC_Cash_USD_Rate.usd_rate','SPOT',date_add_banking_day(to_date(@Date{YESTERDAY}), , 0)) 'Rate'
+into
+    fx_rates
+from
+    instrument         cur
+
+where
+    cur.instype = 'Curr'
+
+/* ***********************************  All Trades *******************************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No',
+    display_id(t,'curr')'curr'
+into
+    All_Trades
+    
+from
+    trade t,
+    instrument i,
+    portfolio pf
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+
+/* **************  Trade Permium *******************************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No',
+    display_id(t,'curr')'Curr',
+    t.premium         'Cash',
+    fx.rate
+into
+    Trades_CFs_1
+from
+    trade t,
+    instrument i,
+    portfolio pf,
+    fx_rates fx
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and fx.insaddr = t.curr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+and t.value_day =< date_add_banking_day(to_date(@Date{YESTERDAY}), , 0)
+and display_id(t,'curr') ~= 'ZAR'
+
+/* ************************** Additional Payments ******************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No', 
+    display_id(pmt,'Curr')'Curr',
+    pmt.amount      'Cash',
+    fx.rate
+into
+    Trades_CFs_2
+from
+    trade t,
+    instrument i,
+    portfolio pf,
+    payment pmt,
+    fx_rates fx
+
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and t.trdnbr = pmt.trdnbr
+and fx.insaddr = pmt.curr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+and pmt.payday =< date_add_banking_day(to_date(@Date{YESTERDAY}), , 0)
+and display_id(pmt,'Curr') ~= 'ZAR'
+and pmt.text ~= 'settlement'
+
+/* **************  Cashflows *******************************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No', 
+    display_id(l,'Curr')'Curr',
+    projected_cf(cf)* t.quantity      'Cash',
+    fx.rate
+into
+    Trades_CFs_3
+from
+    trade t,
+    instrument i,
+    portfolio pf,
+    leg l,
+    cashflow cf,
+    fx_rates fx
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and fx.insaddr = l.curr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+and (cf.pay_day >= t.value_day
+and cf.pay_day =< date_add_banking_day(to_date(@Date{YESTERDAY}), , 0))
+and display_id(l,'Curr') ~= 'ZAR'
+
+/* ************************************ Curr Trades ***************************************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No',
+    display_id(i,'curr')'Curr',
+    t.quantity  'Cash',
+    fx.rate
+into
+    Trades_CFs_4
+    
+from
+    trade t,
+    instrument i,
+    portfolio pf,
+    fx_rates fx
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+and i.instype = 'Curr'
+and fx.insaddr = t.curr
+and display_id(i,'curr') ~= 'ZAR'
+and t.value_day =< date_add_banking_day(to_date(@Date{YESTERDAY}), , 0)
+
+/* **************  Forwards and Futures *******************************************/
+select
+    t.trdnbr    'TradeNumber',
+    pf.prfid    'Portfolio_Name',
+    display_id(t,'counterparty_ptynbr')  'Cpty',
+    pf.prfnbr   'Portfolio_ID',
+    i.instype   'Instype',
+    add_info(pf,'MIDAS_Customer_Num')'MIDAS_Customer_No',
+    display_id(t,'curr')'Curr',
+    i.mtm_from_feed = '' ? t.quantity * (t.price - mtm_price(i,i.exp_day)) :  accumulated_cash(t,date_add_banking_day(to_date(@Date{YESTERDAY}), , 0),display_id(t,'curr'))     'Cash',
+    fx.rate
+into
+    Trades_CFs_5
+from
+    trade t,
+    instrument i,
+    portfolio pf,
+    fx_rates fx
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = pf.prfnbr
+and fx.insaddr = t.curr
+and match_filter(t, @TradeFilter{;tradefilter.fltid})
+and i.instype = 'Future/Forward'
+and t.value_day =< date_add_banking_day(to_date(@Date{YESTERDAY}), , 0)
+
+/* ****************************************  Trades_Output - Final *******************************************/
+select
+    tt.TradeNumber,
+    tt.Portfolio_Name,
+    tt.Cpty,
+    tt.Portfolio_ID,
+    tt.Instype,
+    tt.MIDAS_Customer_No,
+    ttt.Curr,
+    sum(ttt.Cash) 'Cash',
+    ttt.rate   
+into
+    Display
+from
+    All_Trades tt,
+    Trades_CFs_1 ttt
+where
+    tt.TradeNumber = ttt.TradeNumber
+
+
+select
+    tt.TradeNumber,
+    tt.Portfolio_Name,
+    tt.Cpty,
+    tt.Portfolio_ID,
+    tt.Instype,
+    tt.MIDAS_Customer_No,
+    ttt.Curr,
+    sum(ttt.Cash) 'Cash',
+    ttt.rate   
+into
+    Display
+from
+    All_Trades tt,
+    Trades_CFs_2 ttt
+where
+    tt.TradeNumber = ttt.TradeNumber
+
+select
+    tt.TradeNumber,
+    tt.Portfolio_Name,
+    tt.Cpty,
+    tt.Portfolio_ID,
+    tt.Instype,
+    tt.MIDAS_Customer_No,
+    ttt.Curr,
+    sum(ttt.Cash) 'Cash',
+    ttt.rate                   
+into
+    Display
+from
+    All_Trades tt,
+    Trades_CFs_3 ttt
+where
+    tt.TradeNumber = ttt.TradeNumber
+
+select
+    tt.TradeNumber,
+    tt.Portfolio_Name,
+    tt.Cpty,
+    tt.Portfolio_ID,
+    tt.Instype,
+    tt.MIDAS_Customer_No,
+    ttt.Curr,
+    sum(ttt.Cash) 'Cash',
+    ttt.rate                   
+into
+    Display
+from
+    All_Trades tt,
+    Trades_CFs_4 ttt
+where
+    tt.TradeNumber = ttt.TradeNumber
+
+select
+    tt.TradeNumber,
+    tt.Portfolio_Name,
+    tt.Cpty,
+    tt.Portfolio_ID,
+    tt.Instype,
+    tt.MIDAS_Customer_No,
+    ttt.Curr,
+    sum(ttt.Cash) 'Cash',
+    ttt.rate                   
+into
+    Display
+from
+    All_Trades tt,
+    Trades_CFs_5 ttt
+where
+    tt.TradeNumber = ttt.TradeNumber
+
+/* ****************************************  Display *******************************************/
+
+select
+    to_date(@Date{})           'RunDate',
+    t.TradeNumber              'Trade ID',
+    t.Portfolio_Name           'Portfolio Name',
+    t.Cpty,
+    t.Portfolio_ID             'Book ID',
+    t.Instype,
+    t.MIDAS_Customer_No        'MIDAS Customer No',
+    t.Curr                     'Currency',
+    sum(t.Cash)                'Amount in Currency',
+    t.rate                     'FX Rate to ZAR'
+from
+    Display t
+
+group by 2,5,6,7,8

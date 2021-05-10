@@ -1,0 +1,5 @@
+[Default]FInstrument:creditAssetSwapSpread = object:forwardAssetSwapSpread [forwardValueCalculated = theoreticalInstrumentValueAtSpot];
+[Default]FInstrumentAndTrades:creditAssetSwapSpread = select(creditCurveSingleRow == nil, 
+  true->nil, 
+  false->openInstrumentOrInstrument :* "collapse(creditAssetSwapSpread)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride]);
+[Default]FMultiInstrumentAndTrades:creditAssetSwapSpread = nil;

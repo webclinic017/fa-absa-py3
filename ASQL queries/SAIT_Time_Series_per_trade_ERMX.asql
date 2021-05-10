@@ -1,0 +1,34 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Time_Series_per_trade_ERMX') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAIT_Time_Series_per_trade_ERMX' and p.type = 'SQL Query' 
+ 
+select
+t.trdnbr'Trade Number',
+i.insid'Instrument',
+i.instype'Ins Type',
+
+r.recaddr,
+r.seqnbr,
+
+r.day'Time Series Days',
+r.value'Time Series Values',
+today	'Business Day',
+display_id(t, 'prfnbr')	'Portfolio'
+
+
+
+from
+instrument i,
+trade t,
+timeseries r
+
+
+where
+
+i.insaddr=t.insaddr
+and i.insid like '%ASIA%'
+and i.exp_day > yesterday
+and i.insaddr=r.recaddr

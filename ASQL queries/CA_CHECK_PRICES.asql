@@ -1,0 +1,30 @@
+select distinct
+
+
+i.insid     'ins',
+i.instype       'instype',
+    theor_price(i)      'TheorPrice',
+    p.day       'Day',
+p.curr      'Curr',
+p.settle    'Settle',
+display_id(p,'ptynbr')  'Market',
+p.creat_time    'CreateTime',
+display_id(p,'creat_usrnbr')    'Creator',
+p.updat_time        'Updated',
+display_id(p,'updat_usrnbr')        'Updator'
+
+
+from
+trade t, instrument i, price p
+
+where 
+
+i.instype in ('CD','Deposit','FRN','CurrSwap','IndexLinkedSwap','Swap')
+and i.insaddr=t.insaddr
+and t.status not in ('Confirmed Void','Simulated','Void')
+and p.insaddr=i.insaddr
+and p.day = '2008-12-31'
+and display_id(p,'ptynbr')='internal'
+and i.exp_day>'2009-01-01'
+and i.mtm_from_feed='No'
+and i.open_end='None'

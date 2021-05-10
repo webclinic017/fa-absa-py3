@@ -1,0 +1,6 @@
+[Default]FInstrument:benchmarkPriceDifferenceForStandardCalculations = select(double(stripDateTimePart(benchmarkPriceYesterdayForStandardCalculations)), 
+  NaN->nil, 
+  default->select(isRatePercentQuoted, 
+    true->100 * (stripDateTimePart(benchmarkPriceForStandardCalculations) - stripDateTimePart(benchmarkPriceYesterdayForStandardCalculations)), 
+    false->stripDateTimePart(benchmarkPriceForStandardCalculations) - stripDateTimePart(benchmarkPriceYesterdayForStandardCalculations)));
+[Default]FInstrumentAndTrades:benchmarkPriceDifferenceForStandardCalculations = instrument:benchmarkPriceDifferenceForStandardCalculations;

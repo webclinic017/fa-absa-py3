@@ -1,0 +1,6 @@
+[Cash Analysis]FMoneyFlowAndTrades:projectedBondMoneyFlow = select(almostZero((object.MoneyFlow.Trade.Premium), 1e-10), 
+  true->shunt(object.MoneyFlow.Type, 
+    "Coupon"->-1 * quantityScaledProjectedMoneyFlowCustom, 
+    "Fixed Rate"->-1 * quantityScaledProjectedMoneyFlowCustom, 
+    default->quantityScaledProjectedMoneyFlowCustom), 
+  false->quantityScaledProjectedMoneyFlowCustom);

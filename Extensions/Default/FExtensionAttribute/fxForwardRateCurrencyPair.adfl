@@ -1,0 +1,11 @@
+[Default]FInstrumentAndTrades:fxForwardRateCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->fxSpotRateCurrencyPair);
+[Default]FTimeBucketAndObject:fxForwardRateCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->select(timeBucket, 
+    nil->fxSpotRateCurrencyPair, 
+    "Rest"->nil, 
+    default->select(timeBucketIsInceptionToEndBucket, 
+      true->fxSpotRateCurrencyPair, 
+      false->currency1 :* "fxForwardRate" [fxToCurrency := currency2, fxForwardDate := timeBucketDate])));

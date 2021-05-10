@@ -1,0 +1,6 @@
+[Default]FInstrumentAndTrades:collateralExposurePostReceive = nil;
+[Default]FMultiInstrumentAndTrades:collateralExposurePostReceive = select(collateralAgreement, 
+  nil->nil, 
+  default->shunt(openInstruments.Size > 0, 
+    false->nil, 
+    true->collateralExposureGap(collateralOTCMarkToMarketValue, adjustedCollateralMarkToMarketValue, collateralThresholdPost, collateralThresholdReceive, collateralAgreement.RoundingRulePost, collateralAgreement.RoundingRuleReceive, collateralRoundingUnitPost, collateralRoundingUnitReceive, collateralMinimumAmountPost, collateralMinimumAmountReceive)));

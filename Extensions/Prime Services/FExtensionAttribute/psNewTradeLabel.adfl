@@ -1,0 +1,11 @@
+[Prime Services]FTrade:psNewTradeLabel = 
+# Flag new trades.
+switch(dateDifference(dateToday(), object.TradeTime) < 2, 
+  true->switch(object.Status, 
+    "Void"->"Void", 
+    "Terminated"->"Terminated", 
+    default->switch(object.Type, 
+      "Closing"->"Terminated", 
+      default->"New")), 
+  false->"");
+[Prime Services]FTradeRow:psNewTradeLabel = trade :* "psNewTradeLabel";

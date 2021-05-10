@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FInstrument:theoreticalPriceVolatility = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:theoreticalPriceVolatility = openInstrumentOrInstrument :* "collapse(theoreticalPriceVolatility)" [priceSource, isSplitAllGrouped, filterUnit];
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:theoreticalPriceVolatility = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "collapse(theoreticalPriceVolatility)" [priceSource, isSplitAllGrouped, filterUnit]);
+[Equity Pricing and Risk]FVarianceSwap:theoreticalPriceVolatility = theoreticalPriceVolatility(theoreticalPrice);
+[Equity Pricing and Risk]FVolatilitySwap:theoreticalPriceVolatility = theoreticalPrice;

@@ -1,0 +1,9 @@
+/* update_method=0 */
+select
+    t.trdnbr
+from
+    trade t
+where
+    t.status not in ('Void', 'Simulated')
+and match_portfolio(t, 'COMMODITIES TRADING')
+and ael_i(t, 'midasSettlement.is_midas_settled') = 1

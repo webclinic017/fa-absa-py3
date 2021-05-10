@@ -1,0 +1,428 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Front_Inflation_Swaps') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Front_Inflation_Swaps' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+    i.instype,
+    t.trdnbr,
+    t.value_day,
+    i.exp_day,
+    t.quantity*i.contr_size 'nominal_amount',
+    @Date{today}                                'today',
+    display_id(t, 'prfnbr')                     'Portfolio',
+    display_id(t, 'trader_usrnbr')              'Trader',
+    display_id(t, 'counterparty_ptynbr')        'Counterparty',
+    t.status                                    'Status',
+    index.insid,
+    initial_index_value                         'InitialIndexValue'   
+
+into
+    DetailPartA
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    Instrument index
+    
+where
+    i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and l.index_ref = index.insaddr
+and i.exp_day > @Date{today}
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.instype in ('IndexLinkedSwap', 'FreeDefCF')
+and initial_index_value ~= 0
+and t.trdnbr ~= 1896470 
+and t.trdnbr ~= 1891778
+
+
+
+select
+    i.instype,
+    t.trdnbr,
+    t.value_day,
+    i.exp_day,
+    t.quantity*i.contr_size 'nominal_amount',
+    @Date{today}                                'today',
+    display_id(t, 'prfnbr')                     'Portfolio',
+    display_id(t, 'trader_usrnbr')              'Trader',
+    display_id(t, 'counterparty_ptynbr')        'Counterparty',
+    t.status                                    'Status',
+    index.insid,
+    initial_index_value                         'InitialIndexValue'   
+
+into
+    DetailPartB
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    Instrument index
+    
+where
+    i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and l.index_ref = index.insaddr
+and i.exp_day > @Date{today}
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.instype in ('IndexLinkedSwap', 'FreeDefCF')
+and initial_index_value ~= 0
+and (t.trdnbr = 1896470 or t.trdnbr = 1891778)
+and l.payleg = 'No'
+
+
+/*For Combination instruments*/
+select distinct t.trdnbr,
+   i.instype,
+    t.value_day,
+    und_ins.exp_day,
+    t.quantity*i.contr_size                     'nominal_amount',
+    @Date{today}                                'today',
+    display_id(t, 'prfnbr')                     'Portfolio',
+    display_id(t, 'trader_usrnbr')              'Trader',
+    display_id(t, 'counterparty_ptynbr')        'Counterparty',
+    t.status                                    'Status',
+    i.insid,
+    initial_index_value                        'InitialIndexValue'   
+into Detail1
+    
+from 	
+	instrument i,
+	trade t,
+	leg l,
+	cashflow c,
+	party p,
+	party cp,
+	instrument cr,
+	instrument cur,
+	portfolio port,
+    CombinationLink cl,
+	Instrument und_ins,
+	Instrument index
+
+where i.insaddr = t.insaddr
+and l.legnbr = c.legnbr
+/*CombinationLink*/
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr = l.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype = 'Combination'
+and und_ins.instype = 'IndexLinkedSwap'
+and port.prfid in ('CD_HYBRID', 'JOB10','CD_HYBRID','CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_HYBRID','CD_CORPBONDS','CD_CDS')
+and l.index_ref = index.insaddr
+
+
+
+
+
+select
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    l.fixed_rate
+
+into
+    Inf_LegPartA
+    
+from
+    DetailPartA d,
+    Trade t,
+    Instrument i,
+    Leg l,
+    Instrument index
+    
+where
+    t.trdnbr = d.trdnbr
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.index_ref = index.insaddr
+and index.insid = 'SACPI'
+and l.nominal_scaling = 'CPI'
+and t.trdnbr ~= 1896470 
+and t.trdnbr ~= 1891778
+/*and l.fixed_rate ~= 0*/
+
+select
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    l.fixed_rate
+
+into
+    Inf_LegPartB
+    
+from
+    DetailPartB d,
+    Trade t,
+    Instrument i,
+    Leg l,
+    Instrument index
+    
+where
+    t.trdnbr = d.trdnbr
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.index_ref = index.insaddr
+and index.insid = 'SACPI'
+and l.nominal_scaling = 'CPI'
+and (t.trdnbr = 1896470 or t.trdnbr = 1891778)
+and l.payleg = 'No'
+
+
+/*For Combination instruments*/
+select distinct
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    l.fixed_rate
+into
+    Inf_Leg1
+    
+from 	
+    Detail1 d,
+	instrument i,
+	trade t,
+	leg l,
+	cashflow c,
+	party p,
+	party cp,
+	instrument cr,
+	instrument cur,
+	portfolio port,
+    CombinationLink cl,
+	Instrument und_ins,
+	Instrument index    
+    
+where t.trdnbr = d.trdnbr 
+and i.insaddr = t.insaddr
+and l.legnbr = c.legnbr
+/*CombinationLink*/
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr = l.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype = 'Combination'
+and und_ins.instype = 'IndexLinkedSwap'
+and port.prfid in ('CD_HYBRID', 'JOB10','CD_HYBRID','CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_HYBRID','CD_CORPBONDS','CD_CDS')
+and l.index_ref = index.insaddr
+and index.insid = 'SACPI'
+ 
+	
+
+
+
+select
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    ael_s(, 'SAGEN_Resets.CurrentReset', l.legnbr, @Date{today}, 0)     'LastReset',
+    l.spread,
+    ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, @Date{today}, 2)        'PayDays'
+
+into
+    Jibar_LegPartA
+
+from
+    DetailPartA d,
+    Trade t,
+    Instrument i,
+    Leg l
+where t.trdnbr = d.trdnbr
+and t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+and l.nominal_scaling = 'None'
+and t.trdnbr ~= 1896470 
+and t.trdnbr ~= 1891778
+
+
+select
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    ael_s(, 'SAGEN_Resets.CurrentReset', l.legnbr, @Date{today}, 0)     'LastReset',
+    l.spread,
+    ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, @Date{today}, 2)        'PayDays'
+
+into
+    Jibar_LegPartB
+
+from
+    DetailPartB d,
+    Trade t,
+    Instrument i,
+    Leg l
+where t.trdnbr = d.trdnbr
+and t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+/*and l.index_ref = 0*/
+and (t.trdnbr = 1896470 or t.trdnbr = 1891778)
+and l.payleg = 'Yes'
+
+/*For Combination instruments*/
+select distinct
+    t.trdnbr,
+    l.payleg = 'No' ? 'Rec' : 'Pay'                 'Pay',
+    ael_s(, 'RollingPeriod.RP', l)                  'Rolling',
+    ael_s(, 'SAGEN_Resets.CurrentReset', l.legnbr, @Date{today}, 0)     'LastReset',
+    l.spread,
+    ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, @Date{today}, 2)        'PayDays'
+
+into
+    Jibar_Leg1
+from    
+     Detail1 d,
+	instrument i,
+	trade t,
+	leg l,
+	cashflow c,
+	party p,
+	party cp,
+	instrument cr,
+	instrument cur,
+	portfolio port,
+    CombinationLink cl,
+	Instrument und_ins,
+	Instrument index
+    
+    
+    
+
+where t.trdnbr = d.trdnbr 
+and i.insaddr = t.insaddr
+and l.legnbr = c.legnbr
+/*CombinationLink*/
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr = l.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and l.index_ref = 0
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype = 'Combination'
+and und_ins.instype = 'IndexLinkedSwap'
+
+ 
+
+ 
+select
+    d.instype                                   'Front Instype',
+    d.trdnbr                                    'TradeId',
+    d.value_day                                 'Effective Date',
+    d.exp_day                                   'Maturity Date',
+    d.nominal_amount                            'Nominal Value',
+    ileg.Pay                                    'Inf Leg: Pay/Rec',
+    ileg.Rolling = '0d' ? 'Maturity' : ileg.Rolling            'Inf: Term',
+    ileg.fixed_rate                             'Inf: Fixed Rate',
+    jleg.Pay                                    'Jibar: Pay/Rec',
+    jleg.Rolling = '0d' ? 'Maturity' : jleg.Rolling            'Jibar: Term',    
+    jleg.LastReset = '0001-01-01' ? '' : jleg.LastReset        'Jibar: Last Reset Rate',
+    jleg.spread                                 'Jibar: Spread',
+    jleg.PayDays                                'Jibar: Coupon Dates',    
+    d.today                                     'Business Date',
+    d.Portfolio,
+    d.Trader,
+    d.Counterparty,
+    d.Status,
+    d.InitialIndexValue
+    
+from
+    DetailPartA d,
+    Inf_LegPartA ileg,
+    Jibar_LegPartA jleg
+    
+where
+    d.trdnbr = ileg.trdnbr
+and d.trdnbr = jleg.trdnbr
+
+
+union
+
+
+/*For Combination instruments*/
+select
+    d.instype                                   'Front Instype',
+    d.trdnbr                                    'TradeId',
+    d.value_day                                 'Effective Date',
+    d.exp_day                                   'Maturity Date',
+    d.nominal_amount                            'Nominal Value',
+    ileg.Pay                                    'Inf Leg: Pay/Rec',
+    ileg.Rolling = '0d' ? 'Maturity' : ileg.Rolling            'Inf: Term',
+    ileg.fixed_rate                             'Inf: Fixed Rate',
+    
+    jleg.Pay                                    'Jibar: Pay/Rec',
+    jleg.Rolling = '0d' ? 'Maturity' : jleg.Rolling            'Jibar: Term',    
+    jleg.LastReset = '0001-01-01' ? '' : jleg.LastReset        'Jibar: Last Reset Rate',
+    jleg.spread                                 'Jibar: Spread',
+    
+    jleg.PayDays                                'Jibar: Coupon Dates',
+    
+    d.today                                     'Business Date',
+    d.Portfolio,
+    d.Trader,
+    d.Counterparty,
+    d.Status,
+    d.InitialIndexValue
+    
+from
+    Detail1 d,
+    Inf_Leg1 ileg,
+    Jibar_Leg1 jleg
+    
+where
+    d.trdnbr = ileg.trdnbr
+and d.trdnbr = jleg.trdnbr
+
+Union
+
+select
+    d.instype                                   'Front Instype',
+    d.trdnbr                                    'TradeId',
+    d.value_day                                 'Effective Date',
+    d.exp_day                                   'Maturity Date',
+    d.nominal_amount                            'Nominal Value',
+    ileg.Pay                                    'Inf Leg: Pay/Rec',
+    ileg.Rolling = '0d' ? 'Maturity' : ileg.Rolling            'Inf: Term',
+    ileg.fixed_rate                             'Inf: Fixed Rate',
+    jleg.Pay                                    'Jibar: Pay/Rec',
+    jleg.Rolling = '0d' ? 'Maturity' : jleg.Rolling            'Jibar: Term',    
+    jleg.LastReset = '0001-01-01' ? '' : jleg.LastReset        'Jibar: Last Reset Rate',
+    jleg.spread                                 'Jibar: Spread',
+    jleg.PayDays                                'Jibar: Coupon Dates',    
+    d.today                                     'Business Date',
+    d.Portfolio,
+    d.Trader,
+    d.Counterparty,
+    d.Status,
+    d.InitialIndexValue
+    
+from
+    DetailPartB d,
+    Inf_LegPartB ileg,
+    Jibar_LegPartB jleg
+    
+where
+    d.trdnbr = ileg.trdnbr
+and d.trdnbr = jleg.trdnbr

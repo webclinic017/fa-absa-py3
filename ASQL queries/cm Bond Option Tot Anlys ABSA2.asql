@@ -1,0 +1,108 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','cm Bond Option Tot Anlys ABSA2') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'cm Bond Option Tot Anlys ABSA2' and p.type = 'SQL Query' 
+select
+'Transaction',
+P.PRFID					'Portfolio',
+i.insid					'instrument',
+ui.insid				'underlying',
+time_to_day(t.time)			'tradetime',
+t.bo_trdnbr				'botradenumber',
+t.optional_key				'STT Number',
+display_id(t, 'counterparty_ptynbr')	'cp',
+i.call_option = 'Yes' ? 'call' : 'put'	'callable',
+nominal_amount(t)			'nominal',
+i.strike_price				'strike',
+i.exp_day				'optionexpiry',
+t.value_day				'settleday',
+date_add_banking_day(i.exp_day, 'ZAR', 3)	'Expiry Settlement Date',
+t.premium				'premium',
+t.premium/nominal_amount(t)*1000000	'premiumperoption',
+(mtm_price(UI)*-1*nominal_amount(t)/10000)	'mtmpremium',
+(mtm_price(UI)*-1*nominal_amount(t)/10000)
+/nominal_amount(t)*1000000			'mtmpremiumperoption',
+t.premium-(mtm_price(i)*-1*nominal_amount(t)/100)	'Option P&L',
+
+mtm_price(UI)				'Spot Rate',
+used_vol(t)				'volatility',
+delta_implicit(t)			'Delta',
+theta_classic(t)			'Theta',
+used_rate(t)				'Risk Free Rate',
+display_id(t, 'trader_usrnbr')		'trader'
+
+
+
+from
+
+instrument				i,
+trade					t,
+INSTRUMENT 				UI,
+PORTFOLIO				P
+
+where
+	i.insaddr=t.insaddr
+and	i.instype='Option'
+/*AND	display_id(t, 'prfnbr')=@Portfolio{; portfolio.prfid*}*/
+AND I.EXP_day >= @FROM_DATE{}
+AND 	UI.INSADDR = I.UND_INSADDR
+AND P.PRFNBR = T.PRFNBR
+and i.instype = 'Option'
+and i.und_instype = 'Bond'
+
+order by P.PRFID, ui.insid, i.exp_day
+
+UNION
+
+select
+'Total',
+P.PRFID					'Portfolio',
+'',
+ui.insid				'underlying',
+time_to_day(t.time)			'tradetime',
+0,
+'',
+'',
+i.call_option = 'Yes' ? '' : '',
+sum(nominal_amount(t))			'nominal',
+i.strike_price				'strike',
+i.exp_day				'optionexpiry',
+t.value_day				'settleday',
+date_add_banking_day(i.exp_day, 'ZAR', 3)	'Expiry Settlement Date',
+sum(t.premium)				'premium',
+t.premium/nominal_amount(t)*1000000	'premiumperoption',
+sum((mtm_price(UI)*-1*nominal_amount(t)/10000))	'mtmpremium',
+(mtm_price(UI)*-1*nominal_amount(t)/10000)	'mtmpremium',
+sum(t.premium-(mtm_price(i)*-1*nominal_amount(t)/100))	'Option P&L',
+
+mtm_price(UI)				'Spot Rate',
+used_vol(t)				'volatility',
+delta_implicit(t)			'Delta',
+theta_classic(t)			'Theta',
+used_rate(t)				'Risk Free Rate',
+''
+
+
+
+from
+
+instrument				i,
+trade					t,
+INSTRUMENT 				UI,
+PORTFOLIO				P
+
+where
+	i.insaddr=t.insaddr
+and	i.instype='Option'
+/*AND	display_id(t, 'prfnbr')=@Portfolio{; portfolio.prfid*}*/
+AND I.EXP_day >= @FROM_DATE{}
+AND 	UI.INSADDR = I.UND_INSADDR
+AND P.PRFNBR = T.PRFNBR
+and i.instype = 'Option'
+and i.und_instype = 'Bond'
+
+group by P.PRFID, ui.insid
+
+

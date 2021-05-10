@@ -1,0 +1,19 @@
+[Securities Lending ABSA]FDerivative:sl_inventoryPosition = select(timeBucketsSetExternally, 
+  nil->0.0, 
+  default->timeBucketsSetExternally :* "0.0");
+[Securities Lending ABSA]FETF:sl_inventoryPosition = select(timeBucketsSetExternally, 
+  nil->riskPosition, 
+  default->object :* "sl_inventoryPositionValuationDate" [positionObject, profitAndLossEndDate = timeBucketsSetExternally :* "object.EndDate"]);
+[Securities Lending ABSA]FInstrument:sl_inventoryPosition = select(timeBucketsSetExternally, 
+  nil->riskPosition, 
+  default->inventoryPosition(tradesInPosition, inventoryPositionReference, timeBucketsSetExternally :* "object.EndDate", tradeStatusInclusionMaskDefault));
+[Securities Lending ABSA]FInstrumentAndTrades:sl_inventoryPosition = instrument :* "sl_inventoryPosition" [positionObject, instrumentGroupingReference, timeBucketsSetExternally];
+[Securities Lending ABSA]FMultiInstrumentAndTrades:sl_inventoryPosition = select(timeBucketsSetExternally, 
+  nil->nil, 
+  default->select(instrumentGroupingReference, 
+    nil->timeBucketsSetExternally :* "nil", 
+    default->sumOf(instruments :* "sl_inventoryPosition" [positionObject, instrumentGroupingReference, timeBucketsSetExternally])));
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:sl_inventoryPosition = timeBucketsSetExternallyNilVector;
+[Securities Lending ABSA]FSecurityLoan:sl_inventoryPosition = select(timeBucketsSetExternally, 
+  nil->object :* "riskPosition" [tradesInPosition = tradesClosingOffFiltered], 
+  default->inventoryPosition(tradesClosingOffFiltered, inventoryPositionReference, timeBucketsSetExternally :* "object.EndDate", tradeStatusInclusionMaskDefault));

@@ -1,0 +1,119 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Notional_Index') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Notional_Index' and p.type = 'SQL Query' 
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Notional_Index.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Notional_Index.csv'},@3_PositionName{'MR_Notional_Index_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select 
+    l.index_ref 'ref'
+Into 
+    temp
+From
+    instrument i,
+    instrument ir,
+    leg l
+Where
+    (i.insaddr = l.insaddr
+And l.index_ref = ir.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('TotalReturnSwap')     
+And ir.instype in ('Stock','EquityIndex','Bond','IndexLinkedBond','ETF'))
+Or(i.insaddr = l.insaddr
+And l.index_ref = ir.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('IndexLinkedSwap'))    
+Group by 1
+
+Select 
+    l.inf_scal_ref 'ref'
+Into 
+    temp
+From
+    instrument i,
+    instrument ir,
+    leg l
+Where
+    (i.insaddr = l.insaddr
+And l.inf_scal_ref = ir.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('TotalReturnSwap')     
+And ir.instype in ('Stock','EquityIndex','Bond','IndexLinkedBond','ETF'))
+Or(i.insaddr = l.insaddr
+And l.inf_scal_ref = ir.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('IndexLinkedSwap'))    
+Group by 1
+
+
+select 
+    'Write File' 'Process',
+    ael_s(i,'MR_Notional_Index.Write',@1_path{'f:\'},@2_FileName{'MR_Notional_Index.csv'},@3_PositionName{'MR_Notional_Index_Position.csv'})	'BuildConfirmation'
+    Into
+    macro
+from Instrument i,
+    temp t
+Where i.insaddr = t.ref
+
+
+Select 
+    to_string(display_id(lr,'curr'),display_id(ll,'curr')) 'currpair',
+    ll.curr 'LockedLeg',
+    lr.curr 'ResetLeg'
+Into 
+    Currtemp
+From 
+    instrument i,
+    Leg ll,
+    Leg lr
+Where 
+    i.insaddr = ll.insaddr
+And i.insaddr = lr.insaddr
+And ll.is_locked = 'Yes'
+And lr.is_locked = 'No'
+And i.instype = 'CurrSwap'
+Group By 1
+
+
+Select 
+    'Write File' 'Process',
+    ael_s(,'MR_Notional_Index.Write2',@1_path{'f:\'},@2_FileName{'MR_Notional_Index.csv'},@3_PositionName{'MR_Notional_Index_Position.csv'},currpair,LockedLeg,ResetLeg)	'BuildConfirmation'
+Into
+    macro
+From Currtemp
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

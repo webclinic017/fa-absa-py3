@@ -1,0 +1,12 @@
+[HedgeAccountingMod]FMultiInstrumentAndTrades:deprecRPLColumn = sumOf(children :* "deprecRPLColumn");
+[HedgeAccountingMod]FTradeRow:deprecRPLColumn = select(instrument.InsType, 
+  default->defaultDeprecRPLColumn, 
+  "Bill"->object:deprecAmount [select(object.Parent, 
+    nil->tradeSetUsedInProfitandLoss, 
+    default->tradeSetUsedInProfitandLoss = object.Parent.Position.TradesIn(instrument, trade.Portfolio)), displayCurrency, calculateTradeEffectInPosition := true], 
+  "IndexLinkedBond"->denominatedvalue(((cleanPricePLDate * nominal / 100) - currentNominal), instrument.Currency, , ) - deprecTotalRPLColumn, 
+  "IndexLinkedSwap"->select(usedInHedge, 
+    default->defaultDeprecRPLColumn, 
+    true->select(trade.DealPackage, 
+      nil->defaultDeprecRPLColumn, 
+      default->denominatedvalue(((bondTrade:cleanPricePLDate * bondTrade:nominal / 100) - bondTrade:currentNominal), instrument.Currency, , ) - deprecTotalRPLColumn)));

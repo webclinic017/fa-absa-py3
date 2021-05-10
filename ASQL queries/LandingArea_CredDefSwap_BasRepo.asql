@@ -1,0 +1,252 @@
+/* Usage code for this ASQL */
+select
+    ael_i(p,'ASQL_log','LandingArea_CredDefSwap_BasRepo') 'Name' 
+into
+    ASQL_LOG_TEMP 
+from 
+    TextObject p   
+where 
+    p.name = 'LandingArea_CredDefSwap_BasRepo'
+and p.type = 'SQL Query'
+
+/*
+Purpose                 : Front Arena file for Midbase to report Basket Repo Reverse trades.
+Department and Desk     : Treasury
+Requester               : Tory Withfield
+Developer               : Heinrich Cronje
+CR Number               : http://abcap-jira/browse/MINT-531
+
+Date            Developer               Change          description
+2016/06/07      Heinrich Cronje         create          http://abcap-jira/browse/MINT-531
+
+*/
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{yesterday})							                    'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)               'PrevRepDay',
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		                            'ME',
+	to_date(@5_YearEndDate{2003-03-31;})					                        'YE',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	                    'hcur',
+
+	@10_ShowDetails{Yes;'Yes','No'}		                                            'det'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+select
+    t.trdnbr,
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Current Nominal', display_id(t,'curr'), 0, , )  'Nominal',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Current Nominal', display_id(t,'curr'), 0, , m.RepDay)  'NominalRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Current Nominal', display_id(t,'curr'), 0, , m.PrevRepDay)  'NominalPrevRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', display_id(t,'curr'), 0, , m.RepDay)  'ValRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', m.hcur, 0, , m.RepDay)  'HValRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', display_id(t,'curr'), 0, , m.YE)    'ValYE',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', m.hcur, 0, , m.YE)    'HValYE',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', display_id(t,'curr'), 0, , m.PrevRepDay)    'ValPrevRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Present Value', m.hcur, 0, , m.PrevRepDay)    'HValPrevRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', display_id(t,'curr'), 0, , m.RepDay)  'CashIncepRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', m.hcur, 0, , m.RepDay)  'HCashIncepRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', display_id(t,'curr'), 0, , m.YE)  'CashIncepYE',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', m.hcur, 0, , m.YE)  'HCashIncepYE',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', display_id(t,'curr'), 0, , m.PrevRepDay)  'CashIncepPrevRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Cash End', m.hcur, 0, , m.PrevRepDay)  'HCashIncepPrevRepDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Accrued Interest', display_id(t,'curr'), 0, , )  'AccruedInterest',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Accrued Interest', display_id(t,'curr'), 0, , t.value_day)  'AccruedInterestValueDay',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FPortfolioSheet', i.insaddr, 'Instrument', 'Portfolio Accrued Interest', display_id(i,'curr'), 0, i.start_day, m.RepDay)  'InstrumentAccruedInterest',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FPortfolioSheet', i.insaddr, 'Instrument', 'Portfolio Accrued Interest', display_id(i,'curr'), 0, , t.value_day)  'InstrumentAccruedInterestValueDate',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Regulatory Notional', m.hcur, 0, , )  'Notional',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Used FX Rate', 'USD', 0, , )  'fxRateUSD',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Used FX Rate', m.hcur, 0, , )  'HfxRate',
+    ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Used FX Rate', m.hcur, 0, , m.YE)  'HfxRateYE',
+    projected_cf(t,m.RepDay,,)  'ProjectedCashFlow',
+    days_between(t.value_day, date_add_delta(m.RepDay,1), 'Act/365')    'AccIntDays'
+into
+    calculations
+from
+    trade t,
+    instrument i,
+    macros m
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and t.insaddr = i.insaddr
+    and i.instype in ('BasketRepo/Reverse')
+    
+select
+    t.trdnbr,
+    c.Nominal + (t.premium + (c.InstrumentAccruedInterestValueDate * t.quantity))		'Prem_Disc_Value_day',
+    (c.Nominal + t.premium + (c.AccruedInterestValueDay * t.quantity)) / (days_between(t.value_day,i.exp_day,'Act/365'))    'Daily_Pull_to_Par',
+    c.ProjectedCashFlow < 0 ? 0.00 : c.ProjectedCashFlow    'PurchaseAmount',
+    c.ProjectedCashFlow * c.fxRateUSD < 0 ? 0.00 : c.ProjectedCashFlow * c.fxRateUSD   'PurchaceProjectedCashFlowUSD',
+    c.ProjectedCashFlow < 0 ? c.ProjectedCashFlow : 0.00    'SaleAmount',
+    c.ProjectedCashFlow * c.fxRateUSD < 0 ? c.ProjectedCashFlow * c.fxRateUSD : 0.00    'SaleProjectedCashFlowUSD',
+    c.ValRepDay < 0 ? 0 : c.ValRepDay   'Purchase_PV',
+    c.ValRepDay * c.fxRateUSD < 0 ? 0 : c.ValRepDay * c.fxRateUSD   'Purchase_PVUSD',
+    c.ValRepDay < 0 ? c.ValRepDay : 0   'Sale_PV',
+    c.ValRepDay * c.fxRateUSD < 0 ? c.ValRepDay * c.fxRateUSD : 0   'Sale_PVUSD'
+into
+    additionalCalculations
+from
+    trade t,
+    instrument i,
+    calculations c
+where
+        t.trdnbr = c.trdnbr
+    and t.insaddr = i.insaddr
+
+SELECT
+    t.trdnbr,
+    t.optional_key  'ExternalSystemRef',
+	'Details'   'Section',
+	i.insaddr   'Insaddr',
+	i.insid 'Instrument_ID',
+	display_id(t, 'acquirer_ptynbr')    'Desk',
+	display_id(t, 'prfnbr') 'portfolio',
+	display_id(t,'optkey1_chlnbr')  'TradeArea',
+    display_id(t,'counterparty_ptynbr') 'Cpty',
+    t.your_ref  'CptyRef',
+	display_id(i,'curr')    'curr',
+	i.instype   'Instrument_Type',
+	t.acquire_day   'Acquire_Date',	
+	t.creat_time    'Create_Date_Time',
+	t.creat_usrnbr  'Created_By',
+	display_id(t,'creat_usrnbr')    'Created_By_ABno',
+	t.updat_usrnbr  'Updated_By',
+	display_id(t,'updat_usrnbr')    'Updated_By_ABno',
+	i.curr  'Currency',
+	display_id(i,'curr')    'Currency_Code',
+	i.exercise_type 'ExerciseType',
+	t.fee   'Fee',
+	t.guarantor_ptynbr  'Gaurantor',
+	display_id(t,'guarantor_ptynbr')    'GaurantorID',
+	t.hedge_trdnbr  'Hedge_Trade_no',
+	i.extern_id1    'Instrument_Stock_Code',
+	t.bo_trdnbr 'Opening_BO_TradeNo',
+	'Excluded'  'Option_Type',
+    l.type = 'Float' ? to_double(ael_s(l, 'SAGEN_Cashflows_JF.ForwardRate', m.RepDay, 1)) : 0.00    'Price',
+	t.quantity  'Quantity',
+	i.ref_value 'Ref_Value',
+	t.time  'Trade_Date_and_Time',
+	t.trader_usrnbr 'Trader',
+	display_id(t,'trader_usrnbr')   'TraderID',
+	display_id(i,'und_insaddr') 'Underlying_Instrument',
+	i.und_instype   'Underlying_Instype',
+	t.value_day 'Value_date',
+	i.exp_day   'Expiry_Date',
+	t.status    'status',
+	ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Trade Position', display_id(t,'curr'), 0, , )  'Position',
+	c.Nominal  'Nominal',
+	ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Current Nominal', m.hcur, 0, , )  'ZARNominal',
+	t.premium   'Premium',
+	i.issuer_ptynbr 'IssuerPtynbr',
+	display_id(i,'issuer_ptynbr')   'Issuer',
+	c.ValRepDay  'Val',
+    c.CashIncepRepDay  'CashIncep',
+    c.ValRepDay - c.ValYE  'ChangeUnRealsd_YTD',
+    c.CashIncepRepDay - c.CashIncepYE 'ChangeCash_YTD',
+	m.hcur  'hcurr',
+	t.premium / c.HfxRate    'HPremium',
+	c.HValRepDay + c.HCashIncepRepDay 'HPLIncep',
+	c.HValRepDay  'HVal',
+	c.HCashIncepRepDay  'HCashIncep',
+	c.HValRepDay - c.HValYE + c.HCashIncepRepDay - c.HCashIncepYE   'HPLYTD',
+	1 / c.HfxRate  'FXRepDay',
+	1 / c.HfxRateYE 'FXYE',
+	m.RepDay,
+	m.YE,
+	c.ProjectedCashFlow < 0 ? '' : display_id(i,'curr') 'PurchaseCurr',
+	ac.PurchaseAmount,
+	c.ProjectedCashFlow < 0 ? display_id(i,'curr') : '' 'SaleCurr',
+	ac.SaleAmount,
+	0.00    'FV',
+	''  'MM_DEMAT_TRADE',
+	display_id(t,'broker_ptynbr')   'BrokerID',
+	t.broker_ptynbr 'BrokerPtynbr',
+	t.prfnbr    'PortfolioNumber',
+	t.counterparty_ptynbr   'CptyNbr',
+	c.ProjectedCashFlow < 0 ? '' : i.curr 'PurchaseCurrNbr',
+	c.ProjectedCashFlow < 0 ? i.curr : '' 'SaleCurrNbr',
+	i.isin,
+	t.updat_time,
+	c.HValRepDay - c.HValPrevRepDay + c.HCashIncepRepDay - c.HCashIncepPrevRepDay   'HPLON',
+	c.HValRepDay - c.HValPrevRepDay 'HChangeUnRealsd_ON',
+	c.HCashIncepRepDay - c.HCashIncepPrevRepDay 'HChangeCash_ON',
+	dirty_from_yield(i,t.value_day,,,t.price) * -1 * c.Nominal / 100  'Dirty_value_day',
+	clean_from_yield(i,t.value_day,,,t.price) * -1 * c.Nominal / 100  'Clean_value_day',
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal')) * -1 * c.NominalRepDay / 100 'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal')) * -1 * c.NominalRepDay / 100 'Clean_tdy',
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal')) * -1 * c.NominalPrevRepDay / 100   'Dirty_yesterday',
+    clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal')) * -1 * c.NominalPrevRepDay / 100   'Clean_yesterday',
+    c.AccruedInterest   'AccInt',
+	0.00    'Coupon',
+    ac.Daily_Pull_to_Par,
+    i.exp_day < m.RepDay ? 0 : i.exp_day - to_date(m.RepDay)  'RemainingTenure',
+    c.InstrumentAccruedInterest * t.quantity    'CouponAccrued',
+	''  'PurchaseSaleMatch',
+	0.00    'CouponRate',
+	c.AccIntDays,
+	add_info (t,'MM_Instype')   'MM_Instype',
+	'0000-01-01'	'NextCouponDate',
+	0.0		'CouponsToDate',
+	c.ProjectedCashFlow < 0 ? 0.00 : c.ProjectedCashFlow / c.HfxRate  'HPurchaseAmount',
+	c.ProjectedCashFlow < 0 ? c.ProjectedCashFlow  / c.HfxRate : 0.00 'HSaleAmount',
+	0.00    'Pull_to_Par_Balance',
+	-1 * ((ac.Prem_Disc_Value_day - (ac.Daily_Pull_to_Par * c.AccIntDays)) - AccruedInterest)   'Accrued_Disc_Bal',
+	add_info(t, 'CreditDefaultSpread')  'CreditDefaultSpread',
+	c.Notional  'Notional_Amount',
+	''  'InterestFrequency',
+	0.00    'NACMRate',	
+	''  'AgriStatus',
+	l.strike    'Strike',
+	1 >= 0 ? 'Buy' : 'Sell'	'BuySell',
+	i.contr_size    'ContractSize',
+	ael_f(, 'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation', 'Default', 'FTradeSheet', t.trdnbr, 'Trade', 'Portfolio Profit Loss Price End Date', display_id(t,'curr'), 0, , ) / c.HfxRate  'Underlying_Price',
+	0.00    'ExchangePrice',
+	t.sales_credit  'SalesCredit',
+	display_id(t,'sales_person_usrnbr') 'SalesPerson',
+	add_info(t,'Qualifier') 'Qualifier',
+	add_info(t,'ValueAddCredits')   'ValueAddCredits',
+    add_info(t,'Sales_Credit2') 'SalesCredit2',
+    add_info(t,'Sales_Credit3') 'SalesCredit3',
+    add_info(t,'Sales_Person2') 'SalesPerson2',
+    add_info(t,'Sales_Person3') 'SalesPerson3',
+    0.0 'Clean_PL',
+    ''  'CreditRef',
+	0   'CreditRef_Issuer_Ptynbr',
+	''  'CreditRef_Issuer',
+	abs(ac.PurchaceProjectedCashFlowUSD) > 1000000000000 ? 0.0 : ac.PurchaceProjectedCashFlowUSD    'Purchase_USDEq',
+	abs(ac.SaleProjectedCashFlowUSD) > 1000000000000 ? 0.0 : ac.SaleProjectedCashFlowUSD    'Sale_USDEq',
+	abs(ac.Purchase_PV) > 1000000000000 ? 0.0 : ac.Purchase_PV  'Purchase_PV',
+	abs(ac.Sale_PV) > 1000000000000 ? 0.0 : ac.Sale_PV  'Sale_PV',
+	abs(ac.Purchase_PVUSD)  > 1000000000000 ? 0.0 : ac.Purchase_PVUSD   'Purchase_PV_USDEq',
+	abs(ac.Sale_PVUSD)  > 1000000000000 ? 0.0 : ac.Sale_PVUSD   'Sale_PV_USDEq',
+    1.0 'Delta',
+    add_info(t, 'SND_Trade_Type')   'SND_Trade_Type',
+    t.trx_trdnbr    'Trans_Ref',
+    0.00    'Repo_Exposure',
+    to_date('0000-00-00')   'Underlying_Expiry',
+    ''  'SEDOL',
+    0.00    'Underlying_Fwd_Price',
+    i.start_day 'StartDate'
+from
+	macros m,
+	trade t,
+	instrument i,
+    leg l,
+    calculations c,
+    additionalCalculations ac
+WHERE
+    m.det IN ('Yes','YES','yes','Y','y')
+and t.trdnbr = ac.trdnbr
+and	i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and t.trdnbr = c.trdnbr

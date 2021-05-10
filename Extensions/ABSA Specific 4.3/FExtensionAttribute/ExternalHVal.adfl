@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FInstrument:ExternalHVal = sumOf(tradesInPosition :* "ExternalHVal");
+[ABSA Specific 4.3]FInstrumentAndTrades:ExternalHVal = sumOf(instrument :* "ExternalHVal" [positionObject]);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:ExternalHVal = sumOf(instruments :* "ExternalHVal" [positionObject]);
+[ABSA Specific 4.3]FTrade:ExternalHVal = double(select(object.Status, 
+  "Simulated"->0.0, 
+  "Void"->0.0, 
+  default->select(object.AdditionalInfo.ExternalVal, 
+    nil->double(ExternalVal) * (instrument:currency :* "fxSpotRate" [fxToCurrency = currencyZAR]), 
+    default->double(object.AdditionalInfo.ExternalVal) * (instrument:currency :* "fxSpotRate" [fxToCurrency = currencyZAR]))));
+[ABSA Specific 4.3]FTradeRow:ExternalHVal = trade :* "ExternalHVal";

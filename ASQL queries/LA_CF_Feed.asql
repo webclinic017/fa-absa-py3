@@ -1,0 +1,352 @@
+/* Usage code for this ASQL */
+select ael_i(p,'ASQL_log','LA_CF_Feed') 'Name'
+into ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'LA_CF_Feed' and p.type = 'SQL Query' 
+
+
+/*  Cashflow Feed for Accounting Stabilisation */
+
+select
+    to_date(@3_ReportDate{yesterday})							'RepDay'
+    
+into macros
+from serverdata
+where srdnbr > 0
+
+
+
+
+select
+    /*Cashflow_Other               'Section'*/
+    t.trdnbr,
+    'Cashflow'              'Payment',
+    t.quantity * i.contr_size * l.nominal_factor * c.nominal_factor 'Nominal',
+    projected_cf(c) * t.quantity                                    'Amount',
+    display_id(l, 'curr')   'Curr',
+    c.cfwnbr                'Cfwnbr',
+    c.type = 'Float Rate' ? 'Float Rate' : c.type                   'CfType',
+    c.start_day             'StartDate',
+    c.end_day               'EndDate',
+    c.pay_day               'PayDate',
+    l.type = 'Fixed' ? l.fixed_rate : 0.0                           'Rate',
+    c.spread                                                        'Spread',
+    l.type = 'Float' ? 'Float' : l.type                             'LegType',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.ResetIndex',l) : ''    'Index_Name',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.RPUpper',l) : ''       'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    Cashflow c,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{LandingArea_CF;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and (c.end_day >= m.RepDay
+or c.pay_day >= m.RepDay)
+
+
+
+
+select
+    /*Cashflow_Underlying          'Section'*/
+    t.trdnbr,
+    'Cashflow'              'Payment',
+    t.quantity * i.contr_size * l.nominal_factor * c.nominal_factor 'Nominal',
+    projected_cf(c) * t.quantity                                    'Amount',
+    display_id(l, 'curr')   'Curr',
+    c.cfwnbr                'Cfwnbr',
+    c.type = 'Float Rate' ? 'Float Rate' : c.type                   'CfType',
+    c.start_day             'StartDate',
+    c.end_day               'EndDate',
+    c.pay_day               'PayDate',
+    l.type = 'Fixed' ? l.fixed_rate : 0.0                           'Rate',
+    c.spread                                                        'Spread',
+    l.type = 'Float' ? 'Float' : l.type                             'LegType',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.ResetIndex',l) : ''    'Index_Name',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.RPUpper',l) : ''       'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    Instrument u,
+    Leg l,
+    Cashflow c,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.und_insaddr = u.insaddr
+and u.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and (c.end_day >= m.RepDay
+or c.pay_day >= m.RepDay)
+
+
+
+
+
+select
+    /*Cashflow_Combo               'Section'*/
+    t.trdnbr,
+    'Cashflow'              'Payment',
+    t.quantity * i.contr_size * l.nominal_factor * c.nominal_factor 'Nominal',    
+    projected_cf(l)                                    'Amount',
+    display_id(l, 'curr')   'Curr',
+    c.cfwnbr                'Cfwnbr',
+    c.type = 'Float Rate' ? 'Float Rate' : c.type                   'CfType',
+    c.start_day             'StartDate',
+    c.end_day               'EndDate',
+    c.pay_day               'PayDate',
+    l.type = 'Fixed' ? l.fixed_rate : 0.0                           'Rate',
+    c.spread                                                        'Spread',
+    l.type = 'Float' ? 'Float' : l.type                             'LegType',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.ResetIndex',l) : ''    'Index_Name',
+    l.type = 'Float' ? ael_s(,'RollingPeriod.RPUpper',l) : ''       'Index_Tenor'
+    
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    Cashflow c,
+    combinationlink cl,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and (c.end_day >= m.RepDay
+or c.pay_day >= m.RepDay)
+and i.instype = 'Combination'
+
+
+
+
+
+
+select
+    /*Premium               'Section'*/
+    t.trdnbr,
+    'Premium'               'Payment',
+    nominal_amount(t, t.value_day)          'Nominal',    
+    t.premium               'Amount',
+    display_id(t, 'curr')   'Curr',
+    t.trdnbr                'Cfwnbr',
+    'Premium'               'CfType',
+    to_date('0000-01-01')   'StartDate',
+    to_date('0000-01-01')   'EndDate',
+    t.value_day             'PayDate',
+    0.0                     'Rate',
+    0.0                     'Spread',
+    ''                      'LegType',
+    ''                      'Index_Name',
+    ''                      'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and t.premium ~= 0.0
+and t.value_day >= m.RepDay
+
+
+
+
+select
+    /*Additional_Payments   'Section'*/
+    t.trdnbr,
+    'Additional_Payments'   'Payment',
+    nominal_amount(t, t.value_day)                  'Nominal',    
+    a.amount                'Amount',
+    display_id(a, 'curr')   'Curr',
+    t.trdnbr                'Cfwnbr',
+    a.type = 'Broker Fee' ? 'Broker Fee' : a.type   'CfType',
+    to_date('0000-01-01')   'StartDate',
+    to_date('0000-01-01')   'EndDate',
+    a.payday                'PayDate',
+    0.0                     'Rate',
+    0.0                     'Spread',
+    ''                      'LegType',
+    ''                      'Index_Name',
+    ''                      'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    Payment a,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and t.trdnbr = a.trdnbr
+and a.payday >= m.RepDay
+
+
+
+
+select
+    /*Dividend              'Section'*/
+    t.trdnbr,
+    'Dividend'              'Payment',
+    nominal_amount(t, t.value_day)          'Nominal',    
+    d.dividend              'Amount',
+    display_id(i, 'curr')   'Curr',
+    t.trdnbr                'Cfwnbr',
+    'Dividend'              'CfType',
+    to_date('0000-01-01')   'StartDate',
+    to_date('0000-01-01')   'EndDate',
+    d.day                   'PayDate',
+    0.0                     'Rate',
+    0.0                     'Spread',
+    ''                      'LegType',
+    ''                      'Index_Name',
+    ''                      'Index_Tenor'
+    
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    Dividend d,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = d.insaddr
+and d.insaddr = t.insaddr
+and d.pay_day >= m.RepDay
+
+
+
+
+select
+    /*Commodity_Future              'Section'*/
+    t.trdnbr,
+    'Commodity_Future'      'Payment',
+    nominal_amount(t, t.value_day)          'Nominal',
+    nominal_amount(t) * t.price * -1        'Amount',
+    display_id(t, 'curr')   'Curr',
+    t.trdnbr                'Cfwnbr',
+    'Commodity_Future'      'CfType',
+    to_date('0000-01-01')   'StartDate',
+    to_date('0000-01-01')   'EndDate',
+    i.exp_day               'PayDate',
+    0.0                     'Rate',
+    0.0                     'Spread',
+    ''                      'LegType',
+    ''                      'Index_Name',
+    ''                      'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and i.instype = 'Future/Forward'
+and i.und_instype = 'Commodity'
+and i.exp_day >= m.RepDay
+
+
+
+
+select
+    /*End_Premium/Sec_Loan_Fee      'Section'*/
+    t.trdnbr,
+    'End_Premium/Sec_Loan_Fee'              'Payment',
+    nominal_amount(t, t.value_day)          'Nominal',    
+    i.instype = 'BuySellback' 
+        ? t.quantity * i.ref_value
+        : t.quantity * projected_cf(i)      'Amount',
+    display_id(t, 'curr')   'Curr',
+    t.trdnbr                'Cfwnbr',
+    'End_Premium/Sec_Loan_Fee'              'CfType',
+    to_date('0000-01-01')   'StartDate',
+    to_date('0000-01-01')   'EndDate',
+    i.exp_day               'PayDate',
+    0.0                     'Rate',
+    0.0                     'Spread',
+    ''                      'LegType',
+    ''                      'Index_Name',
+    ''                      'Index_Tenor'
+
+into
+    CF
+    
+from
+    Trade t,
+    Instrument i,
+    macros m
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and i.instype in ('BuySellback', 'SecurityLoan')
+and i.exp_day >= m.RepDay
+
+
+
+
+
+
+/*   Final   */
+select
+    c.trdnbr                'Trdnbr',
+    c.Payment,
+    c.Nominal,
+    c.Amount,
+    c.Curr,
+    c.Cfwnbr,
+    c.CfType,
+    c.StartDate,
+    c.EndDate,
+    c.PayDate,
+    c.Rate,
+    c.Spread,
+    c.LegType,
+    c.Index_Name,
+    c.Index_Tenor,
+    t.counterparty_ptynbr   'PartyNbr',
+    t.prfnbr                'PortfolioNbr'
+    
+from
+    CF c,
+    Trade t
+    
+where
+    t.trdnbr = c.trdnbr

@@ -1,0 +1,12 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:forwardCurveForDiscountMargin = select(isSingleLegInstrument, 
+  false->nil, 
+  true->select(floatLeg, 
+    nil->nil, 
+    default->floatLeg :* "forwardCurveForDiscountMargin" [valuationDate]));
+[Fixed Income Pricing and Risk]FInstrument:forwardCurveForDiscountMargin = nil;
+[Fixed Income Pricing and Risk]FIrCurveInformation:forwardCurveForDiscountMargin = forwardIrCurveInformationDiscountMargin;
+[Fixed Income Pricing and Risk]FLeg:forwardCurveForDiscountMargin = select(mappedForwardLink, 
+  nil->nil, 
+  default->mappedForwardLink :* "forwardCurveForDiscountMargin" [valuationDate]);
+[Fixed Income Pricing and Risk]FMappingLink:forwardCurveForDiscountMargin = forwardYieldCurveHierarchy :* "forwardCurveForDiscountMargin" [valuationDate];
+[Fixed Income Pricing and Risk]FYieldCurveHierarchy:forwardCurveForDiscountMargin = forwardYieldCurveComponent :* "forwardIrCurveInformationDiscountMargin" [component = underlyingComponent, valuationDate];

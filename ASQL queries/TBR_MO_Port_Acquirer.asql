@@ -1,0 +1,29 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_MO_Port_Acquirer') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_MO_Port_Acquirer' and p.type = 'SQL Query' 
+
+
+
+
+
+
+select 
+
+p.prfid,
+pp.ptyid  'Acquirer'
+
+from
+trade t,
+portfolio p,
+party pp
+
+where
+match_filter(t,@Filter{MO_SM_Trading;tradefilter.fltid},)
+and t.prfnbr  = p.prfnbr
+and t.acquirer_ptynbr = pp.ptynbr
+
+group by 1,2
+

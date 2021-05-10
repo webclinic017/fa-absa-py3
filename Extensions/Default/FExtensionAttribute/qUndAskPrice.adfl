@@ -1,0 +1,5 @@
+[Default]FQuoteController:qUndAskPrice = select(quoteUnderlying, 
+  nil->nil, 
+  default->select(underlyingIsValuedFromLegs, 
+    true->setDateTimePart(convertToCurrency(qCalculatedUnderlyingAskPrice, (underlying:instrumentCurrencies) :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency], currencySymbol), instrumentSpotDate), 
+    default->collapse(qCalculatedUnderlyingAskPrice)));

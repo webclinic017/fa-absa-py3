@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:profitAndLossValuesInstrumentAccrued = shunt(count(profitAndLossPartInterestValues) > 0, 
+  true->profitAndLossPartInterestValues.InstrumentAccrued, 
+  false->plZero);
+[Default]FInstrumentAndTrades:profitAndLossValuesInstrumentAccrued = profitAndLossValues.InstrumentAccrued;
+[Default]FLegAndTrades:profitAndLossValuesInstrumentAccrued = shunt(count(profitAndLossPartInterestValues) > 0, 
+  true->profitAndLossPartInterestValues.InstrumentAccrued, 
+  false->plZero);
+[Default]FMultiInstrumentAndTrades:profitAndLossValuesInstrumentAccrued = sumOf(instruments :* "profitAndLossValues.InstrumentAccrued" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);

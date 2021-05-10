@@ -1,0 +1,7 @@
+[Core Pricing]FCashFlowInstrument:theoreticalInstrumentValuesOnAcquireDate = object:moveValueViaReportDate [accountingInclusionDate, priceSource, doSplitAll, legs, valuesOnSpotOverride, moveStartValue = theoreticalOrMarketInstrumentValue, moveToDate = positionAdjustmentDates, moveValueStartPoint = createForwardValuationStartPoint(theoreticalOrMarketInstrumentValueDate), doFlatAccruedAdjustment = positionFlatAccruedAdjustment];
+[Core Pricing]FCombination:theoreticalInstrumentValuesOnAcquireDate = shunt[priceSource, doSplitAll, positionTradeQuantities, useBidAskValuation](theoreticalOrMarketInstrumentValueUsesTheoreticalCalculation, 
+  false->collapse(theoreticalInstrumentValuesOnAcquireDateFromCombinationStart), 
+  true->object:moveValue [priceSource, doSplitAll, moveToDate = positionAdjustmentDates, moveValueStartPointFromCombination = false]);
+[Core Pricing]FFxRate:theoreticalInstrumentValuesOnAcquireDate = object:moveValueFlat [priceSource, doSplitAll, moveStartValue = theoreticalOrInvertedTheoreticalInstrumentValue, moveToDate = positionAdjustmentDates];
+[Core Pricing]FIndex:theoreticalInstrumentValuesOnAcquireDate = collapse(theoreticalInstrumentValuesOnAcquireDateFromCombinationStart);
+[Core Pricing]FInstrument:theoreticalInstrumentValuesOnAcquireDate = object:moveValue [priceSource, doSplitAll, valuesOnSpotOverride, moveStartValue = theoreticalOrMarketInstrumentValue, moveToDate = positionAdjustmentDates, moveValueStartPoint = createForwardValuationStartPoint(theoreticalOrMarketInstrumentValueDate)];

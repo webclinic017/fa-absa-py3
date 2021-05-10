@@ -1,0 +1,19 @@
+[Default]FCombInstrMap:crossGammaPercentValues = weight * instrument :* "crossGammaPercentValues" [isSplitAllGrouped, priceSource, positionTradeQuantities];
+[Default]FCombInstrMapAndTrades:crossGammaPercentValues = shunt(isOpenPosition, 
+  true->combinationInstrumentMapFactor * instrument :* "crossGammaPercentValues" [isSplitAllGrouped, priceSource, positionTradeQuantities, crossGammaObject1, crossGammaObject2], 
+  false->spotHandlingZero);
+[Default]FCombination:crossGammaPercentValues = select((count(crossGammaRiskFactor1) == 1) and (count(crossGammaRiskFactor2) == 1), 
+  true->select(splitCombination, 
+    true->riskPosition * sumOf((instrumentMaps) :* "crossGammaPercentValues" [isSplitAllGrouped, priceSource, positionTradeQuantities := 1.0]) / combinationDivisionFactor, 
+    false->adjustForSpotHandling(select(crossGammaObject1 == crossGammaObject2, 
+      true->riskPosition * differential(crossGammaBothShiftedUpRelative + crossGammaBothShiftedDownRelative, theoreticalInstrumentValueAtSpot * 2, square(valuationModelSpecificRelativePriceShift * 100)), 
+      false->riskPosition * differential(crossGammaBothShiftedUpRelative + crossGammaBothShiftedDownRelative, crossGammaShiftedUpDownRelative + crossGammaShiftedDownUpRelative, square(valuationModelSpecificRelativePriceShift * 200))), valuesOnSpot)), 
+  false->spotHandlingZero);
+[Default]FInstrument:crossGammaPercentValues = select((count(crossGammaRiskFactor1) == 1) and (count(crossGammaRiskFactor2) == 1), 
+  true->select(crossGammaObject1 == crossGammaObject2, 
+    true->riskPosition * differential(crossGammaBothShiftedUpRelative + crossGammaBothShiftedDownRelative, theoreticalInstrumentValueAtSpot * 2, square(valuationModelSpecificRelativePriceShift * 100)), 
+    false->riskPosition * differential(crossGammaBothShiftedUpRelative + crossGammaBothShiftedDownRelative, crossGammaShiftedUpDownRelative + crossGammaShiftedDownUpRelative, square(valuationModelSpecificRelativePriceShift * 200))), 
+  false->spotHandlingZero);
+[Default]FInstrumentAndTrades:crossGammaPercentValues = openInstrument :* "collapse(crossGammaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, crossGammaObject1, crossGammaObject2];
+[Default]FMultiInstrumentAndTrades:crossGammaPercentValues = sumOf(openInstruments :* "collapse(crossGammaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, crossGammaObject1, crossGammaObject2]);
+[Default]FTradeRow:crossGammaPercentValues = openInstrument :* "crossGammaPercentValues" [isSplitAllGrouped, priceSource, singleTradePosition, crossGammaObject1, crossGammaObject2, includeAllTrades];

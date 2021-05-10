@@ -1,0 +1,5 @@
+[Default]FCombination:theoreticalInstrumentValueCombinationAsSumOfConstituents = select(settlementPayType, 
+  "Spot"->collapse(theoreticalInstrumentValueCombinationAsSumOfConstituentsCore), 
+  default->select(allConstituentsHavePayTypeFutureForward, 
+    true->collapse(theoreticalInstrumentValueCombinationAsSumOfConstituentsCore), 
+    default->throwError("Could not calculate instrument value. Combination with pay type future/forward contains constituent with pay type spot.")));

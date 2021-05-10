@@ -1,0 +1,91 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :
+
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2020-09-11     CHG0128302	Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_EQOptions_American') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_EQOptions_American' and p.type = 'SQL Query'
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+    
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_EQOptions_American.OpenFile', @1_path{'f:\'},@2_FileName{'MR_EQOptions_American.csv'},@3_PositionName{'MR_EQOptions_American_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select Distinct
+    ael_s(t,'MR_EQOptions_American.Write', @1_path{'f:\'},@2_FileName{'MR_EQOptions_American.csv'},@3_PositionName{'MR_EQOptions_American_Position.csv'})	'BuildConfirmation'
+Into 
+	TradeResults
+From
+    instrument i,
+    instrument ui,
+    Trade t,
+    valid_portfolios vp
+Where
+    i.insaddr = t.insaddr
+    and t.status not in ('Void', 'Terminated', 'Simulated')
+
+	and i.exp_day > Today
+
+    and i.instype = 'Option'
+    and i.und_instype in ('Future/Forward')
+    and i.exercise_type = 'American'
+
+    and i.digital = 'No'
+    and i.exotic_type = 'None'
+    and ui.insaddr = i.und_insaddr
+    and ui.und_instype  in ('Stock','EquityIndex')
+    and t.prfnbr = vp.prfnbr
+
+Select Distinct
+    ael_s(t,'MR_EQOptions_American.Write', @1_path{'f:\'},@2_FileName{'MR_EQOptions_American.csv'},@3_PositionName{'MR_EQOptions_American_Position.csv'})	'BuildConfirmation'
+Into 
+	TradeResults
+From
+    instrument i,
+    Trade t,
+    valid_portfolios vp
+Where
+    i.insaddr = t.insaddr
+    and t.status not in ('Void', 'Terminated', 'Simulated')
+    
+	and i.exp_day > Today
+    
+    and i.instype = 'Option'
+    and i.und_instype in ('Stock','EquityIndex')
+    and i.exercise_type = 'American'
+    
+    and i.digital = 'No'
+    and i.exotic_type = 'None'
+    and t.prfnbr = vp.prfnbr
+    
+Select * From TradeResults

@@ -1,0 +1,31 @@
+/*
+Purpose: To be used to generate input data for
+         the inflation feed in the Market Data
+         feeds framework
+Developer: Paul Jacot-Guillarmod
+CR Number: 454689
+*/
+
+select 
+    ael_i(p,'ASQL_log','MF_PriceIndexHistory') 'Name' 
+into
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where p.name = 'MF_PriceIndexHistory' and p.type = 'SQL Query' 
+
+
+select
+    i.insid,
+    p.day,
+    p.settle
+from
+    price p,
+    instrument i,
+    party pty
+where
+    p.insaddr = i.insaddr
+and p.ptynbr = pty.ptynbr
+and pty.ptyid = 'internal'
+and i.insid = @IndexName{SACPI;instrument.insid}
+    

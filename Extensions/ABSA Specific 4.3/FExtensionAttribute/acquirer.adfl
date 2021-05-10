@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrument:acquirer = object.Trades.At(0).Acquirer;
+[ABSA Specific 4.3]FInstrumentAndTrades:acquirer = switch(count(distinct(trades :* "acquirer")), 
+  1->object.Trades.AsArray.At(0).Acquirer, 
+  default->nil);
+[ABSA Specific 4.3]FMoneyFlowAndTrades:acquirer = object.MoneyFlow.Acquirer;
+[ABSA Specific 4.3]FTradeRow:acquirer = trade:acquirer;

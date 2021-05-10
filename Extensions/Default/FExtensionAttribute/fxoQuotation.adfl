@@ -1,0 +1,9 @@
+[Default]FInstrument:fxoQuotation = nil;
+[Default]FOption:fxoQuotation = select(isFXOption, 
+  true->select(quotation, 
+    "Points of UndCurr"->currency.Name + "per" + string((underlying).ForeignCurrency), 
+    "Pct of Nominal"->"%" + currency.Name, 
+    "Points of BaseCurr"->currency.Name + "per" + strikeCurrency.Name, 
+    default->quotation), 
+  false->nil);
+[Default]FTradeRow:fxoQuotation = instrument:fxoQuotation [quotation = tradeRowQuotation, currency = tradeRowCurrency];

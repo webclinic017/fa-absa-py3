@@ -1,0 +1,157 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_VoidedTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_VoidedTrades' and p.type = 'SQL Query' 
+select
+	@1_StartDate{yesterday}		'd0',
+	@2_EndDate{today}		'd1'
+into
+	Input
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    itv.insaddr,
+	tv.trdnbr				            'VoidedTrade',
+	to_int(tv.text1) is null ? to_int('0') : to_int(tv.text1)	'VoidTradeReplaceNumber',			    
+    tv.text1                            'ReasonforVoid1',
+	tv.text2				            'ReasonforVoid2',
+	display_id(tv, 'updat_usrnbr')		'VoidedTradeUpdateUser',
+	display_id(tv, 'trader_usrnbr')		'VoidedTrader',
+	display_id(tv, 'acquirer_ptynbr')	'VoidedAcquirer',
+	display_id(tv, 'prfnbr')		    'VoidedPortfolio',
+	itv.insid				            'VoidedInsid',
+	itv.instype				            'VoidedInstype',
+	tv.nominal_amount			        'VoidedNominal',
+	display_id(tv, 'counterparty_ptynbr')	'VoidedCP',
+	tv.premium				            'VoidedPremium',
+	tv.price				            'VoidedPrice',
+	itv.start_day				        'VoidedStartDay',
+	itv.exp_day				            'VoidedExpDay',
+	tv.updat_time					    'VoidedDate'
+
+into 
+    tempv
+    
+from
+	Trade tv,
+	Instrument itv,
+	Input d,
+    portfolio po
+
+where
+	tv.insaddr = itv.insaddr
+    and	tv.updat_time >= d.d0
+    and	tv.updat_time <= d.d1
+    and	tv.status = 'Void'
+    and tv.prfnbr = po.prfnbr
+    and po.prfid not in ('CFD','Equity Script Lending','4440798','4440806')
+
+/* Update for total return swaps */
+
+select
+	tv.VoidedTrade,
+	tv.VoidTradeReplaceNumber,			    
+    tv.ReasonforVoid1,
+	tv.ReasonforVoid2,
+	tv.VoidedTradeUpdateUser,
+	tv.VoidedTrader,
+	tv.VoidedAcquirer,
+	tv.VoidedPortfolio,
+	tv.VoidedInsid,
+	'YES'?tv.VoidedInstype:'' 'VoidedInstype',
+	tv.VoidedNominal,
+	tv.VoidedCP,
+	tv.VoidedPremium,
+	tv.VoidedPrice,
+	tv.VoidedStartDay,
+	tv.VoidedExpDay,
+	tv.VoidedDate
+into 
+    finalv
+from
+	tempv tv
+where
+    tv.VoidedInstype not in ('TotalReturnSwap')
+
+select
+	tv.VoidedTrade,
+	tv.VoidTradeReplaceNumber,			    
+    tv.ReasonforVoid1,
+	tv.ReasonforVoid2,
+	tv.VoidedTradeUpdateUser,
+	tv.VoidedTrader,
+	tv.VoidedAcquirer,
+	tv.VoidedPortfolio,
+	tv.VoidedInsid,
+    'EquitySwap' 'VoidedInstype',
+	u.quote_type='Per Unit' ? tv.VoidedNominal/l.initial_index_value : 100*tv.VoidedNominal/l.initial_index_value 'VoidedNominal',
+	tv.VoidedCP,
+	tv.VoidedPremium,
+	tv.VoidedPrice,
+	tv.VoidedStartDay,
+	tv.VoidedExpDay,
+	tv.VoidedDate
+into 
+    finalv
+from
+	tempv tv,
+	instrument i,
+	leg l,
+	instrument u
+where
+    i.insaddr = tv.insaddr
+and l.insaddr = i.insaddr
+and l.index_ref = u.insaddr
+and l.type = 'Total Return'
+and tv.VoidedInstype in ('TotalReturnSwap')
+
+
+select
+	tv.VoidedTrade,
+	t.trdnbr				'NewActiveTrade',
+	t.status				'NewStatus',
+	it.insid				'NewInsid',
+	it.instype				'NewInstype',
+	abs(tv.VoidedNominal - t.nominal_amount) ~= 0 ? 'Yes' : 'No'	'Delta_Nominal',
+	tv.VoidedCP ~= display_id(t, 'counterparty_ptynbr')? 'Yes' : 'No'				'Delta_CP',
+	abs(tv.VoidedPremium - t.premium) ~= 0 ? 'Yes' : 'No'	'Delta_Premium',
+	abs(tv.VoidedPrice - t.price) ~= 0 ? 'Yes' : 'No'		'Delta_Rate',
+	days_between(tv.VoidedStartDay, it.start_day, 'Act/365') ~= 0 ? 'Yes' : 'No'	'Delta_StartDate',
+	days_between(tv.VoidedExpDay, it.exp_day, 'Act/365') ~= 0 ? 'Yes' : 'No'	'Delta_EndDate',
+	tv.VoidedTradeUpdateUser,
+	tv.VoidedDate,
+	tv.ReasonforVoid2,
+	tv.VoidedNominal,
+	t.nominal_amount			'NewNominal',
+	tv.VoidedAcquirer,
+	display_id(t, 'acquirer_ptynbr')	'NewAcquirer',
+	tv.VoidedCP,
+	display_id(t, 'counterparty_ptynbr')	'NewCP',
+	tv.VoidedPortfolio,
+	display_id(t, 'prfnbr')			'NewPortfolio',
+	tv.VoidedPremium,
+	t.premium				'NewPremium',
+	tv.VoidedStartDay,
+	it.start_day				'NewStartDay',
+	tv.VoidedExpDay,
+	it.exp_day				'NewExpDay',
+	today	'Business_Date',
+	tv.ReasonforVoid1,
+	tv.VoidedTrader,
+	tv.VoidedInstype
+
+from
+    Trade t,
+	Instrument it,
+	finalv tv
+
+where
+    t.insaddr *= it.insaddr
+	and tv.VoidTradeReplaceNumber *= t.trdnbr
+    
+    

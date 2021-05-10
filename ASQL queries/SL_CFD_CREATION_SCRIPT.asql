@@ -1,0 +1,97 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_CFD_CREATION_SCRIPT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_CFD_CREATION_SCRIPT' and p.type = 'SQL Query' 
+
+
+select
+    date_add_banking_day(p.day,'ZAR',5) 'day'
+into
+    pdays
+from
+    price p,
+    instrument i,
+    party pp
+where
+   p.day < @To{Today}
+and p.day >= @From{Today}
+and i.insid = 'ZAR/ASA'
+and p.insaddr = i.insaddr
+and pp.ptyid = 'internal'
+and pp.ptynbr = p.ptynbr
+group by 
+    1
+    
+select
+    i.insid
+into
+    inst
+from
+    trade t,
+    instrument i,
+    portfolio p
+where
+    t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and p.prfid in (@CFDPortfolio{;Portfolio.prfid*})
+ 
+select
+    i.insid
+into
+    inst
+from
+    trade t,
+    instrument i
+where
+    match_filter(t,@Filter{;Portfolio.prfid})
+and t.insaddr = i.insaddr
+ 
+select
+    insid  'insid'
+into
+    portval
+from
+    inst
+group by 
+    1
+    
+ 
+select 
+    i.insid,
+    sum(position(i,,,,date_add_banking_day(p.day,'ZAR',0),,pr) - ael_f(i, 'FPosition.Position', pr, p.day))    'CFPOS',
+    date_add_banking_day(p.day,'ZAR',0)                        'CFDATE',
+    position(i,pr2.fltid,,date_add_banking_day(p.day,'ZAR',-1),,)    'SLPOS',
+    date_add_banking_day(p.day,'ZAR',-1)                        'SLDATE',
+    pr.prfid    'CFPort',
+    p.day
+into
+    fin
+from
+    portval po,
+    pdays p,
+    portfolio pr,
+    TradeFilter pr2,
+    instrument i
+where
+    pr.prfid in (@CFDPortfolio{;Portfolio.prfid})
+and pr2.fltid in (@Filter{;TradeFilter.fltid})
+and po.insid = i.insid
+
+group by 
+    1,7
+ 
+select
+    insid,
+    CFPOS,
+    CFDATE,
+    SLPOS,
+    SLDATE,
+    CFPOS > 0 ? SLPOS : CFPOS + SLPOS           'DIFF',
+    CFPort,
+    day
+from
+    fin
+ 
+    

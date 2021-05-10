@@ -1,0 +1,11 @@
+[Default]FInstrument:markToMarketRealizedValues = select(doCostAdjustment, 
+  true->select(isValuedAtCost, 
+    true->markToMarketRealizedValuesCalculation, 
+    false->valuationDateZero), 
+  false->markToMarketRealizedValuesCalculation);
+[Default]FInstrumentAndTrades:markToMarketRealizedValues = sumOf(portfoliosForValuation :* "collapse(markToMarketRealizedValues)" [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, instrument, valuesOnSpot, openPositionInstrumentProvider]);
+[Default]FMultiInstrumentAndTrades:markToMarketRealizedValues = sumOf(portfoliosForValuation :* "collapse(markToMarketRealizedValuesOpenInstruments)" [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, openPositions, onlySpotValuedInstruments]);
+[Default]FPortfolio:markToMarketRealizedValues = openInstrument :* "collapse(markToMarketRealizedValues)" [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, accountingParameters, tradedPortfolio];
+[Default]FTaxLotClosing:markToMarketRealizedValues = closingTrade:markToMarketRealizedValues [doCostAdjustment, priceSource, instrument, isSplitAllGrouped, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate] * fractionOfClosingTrade;
+[Default]FTrade:markToMarketRealizedValues = openInstrument :* "collapse(markToMarketRealizedValues)" [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, filterUnit, groupingSpotDiscountDate];
+[Default]FTradeRow:markToMarketRealizedValues = openInstrumentOrTaxLotInstrument :* "collapse(markToMarketRealizedValues)" [doCostAdjustment, priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, filterUnit, groupingSpotDiscountDate, taxLotPositionObject, taxLotValuation := taxLotPnL, positionObject];

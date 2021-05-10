@@ -1,0 +1,5 @@
+[Core Pricing]FCashFlowInstrument:forwardValueModel = select(isCreditBasket, 
+  true->unitValueDirtyToClean(legInformations, staticLegInformations, creditFutureSpotValue, contractSize, valuationDate), 
+  false->unitValueDirtyToClean(legInformations, staticLegInformations, issuerContingentForwardValue, contractSize, valuationDate, roundingInformation));
+[Core Pricing]FDividendPointIndex:forwardValueModel[priceSource, doSplitAll, forwardValueDate, underlyingFutureObservationDate, discountingType, calculationCurrency, exposeForwardValuationTargets, forwardValuationInInstrumentCurrency] = collapse(forwardValue);
+[Core Pricing]FInstrument:forwardValueModel[priceSource, doSplitAll, forwardValueDate, forwardPriceDate, underlyingFutureObservationDate, discountingType, calculationCurrency, exposeForwardValuationTargets, forwardValuationInInstrumentCurrency, forwardValueDividendData, useSpotProxy, baseValuationOnUnderlyingComponents] = collapse(forwardValue);

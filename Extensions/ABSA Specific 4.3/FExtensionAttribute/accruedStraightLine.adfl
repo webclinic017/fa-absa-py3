@@ -1,0 +1,13 @@
+[ABSA Specific 4.3]FTradeRow:accruedStraightLine = select((trade.Instrument.InsType == "Deposit") or (trade.Instrument.InsType == "FRN") or (trade.Instrument.InsType == "CD"), 
+  true->select(((trade.Status == "BO Confirmed") or (trade.Status == "BO-BO Confirmed")), 
+    true->select(((trade.Portfolio.Oid == 4708) or (trade.Portfolio.Oid == 1622)), 
+      true->select((trade.Instrument.ExpiryDate > valuationDate), 
+        true->select(((trade.AdditionalInfo.Funding_Instype == "FRD Pre Payable 1M") or (trade.AdditionalInfo.Funding_Instype == "FRD Pre Payable 3M") or (trade.AdditionalInfo.Funding_Instype == "FRD Pre Payable 13M") or (trade.AdditionalInfo.Funding_Instype == "FRD Pre Payable 6M") or (trade.AdditionalInfo.Funding_Instype == "FRD Pre Payable") or (trade.AdditionalInfo.Funding_Instype == "FRD") or (trade.AdditionalInfo.Funding_Instype == "CD Pre Payable")), 
+          true->restatedRatchet, 
+          false->select(((trade.AdditionalInfo.MM_Instype == "CD Pre Payable") or (trade.AdditionalInfo.MM_Instype == "FRD Pre Payable") or (trade.AdditionalInfo.MM_Instype == "FRD Pre Payable 13M") or (trade.AdditionalInfo.MM_Instype == "FRD Pre Payable 1M") or (trade.AdditionalInfo.MM_Instype == "FRD Pre Payable 3M") or (trade.AdditionalInfo.MM_Instype == "FRD Pre Payable 6M")), 
+            true->restatedRatchet, 
+            false->accrued)), 
+        false->accrued), 
+      false->accrued), 
+    false->accrued), 
+  false->accrued);

@@ -1,0 +1,99 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_FX_OPTIONS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_FX_OPTIONS' and p.type = 'SQL Query' 
+
+
+/********************* Select FX Rates ***********************/
+/*SELECT
+	hc.insid						            'base',
+	curr.insid						            'quote',
+	used_price(hc, today, curr.insid)			'fxRate'
+
+
+INTO
+	fx
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	    hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'*/
+/******************************************************************/
+
+
+select 
+
+    t.trdnbr 				                                                                            'DEAL_REF',
+    to_string(display_id(i,'und_insaddr'),'-',display_id(i,'strike_curr'))			                    'CCY_PAIR',
+    time_to_day(t.time)			                                                                        'DEAL_DATE',
+    display_id(i, 'strike_quotation_seqnbr') = 'Per Unit Inverse' ? 1/i.strike_price : i.strike_price	'STRIKE_RATE',
+    i.insid					                                                                            'Instrument',
+    i.instype				                                                                            'InstrumentType',
+    und.insid				                                                                            'Underlying',
+    und.instype				                                                                            'UnderlyingType',
+    i.exp_day 				                                                                            'EXPIRY_DATE',
+    i.exercise_type 			                                                                        'OPTION_STYLE',
+    i.call_option = 'No' ? 'PUT' : 'CALL'	                                                            'PUT_CALL',
+    nominal_amount(t) > 0 ? 'B' : 'S' 	                                                                'BUY_SELL',
+    t.premium 				                                                                            'OPTION_PREMIUM',
+    t.value_day				                                                                            'PREMIUM_DATE',
+    display_id(t,'curr') 			                                                                    'PREMIUM_CCY',
+    und.insid  				                                                                            'CCY_DELV1',
+    display_id(i,'strike_curr')			                                                                'CCY_DELV2',
+    abs(t.quantity)  			                                                                        'NOMINAL',
+    t.status				                                                                            'STATUS',
+    display_id(t,'trader_usrnbr')		                                                                'TRADER',
+    display_id(t,'optkey1_chlnbr')		                                                                'TRADING_BOOK',
+    p.prfid					                                                                            'PORTFOLIO',	
+    cp.ptyid				                                                                            'COUNTER_PARTY_CODE',
+    cp.fullname 				                                                                        'COUNTER_PARTY_NAME',
+    t.updat_time				                                                                        'FileDate',
+    ''					                                                                                'Dartnumber',
+    1.0 /*present_value(t)/fx1.fxRate*fx2.fxRate*/                                                      'Mtm_USD',
+    1.0 /*present_value(t)/fx1.fxRate*/                                                                 'MtM_ZAR',
+    present_value(t)                                                                                    'MtM_CCY',
+    display_id(i,'strike_curr')                                                                         'CCY',
+    today					                                                                            'LAST_UPDATE',
+    t.optional_key 				                                                                        'DevNbr',
+    used_vol(t)				                                                                            'VOL',
+    und.spot_banking_days_offset                                                                        'Spot_Days',
+    display_id(I,'strike_curr')                                                                         'Strike_Currency',
+    I.pay_day_offset                                                                                    'Settle_Days',    
+    I.settlement                                                                                        'Settle_Type',
+    T.Quantity, 
+    ael_s(I,'ReturnVolatility_Name_new')                                                                'Mapped_Volatility',
+    ael_s(i,'get_discountcurve_new',i)                                                                  'Discounting_Curve',
+    ael_s(Und,'getYCName')                                                                              'Repo_1',
+    ael_s(T,'get_discountcurve',I,'Receive')                                                            'Repo_2',
+    I.digital                                                                                           'Digital'
+    
+from 
+
+    trade t , 
+    instrument i, 
+    instrument und, 
+    portfolio p,
+    party cp/*,
+    fx	fx1,
+    fx	fx2*/
+
+where 
+
+	t.insaddr = i.insaddr
+    and	i.instype = 'Option'
+    and	i.und_instype in ('Curr','Commodity')
+    and i.und_insaddr = und.insaddr
+    and	p.prfnbr = t.prfnbr
+    and	cp.ptynbr = t.counterparty_ptynbr
+    and	t.status not in ('Simulated', 'Terminated', 'Void')
+    /*and	fx1.quote = display_id(i,'curr')
+    and	fx1.base = 'ZAR'
+    and	fx2.base = 'ZAR'
+    and	fx2.quote = 'USD'*/
+    and	i.exp_day > today
+    and i.insid not like '%ASIA%'
+    and i.exotic_type = 'None'
+    and und.insid not like '%GAS_OIL%'	/*approved as BTB*/

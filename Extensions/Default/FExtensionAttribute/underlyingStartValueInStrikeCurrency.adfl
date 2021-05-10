@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingStartValueInStrikeCurrency = select(isInterestRateOption, 
+  true->optionOnInterestRateFutureFactor * underlyingForwardValueModelAdjusted, 
+  false->select(forwardValueProviderTargetInTheoreticalPrice, 
+    nil->nil, 
+    default->select(mappedUnderlyingFutureProxyValueInTheoreticalPrice, 
+      default->mappedUnderlyingFutureProxyValueInTheoreticalPrice * underlyingSpotPriceFxConversion, 
+      nil->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, underlyingInstrumentSpotDate, calculationCurrency))));

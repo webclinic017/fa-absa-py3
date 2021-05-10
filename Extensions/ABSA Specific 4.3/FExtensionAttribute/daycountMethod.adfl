@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FTradeRow:daycountMethod = shunt(count(trade.Instrument.Legs), 
+  1->trade.Instrument.Legs.At(0).DayCountMethod, 
+  2->shunt(trade.Instrument.Legs.At(0).DayCountMethod == trade.Instrument.Legs.At(1).DayCountMethod, 
+    true->trade.Instrument.Legs.At(0).DayCountMethod, 
+    default->nil), 
+  3->shunt((trade.Instrument.Legs.At(0).DayCountMethod == trade.Instrument.Legs.At(1).DayCountMethod) and (trade.Instrument.Legs.At(1).DayCountMethod == trade.Instrument.Legs.At(2).DayCountMethod), 
+    true->trade.Instrument.Legs.At(0).DayCountMethod, 
+    default->nil), 
+  default->nil);

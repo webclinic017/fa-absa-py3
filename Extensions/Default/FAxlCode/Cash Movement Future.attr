@@ -1,0 +1,50 @@
+[Default]FObject:Cash Movement Future
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+getAmountXDayOrLater = If(And(Not(Compare.IsNegative($X)), And(And(Not(Compare.IsZero($X)), Or(Compare.IsMore(&'value_day', DateTime.AddWeekday($X)), Compare.IsEqual(&'value_day', DateTime.AddWeekday($X)))), &'unSettledCashExtAttr')), &'amount', 0.0);
+
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+        Label:'Number of weekdays',
+        Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'Movement Future',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day equal to today + given number of weekdays or later.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Description:'Total unsettled cash with value day equal to today + {X.Label} weekdays or later.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Modify(Aggregate.Sum(@getAmountXDayOrLater($X)), AttributeDimensions = AttributeList(['curr']));
+
+
+...

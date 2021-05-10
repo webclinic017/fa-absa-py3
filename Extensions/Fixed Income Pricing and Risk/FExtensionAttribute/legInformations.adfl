@@ -1,0 +1,22 @@
+[Fixed Income Pricing and Risk]FBuySellBack:legInformations = underlying:legInformations [priceSource];
+[Fixed Income Pricing and Risk]FCashFlowInstrument:legInformations = legs :* "legInformation" [priceSource, doSplitAll, ctdFactor];
+[Fixed Income Pricing and Risk]FCfd:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource], 
+  false->nil);
+[Fixed Income Pricing and Risk]FCombInstrMap:legInformations = instrument:legInformations [priceSource];
+[Fixed Income Pricing and Risk]FCombination:legInformations = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "legInformations" [priceSource]), 
+  false->nil);
+[Fixed Income Pricing and Risk]FDerivative:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource], 
+  false->nil);
+[Fixed Income Pricing and Risk]FFuture:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource, ctdFactor], 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:legInformations = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:legInformations = instrument:legInformations;
+[Fixed Income Pricing and Risk]FInstrumentMoneyFlow:legInformations = instrument:legInformations;
+[Fixed Income Pricing and Risk]FLeg:legInformations = object:legInformation [instrument:priceSource, instrument:ctdFactor];
+[Fixed Income Pricing and Risk]FLegAndTrades:legInformations = leg:legInformations;
+[Fixed Income Pricing and Risk]FOrderBook:legInformations = instrument:legInformations;
+[Fixed Income Pricing and Risk]FPriceFeed:legInformations = instrument:legInformations;

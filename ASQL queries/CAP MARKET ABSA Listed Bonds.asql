@@ -1,0 +1,40 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET ABSA Listed Bonds') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET ABSA Listed Bonds' and p.type = 'SQL Query' 
+ 
+  
+/*bond data*/
+
+select 
+i.insid,
+
+nominal_amount(t,@Date{Today},,) 'Nominal',
+
+ael_d(i,'Last_Date_Register.bcd_ldr',add_info(i,'ExCoup1')) 'ldr1',
+ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup1')) 'Ex-Div Date 1',
+date_add_delta(ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup1')),10) 'Coupon Pay Date 1',
+
+ael_d(i,'Last_Date_Register.bcd_ldr',add_info(i,'ExCoup2')) 'ldr2',
+ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup2')) 'Ex-Div Date 2',
+date_add_delta(ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup2')),10) 'Coupon Pay Date 2',
+l.fixed_rate 'crate',
+i.exp_day   'Expiry'
+
+/*into bonddata*/
+from instrument i,
+trade t,
+leg l
+
+where
+l.insaddr =i.insaddr
+and t.insaddr = i.insaddr
+and instype in  ('Bond','IndexLinkedBond')
+/*and i.insid like 'ZAR/AB%'*/
+and add_info(i,'ExCoup1') ~=''
+and i.exp_day > today
+
+
+group by 1

@@ -1,0 +1,10 @@
+[GenericMandates]FInstrumentAndTrades:mandateDisplayChoice = 
+# Check if the parent object passes the mandates
+switch(mandateResultCounterparty, 
+  1->"Allowed", 
+  0->"Not Allowed", 
+  default->"Not Allowed");
+[GenericMandates]FTrade:mandateDisplayChoice = 
+# Custom Python method to check if a specific trade passes the applicable mandates assigned to it.
+py("GenericMandatesEval", context).Get_Evaluated_Mandate_Number(object, mandateDisplayChoices.AsString);
+[GenericMandates]FTradeRow:mandateDisplayChoice = trade:mandateDisplayCounterparty;

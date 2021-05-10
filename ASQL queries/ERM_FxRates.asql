@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ERM_FxRates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ERM_FxRates' and p.type = 'SQL Query' 
+SELECT
+	hc.insid						'BaseCurr',
+	curr.insid						'QuotedCurr',
+	used_price(hc, @Date{TODAY}, curr.insid)		'Rate',
+	@Date{}		'EffectiveDate'
+
+
+
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	    hc.instype = 'Curr'
+	AND curr.instype = 'Curr'

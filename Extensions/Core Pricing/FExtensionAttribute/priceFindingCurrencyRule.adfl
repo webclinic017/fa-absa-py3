@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:priceFindingCurrencyRule = select(priceFindingIsExactCurrency, 
+  true->"Exact", 
+  default->priceFinding.CurrencyRule);
+[Core Pricing]FInstrumentAndTrades:priceFindingCurrencyRule = switch(includeCurrency, 
+  false->"Exact", 
+  default->instrument:priceFindingCurrencyRule);
+[Core Pricing]FMultiInstrumentAndTrades:priceFindingCurrencyRule = nil;

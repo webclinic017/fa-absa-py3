@@ -1,0 +1,7 @@
+[Adaptiv XVA]FInstrumentAndTrades:maximumPotentialFutureExposureValue = shunt(calculatePotentialFutureExposureValue, 
+  true->discountAndConvertToCurrency(maximumPotentialFutureExposureValues, theoreticalValueDisplayDateDiscountCurves, displayDate, theoreticalValueDisplayCurrencyFXRates, displayCurrencySymbol, filterUnit, theoreticalValueForwardDateBasisFXDiscountCurves, theoreticalValueForwardDateBasisFXRates, forwardDateBasisCurrencySymbol), 
+  false->plZero);
+[Adaptiv XVA]FPortfolioInstrumentAndTrades:maximumPotentialFutureExposureValue = shunt(singleInstrumentAndTrades, 
+  nil->nil, 
+  default->singleInstrumentAndTrades:maximumPotentialFutureExposureValue);
+[Adaptiv XVA]FTimeBucketAndObject:maximumPotentialFutureExposureValue = scenarioaxis(rowInstrumentAndTrades:maximumPotentialFutureExposureValue, <["bucketStartDate"], , , bucketStartDate>, <["bucketEndDate"], , , timeBucketDate>);

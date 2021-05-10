@@ -1,0 +1,8 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:parRate = select(hasAnalyticFixedAccretiveParRate, 
+  true->collapse(analyticFixedAccretiveParRate), 
+  false->select(hasNumericalCalculatedParRate, 
+    true->collapse(impliedParRate), 
+    false->object.UnitValueToUnitQuote((unitGoalValueForParOnParRateDate - nonCouponValue) / couponFactor, forwardPriceDateCalculated, unitQuoteScaling)));
+[Fixed Income Pricing and Risk]FInstrument:parRate = 0.0;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:parRate = instrument:parRate;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:parRate = nil;

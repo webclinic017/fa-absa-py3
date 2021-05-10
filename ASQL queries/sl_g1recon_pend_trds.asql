@@ -1,0 +1,42 @@
+/*-----------------------------------------------------------------------------
+PURPOSE   : Select pending trades required for the Front Arena vs Global1
+            recon. Used by Trade Filter of the same name. This query returns
+            pending trades and is a counterpart to query
+            sl_global_one_recon_trades.
+DPT/DESK  : Prime Services PCG/Securities Lending
+REQUESTER : Candice Johnson (Prime SBL Future Team)
+DEVELOPER : Vojtech Sidorin
+CR NUMBER : CHNG0002087372
+-------------------------------------------------------------------------------
+
+HISTORY
+===============================================================================
+Date       CR Number      Developer         Description
+-------------------------------------------------------------------------------
+2014-06-27 CHNG0002087372 Vojtech Sidorin   Initial implementation; based on
+                                            sl_global_one_recon_trades
+*/
+
+SELECT
+    t.trdnbr
+FROM
+    Trade t,
+    Instrument i,
+    Portfolio p
+WHERE
+    t.insaddr = i.insaddr and
+    t.prfnbr = p.prfnbr and
+
+    t.status NOT IN ('Confirmed Void', 'Simulated', 'Void') and
+    t.aggregate = 0 and
+    i.instype = 'SecurityLoan' and
+
+    (event_date(i, 'FirstStartday') > today or
+        (event_date(i, 'LastEndday') > today and
+            i.open_end ~= 'Open End')
+    ) and
+
+    add_info(i, 'SL_ExternalInternal') = 'External' and
+    add_info(t, 'SL_G1Counterparty1') ~= '' and
+    add_info(t, 'SL_G1Counterparty2') ~= '' and
+    add_info(p, 'SL_G1_Recon_Exclude') ~= 'Yes'

@@ -1,0 +1,46 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAMM_Balance_Per_CP') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAMM_Balance_Per_CP' and p.type = 'SQL Query' 
+
+
+select
+    to_date(to_string(@Date{Today}))  'Date'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    t.trdnbr,
+    i.insid,
+    /*i.open_end = 'Open End' ? accumulated_cash(t,m.Date) - interest_settled(t,,m.Date) : accumulated_cash(t,m.Date)    'Balance',*/
+    accumulated_cash(t,m.Date) - interest_settled(t,,m.Date)    'Balance',
+    display_id(t,'Counterparty_ptynbr') 'Counterparty',
+    i.instype,
+    accumulated_cash(t,m.Date)  'AccCash',
+    interest_settled(t,,m.Date) 'IntSettled'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    macro m
+where
+        t.insaddr = i.insaddr
+    and i.instype in ('Deposit','Zero','CD','FRN')
+    and i.exp_day >= m.Date
+    and t.status not in ('Simulated', 'Void')
+
+select
+    t.Counterparty,
+    sum(t.Balance)  'Amount'
+from
+    temp t
+    
+group by t.Counterparty
+order by t.Counterparty

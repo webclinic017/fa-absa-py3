@@ -1,0 +1,11 @@
+[Default]FCurrencySwap:floatOrCapFloorPayLegOrNil = select(insPayLeg, 
+  nil->nil, 
+  default->select(insPayLeg:isFloatLeg, 
+    true->insPayLeg, 
+    false->nil));
+[Default]FInstrument:floatOrCapFloorPayLegOrNil = nil;
+[Default]FSwap:floatOrCapFloorPayLegOrNil = select(insPayLeg, 
+  nil->nil, 
+  default->select(insPayLeg:isFloatOrCapFloorLeg, 
+    true->insPayLeg, 
+    false->nil));

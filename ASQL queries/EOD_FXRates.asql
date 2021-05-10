@@ -1,0 +1,23 @@
+/* update_method=0 */
+/*********************************************************************************
+Date                		: 2010-03-16
+Purpose             		: Retreive EOD FX Rates based on USD Currency, the data is saved in a output file 
+				: under the FAReport - Atlas End of Day folder : e.g "EOD_FxRates_20100317_1630"
+Department and Desk 	: IT pricing and Risk - CRE FX  
+Requester           		: Mathew Berry 
+Developer           		: Babalo Edwana
+CR Number           		: 256464
+
+Date                		: 2010-03-29
+Purpose             		: Updated query to exclude CNY Currency due to the absence of YieldCurve for this Currency
+Department and Desk 	: IT pricing and Risk - CRE FX  
+Requester           		: Mathew Berry 
+Developer           		: Babalo Edwana
+CR Number           		: 271320
+**********************************************************************************/
+SELECT 
+        i.insid 'Ccy', 
+        convert('double',1.0 / Used_Price(i, , 'USD', 'Bid'), 15) 'Ask', 
+        convert('double',1.0 / Used_Price(i, , 'USD', 'Ask'), 15) 'Bid'
+FROM Instrument i
+WHERE i.instype = 'Curr'

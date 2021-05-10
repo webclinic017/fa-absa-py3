@@ -1,0 +1,5 @@
+[_convertible_pricing_and_risk_exts]FInstrument:bondOnlyDurationFromBondOnlyModifiedDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(bondOnlyYieldToMaturity)) * bondOnlyModifiedDuration, 
+    default->(1 + double(bondOnlyYieldToMaturity) / fixLeg:rollingFrequency) * bondOnlyModifiedDuration));

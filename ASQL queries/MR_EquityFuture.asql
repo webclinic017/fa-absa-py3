@@ -1,0 +1,48 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT, Market Risk
+Requester:              :Natalie Austin, Susan Kruger
+Developer               :Douglas Finkel / Henk Nel, Heinrich Cronje
+CR Number               :264536, 421147, 891943
+Description             :Added underlying ETF
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_EquityFuture.OpenFile',@1_path{'f:\'},@2_FileName{'MR_EquityFuture.csv'},@3_PositionName{'MR_EquityFuture_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_EquityFuture.Write',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+From
+    instrument i,
+    instrument und,
+    choicelist cl
+Where
+        (i.exp_day = 0 or i.exp_day > Today)
+    And i.instype in ('Future/Forward')    
+    And i.und_instype in ('EquityIndex','Stock','ETF')
+    And i.paytype in ('Future')
+    And i.und_insaddr = und.insaddr
+    And und.product_chlnbr=cl.seqnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

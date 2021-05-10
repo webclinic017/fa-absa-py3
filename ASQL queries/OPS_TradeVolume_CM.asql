@@ -1,0 +1,138 @@
+/*
+ * Conicov Andrei
+ * ABITFA-2769
+ * This query is executed by the OPS_TradeVolume.py module
+ */
+select
+    t.trdnbr                                'TrdNo',
+    time_to_day(t.time)                     'DealDate',
+    i.instype                               'Instrument',
+    i.exp_day                               'Expiry',
+    display_id(t,'prfnbr')                  'Portfolio',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    cp.type                                 'PartyType',
+    nominal_amount(t,,display_id(i,'curr')) 'Nominal',
+    present_value(t)                        'PresentValue',
+    display_id(i,'curr')                    'CCY',
+    display_id(t,'broker_ptynbr')           'Broker',
+    u.name                                  'Trader',
+    t.fee                                   'Fee',
+    t.status                                'Status',
+    display_id(t, 'acquirer_ptynbr')        'Acquirer',
+    1                                       'Volume'
+
+into
+    trds
+    
+from
+    trade t,
+    instrument i,
+    user u,
+	party cp,
+	party ap,
+	instrument c,
+	Portfolio  p
+
+where
+    t.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and t.prfnbr = p.prfnbr
+and ap.ptynbr = t.acquirer_ptynbr
+and c.insaddr = i.curr
+and u.usrnbr = t.trader_usrnbr
+and (time_to_day(t.time) >= @1_StartDate{}
+and time_to_day(t.time) <= @2_EndDate{})
+/*------------------*/
+and i.instype not in ('Bill', 'Cap', 'CD', 'CreditDefaultSwap', 'CurrSwap', 'Deposit', 'Floor', 'FRA', 'FRN', 'Future/Forward', 'Option', 'Swap', 'Zero', 'CFD', 'ETF', 'Curr', 'Stock')
+and ap.ptyid in ('BOND DESK', 'Capital Market Desk', 'CM FUNDING', 'CM Spot Trading', 'CREDIT DERIVATIVES DESK', 'CREDIT DERIVATIVES DESK NONCSA',
+'EQ Derivatives Desk', 'FOREX DESK', 'IRD DESK', 'IRD DESK NONCSA', 'Money Market Desk', 'NLD DESK', 'REPO DESK', 'STRUCT NOTES DESK', 'PRIME SERVICES DESK')
+and not (i.instype='FRN' and i.isin like 'ZAG%')
+and ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port',p.prfnbr,'ABSA BANK LTD')=1
+and ((i.instype='TotalReturnSwap' and cp.ptyid not in ('Barclays Bank Plc', 'MMI Group LTD', 'Nic Labuschagne Family Trust')) or i.instype~='TotalReturnSwap') 
+and cp.type in ('Intern Dept','Counterparty','Client')
+and c.insid not in ('USD', 'TRY', 'EUR')
+and ((@3_ForExpiredTrades{'no'}='yes' and i.exp_day<=today and t.status  in ('FO Confirmed', 'BO Confirmed'))
+	or
+	(@3_ForExpiredTrades{'no'}='no' and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed', 'Terminated'))
+	)
+and t.type not in ('Abandon', 'Closing', 'Exercise', 'Assign')
+
+
+select
+    t.TrdNo,
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    t.Nominal,
+    t.PresentValue,
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    t.Fee,
+    t.Status,
+    t.Acquirer,
+    t.Volume
+    
+from
+    trds t
+    
+order by
+    t.Expiry
+
+
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+   t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by
+    t.Instrument
+    
+    
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+    t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by t.CCY

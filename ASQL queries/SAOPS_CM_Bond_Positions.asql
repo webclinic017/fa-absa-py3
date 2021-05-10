@@ -1,0 +1,67 @@
+/*
+Purpose : CAP_MARKET_Bond_Positions
+Department and Desk : OPS
+Requester : Sipho Ndlalane
+Developer : Pavel Saparov
+CR Number : CHNG0000XXXXXX
+Purpose: Obtain Bonds face nominal value exposed to external counterparties for reconciliation purposes
+
+Date        Changed by          CR              Description      
+17/06/2015  Lawrence Mucheka    CHNG0002855175  Removed the portfolios GT CIB LA Repo and GT LT Carries as exceptions
+
+*/
+select
+    t.trdnbr
+from
+    Trade t,
+    Instrument i,
+    Instrument und,
+    Portfolio p,
+    Party ctpy
+where
+        t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.und_insaddr *= und.insaddr
+    and t.counterparty_ptynbr = ctpy.ptynbr
+    and ctpy.ptyid ~= 'JSE'
+    /*
+        Comment: Left join t.optkey1_chlnbr *= cl.seqnbr is not working properly!
+        ``display_id`` function is also not playing nicely with related ``optkey1_chlnbr``
+        conditions ``or display_id(t, 'optkey1_chlnbr') = ''`` is required to make the query work properly!
+        other possibility is to use ``t.optkey1_chlnbr ~= 629``
+    */
+    and (display_id(t, 'optkey1_chlnbr') ~= 'SPECIAL_FINANCE' or display_id(t, 'optkey1_chlnbr') = '')
+    and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+    and t.value_day <= to_date(TODAY)
+    and time_to_day(t.time) <= to_date(TODAY)
+    and i.exp_day >= to_date(TODAY)
+    and (
+            (
+                    i.instype in ('BuySellback', 'Repo/Reverse', 'SecurityLoan')
+                and und.instype in ('Bond', 'IndexLinkedBond', 'FRN') 
+                and und.insid like '%ZAR%'
+                and und.isin like 'ZAG%'
+            )
+        or
+            (
+                (
+                    i.instype in ('Bond', 'IndexLinkedBond')
+                ) and i.insid like '%ZAR%'
+            )
+        or
+            (
+                    i.instype = 'FRN'
+                and i.insid like 'ZAR%'
+                and i.isin like 'ZAG%'
+            )
+    )
+    /* Include ABSA BANK LTD */
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ABSA BANK LTD') = 1
+        /* Exclude some exceptions */
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GROUP TREASURY') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS BANKING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS TRADING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PM Portfolio Management') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ALCH') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'SECURITIES LENDING') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', '7268_Prime Services') = 0 

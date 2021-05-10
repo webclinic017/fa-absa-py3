@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:bondFloorToPut = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->select(bondFloorSupported, 
+    true->bondFloorToPutAsQuote, 
+    false->nil));
+[Default]FInstrument:bondFloorToPut = nil;
+[Default]FInstrumentAndTrades:bondFloorToPut = openInstrumentOrInstrument :* "bondFloorToPut" [priceSource, filterCurrency];
+[Default]FMultiInstrumentAndTrades:bondFloorToPut = nil;
+[Default]FOrderBook:bondFloorToPut = instrument :* "bondFloorToPut" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Default]FPriceAggregate:bondFloorToPut = priceFeed:bondFloorToPut [priceSource];
+[Default]FPriceFeed:bondFloorToPut = instrument :* "bondFloorToPut" [priceSource, quotation] * fxInstrumentToPriceFeed;

@@ -1,0 +1,10 @@
+[Default]FInstrument:isCallForVolatility = select(isMultiExercise, 
+  true->exerciseEvents.IsCall, 
+  false->select(isOptionOnInterestRateFuture, 
+    true->select(strikeQuotationEqualVolStrikeQuotation, 
+      false->object.IRFOptionIsCall, 
+      true->object.IsCall), 
+    false->select(isReciprocal, 
+      true->not object.IsCall, 
+      false->object.IsCall)));
+[Default]FOdf:isCallForVolatility = object.OptionTypeIsCall;

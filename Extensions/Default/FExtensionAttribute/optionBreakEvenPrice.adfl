@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:optionBreakEvenPrice = select(underlyingForUnderlyingPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(instrument:isDigital or not instrument.IsDerivative or (instrument:usesBuiltInPayoff and instrument:hasUdmcDescription), 
+    true->nil, 
+    false->select(isFinite(optionBreakEvenValue), 
+      false->nil, 
+      default->underlyingForUnderlyingPriceInTheoreticalPrice:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = optionBreakEvenValueAtUnderlyingSpotDate, quoteConversionWrapperToQuotation = optionBreakEvenPriceQuotation, priceSource, isSplitAllGrouped])));
+[Default]FMultiInstrumentAndTrades:optionBreakEvenPrice = nil;

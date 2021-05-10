@@ -1,0 +1,3 @@
+[ABSA FX]FInstrumentAndTrades:projectedCashInventoryCurrenciesBCVertical = switch(projectedCashInventoryCurrenciesVertical.Unit == accountingCurrency.Name, 
+  true->convertToCurrency(projectedCashInventoryCurrenciesVertical, object :* "denominatedValueZeroUSDZAR", fxBaseCurrency, currenciesForVectorColumn), 
+  default->convertToCurrency(projectedCashInventoryCurrenciesVertical, object :* "profitAndLossEndFXRates" [profitAndLossEndCurrencies = currenciesForVectorColumn, displayCurrency = fxBaseCurrency], fxBaseCurrency, currenciesForVectorColumn));

@@ -1,0 +1,10 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRelationshipDedesignationDate = shunt(usedInHedge, 
+  true->getHedgeRelationshipDedesignationDate(object), 
+  default->nil);
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRelationshipDedesignationDate = shunt(usedInHedge, 
+  true->getHedgeRelationshipDedesignationDate(lowestChild.OriginalTrade.DealPackage, lowestChild.OriginalTrade), 
+  default->nil);
+[HedgeAccountingMod]FPortfolioInstrumentAndTrades:hedgeRelationshipDedesignationDate = nil;
+[HedgeAccountingMod]FTradeRow:hedgeRelationshipDedesignationDate = shunt(usedInHedge, 
+  true->getHedgeRelationshipDedesignationDate(object.OriginalTrade.DealPackage, object.OriginalTrade), 
+  default->nil);

@@ -1,0 +1,13 @@
+[Customer]FMultiInstrumentAndTrades:MyhedgeEqGamma = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.InstrumentAndTrades) == "ZAR/ALSI3", 
+    true->gamma / 10, 
+    default->(gammaPct / hedgeDelta) / 10), 
+  default->(gammaPct / hedgeDelta) / 10);
+[Customer]FPortfolioInstrumentAndTrades:MyhedgeEqGamma = shunt(value(portfolio.Name) == "AOPT", 
+  true->gamma / 10, 
+  default->(gammaPct / hedgeDelta) / 10);
+[Customer]FSingleInstrumentAndTrades:MyhedgeEqGamma = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.Parent) == "ZAR/ALSI3", 
+    true->gamma / 10, 
+    default->(gammaPct / hedgeDelta) / 10), 
+  default->(gammaPct / hedgeDelta) / 10);

@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FFrn:impliedCDIOverSpread = shunt(implyValid and (riskFreeDiscountCurvesInTheoreticalPriceRiskFree <> nil), 
+  false->nil, 
+  true->imply(cdiSpread, irFunctionAbsoluteShifted, marketPrice, implyPrecision, -0.99, 1.0, implyMaxIterations));
+[Fixed Income Pricing and Risk]FInstrument:impliedCDIOverSpread = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedCDIOverSpread = instrument :* "impliedCDIOverSpread" [marketPrice, irShiftFunction = irShiftFunctionCDIOver];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedCDIOverSpread = nil;

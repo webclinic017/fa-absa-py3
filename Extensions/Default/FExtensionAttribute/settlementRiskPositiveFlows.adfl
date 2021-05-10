@@ -1,0 +1,5 @@
+[Default]FInstrument:settlementRiskPositiveFlows = shunt[positionObject, partiesForVectorColumn](isOpenPosition, 
+  true->removeDiscountingTypeAsBasket(settlementRiskPositiveAggregatedFlows), 
+  false->emptyBasket);
+[Default]FInstrumentAndTrades:settlementRiskPositiveFlows = sumOf(instruments :* "settlementRiskPositiveFlows" [positionObject, partiesForVectorColumn]);
+[Default]FSingleInstrumentAndTrades:settlementRiskPositiveFlows = instrument:settlementRiskPositiveFlows [positionObject, partiesForVectorColumn];

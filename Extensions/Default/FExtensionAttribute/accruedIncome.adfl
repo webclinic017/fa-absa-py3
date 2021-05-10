@@ -1,0 +1,11 @@
+[Default]FCombInstrMapAndTrades:accruedIncome = nil;
+[Default]FDeliverableLinkAndTrades:accruedIncome = nil;
+[Default]FInstrumentAndTrades:accruedIncome = select(isCashGrouping, 
+  true->collapse(cashAccruedIncome), 
+  default->collapse(assetAccruedIncome));
+[Default]FMultiInstrumentAndTrades:accruedIncome = select(isCashGrouping, 
+  true->collapse(cashAccruedIncome), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetAccruedIncome), 
+    default->collapse(cashAssetAccruedIncome)));
+[Default]FPortfolioInstrumentAndTrades:accruedIncome = collapse(cashAssetAccruedIncome);

@@ -1,0 +1,7 @@
+#grouping: risk factors/dividend
+
+[Equity Pricing and Risk]FInstrument:dividendForecastDividends = select(dividendForecast, 
+  nil->nil, 
+  default->select(underlyingDividendsNeedFxConversion, 
+    true->dividendsArray(dividendForecast, dividendSensitivityStartDate, dividendSensitivityEndDate, useExDivDate, dividendFactor, includeTaxFactor, aggregateDividends, adjustmentFactor, useAdjustmentFactor, dividendForecastForwardValueProviderIfPropDiv, dividendForecastRepoCurveIfNeeded, calculationCurrency, filterUnitForDividendForecastDividends, underlyingDividendsFxSpotRates, underlyingDividendsFxCurves), 
+    false->dividendsArray(dividendForecast, dividendSensitivityStartDate, dividendSensitivityEndDate, useExDivDate, dividendFactor, includeTaxFactor, aggregateDividends, adjustmentFactor, useAdjustmentFactor, dividendForecastForwardValueProviderIfPropDiv, dividendForecastRepoCurveIfNeeded, calculationCurrency, filterUnitForDividendForecastDividends)));

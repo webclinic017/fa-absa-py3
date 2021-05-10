@@ -1,0 +1,31 @@
+/*------------------------------------------------------------------
+    
+    This query keeps tracks of clients whose DWT Exemption % Time Series is popolated. 
+    
+    Department and Desk : Prime Services
+    Requester           : Ruth Forssman
+    Developer           : Phumzile Mgcima
+
+    History:
+    When:      CR Number:   Who:                         What:       
+    2013-02-06  782647      Phumzile Mgcima   Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+                ASQL USAGE LOG 
+------------------------------------------------------------------*/
+
+
+
+select
+    p.fullname 'FullName',
+    ts.Day 'Day',
+    ts.value 'DWT Exemption %'
+from 
+    party p,
+    TimeSeries ts,
+    TimeSeriesSpec tsp
+where
+    ts.recaddr = p.ptynbr
+and ts.ts_specnbr = tsp.specnbr
+and tsp.field_name = 'DWT Exemption %'

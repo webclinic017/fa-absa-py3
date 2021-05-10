@@ -1,0 +1,7 @@
+[Absa_2010]FInstrument:asianArithmeticFixOptionValueAfterExpiry = 
+# 2018.4.7 Migration - Changed definition as per the core FA change in europeanIntrinsicValueModel
+select(isEquity, 
+  true->shunt((today <> valuationDate) and (valuationDate <> object.ExpiryDateOnly) and (ThetaShift <> 0), 
+    true->theorZeroOption(valuationDate, currency, underlyingSpotPrice), 
+    false->europeanIntrinsicValueModel(asianArithmeticAveragePriceSoFarAdjusted, asianArithmeticAveragePriceSoFarAdjusted, strikeValue, optionType, isDigital, isCashSettled, expiryDateTime, valuationDateTime, payDate, priceDomainFactorOnRelativePriceShift)), 
+  false->europeanIntrinsicValueModel(asianArithmeticAveragePriceSoFarAdjusted, asianArithmeticAveragePriceSoFarAdjusted, strikeValue, optionType, isDigital, isCashSettled, expiryDateTime, valuationDateTime, payDate, priceDomainFactorOnRelativePriceShift));

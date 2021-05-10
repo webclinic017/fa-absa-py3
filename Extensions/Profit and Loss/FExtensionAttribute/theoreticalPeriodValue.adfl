@@ -1,0 +1,12 @@
+[Profit and Loss]FCombInstrMapAndTrades:theoreticalPeriodValue = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:theoreticalPeriodValue = nil;
+[Profit and Loss]FInstrumentAndTrades:theoreticalPeriodValue = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->theoreticalValueEnd, 
+  "Inception to Historical"->marketValueEndValues, 
+  "Historical to Present"->theoreticalValueEnd - marketValueStart, 
+  "Historical to Historical"->marketValueEndValues - marketValueStart);
+[Profit and Loss]FLegAndTrades:theoreticalPeriodValue = nil;
+[Profit and Loss]FPriceAggregate:theoreticalPeriodValue = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "theoreticalPeriodValue");
+[Profit and Loss]FTimeBucketAndObject:theoreticalPeriodValue = scenarioaxisarray(rowInstrumentAndTrades:theoreticalPeriodValue [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

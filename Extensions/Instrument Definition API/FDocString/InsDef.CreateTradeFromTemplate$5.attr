@@ -1,0 +1,42 @@
+[Instrument Definition API]FMethod:InsDef.CreateTradeFromTemplate$5
+This method is used when creating a new trade from an existing trade in a similar way as when creating it from the instrument definition window.
+
+Similar UI scenario:
+
+	1. Open existing trade in the instrument definition window
+	2. Modify fields in the trade section
+	3. Press Save New
+	4. Answer all pop up questions
+
+@param
+The initial trade
+
+@param
+Parameters that should be set before saving the new trade. By default, the trade will look identical to the initial template trade. Parameters are specified using methods and method chains that can be reached from the FTradeLogicDecorator. When a value is set, it will behave as when setting the value in the instrument definition window, which means that all side effects that occur when setting the value will occur here as well.
+
+@param
+An object holding answers to questions. When saving from the instrument definition window, these questions are answered in pop ups.
+
+@param
+A callback that will be run before commiting the trade. See example for the  CreateTrade method on how to use it.
+
+@param
+A callback that will be run if the commit fails. This callback is used to roll back changes that were made in the *'preCommitBlock'*
+
+@return
+The saved trade if save is successful. Exceptions will be raised if the save is not successful
+
+Example::
+
+	templateTrade = acm.FTrade[<trdnbr>]
+	parameters = acm.FOrderedDictionary()
+	parameters['Quantity'] = 1000000
+	parameters['Price'] = 123
+	parameters['Counterparty'] = 'FCS'
+	answers = acm.FCreateTradeAnswers()
+	answers.ReallyCreateNewTrade = 'ok'
+	trade = acm.InsDef.CreateTradeFromTemplate(templateTrade, parameters, answers)
+	acm.StartApplication('Instrument Definition', trade)
+
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

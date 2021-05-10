@@ -1,0 +1,10 @@
+[Core Risk]FInstrument:priceContractGammaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(priceGreekRiskFactorNodeCount == 1, 
+    true->stripDateTimePart(priceGammaPercentValuesInstrument) / (singlePriceGreekRiskFactorValueInInstrumentCurrency * percentAdjustmentFactor), 
+    false->denominatedValueZero));
+[Core Risk]FInstrumentAndTrades:priceContractGammaInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceContractGammaInstrumentIRD [isSplitAllGrouped, priceSource], 
+  false->openInstrumentOrInstrument :* "collapse(priceContractGammaInstrument)" [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement] * combinationInstrumentMapFactor);
+[Core Risk]FMultiInstrumentAndTrades:priceContractGammaInstrument = nil;
+[Core Risk]FPriceAggregate:priceContractGammaInstrument = instrument :* "priceContractGammaInstrument" [priceSource];

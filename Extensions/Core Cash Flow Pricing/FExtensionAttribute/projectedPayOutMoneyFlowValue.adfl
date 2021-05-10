@@ -1,0 +1,3 @@
+[Core Cash Flow Pricing]FInstrumentMoneyFlow:projectedPayOutMoneyFlowValue = select(payTypeForward and isPhysicalDeliverySettled, 
+  true->trade:quoteToPremium, 
+  false->(instrument:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = theorOrMarkToMPrice] - instrument:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = firstTradePrice]) * trade.Quantity * instrument.ContractSize + payoutNetAmount);

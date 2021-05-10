@@ -1,0 +1,12 @@
+[ABSA FX]FMultiInstrumentAndTrades:usdAmount2 = sumOf(children :* "usdAmount2");
+[ABSA FX]FSingleInstrumentAndTrades:usdAmount2 = sumOf(trades :* "usdAmount2" [debugPositionString]);
+[ABSA FX]FTrade:usdAmount2 = shunt(acquirer, 
+  "MIDAS DUAL KEY"->shunt(includesCurrency, 
+    true->usdAmount, 
+    false->USDInSplitCurr(object, debugPositionString)), 
+  default->usdAmount);
+[ABSA FX]FTradeRow:usdAmount2 = shunt(trade:acquirer, 
+  "MIDAS DUAL KEY"->shunt(trade:includesCurrency, 
+    true->trade:usdAmount, 
+    false->USDInSplitCurr(trade, debugPositionString)), 
+  default->trade:usdAmount);

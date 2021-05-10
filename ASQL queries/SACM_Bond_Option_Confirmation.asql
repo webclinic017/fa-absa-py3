@@ -1,0 +1,70 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Bond_Option_Confirmation') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Bond_Option_Confirmation' and p.type = 'SQL Query' 
+/*
+Query	:	SACM_Bond_Option_Confirmation
+Report	:	SACM_Bond_Option_Confirmation
+Purpose	:	Provide required data for bond option confirmations.
+Logic	:	Straightforward.
+History	:	
+	2003/10/29 - Created.
+	2009/12/01 - vanwilli - Did some optimization for Front 4.
+*/
+
+/* Currently the query will only work for bonds with a quote type of 'Yield'. */
+
+select
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	cp.telephone						'CPTelephone',
+	t.trdnbr						'OurDealRef',
+	t.your_ref						'CPDealRef',
+	cp.ptyid						'CPCode',
+	convert('time', t.time, '%d/%m/%Y %H:%M:%S')		'DealDate',
+	t.value_day						'PremPayDate',
+	u.extern_id1						'StockCode',
+	convert('date', u.exp_day, '%d/%m/%Y')			'StockMatDate',
+	l.fixed_rate						'CouponRate',
+	abs(nominal_amount(t))					'Nominal',
+	convert('date', i.exp_day, '%d/%m/%Y')			'DeclarationDate',	
+	date_add_banking_day(i.exp_day, display_id(i, 'curr'),
+	 i.pay_day_offset)					'SettleDate',
+	i.strike_price						'StrikeYTM',
+	abs(t.premium)						'Premium',
+	t.quantity > 0
+		? 'BOUGHT'
+		: 'SOLD'					'BoughtSold',
+	t.quantity > 0
+		? 'FROM'
+		: 'TO'						'FromTo',
+	i.exercise_type						'ExerciseType',
+	i.call_option = 'Yes'
+		? 'CALL'
+		: 'PUT'						'OptionType'
+	
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	instrument	u,
+	leg		l
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	i.und_insaddr = u.insaddr
+and	u.insaddr = l.insaddr
+and	i.instype = 'Option'
+and	u.instype = 'Bond'
+and	t.status in ('FO Confirmed', 'BO Confirmed','BO-BO Confirmed')
+and	time_to_day(t.time) = @3_Date{Today}
+and	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*or cp.ptyid = @Counterparty{;party.ptyid where type = 'Counterparty'})*/
+/*and	t.trdnbr = @TradeNumber{0}*/

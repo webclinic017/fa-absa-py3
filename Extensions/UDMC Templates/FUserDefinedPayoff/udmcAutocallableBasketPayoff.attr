@@ -1,0 +1,174 @@
+[UDMC Templates]FObject:udmcAutocallableBasketPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for autocallable basket option
+#
+# INTERPRETATION
+# An autocallable basket option.
+#
+# DEFINITION
+# referencePrices: The initial prices of the underlying assets.
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) timeSteps;
+param matrix(double) referencePrices;
+param matrix(double) observationDates;
+param matrix(double) callTriggerLevelsAsPct;
+param double couponAsPct;
+param double capitalProtectionAsPct;
+param double couponBarrierLevel;
+param int isNonPhoenix;
+param int barrierCrossedStatus;
+param int barrierMonitoringType;
+
+#PROCESS
+process matrix(double) S;
+
+#LOCAL VARIABLES
+int t = 0;
+int i = 0;
+int k = 0;
+int barrierIsCrossed = 0;
+int isBarrierBreached = 0;
+int isEarlyRedemption = 0;
+int isMonitoredDaily = 0;
+int nrOfTimeSteps = length(timeSteps);
+int nrObsDates = length(observationDates[0, :]);
+int timeIndexWhenTriggered = -1;
+int obsDateIndexWhenTriggered = -1;
+double callTriggerLevel = callTriggerLevelsAsPct[0, 0]/100.0;
+double capitalProtectionLevel = capitalProtectionAsPct/100.0;
+double redemptionValue = 0.0;
+matrix(double) rowWithWorst = zeros(1, nrOfTimeSteps);
+matrix(double) onesRow = zeros(1, nrOfTimeSteps) + 1.0;
+matrix(double) performanceS = S;
+
+#MAIN LOOP
+barrierIsCrossed = (barrierCrossedStatus == 1); # Confirmed
+#barrierIsCrossed = (barrierCrossedStatus != 0); # Confirmed, Crossed
+performanceS = S./(referencePrices[:,0]*onesRow);
+rowWithWorst = colMin(performanceS);
+redemptionValue = 0.0;
+isMonitoredDaily = (barrierMonitoringType==1);
+isBarrierBreached = (min(rowWithWorst) <= capitalProtectionLevel);
+timeIndexWhenTriggered = -1;
+
+if(barrierIsCrossed)
+{
+    isBarrierBreached = 1;
+}
+else
+{
+    if(isMonitoredDaily)
+    {
+        # Capital Protection Barrier: Check daily
+        isBarrierBreached = (min(rowWithWorst) <= capitalProtectionLevel);
+    }
+    else
+    {
+        # Capital Protection Barrier: Check only at Maturity
+        isBarrierBreached = (rowWithWorst[0, nrOfTimeSteps-1] <= capitalProtectionLevel);
+    };
+};
+
+
+# Determine whether Early Redemption (above Call Trigger on Observation Date)
+for t=0 to nrOfTimeSteps
+{
+    # To find each observation date, to see whether Early Redemption occurrs
+    for i=0 to nrObsDates
+    {
+        # Is the timestep an observation date?
+        if(observationDates[i] == timeSteps[t])
+        {
+            # Skip if call trigger index has already been set
+            if(timeIndexWhenTriggered < 0)
+            {
+                # Above Call Trigger on this observation date?
+                if(rowWithWorst[t] > callTriggerLevel)
+                {
+                    timeIndexWhenTriggered = t;
+                    obsDateIndexWhenTriggered = i; # Early Redemption happened at the ith observation date
+                };
+            };
+        };
+    };
+};
+isEarlyRedemption = (timeIndexWhenTriggered >= 0);
+
+#CASHFLOW
+
+# --- Payment: Nominal amount ---
+
+# --- Payment: Coupons ---
+if(isNonPhoenix)
+{
+    if(isEarlyRedemption)
+    {
+        # Phoenix disabled: The coupons are paid out at redemption
+        cashFlow(obsDateIndexWhenTriggered, 1.0 + (obsDateIndexWhenTriggered+1) * couponAsPct/100.0);
+    };
+};
+
+if(isNonPhoenix == 0)
+{
+    if(isEarlyRedemption == 0)
+    {
+        # Coupons: If Phoenix is active and no Early Redemption
+        for t=0 to nrOfTimeSteps
+        {
+            # To find each observation date, to see whether Early Redemption occurrs
+            for i=0 to nrObsDates
+            {
+                # Is the timestep an observation date?
+                if(observationDates[i] == timeSteps[t])
+                {
+                    if(rowWithWorst[t] > couponBarrierLevel)
+                    {
+                        cashFlow(i, couponAsPct/100.0);
+                    };
+                };
+            };
+        };
+    };
+
+    if(isEarlyRedemption)
+    {
+        # Phoenix enabled: Coupons paid out on in connection to each observation date
+        for k = 0 to obsDateIndexWhenTriggered
+        {
+            cashFlow(k, couponAsPct/100.0);
+        };
+        cashFlow(obsDateIndexWhenTriggered, 1.0);
+    };
+};
+
+# --- Nominal Amount (applies to both Phoenix and Non-Phoenix) ---
+if(isEarlyRedemption == 0)
+{
+    if(isBarrierBreached)
+    {
+        # Barrier breached, payoff: WPU/WPU0
+        redemptionValue = rowWithWorst[0, -1];
+    };
+    
+    if(isBarrierBreached == 0)
+    {
+        # Not breached: Capital protection, guaranteeing nominal amount
+        redemptionValue = 1.0;
+    };
+    
+    # Bug fix for Phoenix+NoEarlyRedemption: cashFlow-call in Coupon is overwritten by cashFlow in Nominal Amount (workaround: add coupon again)
+    if(isNonPhoenix == 0)
+    {
+        if(rowWithWorst[0, nrOfTimeSteps-1] > couponBarrierLevel)
+        {
+            redemptionValue = redemptionValue + couponAsPct/100.0;
+        };
+    };
+    # Payoff at Maturity
+    cashFlow(nrObsDates-1, redemptionValue);
+};
+
+...

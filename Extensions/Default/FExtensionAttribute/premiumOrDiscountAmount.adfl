@@ -1,0 +1,8 @@
+[Default]FSettlement:premiumOrDiscountAmount = select(object.Type, 
+  "Security Nominal"->select(isPartOfDvP, 
+    true->stripDateTimePart(trade.PremiumDv) * (settlementAmount / trade:nominalDV) - premiumNominalAmount - tradedInterest, 
+    false->nil), 
+  "Security DvP"->select(premiumOrDiscountAmountChildrenNilRemoved.IsEmpty, 
+    true->nil, 
+    false->sumOf(premiumOrDiscountAmountChildrenNilRemoved)), 
+  default->nil);

@@ -1,0 +1,204 @@
+/* Usage code for this ASQL */
+
+/*
+Purpose: To identify all trades that have Value day, expiry day, cashflow pay day, trade payment date, 
+        and reset days for a specific currency and date where there are new public holidays
+        and these days needs to be changed.
+Department: IT
+Requester: Anil Parbhoo
+Developer: Anil Parbhoo
+CR Number: CHG1001381203
+*/
+
+select ael_i(p,'ASQL_log','SAIT_Public_Holiday_resets') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAIT_Public_Holiday_resets' and p.type = 'SQL Query' 
+
+select
+    to_date(@2_Date{Today}) 'date',
+    i.insaddr
+into
+    macros
+from
+    instrument i
+where
+    i.insid = @1_Currency{ZAR;Instrument.insid where instype = 'curr'}
+
+
+
+
+select
+    'Reset' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+    r.day   'reset_day',
+
+    r.type,
+    to_string(l.reset_period.count,l.reset_period.unit)'reset period',
+  
+    r.resnbr,
+    l.reset_calnbr,
+    l.reset2_calnbr,   
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow c,
+    reset r,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.cfwnbr = r.cfwnbr
+    and l.curr = m.insaddr
+    and r.day = m.date
+
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.exp_day > Today
+    and t.trader_usrnbr = u.usrnbr
+    and i.instype ~= 'PriceSwap'
+    and (l.reset_calnbr=2
+    or l.reset2_calnbr=2)
+
+
+
+order by 1,5,2
+union
+
+select
+    'Und_Reset' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+    r.day   'reset_day',
+
+    r.type,
+    to_string(l.reset_period.count,l.reset_period.unit)'reset period',
+ 
+    r.resnbr, 
+    l.reset_calnbr,
+    l.reset2_calnbr,     
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+from
+    trade t,
+    instrument i,
+    instrument und,
+    leg l,
+    cashflow c,
+    reset r,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and i.und_insaddr = und.insaddr
+    and und.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.cfwnbr = r.cfwnbr
+    and l.curr = m.insaddr
+    and r.day = m.date
+
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.exp_day > Today
+    and t.trader_usrnbr = u.usrnbr
+    and i.instype ~= 'PriceSwap'
+    and (l.reset_calnbr = 2
+    or l.reset2_calnbr =2)
+
+
+order by 1,5,2 
+ 
+
+union
+
+select
+    'Member_Reset' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+    r.day   'reset_day',
+
+    r.type,
+    to_string(l.reset_period.count,l.reset_period.unit)'reset period',
+    r.resnbr, 
+    l.reset_calnbr,
+    l.reset2_calnbr,     
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+from
+    trade t,
+    instrument i,
+    instrument mi,
+    combinationlink cl,
+    leg l,
+    cashflow c,
+    reset r,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and cl.owner_insaddr=i.insaddr
+    and cl.member_insaddr=mi.insaddr
+
+    and mi.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.cfwnbr = r.cfwnbr
+    and l.curr = m.insaddr
+    and r.day = m.date
+
+    and t.status not in ('Simulated','Terminated','Void')
+    /*
+    and i.exp_day > Today
+    */
+    and t.trader_usrnbr = u.usrnbr
+    and (l.reset_calnbr = 2
+    or l.reset2_calnbr =2)
+  
+
+order by 1,5,2 
+

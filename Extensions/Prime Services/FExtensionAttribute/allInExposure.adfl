@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:allInExposure = sumOf(children :* "allInExposure");
+[Prime Services]FSingleInstrumentAndTrades:allInExposure = sumOf(tradesInPosition :* "allInExposure");
+[Prime Services]FTrade:allInExposure = switch(object.Status <> "Void", 
+  true->originalPremium.Number + dailyExecutionFee + totalSecuritiesTransferTax, 
+  false->0);
+[Prime Services]FTradeRow:allInExposure = trade :* "allInExposure";

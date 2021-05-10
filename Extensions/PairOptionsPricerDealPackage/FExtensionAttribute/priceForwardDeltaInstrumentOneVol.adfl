@@ -1,0 +1,7 @@
+[PairOptionsPricerDealPackage]FInstrument:priceForwardDeltaInstrumentOneVol = shunt(firstInstrumentInCombination:valuationAddOnModelNameValue == "Vanna Volga Pricing", 
+  false->switch(priceForwardDeltaInstrumentOneVolCalc.Size, 
+    1->priceForwardDeltaInstrumentOneVolCalc.First, 
+    default->lot([priceForwardDeltaInstrumentOneVolCalc.First, priceForwardDeltaInstrumentOneVolCalc.Last])), 
+  true->nil);
+[PairOptionsPricerDealPackage]FInstrumentAndTrades:priceForwardDeltaInstrumentOneVol = select(isValidPriceForwardDeltaRow, 
+  true->(openInstrumentOrInstrument :* "priceForwardDeltaInstrumentOneVol" [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekIncludeQuoteScaling, underlyingForwardValueInCalculationCurrency, oneVolatilityInTheoreticalPrice]) * combinationInstrumentMapFactorForPriceGreeks);

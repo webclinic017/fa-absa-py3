@@ -1,0 +1,12 @@
+[Default]FOrderBook:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying.IsKindOf("FCombination") and (count(underlyingPriceNodeInTheoreticalPrice) > 1), 
+  nil->false);
+[Default]FPriceFeed:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying:isCombination and (underlyingPriceNodeCount > 1), 
+  nil->false);
+[Default]FQuoteController:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying:isCombination and (underlyingPriceNodeCount > 1), 
+  nil->false);
+[Default]FTradingInterface:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying:isCombination and (underlyingPriceNodeCount > 1), 
+  nil->false);

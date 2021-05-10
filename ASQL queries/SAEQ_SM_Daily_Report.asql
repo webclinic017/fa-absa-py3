@@ -1,0 +1,91 @@
+select
+    @1_Start_Day{Today}   'Start',
+    @2_End_Day{Today}   'End'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*----------- Deposit -----------*/
+select
+    s.party_ptyid   'Counterparty',
+    s.seqnbr,
+    s.trdnbr,
+    s.cfwnbr,
+    t.time  'Trade_Time',
+    s.amount < 0 ? 'S': 'B' 'Buy_Sell',
+    s.amount,
+    s.value_day 'Settlement_Day',
+    i.instype,
+    s.type,
+    s.party_account,
+    t.trader_usrnbr,
+    s.amount < 0 ? display_id(s,'from_prfnbr') : display_id(s,'to_prfnbr')  'Portfolio',
+    t.trx_trdnbr
+into
+    temp
+from
+    trade t,
+    instrument i,
+    settlement s,
+    macros m
+where
+        s.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and s.value_day >= m.Start
+    and s.value_day <= m.End
+    and s.acquirer_ptyid = 'EQ Derivatives Desk'
+    and i.instype = 'Deposit'
+    and i.open_end ~= 'Open End'
+
+/*---------- Rest of the instruments ----------*/
+select
+    s.party_ptyid   'Counterparty',
+    s.seqnbr,
+    s.trdnbr,
+    s.cfwnbr,
+    t.time  'Trade_Time',
+    s.amount < 0 ? 'S': 'B' 'Buy_Sell',
+    s.amount,
+    s.value_day 'Settlement_Day',
+    i.instype,
+    s.type,
+    s.party_account,
+    t.trader_usrnbr,
+    s.amount < 0 ? display_id(s,'from_prfnbr') : display_id(s,'to_prfnbr')  'Portfolio',
+    t.trx_trdnbr
+into
+    temp
+from
+    trade t,
+    instrument i,
+    settlement s,
+    macros m
+where
+        s.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and s.value_day >= m.Start
+    and s.value_day <= m.End
+    and s.acquirer_ptyid = 'EQ Derivatives Desk'
+    and i.instype ~= 'Deposit'
+    
+/*---------- Display Result ----------*/
+select distinct
+    t.Counterparty,
+    t.seqnbr,
+    t.trdnbr,
+    t.cfwnbr,
+    t.Trade_Time,
+    t.Buy_Sell,
+    t.amount,
+    t.Settlement_Day,
+    t.instype,
+    t.type,
+    t.party_account,
+    t.trader_usrnbr,
+    t.Portfolio,
+    t.trx_trdnbr
+from
+    temp t

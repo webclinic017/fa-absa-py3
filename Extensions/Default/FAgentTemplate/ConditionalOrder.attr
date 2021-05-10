@@ -1,0 +1,236 @@
+[Default]FObject:ConditionalOrder
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=Yes
+  CreatePermission=User
+  DialogPanel=SetupDialog
+  DisplayName=Conditional Order
+  EditPermission=User
+  Granularity=50
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TradingEnabled=Yes
+
+State Active =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Start =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Stop =
+  Description=
+  OnEntry=CleanUp
+  OnExit=<none>
+
+Transitions =
+  agentDone=Start -> targetQuantityFilled / <none> -> Stop
+  orderDeleted=Active -> orderDeleted / <none> -> Start
+  orderDone=Active -> orderDone / UpdateFilledQuantity -> Start
+  sendOrder=Start -> sendOrder / CreateAndSendOrder -> Active
+
+Panel DefaultParameters =
+  DisplayName=Default Parameters
+  Orientation=Vertical
+  Variables=account, reference
+
+Panel Info =
+  DisplayName=Info
+  Orientation=Vertical
+  Variables=filledQuantity
+
+Panel OrderBook =
+  DisplayName=Order Book
+  Orientation=Vertical
+  Variables=orderBook, buyOrSell
+
+Panel Performance =
+  DisplayName=Performance
+  Orientation=Vertical
+  Variables=position, averagePrice
+
+Panel SendParameters =
+  DisplayName=Send Parameters
+  Orientation=Vertical
+  Variables=orderPriceType, ownPrice, orderQuantity, targetQuantity
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=OrderBook, TriggerParameters, SendParameters, DefaultParameters
+
+Panel TriggerParameters =
+  DisplayName=Trigger Parameters
+  Orientation=Vertical
+  Variables=conditionalType, triggerPriceType, triggerPrice, triggerQuantity
+
+Enums =
+  EnumConditionalType=LockIn, StopLoss
+  EnumDirection=Buy, Sell
+  EnumOrderPriceType=Own Price, Match, Match All, Last, Middle
+  EnumTriggerPriceType=Bid, Ask, Last, Match, SpreadAverage
+
+Conditions =
+  orderDeleted=order.IsOrderDeleted
+  orderDone=order.IsOrderDone
+  sendOrder=(currentPrice > 0) and triggerOrder and not targetQuantityFilled and enoughLiquidity
+  targetQuantityFilled=filledQuantity >= targetQuantity
+
+Actions =
+  CleanUp=!CleanUp
+  CreateOrder=!CreateOrder
+  SendOrder=!SendOrder
+  UpdateFilledQuantity=filledQuantity + order.FilledQuantity("Order") => filledQuantity
+
+ActionLists =
+  CreateAndSendOrder=CreateOrder, SendOrder
+
+Variable account =
+  Description=The account to add on the conditional order(s)
+  DisplayName=Account
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable averagePrice =
+  Description=The average price of all orders
+  DisplayName=Avg Price
+  Domain=double
+  Type=ReadOnly
+  Value=agentFilledValue / agentFilledQuantityFromOrders
+
+Variable buyOrSell =
+  Description=The direction of the order
+  DisplayName=Buy / Sell
+  Domain=EnumDirection
+  Mandatory=No
+  Type=InputFixed
+  Value="Buy"
+
+Variable conditionalType =
+  Description=The type of conditional order (LockIn or StopLoss)
+  DisplayName=Conditional Type
+  Domain=EnumConditionalType
+  Mandatory=No
+  Type=InputFixed
+  Value="StopLoss"
+
+Variable enoughLiquidity =
+  Domain=bool
+  Type=ReadOnly
+  Value=switch(orderPriceType.IsEqual("Last") or orderPriceType.IsEqual("Own Price"), \
+      true->true, \
+      false->shunt(orderPriceType.IsEqual("Middle"), \
+        true->not (orderBook.PriceFeed.AskPriceDepth.IsEmpty or orderBook.PriceFeed.BidPriceDepth.IsEmpty), \
+        false->shunt(isBuy, \
+          true->not orderBook.PriceFeed.AskPriceDepth.IsEmpty, \
+          false->not orderBook.PriceFeed.BidPriceDepth.IsEmpty)))
+
+Variable filledQuantity =
+  Description=The filled quantity
+  DisplayName=Filled Quantity
+  Domain=double
+  Type=Private
+  Value=
+
+Variable isBuy =
+  Domain=bool
+  Type=Private
+  Value=buyOrSell == "Buy"
+
+Variable order =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable orderBook =
+  Description=The order book where the order(s) should be sent
+  DisplayName=Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable orderPriceType =
+  Description=The type of price that should be used when sending the order(s) (Own Price, Match, Match All, Last, Middle)
+  DisplayName=Order Price Type
+  Domain=EnumOrderPriceType
+  Mandatory=No
+  Type=InputFixed
+  Value="Match"
+
+Variable orderQuantity =
+  Description=The individual order quantity
+  DisplayName=Order Quantity
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable ownPrice =
+  Description=If specified, the own price to use on the conditional order(s)
+  DisplayName=Own Price
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable position =
+  Description=The total position of all orders
+  DisplayName=Position
+  Domain=double
+  Type=ReadOnly
+  Value=sumOf(tradingSessionOrders :* "filledQuantityFromOrder * bidOrAskSign")
+
+Variable reference =
+  Description=The account to add on the conditional order(s)
+  DisplayName=Reference
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable targetQuantity =
+  Description=The target quantity
+  DisplayName=Target Quantity
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=orderQuantity
+
+Variable triggerPrice =
+  Description=The trigger price of the agent
+  DisplayName=Trigger Price
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable triggerPriceType =
+  Description=The type of trigger price used (Bid, Ask, Last or SpreadAverage)
+  DisplayName=Trigger Price Type
+  Domain=EnumTriggerPriceType
+  Mandatory=No
+  Type=InputFixed
+  Value="Last"
+
+Variable triggerQuantity =
+  Description=The trigger quantity of the agent
+  DisplayName=Trigger Quantity
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+ParameterRule ownPrice =
+  Behavior=Enable
+  Expression=object.OrderPriceType == "Own Price"
+
+<end>

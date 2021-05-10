@@ -1,0 +1,144 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_dev_rod_reset_advice') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_dev_rod_reset_advice' and p.type = 'SQL Query' 
+/*Float side - union1*/
+select 
+
+time_to_day(t.time)					'tradedate', 
+t.trdnbr						'trdnbr',
+t.bo_trdnbr						'BOTrdnbr',
+l.fixed_rate						'fixed',
+t.quantity * i.contr_size * c.nominal_factor					'quantity',
+display_id(i, 'curr')					'curr',
+((t.quantity * i.contr_size * c.nominal_factor)/365)*(l.fixed_rate/100)*days_between(l.start_day, l.end_day, l.daycount_method) 'fixedamount',
+(l.payleg = 'Yes'  and l.fixed_rate > 0) ? 'ABSA' : 'Counterparty' 'payfixed', 
+
+(t.quantity * i.contr_size * c.nominal_factor) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+(t.quantity * i.contr_size * c.nominal_factor) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+
+
+interest_accrued(c, l.start_day, @date1{},'ZAR')
+*t.quantity						'period1',
+l.end_day = to_date(@date2{}) ? interest_settled(c, @date1{}, @date2{},'ZAR') *t.quantity 
+: interest_accrued(c, @date1{}, @date2{},'ZAR') *t.quantity 'period2',
+interest_accrued(c, l.start_day, @date2{},'ZAR')
+*t.quantity						'period3',
+l.end_day = to_date(@date2{}) ? 
+(interest_settled(c, l.start_day, @date2{},'ZAR')
+*t.quantity)+	nominal_amount(t) : 
+(interest_accrued(c, l.start_day, @date2{},'ZAR')
+*t.quantity)+	nominal_amount(t)			'revised',
+
+
+l.end_day = to_date(@date2{}) ? ((((interest_settled(c, @date1{}, @date2{},'ZAR')*t.quantity)
+/days_between(@date1{}, @date2{}, l.daycount_method))*365)
+/((t.quantity * i.contr_size * c.nominal_factor)+interest_accrued(c, l.start_day, @date1{},'ZAR')*t.quantity))*100 :
+((((interest_settled(c, @date1{}, @date2{},'ZAR')*t.quantity)
+/days_between(@date1{}, @date2{}, l.daycount_method))*365)
+/((t.quantity * i.contr_size * c.nominal_factor)+interest_accrued(c, l.start_day, @date1{},'ZAR')*t.quantity))*100
+							'ave',
+
+
+days_between(@date1{}, @date2{}, l.daycount_method)	'days',
+p.fullname						'fullname',
+p.attention						'attention',
+p.address						'address',
+p.address2						'address2',
+p.zipcode						'zipcode',
+p.city							'city',
+p.country						'country',
+p.fax							'fax',
+@date1{}						'date1',
+@date2{}						'date2',
+to_date(@date2)-1
+
+from
+
+cashflow	c,
+leg		l,
+trade		t,
+instrument	i,
+party		p
+
+where
+
+	c.legnbr=l.legnbr
+and	l.insaddr = i.insaddr
+and	i.insaddr=t.insaddr
+and 	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and 	l.type = 'Float'
+and	t.counterparty_ptynbr=p.ptynbr
+
+union
+
+/*Fixed side - union 2*/
+select 
+
+time_to_day(t.time)					'tradedate', 
+t.trdnbr						'trdnbr',
+t.bo_trdnbr						'BOTrdnbr',
+l.fixed_rate						'fixed',
+nominal_amount(t)					'quantity',
+display_id(i, 'curr')					'curr',
+((t.quantity * i.contr_size * c.nominal_factor)/365)*(l.fixed_rate/100)*days_between(l.start_day, l.end_day, l.daycount_method) 'fixedamount',
+(l.payleg = 'Yes' and l.fixed_rate >0) ? 'ABSA' : 'Counterparty' 'payfixed',
+
+(t.quantity * i.contr_size * c.nominal_factor) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+(t.quantity * i.contr_size * c.nominal_factor) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+
+interest_accrued(c, l.start_day, @date1{},'ZAR')
+*t.quantity						'period1',
+l.end_day = to_date(@date2{}) ? interest_settled(c, @date1{}, @date2{},'ZAR') *t.quantity 
+: interest_accrued(c, @date1{}, @date2{},'ZAR') *t.quantity 'period2',
+interest_accrued(c, l.start_day, @date2{},'ZAR')
+*t.quantity						'period3',
+l.end_day = to_date(@date2{}) ? 
+(interest_settled(c, l.start_day, @date2{},'ZAR')
+*t.quantity)+	nominal_amount(t) : 
+(interest_accrued(c, l.start_day, @date2{},'ZAR')
+*t.quantity)+	nominal_amount(t)			'revised',
+
+
+l.end_day = to_date(@date2{}) ? ((((interest_settled(c, @date1{}, @date2{},'ZAR')*t.quantity)
+/days_between(@date1{}, @date2{}, l.daycount_method))*365)
+/((t.quantity * i.contr_size * c.nominal_factor)+interest_accrued(c, l.start_day, @date1{},'ZAR')*t.quantity))*100 :
+((((interest_settled(c, @date1{}, @date2{},'ZAR')*t.quantity)
+/days_between(@date1{}, @date2{}, l.daycount_method))*365)
+/((t.quantity * i.contr_size * c.nominal_factor)+interest_accrued(c, l.start_day, @date1{},'ZAR')*t.quantity))*100
+							'ave',
+
+
+days_between(@date1{}, @date2{}, l.daycount_method)	'days',
+p.fullname						'fullname',
+p.attention						'attention',
+p.address						'address',
+p.address2						'address2',
+p.zipcode						'zipcode',
+p.city							'city',
+p.country						'country',
+p.fax							'fax',
+@date1{}						'date1',
+@date2{}						'date2',
+to_date(@date2)-1
+
+from
+
+cashflow	c,
+leg		l,
+trade		t,
+instrument	i,
+party		p
+
+where
+
+	c.legnbr=l.legnbr
+and	l.insaddr=i.insaddr
+and	i.insaddr=t.insaddr
+and 	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and 	l.type='Fixed'
+and	t.counterparty_ptynbr=p.ptynbr
+
+

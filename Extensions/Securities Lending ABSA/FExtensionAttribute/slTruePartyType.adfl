@@ -1,0 +1,11 @@
+[Securities Lending ABSA]FInstrument:slTruePartyType = select((object.Trades.At(0)) :* "slTruePartyType", 
+  nil->(object.Trades.At(1)) :* "slTruePartyType", 
+  default->select(py("sl_functions", context).sl_is_sl_party((object.Trades.At(0)) :* "slTruePartyType"), 
+    true->(object.Trades.At(0)) :* "slTruePartyType", 
+    false->(object.Trades.At(1)) :* "slTruePartyType"));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTruePartyType = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.SL_CptyType), 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTruePartyType = instrument:slTruePartyType;
+[Securities Lending ABSA]FTrade:slTruePartyType = true_counterparty.AdditionalInfo.SL_CptyType;
+[Securities Lending ABSA]FTradeRow:slTruePartyType = trade:slTruePartyType;

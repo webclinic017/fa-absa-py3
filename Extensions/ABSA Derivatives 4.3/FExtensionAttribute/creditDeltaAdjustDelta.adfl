@@ -1,0 +1,6 @@
+[ABSA Derivatives 4.3]FInstrumentAndTrades:creditDeltaAdjustDelta = differential(creditTheoreticalValueUpAdjustDelta, theoreticalValue, 1, 1);
+[ABSA Derivatives 4.3]FMultiInstrumentAndTrades:creditDeltaAdjustDelta = sumOf(children :* "creditDeltaAdjustDelta" [timeBucketsSetExternally]);
+[ABSA Derivatives 4.3]FPortfolioInstrumentAndTrades:creditDeltaAdjustDelta = 
+# sumOf((unSettledInstruments :* "qPortSingleInstrumentAndTrades" [qPortfolio = portfolio]) :* "creditDeltaAdjustDelta" [timeBucketsSetExternally])
+sumOf((unSettledInstruments :* "singleInstrumentAndTrades" [portfolio = portfolio]) :* "creditDeltaAdjustDelta" [timeBucketsSetExternally]);
+[ABSA Derivatives 4.3]FSingleInstrumentAndTrades:creditDeltaAdjustDelta = differential(creditTheoreticalValueUpAdjustDelta, theoreticalValue, 1, 1);

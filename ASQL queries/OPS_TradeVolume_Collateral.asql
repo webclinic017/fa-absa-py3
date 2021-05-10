@@ -1,0 +1,168 @@
+/*
+Purpose                 :[New KRI report for tracking trade volume for Collateral]
+Department and Desk     :[OPS]
+Requester:              :[Shaun Du Plessis]
+Developer               :[Manyano Dlulane ]
+CR Number               :[CHG0083569]
+*/
+
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    add_info(t,'SL_SWIFT')                                          'COLL_SWIFT',
+    cp.ptyid                                                        'Counterparty',
+    cp.ptyid like 'SLB%'? 'Borrower':'Lender'                       'Lender_Borrower',
+    t.quantity < 0 ? 'Withdrawal' : 'Deposit'                       'Deposit_Withdrawal',
+    t.quantity,
+    add_info(cp,'SL_G1PartyCode')                                   'CptyCode',
+    t.value_day
+into
+    Detailed
+from
+    trade t,
+    instrument i,
+    party cp
+where
+    i.insaddr = t.insaddr
+and t.counterparty_ptynbr = cp.ptynbr
+and (cp.ptyid like 'SLB%' or cp.ptyid like 'SLL%'or cp.ptyid like 'COLL %')
+and t.status not in ('Void','Simulated')
+and ((i.instype in ('Stock','Bond','IndexLinkedBond','CD') and t.category = 'Collateral') or (i.instype in ('Deposit')))
+and t.insaddr = i.insaddr
+and t.value_day >= date_add_banking_day(to_date(@1_StartDate{FirstDayOfMonth}), , 0)
+and t.value_day <= date_add_banking_day(to_date(@2_EndDate{Today}), , 0) 
+
+/*----------------------------------------------------- Group Section -------------------------------------------*/
+select
+    'Detailed'                                                          'Section',
+    tt.trdnbr                                                           'Trade',
+    tt.Lender_Borrower                                                  'Lender_Borrower',
+    tt.Deposit_Withdrawal                                               'Deposit_Withdrawal',
+    tt.Counterparty,
+    tt.CptyCode                                                         'CptyCode',
+    tt.COLL_SWIFT                                                        'On_OffMarket',
+    tt.insid                                                            'SecurityCode',
+    tt.quantity                                                         'ActivityQuantity',
+    tt.value_day                                                        'SecuritySettlementDate'
+into
+    Detailed_Final
+from
+    Detailed tt
+    
+select
+    'Volumes'                                                           'Section',
+    count(tt.trdnbr)                                                    'Trade',
+    ''                                                                  'Lender_Borrower',
+    ''                                                                  'Deposit_Withdrawal',
+    tt.Counterparty,
+    tt.CptyCode                                                         'CptyCode',
+    ''                                                                  'On_OffMarket',
+    ''                                                                  'SecurityCode',
+    0.0                                                                 'ActivityQuantity',
+    date_add_banking_day(to_date(@2_EndDate{YESTERDAY}), , 0)           'SecuritySettlementDate'
+into
+    Summary_Final
+from
+    Detailed tt
+
+group by 5
+
+select
+    'TradeType'                                                         'Section',
+    count(tt.trdnbr)                                                    'Trade',
+    ''                                                                  'Lender_Borrower',
+    tt.Deposit_Withdrawal                                               'Deposit_Withdrawal',
+    tt.Counterparty,
+    tt.CptyCode                                                         'CptyCode',
+    ''                                                                  'On_OffMarket',    
+    ''                                                                  'SecurityCode',
+    0.0                                                                 'ActivityQuantity',
+    date_add_banking_day(to_date(@2_EndDate{YESTERDAY}), , 0)           'SecuritySettlementDate'
+into
+    TradeType
+from
+    Detailed tt
+
+group by 4
+
+select
+    'On/Off Market'                                                     'Section',
+    count(tt.trdnbr)                                                    'Trade',
+    ''                                                                  'Lender_Borrower',
+    ''                                                                  'Deposit_Withdrawal',
+    tt.Counterparty,
+    tt.CptyCode                                                         'CptyCode',
+    tt.COLL_SWIFT                                                       'On_OffMarket',
+    ''                                                                  'SecurityCode',
+    0.0                                                                 'ActivityQuantity',
+    date_add_banking_day(to_date(@2_EndDate{YESTERDAY}), , 0)           'SecuritySettlementDate'
+into
+    On_OffMarket
+from
+    Detailed tt
+
+group by 7
+/*----------------------------------------------------- Display -------------------------------------------*/
+
+select
+    tt.Section,
+    tt.Trade,
+    tt.Lender_Borrower,
+    tt.Deposit_Withdrawal,
+    tt.Counterparty,
+    tt.CptyCode,
+    tt.On_OffMarket,
+    tt.SecurityCode,
+    tt.ActivityQuantity,
+    tt.SecuritySettlementDate
+from
+    Detailed_Final tt
+    
+union
+
+select
+    tt.Section,
+    tt.Trade,
+    tt.Lender_Borrower,
+    tt.Deposit_Withdrawal,
+    tt.Counterparty,
+    tt.CptyCode,
+    tt.On_OffMarket,
+    tt.SecurityCode,
+    tt.ActivityQuantity,
+    tt.SecuritySettlementDate
+from
+    Summary_Final tt
+    
+union
+
+select
+    tt.Section,
+    tt.Trade,
+    tt.Lender_Borrower,
+    tt.Deposit_Withdrawal,
+    tt.Counterparty,
+    tt.CptyCode,
+    tt.On_OffMarket,
+    tt.SecurityCode,
+    tt.ActivityQuantity,
+    tt.SecuritySettlementDate
+from
+    TradeType tt
+    
+union
+
+select
+    tt.Section,
+    tt.Trade,
+    tt.Lender_Borrower,
+    tt.Deposit_Withdrawal,
+    tt.Counterparty,
+    tt.CptyCode,
+    tt.On_OffMarket,
+    tt.SecurityCode,
+    tt.ActivityQuantity,
+    tt.SecuritySettlementDate
+from
+    On_OffMarket tt

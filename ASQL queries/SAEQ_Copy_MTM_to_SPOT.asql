@@ -1,0 +1,23 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_Copy_MTM_to_SPOT') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_Copy_MTM_to_SPOT' and p.type = 'SQL Query' 
+ 
+  select
+    i.insid,
+    ael_s(,'SAEQ_Copy_MTM_to_SPOT.copyMTM',i.insid, @Date{today})     'Result',
+    lp.day                              'Day',
+    lp.settle                           'LastPrice',
+    display_id(lp, 'ptynbr')            'Market',
+    lp.updat_time                       'Update_Time'
+    
+from
+    Instrument i,
+    LastPrice lp
+    
+where
+    i.instype = 'EquityIndex'
+and lp.insaddr = i.insaddr
+/*and i.insid = 'ZAR/AGM_BASKET'*/

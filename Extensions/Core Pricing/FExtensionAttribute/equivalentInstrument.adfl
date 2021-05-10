@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:equivalentInstrument[] = collapse(instrument);
+[Core Pricing]FOption:equivalentInstrument[useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency, parameterizedCurrency] = select(doCurrencyParametrization, 
+  true->parameterizedCurrencyEquivalentFromOption(equivalentVanillaInstrument, parameterizedInstrumentCurrency), 
+  false->collapse(equivalentVanillaInstrument));
+[Core Pricing]FOrderBook:equivalentInstrument[useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency] = instrument:equivalentInstrument [useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency];
+[Core Pricing]FPriceFeed:equivalentInstrument[useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency] = instrument:equivalentInstrument [useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency];
+[Core Pricing]FTradeRow:equivalentInstrument[useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency, parameterizedCurrency] = instrument:equivalentInstrument [useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency, parameterizedCurrency];
+[Core Pricing]FTradingInterface:equivalentInstrument[useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency] = instrument:equivalentInstrument [useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency];

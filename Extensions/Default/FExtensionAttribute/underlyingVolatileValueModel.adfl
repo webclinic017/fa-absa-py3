@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingVolatileValueModel = select(baseValuationOnUnderlyingComponents, 
+  true->underlyingValueModel, 
+  false->select(dividendForecast, 
+    nil->underlyingValueModel, 
+    default->select(isAsian and useAveragePriceDates, 
+      true->underlyingValueModel - object:underlyingDividendsValueModel [dividendSensitivityEndDate := lastAveragePriceDate, priceSource, doSplitAll], 
+      false->underlyingValueModel - underlyingDividendsValueModel)));

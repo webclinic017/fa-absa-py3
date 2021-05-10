@@ -1,0 +1,57 @@
+[OperationsViewerAxlFormulas]FObject:Cash To Pay XD
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+
+isValueDayTodayPlusXDays = Compare.IsEqual(&'value_day', DateTime.AddWeekday($X));
+
+{
+}
+
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+        Label:'Number of weekdays',
+        Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'To Pay XD',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day equal to today + given number of weekdays and negative amount.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'To Pay {X.Label}D',
+    Description:'Total unsettled cash with value day equal to today + {X.Label} weekdays and negative amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(If(And(Not(Compare.IsNegative($X)), And(And(@isValueDayTodayPlusXDays($X), @isAmountNegative()), &'unSettledCashExtAttr')), &'amount', 0.0)), AttributeDimensions = AttributeList(['curr']));
+
+
+...

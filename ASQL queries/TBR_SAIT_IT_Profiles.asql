@@ -1,0 +1,104 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBR_SAIT_IT_Profiles') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBR_SAIT_IT_Profiles' and p.type = 'SQL Query' 
+ 
+ 
+select
+    'User'                                  'Section',
+    u.userid                                'ID',
+    u.name                                  'Name',
+    g.grpid                                 'Group',
+    p.profid                                'Profile'
+        
+into
+    UserAccess
+    
+from
+    User u,
+    front.Group g,
+    UserProfileLink upl,
+    UserProfile p
+
+where
+    u.grpnbr = g.grpnbr
+and u.usrnbr = upl.usrnbr
+and p.profnbr = upl.profnbr
+and g.grpid = 'IT'
+
+
+
+select
+    'Group'                                 'Section',   
+    g.grpid                                 'Name',                              
+    g.grpid                                 'ID',
+    g.description                           'Group',
+    p.profid                                'Profile'
+    
+into
+    UserAccess
+    
+from
+    front.Group g,
+    GroupProfileLink gpl,
+    UserProfile p
+
+where
+    g.grpnbr = gpl.grpnbr
+and gpl.profnbr = p.profnbr
+and g.grpid = 'IT'
+
+
+ 
+/*INITIAL SELECT TO GET ALL COMPONENTS PER PORTFOLIO*/
+select
+    p.profid                                'Profile',
+    p.description                           'ProfileDescription',
+    c.type                                  'ComponentType',
+    c.compname                              'ComponentName',
+    profc.allow_write,
+    profc.allow_create,
+    profc.allow_delete,
+    profc.allow_authorize
+    
+into
+    ComponentsPerProfile
+    
+from
+    UserProfile p,
+    ProfileComponent profc,
+    Component c
+
+where
+    p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr
+
+
+
+
+ 
+ 
+/* FINAL SELECT FOR ALL COMPONENTS PER PROFILE */
+select 
+    u.ID,
+    u.Name,
+  
+    t.Profile,
+    t.ProfileDescription,
+    t.ComponentType,
+    t.ComponentName,
+    t.allow_write,
+    t.allow_create,
+    t.allow_delete,
+    t.allow_authorize
+    
+from
+    ComponentsPerProfile t,
+    UserAccess u
+    
+where
+    u.Profile = t.Profile
+    
+order by 1

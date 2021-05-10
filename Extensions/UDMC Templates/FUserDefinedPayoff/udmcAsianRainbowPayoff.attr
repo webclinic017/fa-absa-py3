@@ -1,0 +1,33 @@
+[UDMC Templates]FObject:udmcAsianRainbowPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for Asian rainbow option
+#
+# INTERPRETATION
+# An Asian option on the weighted returns in a basket.
+#
+# DEFINITION
+# weights: Weights, 'Weight' field;
+# strike: Strike, 'Strike' field;
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) weights;
+param double strike;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double payoff = 0.0;
+matrix(double) sortedWeights = rowSort(weights);
+matrix(double) performancePerIndex = zeros(cols(weights), 1);
+
+#MAIN LOOP
+performancePerIndex = rowAverage(S[:,1:cols(S)])./S[:, 0] - 1.0;
+payoff = max((sortedWeights * colSort(performancePerIndex))[0,0]  - strike, 0);
+
+#CASHFLOW
+cashFlow(0,  payoff);
+
+...

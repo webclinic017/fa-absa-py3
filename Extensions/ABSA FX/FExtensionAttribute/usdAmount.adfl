@@ -1,0 +1,9 @@
+[ABSA FX]FInstrumentAndTrades:usdAmount = sumOf(children :* "usdAmount" [positionObject]);
+[ABSA FX]FTrade:usdAmount = select(object.CurrencyPair, 
+  nil->select(object.Currency == fxBaseCurrency, 
+    true->object.Quantity, 
+    false->0), 
+  default->usdAmountCalc);
+[ABSA FX]FTradeRow:usdAmount = shunt(validStatus, 
+  true->trade:usdAmount, 
+  false->0);

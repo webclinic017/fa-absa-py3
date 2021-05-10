@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrument:costOfCarryFundingRates = shunt(count(costOfCarryFundingValueCurrencies) == 0, 
+  true->0, 
+  false->fundingRateInstrument.OvernightFundingRate(costOfCarryFundingValueCurrencies, mappedFundingParameter.FundingType, fundingRatePerCurrency) + select(useLongShortFunding and (fundingRateUnderlying <> nil), 
+    true->fundingRateUnderlying.OvernightFundingRate(costOfCarryFundingValueCurrencies, mappedFundingParameter.FundingType, fundingRateUnderlying :* "marketPrice" [priceSource, priceFindingCurrencyRule = "Exact"]), 
+    false->0));

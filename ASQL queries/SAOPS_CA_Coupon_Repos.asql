@@ -1,0 +1,63 @@
+/*
+Purpose : SAOPS_CA_Coupon_Dashboard
+Department and Desk : OPS
+Requester : Sipho Ndlalane
+Developer : Pavel Saparov
+CR Number : CHNG0000XXXXXX
+Purpose: Bond Coupon claim dashboard
+*/
+select
+    t.trdnbr
+from
+    Trade t,
+    Instrument i,
+    Instrument und,
+    Instrument irref,
+    Leg l,
+    Portfolio p,
+    Party ctpy
+where
+        t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.und_insaddr *= und.insaddr
+    and i.insaddr *= l.insaddr
+    and l.index_ref *= irref.insaddr
+    and t.counterparty_ptynbr = ctpy.ptynbr
+    and ctpy.ptyid ~= 'JSE'
+    and (ctpy.type ~= 'Intern Dept' or ctpy.ptyid = 'SECURITY LENDINGS DESK')
+    /*
+        Comment: Left join t.optkey1_chlnbr *= cl.seqnbr is not working properly!
+        ``display_id`` function is also not playing nicely with related ``optkey1_chlnbr``
+        conditions ``or display_id(t, 'optkey1_chlnbr') = ''`` is required to make the query work properly!
+        other possibility is to use ``t.optkey1_chlnbr ~= 629``
+    */
+    and (display_id(t, 'optkey1_chlnbr') ~= 'SPECIAL_FINANCE' or display_id(t, 'optkey1_chlnbr') = '')
+    and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+    and t.value_day <= to_date(TODAY)
+    and time_to_day(t.time) <= to_date(TODAY)
+    and i.exp_day >= to_date('-15d')
+    and (
+            (
+                    i.instype in ('Repo/Reverse', 'SecurityLoan')
+                and und.instype in ('Bond', 'IndexLinkedBond', 'FRN') 
+                and und.insid like '%ZAR%'
+                and und.isin like 'ZAG%'
+            )
+        or
+            (
+                    i.instype = 'TotalReturnSwap'
+                and irref.instype in ('Bond', 'IndexLinkedBond') 
+                and irref.insid like '%ZAR%'
+                and irref.isin like 'ZAG%'
+            )
+    )
+    /* Include ABSA BANK LTD */
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ABSA BANK LTD') = 1
+        /* Exclude some exceptions */
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GROUP TREASURY') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS BANKING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS TRADING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PM Portfolio Management') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ALCH') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'SECURITIES LENDING') = 0 
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', '7268_Prime Services') = 0

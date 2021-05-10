@@ -1,0 +1,18 @@
+[ABSAPortfolioSwap]FLeg:legDescription = select(object.LegType, 
+  "Total Return"->"Mtm", 
+  "Call Fixed"->"Account", 
+  "Fixed"->select(object.NominalScaling, 
+    "Dividend"->"Dividend", 
+    default->"Execution Premium"), 
+  default->select(object.PayLeg, 
+    true->"Short Premium", 
+    false->"Overnight Premium"));
+[ABSAPortfolioSwap]FLegAndTrades:legDescription = select(leg.LegType, 
+  "Total Return"->"Mtm", 
+  "Call Fixed"->"Account", 
+  "Fixed"->select(leg.NominalScaling, 
+    "Dividend"->"Dividend", 
+    default->"Execution Premium"), 
+  default->select(leg.PayLeg, 
+    true->"Short Premium", 
+    false->"Overnight Premium"));

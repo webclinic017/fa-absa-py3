@@ -1,0 +1,368 @@
+[Automated Trading]FObject:GenericPortfolioHedger
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=No
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=GenericPortfolioHedger
+  EditPermission=System
+  Granularity=10
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TraceLog=10000
+  TradingEnabled=Yes
+
+State Active =
+  Description=
+  InitialSubState=<none>
+  OnEntry=UpdateAlgorithm
+  OnExit=<none>
+  SuperState=<none>
+
+State Applicable =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=Active
+
+State Consistent =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=NoTradeDetected
+
+State Error =
+  Description=
+  InitialSubState=<none>
+  OnEntry=HandleErrors
+  OnExit=<none>
+  SuperState=<none>
+
+State LimitBreached =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=DeleteOrders
+  SuperState=Applicable
+
+State LimitNotBreached =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=Applicable
+
+State MonitorOrders =
+  Description=
+  InitialSubState=<none>
+  OnEntry=HandleDoneOrDeletedPriceMonitors
+  OnExit=<none>
+  SuperState=Consistent
+
+State MonitorPrices =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=MonitorOrders
+
+State NotApplicable =
+  Description=
+  InitialSubState=<none>
+  OnEntry=NotApplicable
+  OnExit=<none>
+  SuperState=Active
+
+State NotKillAgent =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=LimitBreached
+
+State NoTradeDetected =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=NotKillAgent
+
+State ProcessTrade =
+  Description=
+  InitialSubState=<none>
+  OnEntry=ProcessTrade
+  OnExit=<none>
+  SuperState=TradeDetected
+
+State Start =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Stop =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State TradeDetected =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=NotKillAgent
+
+State UpdateError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=Updating
+
+State UpdateOrders =
+  Description=
+  InitialSubState=<none>
+  OnEntry=UpdateOrders
+  OnExit=<none>
+  SuperState=Consistent
+
+State UpdateResultDone =
+  Description=
+  InitialSubState=<none>
+  OnEntry=RemoveProcessedCommand
+  OnExit=<none>
+  SuperState=Updating
+
+State UpdateSuccess =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=Updating
+
+State Updating =
+  Description=
+  InitialSubState=WaitForUpdateResult
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=NoTradeDetected
+
+State WaitForUpdateResult =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=Updating
+
+Transitions =
+  algorithmChanged=Active -> algorithmChanged / <none> -> Active
+  applicable=Active -> applicable / <none> -> Applicable
+  doneOrDeletedOrders=MonitorOrders -> doneOrDeletedOrders / <none> -> MonitorOrders
+  errorDetected=Active -> errorDetected / <none> -> Error
+  fatalError=UpdateError -> fatalError / <none> -> UpdateResultDone
+  hasNoPendingCommands=NoTradeDetected -> notHasPendingCommands / <none> -> Consistent
+  hasPendingCommands=NoTradeDetected -> hasPendingCommands / <none> -> Updating
+  killSizeBreached=LimitBreached -> killSizeBreached / SetKillSizeErrorMessage -> Error
+  limitBreached=Applicable -> limitBreached / <none> -> LimitBreached
+  limitNotBreached=Applicable -> notLimitBreached / <none> -> LimitNotBreached
+  nonFatalError=UpdateError -> notFatalError / <none> -> UpdateResultDone
+  notActive=Active -> notActive / <none> -> Stop
+  notApplicableAlgorithm=Active -> notApplicable / <none> -> NotApplicable
+  notDoneOrDeletedOrders=MonitorOrders -> notDoneOrDeletedOrders / <none> -> MonitorPrices
+  notKillSizeBreached=LimitBreached -> notKillSizeBreached / <none> -> NotKillAgent
+  noTradeDetected=NotKillAgent -> notTradeDetected / <none> -> NoTradeDetected
+  notUpdateOrders=Consistent -> notUpdateOrders / <none> -> MonitorOrders
+  ordersUpdated=UpdateOrders -> alwaysTrue / <none> -> Consistent
+  processTrade=TradeDetected -> tradeArrived / <none> -> ProcessTrade
+  sendValidOrders=MonitorPrices -> sendableOrders / HandleSendablePriceMonitors -> MonitorPrices
+  startToActive=Start -> active / <none> -> Active
+  startToStop=Start -> notActive / <none> -> Stop
+  successfulUpdate=UpdateSuccess -> alwaysTrue / <none> -> UpdateResultDone
+  synchronizeTrades=NotKillAgent -> tradeDetected / <none> -> TradeDetected
+  tradeArrived=ProcessTrade -> tradeArrived / <none> -> ProcessTrade
+  updateDoneToWaitForUpdate=UpdateResultDone -> hasPendingCommands / <none> -> WaitForUpdateResult
+  updateError=WaitForUpdateResult -> updateError / <none> -> UpdateError
+  updateOrders=Consistent -> updateOrders / SetTradingInstructions -> UpdateOrders
+  updatePrices=MonitorPrices -> updatePrices / UpdatePrices -> MonitorPrices
+  updateSuccess=WaitForUpdateResult -> updateSuccess / <none> -> UpdateSuccess
+
+Conditions =
+  active=instrumentAndTrades:agentPortfolioHedgerActive
+  algorithmChanged=(algorithm <> agentPortfolioHedgerAlgorithm) or (algorithmParameters <> agentPortfolioHedgerHedgeParameters)
+  alwaysTrue=true
+  applicable=switch(agentPortfolioHedgerHedgeParameters, \
+      nil->false, \
+      default->not agentPortfolioHedgerHedgeParameters.HedgeInstruments.IsEmpty)
+  doneOrDeletedOrders=not doneOrDeletedPriceMonitors.IsEmpty
+  errorDetected=switch(errorMessage, \
+      nil->false, \
+      ""->false, \
+      default->true)
+  fatalError=switch(processedCommand.Exception, \
+      nil->false, \
+      default->true)
+  hasPendingCommands=pendingCommands.Size > 0
+  killSizeBreached=abs(agentPortfolioHedgerTargetDiff) > agentPortfolioHedgerKillAgentSize
+  limitBreached=(agentPortfolioHedgerMonitoredValue < agentPortfolioHedgerLowerLimit) or (agentPortfolioHedgerMonitoredValue > agentPortfolioHedgerUpperLimit)
+  notActive=not active
+  notApplicable=not applicable
+  notDoneOrDeletedOrders=doneOrDeletedPriceMonitors.IsEmpty
+  notEnabled=not instrumentAndTrades:agentPortfolioHedgerActive
+  notFatalError=not fatalError
+  notHasPendingCommands=not hasPendingCommands
+  notKillSizeBreached=not killSizeBreached
+  notLimitBreached=not limitBreached
+  notTradeDetected=not tradeDetected
+  notUpdateOrders=not updateOrders
+  sendableOrders=not sendablePriceMonitors.IsEmpty
+  tradeArrived=not tradeSource.IsEmpty
+  tradeDetected=switch(almostEqual(lastFilledQuantity, filledQuantityFromOrders), \
+      false->lastFilledQuantity < filledQuantityFromOrders, \
+      true->false)
+  updateError=switch(processedCommand, \
+      nil->false, \
+      default->processedCommand.Result == "Error")
+  updateOrders=agentPortfolioHedgerAlgorithm.HasInstructions(algorithmParameters, orderPositions, agentPortfolioHedgerMonitoredValue, agentPortfolioHedgerLowerLimit, agentPortfolioHedgerUpperLimit)
+  updatePrices=not breachedPriceMonitors.IsEmpty
+  updateSuccess=switch(processedCommand, \
+      nil->false, \
+      default->processedCommand.Result == "Success")
+
+Actions =
+  ClearAlgorithm=nil => algorithm
+  ClearAlgorithmParameters=nil => algorithmParameters
+  DeleteOrders=!DeleteOrders
+  HandleDoneOrDeletedPriceMonitors=!HandleDoneOrDeletedPriceMonitors
+  HandleErrors=!HandleErrors
+  HandleSendablePriceMonitors=!HandleSendablePriceMonitors
+  NotApplicable=!NotApplicable
+  ProcessTrade=!ProcessTrade
+  RemoveProcessedCommand=!RemoveProcessedCommand
+  SetAlgorithm=instrumentAndTrades:agentPortfolioHedgerAlgorithm => algorithm
+  SetAlgorithmParameters=agentPortfolioHedgerHedgeParameters => algorithmParameters
+  SetKillSizeErrorMessage="Monitored value deviates more than kill size from target" => errorMessage
+  SetTradingInstructions=agentPortfolioHedgerAlgorithm.GetInstructions(algorithmParameters, orderPositions, agentPortfolioHedgerMonitoredValue, agentPortfolioHedgerLowerLimit, agentPortfolioHedgerUpperLimit) => tradingInstructions
+  UpdateErrorFromCommand=!UpdateErrorFromCommand
+  UpdateOrders=!UpdateOrders
+  UpdatePrices=!UpdatePrices
+
+ActionLists =
+  UpdateAlgorithm=ClearAlgorithm, ClearAlgorithmParameters, SetAlgorithm, SetAlgorithmParameters
+
+Variable account =
+  DisplayName=Account
+  Domain=string
+  Type=ReadOnly
+  Value=instrumentAndTrades:agentPortfolioHedgerAccount
+
+Variable algorithm =
+  Description=The algorithm used for generating trading instructions
+  DisplayName=Algorithm
+  Domain=FHedgeTradingAlgorithm
+  Type=Private
+  Value=
+
+Variable algorithmParameters =
+  Domain=FHedgeTradingParameters
+  Type=Private
+  Value=
+
+Variable breachedPriceMonitors =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable doneOrDeletedPriceMonitors =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable errorMessage =
+  Domain=string
+  Type=Private
+  Value=nil
+
+Variable instrumentAndTrades =
+  Domain=FInstrumentAndTrades
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable lastFilledQuantity =
+  DisplayName=Last Filled Quantity
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable orderPositions =
+  DisplayName=Order Positions
+  Domain=FOrderPositions
+  Type=Private
+  Value=
+
+Variable pendingCommands =
+  Domain=FList
+  Type=Private
+  Value=
+
+Variable priceMonitors =
+  DisplayName=Price Monitors
+  Domain=FDependentArray
+  Type=Private
+  Value=
+
+Variable priceType =
+  Domain=string
+  Type=ReadOnly
+  Value=instrumentAndTrades:agentPortfolioHedgerPriceType
+
+Variable processedCommand =
+  Domain=FTradingSessionCommand
+  Type=ReadOnly
+  Value=switch(pendingCommands.IsEmpty, \
+      true->nil, \
+      default->pendingCommands.First)
+
+Variable reference =
+  DisplayName=Reference
+  Domain=string
+  Type=ReadOnly
+  Value=instrumentAndTrades:agentPortfolioHedgerReference
+
+Variable sendablePriceMonitors =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable smart =
+  DisplayName=SMART
+  Domain=bool
+  Type=ReadOnly
+  Value=instrumentAndTrades:agentPortfolioHedgerSMART
+
+Variable tradeSource =
+  DisplayName=Trade Source
+  Domain=FTickerSource
+  Type=Private
+  Value=
+
+Variable tradingInstructions =
+  Domain=FTradingInstructions
+  Type=Private
+  Value=nil
+
+Variable tradingStrategy =
+  DisplayName=Trading Strategy
+  Domain=FAlgoTradingStrategy
+  Type=ReadOnly
+  Value=instrumentAndTrades:agentPortfolioHedgerTradingStrategy
+
+<end>

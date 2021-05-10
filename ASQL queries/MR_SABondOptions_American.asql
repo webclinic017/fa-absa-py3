@@ -1,0 +1,50 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+'''
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_SABondOptions_American.OpenFile', @1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_SABondOptions_American.Write', @1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+from
+    instrument i
+where
+    /* Basic filtering conditions */
+	(i.exp_day = 0 or i.exp_day > Today)
+    
+    /* Instrument specific filtering*/
+    and i.instype in ('Option')
+    and i.und_instype in ('Bond')
+    and i.exercise_type in ('American')
+    and i.digital in ('No')
+    and i.exotic_type in ('None')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

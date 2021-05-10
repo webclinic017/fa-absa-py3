@@ -1,0 +1,43 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Candice Fixings') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Candice Fixings' and p.type = 'SQL Query' 
+
+select distinct
+	t.trdnbr 'Trade',
+	p.prfid 'Portfolio',
+    /*t.optional_key,*/
+	i.insid 'Instrument Id',
+	ael_s(t,'InstrType.InstrumentType') 'Instrument Type',
+	cf.type 'Cashflow Type',
+	fr.insid 'FloatReference',
+	r.resnbr 'Reset Number',
+	r.day 'Reset Day',
+	r.type 'Reset Type',
+	r.value 'Reset Value',
+	r.read_time 'Reset Read Time',
+	r.updat_time 'Reset Update Time'
+from
+	instrument	i,
+	instrument	fr,
+	trade	t,
+	leg	l,
+	reset	r,
+	portfolio p,
+	cashflow cf
+where
+
+r.day = @Date{Today;}
+and r.value>0
+and cf.type='Float Rate'
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	fr.insaddr = l.float_rate
+and	r.legnbr = l.legnbr
+and cf.legnbr= l.legnbr
+and	p.prfnbr=t.prfnbr
+
+order by fr.insid,r.type

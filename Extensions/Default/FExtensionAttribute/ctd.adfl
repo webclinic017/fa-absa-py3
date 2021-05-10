@@ -1,0 +1,11 @@
+[Default]FDeliverableLinkAndTrades:ctd = switch(tradedInstrument:ctd == instrument, 
+  true->"CTD", 
+  false->nil);
+[Default]FFuture:ctd = select(isFutureOnNotional, 
+  true->select(isAUDF, 
+    true->actualUnderlying, 
+    false->actualUnderlying.SelectedDeliverable), 
+  false->nil);
+[Default]FInstrument:ctd = nil;
+[Default]FInstrumentAndTrades:ctd = instrument:ctd;
+[Default]FMultiInstrumentAndTrades:ctd = nil;

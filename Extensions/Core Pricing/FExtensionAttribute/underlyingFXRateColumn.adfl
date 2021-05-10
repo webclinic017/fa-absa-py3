@@ -1,0 +1,9 @@
+[Core Pricing]FInstrumentAndTrades:underlyingFXRateColumn = select(collapse(fxComponentStartValueInTheoreticalPrice), 
+  nil->select(startValueForForwardCalculationFxRateInTheoreticalPrice <> nil, 
+    false->snoop01(theoreticalPrice, ["fxStrikeToInstrument", "fxInstrumentToCalculation"]), 
+    true->collapse(startValueForForwardCalculationFxRateInTheoreticalPrice)), 
+  default->(fxComponentStartValueInTheoreticalPrice));
+[Core Pricing]FMultiInstrumentAndTrades:underlyingFXRateColumn = nil;
+[Core Pricing]FPriceAggregate:underlyingFXRateColumn = select(startValueForForwardCalculationFxRateInTheoreticalPrice <> nil, 
+  false->snoop01(theoreticalPrice, ["fxStrikeToInstrument", "fxInstrumentToCalculation"]), 
+  true->collapse(startValueForForwardCalculationFxRateInTheoreticalPrice));

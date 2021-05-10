@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:underlyingPriceInTheoreticalPriceConversionRatio[] = select(underlying, 
+  nil->1.0, 
+  default->select(underlying:isCommodityVariant, 
+    true->select(underlyingForUnderlyingPriceInTheoreticalPrice:isCommodityVariant, 
+      true->1.0, 
+      false->underlying:conversionRatio), 
+    false->1.0));

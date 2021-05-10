@@ -1,0 +1,78 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin, Ashley Kanter
+Developer               :Douglas Finkel, Zinhle Ndlela
+CR Number               :264536, 632898
+
+Description		:Added logging
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-03-08     CHNG0003469409   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-489
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_Amortising_Bonds') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Amortising_Bonds' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Amortising_Bonds.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Amortizing_Bond.csv'},@3_PositionName{'MR_Amortizing_Bond_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select
+    i.insaddr,
+    i.exp_day
+Into
+    BondInstruments
+From
+    instrument i, leg l /*, MaxDate md*/
+Where
+	(i.exp_day = 0 or i.exp_day > '26/01/2016')
+And i.insaddr = l.insaddr
+And i.instype in ('Bond')
+And l.amort_type ~= 'None'
+
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_Amortising_Bonds.Write',@1_path{'f:\'},@2_FileName{'MR_Amortizing_Bond.csv'},@3_PositionName{'MR_Amortizing_Bond_Position.csv'},BI.exp_day)	'BuildConfirmation'
+Into
+    Macro
+From
+    instrument i, BondInstruments BI
+Where
+	(i.exp_day = 0 or i.exp_day > '26/01/2016')
+And i.instype in ('Bond')
+And BI.insaddr = i.insaddr
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

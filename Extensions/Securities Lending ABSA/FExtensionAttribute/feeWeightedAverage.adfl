@@ -1,0 +1,8 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:feeWeightedAverage = sumOf(tradesInPosition :* "feeWeightedAverage * sl_quantity" [positionObject, profitAndLossStartDate, profitAndLossEndDate]) / sweepingPosition;
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:feeWeightedAverage = nil;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:feeWeightedAverage = sumOf(tradesInPosition :* "feeWeightedAverage" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FTrade:feeWeightedAverage = switch(sl_instype, 
+  "SecurityLoan"->switch((sl_startDate <= profitAndLossEndDate) and not (instrument:sl_isExpired) and (sl_quantity > 0), 
+    true->sl_rate, 
+    false->0), 
+  default->nil);

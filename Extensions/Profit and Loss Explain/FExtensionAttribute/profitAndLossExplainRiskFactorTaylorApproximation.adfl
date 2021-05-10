@@ -1,0 +1,7 @@
+[Profit and Loss Explain]FInstrumentAndTrades:profitAndLossExplainRiskFactorTaylorApproximation = select(includeDeltaAttribution, 
+  true->select(includeGammaAttribution, 
+    false->profitAndLossExplainRiskFactorDeltaAttribution, 
+    true->profitAndLossExplainRiskFactorDeltaAttribution + profitAndLossExplainRiskFactorGammaAttribution), 
+  false->select(includeGammaAttribution, 
+    true->profitAndLossExplainRiskFactorGammaAttribution, 
+    false->0.0));

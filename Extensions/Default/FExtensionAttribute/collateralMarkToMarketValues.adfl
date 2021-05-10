@@ -1,0 +1,8 @@
+[Default]FInstrument:collateralMarkToMarketValues = select(useHaircutFactor, 
+  true->unadjustedCollateralMarkToMarketValues * collateralHaircutFactor, 
+  false->unadjustedCollateralMarkToMarketValues);
+[Default]FInstrumentAndTrades:collateralMarkToMarketValues = openCollateralInstrument :* "collapse(collateralMarkToMarketValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral, collateralAgreement, useHaircutFactor];
+[Default]FMultiInstrumentAndTrades:collateralMarkToMarketValues = sumOf(openCollateralInstruments :* "collapse(collateralMarkToMarketValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral, collateralAgreement, useHaircutFactor]);
+[Default]FTradeRow:collateralMarkToMarketValues = shunt(isOpenCollateralPosition, 
+  true->instrument :* "collateralMarkToMarketValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral, collateralAgreement, useHaircutFactor], 
+  false->instrumentSpotZero);

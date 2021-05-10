@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:psFairValueNav = sumOf((object.Children) :* "psFairValueNav");
+[Prime Services]FSingleInstrumentAndTrades:psFairValueNav = select(instrument.InsType, 
+  "Deposit"->switch(instrument.OpenEnd, 
+    "None"->markToMarketValueEnd, 
+    default->psCallDepositSign * denominatedvalue(depositBalance.Number, depositBalance.Unit, nil, nil) + denominatedvalue(psMonthlyCarry.Number, depositBalance.Unit, nil, nil)), 
+  default->markToMarketValueEnd);

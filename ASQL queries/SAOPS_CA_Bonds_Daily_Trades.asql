@@ -1,0 +1,57 @@
+/*
+Purpose : SAOPS_CA_Bond_settlement
+Department and Desk : OPS, [OPS]
+Requester : Sipho Ndlalane, [Sipho Ndlalane], [Sipho Ndlalane]
+Developer : Manan Ghosh, Andrei Conicov, Marcelo Almiron
+CR Number : CHNG0002012969, CHNG0002123067, CHNG0005022354
+Purpose: Copied the code from SAOPS_CA_Bond_Settlement for filetring out the trades for today. 
+The SQL was further amended to include trades for the last 7 days.
+*/
+
+/*
+FIS: Matthew Hambrook effort based on AR-726320
+Forcing the ASQL engine to use the t.execution_time trade key first to select the relevant trades
+*/
+
+
+SELECT t.trdnbr,
+       t.status,
+       t.prfnbr,
+       t.insaddr,
+       t.curr,
+       t.counterparty_ptynbr,
+       t.optkey1_chlnbr
+  INTO tetrades
+  FROM trade t
+ WHERE t.execution_time >= date_add_delta(TODAY, -7, 0, 0)
+
+/*
+Comment: Removed the display_id as using functions in a WHERE clause is non-performant
+         629 = Choice List Entry -> TradArea -> SPECIAL_FINANCE
+*/
+
+SELECT t.trdnbr
+  FROM tetrades t,
+       Party party,
+       Portfolio p,
+       Instrument i,
+       Instrument curr
+ WHERE t.insaddr = i.insaddr
+   AND t.prfnbr = p.prfnbr
+   AND t.curr = curr.insaddr
+   AND curr.insid = 'ZAR'
+   AND t.counterparty_ptynbr = party.ptynbr
+   AND t.status IN ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+   AND (t.optkey1_chlnbr ~= 629
+       OR t.optkey1_chlnbr = 0)
+   AND (party.type ~= 'Intern Dept'
+       OR party.ptyid = 'SECURITY LENDINGS DESK')
+   AND party.ptyid NOT IN ('DRA TRANSAKSIES', 'JSE')
+   AND (i.instype IN ('BuySellback', 'Repo/Reverse', 'IndexLinkedBond', 'TotalReturnSwap', 'SecurityLoan', 'Future/Forward', 'Combination')
+       OR (i.instype = 'FRN'
+          AND i.isin LIKE 'ZAG%')
+       OR (i.instype = 'Bond'
+          AND i.isin LIKE 'ZAG%'))
+   AND i.und_instype IN ('None', 'FRN', 'Bond', 'IndexLinkedBond')
+   AND ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port', p.prfnbr, 'ABSA BANK LTD') = 1
+   AND ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port', p.prfnbr, 'GROUP TREASURY,PRIMARY MARKETS BANKING,PRIMARY MARKETS TRADING,PM Portfolio Management,ALCH,SECURITIES LENDING,7268_Prime Services')=0

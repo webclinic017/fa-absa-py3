@@ -1,0 +1,8 @@
+[Core Cash Flow Pricing]FAbstractReset:rollingScheduleChosenFutures = select(resetFixingInstrument == nil, 
+  false->resetFixingInstrument:rollingScheduleChosenFutures [forwardValuationObservations = resetForwardValuationObservations], 
+  true->nil);
+[Core Cash Flow Pricing]FInstrument:rollingScheduleChosenFutures = nil;
+[Core Cash Flow Pricing]FResetMoneyFlow:rollingScheduleChosenFutures = reset :* "rollingScheduleChosenFutures";
+[Core Cash Flow Pricing]FRollingSchedule:rollingScheduleChosenFutures = select(count(underlyingFutureConstituentsInstruments), 
+  1->underlyingFutureConstituentsInstruments[0], 
+  default->underlyingFutureConstituentsInstruments);

@@ -1,0 +1,12 @@
+[_brokerage_risk_exts]FBond:totalPosition = object:riskPosition [portfolio, positionObject = portfolio, tradeCategoryInclusionMaskDefault = bitAll];
+[_brokerage_risk_exts]FDeposit:totalPosition = 0.0;
+[_brokerage_risk_exts]FInstrument:totalPosition = object:riskPositionDisplay [portfolio, positionObject = portfolio, tradeCategoryInclusionMaskDefault = bitAll];
+[_brokerage_risk_exts]FMultiInstrumentAndTrades:totalPosition = select(dispPosOnMultiRow, 
+  true->0.0 + sumOf(openInstruments :* "double(totalPosition)" [positionObject, displayCurrency, filterUnit]), 
+  default->select(instrumentGroupingReferenceRow, 
+    nil->nil, 
+    default->select(instrumentGroupingReferenceRow, 
+      nil->nil, 
+      default->instrumentGroupingReferenceRow :* "totalPosition" [positionObject, displayCurrency, filterUnit])));
+[_brokerage_risk_exts]FPortfolioInstrumentAndTrades:totalPosition = nil;
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:totalPosition = instrument:totalPosition [portfolio, positionObject];

@@ -1,0 +1,5 @@
+[Default]FInstrument:genericSingleExoticEventsAsDenominatedValues = switch(adsPriceDate <> valuationDate, 
+  true->genericSingleExoticEventsTimeShifted, 
+  false->shunt(isUnfixedOnlyToday(genericSingleExoticEventsStored, valuationDateTime, useFullDayClock), 
+    true->genericSingleExoticEventsAdjusted, 
+    false->genericSingleExoticEventsStored));

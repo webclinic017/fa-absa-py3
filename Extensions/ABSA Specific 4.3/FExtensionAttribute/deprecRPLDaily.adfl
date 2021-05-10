@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:deprecRPLDaily = 
+# In general FInstrumentAndTrades could have multiple trades, calling `object.Trades.At(0)` should not be used! Review this extension attribute.
+switch(object.Trades.At(0).ValueDay > profitAndLossEndDate, 
+  true->denominatedvalue(0, instrument.Currency, , ), 
+  false->select(instrument.InsType, 
+    "IndexLinkedBond"->denominatedvalue(deprecRemainingRPLColumn / (instrument.ExpiryDate - profitAndLossEndDate), instrument.Currency, , ), 
+    default->denominatedvalue((deprecAmount - (object :* "openValuePreDeprec - openValue" [profitAndLossEndDate = date_add_delta(profitAndLossEndDate, 0, 0, 0, "Days", -1)])), instrument.Currency, , )));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:deprecRPLDaily = sumOf(children :* "deprecRPLDaily");

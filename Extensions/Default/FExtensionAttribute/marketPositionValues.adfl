@@ -1,0 +1,7 @@
+[Default]FCashFlowInstrument:marketPositionValues = shunt[accountingInclusionDate, priceSource, doSplitAll, contractSize, positionTradeQuantities, legs, valuesOnSpotOverride, useMarkToMarketPriceToday, useBidAskValuation](moveSpotPositionType, 
+  "None"->positionValue(positionTradeQuantities, marketSpotValues, contractSize, timeDistributionFactor), 
+  "Repo"->movePositionValueRepo(marketSpotValues, positionTradeQuantities, valuationDate, valuationOrSpotDate, repoCurve) * contractSize, 
+  "Full"->marketInstrumentPositionValues);
+[Default]FDerivative:marketPositionValues = positionValue(positionTradeQuantities, marketSpotValues, contractSize, timeDistributionFactor);
+[Default]FFxRate:marketPositionValues = marketInstrumentPositionValues;
+[Default]FInstrument:marketPositionValues = marketInstrumentPositionValues * timeDistributionFactor;

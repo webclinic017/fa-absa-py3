@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:priceGreekShiftFilter = select(nil == priceGreekShiftFilterSetExternally, 
+  true->select(instrumentGroupingReference, 
+    nil->nilObject:priceGreekShiftFilter, 
+    default->instrumentGroupingReference:priceGreekShiftFilterForInstrumentGroupingReference), 
+  false->priceGreekShiftFilterSetExternally);
+[Default]FObject:priceGreekShiftFilter = nilObject:priceGreekShiftFilter;
+[Default]FUndefinedObject:priceGreekShiftFilter = simpleAndQuery("FInstrument", ["IsCashFlowInstrument", "ClassName"], ["EQUAL", "NOT_EQUAL"], [false, "FPriceIndex"]);

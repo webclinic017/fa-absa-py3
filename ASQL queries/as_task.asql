@@ -1,0 +1,19 @@
+select
+    t.name,
+    t.module,
+    t.context,
+    th.status,
+    max(th.start_time),
+    max(th.stop_time)
+    
+    
+from
+    Task t,
+    TaskHistory th
+    
+where
+    /*t.name in ('Aaeda_trades_task', 'AFRICA_Deposits_SERVER')
+and */t.module = @Module{;'FTradeReport','FPortfolioReport','FRiskMatrix'}
+and t.tasknbr *= th.tasknbr
+    
+group by 1

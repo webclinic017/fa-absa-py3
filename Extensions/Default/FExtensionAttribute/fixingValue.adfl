@@ -1,0 +1,15 @@
+[Default]FAbstractReset:fixingValue = select(cashFlow:legIsGenericZeroCouponFixed and (object.ResetType == "Compound"), 
+  true->100 * double(instrument:parCoupon), 
+  default->select(object.ResetType, 
+    "Total Cash Flow"->totalCashflowFixingValue * leg:payLegFactor, 
+    default->resetFixingValueOut));
+[Default]FCashFlowInformation:fixingValue = select(count(fixingValues), 
+  1->fixingValues[0], 
+  default->fixingValues);
+[Default]FMoneyFlowAndTrades:fixingValue = nil;
+[Default]FResetMoneyFlow:fixingValue = reset :* "fixingValue";
+[Default]FStubResetEstimation:fixingValue = select(doStubEstimation, 
+  false->nil, 
+  true->shunt(estimateFixingValue, 
+    false->fixingValueFromFixingMethod, 
+    true->fixingValueEstimated));

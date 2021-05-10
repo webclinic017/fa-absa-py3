@@ -1,0 +1,249 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Demat_Exceptions') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Demat_Exceptions' and p.type = 'SQL Query' 
+
+/*
+Purpose:                Report all exceptions of MM Demat trades.
+Department and Desk:    Ops MM
+Requester:              Miguel Da Silva
+Developer:              Heinrich Cronje
+CR Number:              232338
+*/
+
+/********** Macros ***********/
+select
+    @3_Date{Today}  'Date'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/********** MM_Client_Code ***********/
+select
+    p.prfid 'portfolio',
+    ai.value,
+    count(ai.value) 'count'
+into
+    MMClientCode
+from
+    portfolio p,
+    additionalinfo ai,
+    additionalinfospec ais
+where
+        ai.addinf_specnbr = ais.specnbr
+    and ais.field_name = 'MM_Client_Code'
+    and ai.recaddr = p.prfnbr
+
+group by ai.value
+
+
+/********** DEMAT Trade ***********/
+select
+    to_string(t.trdnbr) 'trdnbr',
+    i.insid,
+    to_string(i.instype)    'instype',
+    display_id(t,'counterparty_ptynbr') 'counterparty',
+    p.prfnbr   'prfnbr',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    nominal_amount(t,t.value_day)   'nominal',
+    add_info(i,'MM_DEMAT_MinTrdDeno') 'MM_Min_Trade_Denom',
+    i.isin,
+    i.exp_day,
+    t.value_day,
+    to_date(t.time) 'time',
+    p.prfid 'portfolio',
+    add_info(p,'MM_DEMAT_ClientCode')    'Client_Code',
+    add_info(p,'MM_DEMAT_SORAccNbr')    'SOR_Acc_Nbr'
+into
+    trades
+from
+    trade t,
+    instrument i,
+    portfolio p,
+    macros m
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.exp_day >= m.Date
+    and add_info(t,'MM_DEMAT_TRADE') = 'Yes'
+
+/********** Client Code Missing **********/
+select
+    'MM_Client_Code Missing'    'Section',
+    t.trdnbr 'trdnbr',
+    to_string(t.insid)  'insid',
+    t.instype    'instype',
+    to_string(t.counterparty)   'counterparty',
+    to_string(t.acquirer)   'acquirer',
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'trade_day',
+    t.portfolio,
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t
+where
+    t.Client_Code = ''
+
+union
+
+/********** Client Code Multiple **********/
+select
+    'MM_Client_Code Multiple'   'Section',
+    ''  'trdnbr',
+    ''  'insid',
+    ''  'instype',
+    ''  'counterparty',
+    ''  'acquirer',
+    0.00    'nominal',
+    ''  'MM_Min_Trade_Denom',
+    ''  'isin',
+    '0000-01-01'    'exp_day',
+    '0000-01-01'    'settlement_day',
+    '0000-01-01'    'trade_day',
+    p.prfid 'portfolio',
+    m.value 'Client_Code',
+    ''  'SOR_Acc_Nbr'
+from
+    MMClientCode m,
+    additionalinfo ai,
+    additionalinfospec ais,
+    portfolio p
+where
+        m.count > 1
+    and ai.addinf_specnbr = ais.specnbr
+    and ais.field_name = 'MM_Client_Code'
+    and m.value = ai.value
+    and ai.recaddr = p.prfnbr
+
+union
+
+/********** Nominal less than Nim Trade Denom **********/
+select
+    'Min Tradable Denomination'  'Section',
+    t.trdnbr,
+    t.insid,
+    t.instype,
+    t.counterparty,
+    t.acquirer,
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'value_day',
+    p.prfid 'portfolio',
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t,
+    portfolio p
+where
+        abs(t.nominal) < abs(to_double(t.MM_Min_Trade_Denom))
+    and t.prfnbr *= p.prfnbr
+
+union
+
+/********** SOR Acc Nbr Missing **********/
+select
+    'MM_SOR_Acc_Nbr Missing'    'Section',
+    t.trdnbr 'trdnbr',
+    to_string(t.insid)  'insid',
+    t.instype    'instype',
+    to_string(t.counterparty)   'counterparty',
+    to_string(t.acquirer)   'acquirer',
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'trade_day',
+    t.portfolio,
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t
+where
+    t.SOR_Acc_Nbr = ''
+
+union
+
+/********** ISIN Missing **********/
+select
+    'ISIN Missing'    'Section',
+    t.trdnbr 'trdnbr',
+    to_string(t.insid)  'insid',
+    t.instype    'instype',
+    to_string(t.counterparty)   'counterparty',
+    to_string(t.acquirer)   'acquirer',
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'trade_day',
+    t.portfolio,
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t
+where
+    t.isin = ''
+
+union
+
+/********** Trade Day greater or equal to Maturity day **********/
+select
+    'Trade Day >= Maturity Day'    'Section',
+    t.trdnbr 'trdnbr',
+    to_string(t.insid)  'insid',
+    t.instype    'instype',
+    to_string(t.counterparty)   'counterparty',
+    to_string(t.acquirer)   'acquirer',
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'trade_day',
+    t.portfolio,
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t
+where
+    t.time >= t.exp_day
+
+union
+
+/********** Settlement Day greater or equal to Maturity day **********/
+select
+    'Settlement Day >= Maturity Day'    'Section',
+    t.trdnbr 'trdnbr',
+    to_string(t.insid)  'insid',
+    t.instype    'instype',
+    to_string(t.counterparty)   'counterparty',
+    to_string(t.acquirer)   'acquirer',
+    t.nominal,
+    t.MM_Min_Trade_Denom,
+    t.isin,
+    to_string(t.exp_day)    'exp_day',
+    to_string(t.value_day)  'settlement_day',
+    to_string(t.time)  'trade_day',
+    t.portfolio,
+    t.Client_Code,
+    t.SOR_Acc_Nbr
+from
+    trades t
+where
+    t.value_day >= t.exp_day

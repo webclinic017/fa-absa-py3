@@ -1,0 +1,411 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_BO_Cashflow') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_BO_Cashflow' and p.type = 'SQL Query' 
+/*.App/Portfoliocashflows
+/* Updated by Andries Brink 	06/03/2003
+/* Updated by Aaeda Waja	15/02/2004   	Call No: 56016
+   Updated by Aaeda Salejee 	22/04/2004	Call No: 89778
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+
+Currency
+ The currency of the payments
+
+Filter
+ The tradefilter from which the payments will be presented 
+
+Columns :
+
+Day
+ Payday
+
+Amount
+ Amount
+
+Curr
+ Currency
+
+Type
+ Type of payment: Premium, Cashflow, End Premium/Sec Loan Fee,
+ Additional Payment or Dividend 
+
+TrdNbr
+ Trade number
+
+RecAcc
+ Receive Account
+
+PayAcc
+ Pay Account
+
+PartyType
+ 'Issuer' if cashflow from security (Bond,FRN,Zero,PromisLoan,Bill,CD or Convertible),
+ 'CP' otherwise
+
+Party
+ Issuer ID if cashflow from security, else Counterparty ID
+
+Netting
+ Counterparty netting on or off
+
+History:
+
+When: 	Who:	What:
+000605	PI/HNI	Created
+*/ 
+
+select
+s.srdnbr,
+to_date(@1_StartDate{TODAY})	'Start',
+to_date(@2_EndDate{TODAY})	'End',
+to_double(@3_OpeningBalance{})	'OpeningBalance'
+
+into macros 
+
+from serverdata s
+
+/* List of trades */
+select
+	port.prfnbr,
+	port.prfid,
+	t.trdnbr,
+	t.quantity,
+	i.insid,
+	i.instype 				'itype',
+	(i.contr_size * t.quantity)    		'nominal',
+	p.ptyid 				'cpid',
+	pi.ptyid 				'issid',
+	display_id(t,'counterparty_ptynbr') 	'CounterParty'
+
+
+into 
+	TRD
+from
+	portfolio	port,
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi,
+	
+	macros m
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	t.prfnbr = port.prfnbr
+and	i.exp_day >= m.Start
+
+
+/* Premium amounts */
+select
+	trd.insid	'Instrument',
+	port.prfid	'Portfolio',
+	/*port.prfid in ('JOB1', 'JOB2', 'JOB3', 'JOB4', 'JOB5', 'JOB10', 'JOB11') ? 3179 :
+		port.prfid in ('ABS1', 'ABS2') ? 9803 : 
+		port.prfid in ('DERV', 'DERV2') ? 9804 :
+		port.prfid = 'MONY 9802' ? 9802 : 
+		port.prfid = 'JOB6' ? 9808 :
+		port.prfid = 'JOB8' ? 9807 : 
+		port.prfid = 'FOREX' ? 9832 :
+		port.prfid = 'SF Carries And Repos' ? 7534 : 
+		0*/
+ pp.prfid 'CostC',	
+ 
+	t.value_day	'day',
+	t.premium	'amount',
+	t.value_day	'payday',
+	0.0		'rate',
+	display_id(t,'curr')	'curr',
+	t.trdnbr,
+	'CP' 		'PartyType',
+	0.0 		'RecAcc',
+	0.0		'PayAcc',
+	trd.cpid	'Party',
+	trd.CounterParty
+
+into
+	CF
+from
+portfolio pp,
+portfolioLink pl,
+
+	portfolio port,
+	trade t,
+	TRD trd,
+
+	macros m
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+and	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.prfnbr = port.prfnbr
+and	t.value_day >= m.Start
+and	t.value_day <= m.End
+
+/* Cashflows */
+select
+	i.insid			'Instrument',	
+	port.prfid		'Portfolio',	
+	/*port.prfid in ('JOB1', 'JOB2', 'JOB3', 'JOB4', 'JOB5', 'JOB10', 'JOB11') ? 3179 :
+		port.prfid in ('ABS1', 'ABS2') ? 9803 : 
+		port.prfid in ('DERV', 'DERV2') ? 9804 :
+		port.prfid = 'MONY 9802' ? 9802 : 
+		port.prfid = 'JOB6' ? 9808 :
+		port.prfid = 'JOB8' ? 9807 : 
+		port.prfid = 'FOREX' ? 9832 : 
+		port.prfid = 'SF Carries And Repos' ? 7534 : 
+		0*/
+ pp.prfid 'CostC',
+	c.pay_day		'day',
+	projected_cf(c) * t.quantity	'amount',
+	c.pay_day		'payday',
+	l.fixed_rate		'rate',
+	display_id(l,'curr')	'curr',
+	t.trdnbr,
+	instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	trd.quantity >= 0 ? (trd.nominal * l.fixed_rate/2) : 0.0 'RecAcc',
+	trd.quantity < 0 ? (trd.nominal * l.fixed_rate/2) : 0.0 'PayAcc',
+	instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.CounterParty
+
+
+into
+	CF
+from
+portfolio pp,
+portfolioLink pl,
+
+	trade t,
+	portfolio port,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd,
+	macros m
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+and	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+and 	port.prfnbr=t.prfnbr
+and	c.pay_day >= m.Start
+and	c.pay_day <= m.End
+and	t.value_day<=ex_coupon_date(c)
+
+/* End premiums and sec loan fees */
+select
+	i.insid			'Instrument',
+	port.prfid		'Portfolio',
+	/*port.prfid in ('JOB1', 'JOB2', 'JOB3', 'JOB4', 'JOB5', 'JOB10', 'JOB11') ? 3179 :
+		port.prfid in ('ABS1', 'ABS2') ? 9803 : 
+		port.prfid in ('DERV', 'DERV2') ? 9804 :
+		port.prfid = 'MONY 9802' ? 9802 : 
+		port.prfid = 'JOB6' ? 9808 :
+		port.prfid = 'JOB8' ? 9807 : 
+		port.prfid = 'FOREX' ? 9832 :
+		port.prfid = 'SF Carries And Repos' ? 7534 :  
+		0*/
+    pp.prfid 'CostC',	
+	i.exp_day		'day',
+	i.instype = 'BuySellBack' ? t.quantity*i.ref_value : t.quantity * projected_cf(i)	'amount',
+	i.exp_day			'payday',
+	0.0			'rate',
+	display_id(t,'curr')	'curr',
+	t.trdnbr,
+	'CP' 			'PartyType',
+	0.0			'RecAcc',
+	0.0			'PayAcc',
+	trd.cpid 		'Party',
+	trd.CounterParty
+
+
+into
+	CF
+	
+
+from
+portfolio pp,
+portfolioLink pl,
+
+
+	trade t,
+	instrument i,
+	TRD trd,
+	portfolio port,
+
+	macros m
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+and	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and 	port.prfnbr=t.prfnbr
+and	i.exp_day >= m.Start
+and	i.exp_day <= m.End
+
+
+/* Additional payments */
+select
+	trd.insid		'Instrument',	
+	port.prfid		'Portfolio',
+	/*port.prfid in ('JOB1', 'JOB2', 'JOB3', 'JOB4', 'JOB5', 'JOB10', 'JOB11') ? 3179 :
+		port.prfid in ('ABS1', 'ABS2') ? 9803 : 
+		port.prfid in ('DERV', 'DERV2') ? 9804 :
+		port.prfid = 'MONY 9802' ? 9802 : 
+		port.prfid = 'JOB6' ? 9808 :
+		port.prfid = 'JOB8' ? 9807 : 
+		port.prfid = 'FOREX' ? 9832 :
+		port.prfid = 'SF Carries And Repos' ? 7534 :  
+		0*/
+pp.prfid 'CostC',
+	a.payday		'day',
+	a.amount		'amount',
+	a.payday		'payday',
+	0.0			'rate',
+	display_id(a,'curr')	'curr',
+	a.trdnbr,
+	'CP' 			'PartyType',
+	0.0			'RecAcc',
+	0.0			'PayAcc',
+	trd.cpid 		'Party',
+	trd.CounterParty
+
+into 
+	CF
+from
+portfolio pp,
+portfolioLink pl,
+
+	payment a,
+	TRD trd,
+	portfolio port,
+
+
+	macros m
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+and	a.trdnbr = trd.trdnbr
+and 	port.prfnbr=trd.prfnbr
+and	a.payday >= m.Start
+and	a.payday <= m.End
+
+/* Dividend payments */
+
+select
+	i.insid			'Instrument',
+	port.prfid		'Portfolio',
+	/*port.prfid in ('JOB1', 'JOB2', 'JOB3', 'JOB4', 'JOB5', 'JOB10', 'JOB11') ? 3179 :
+		port.prfid in ('ABS1', 'ABS2') ? 9803 : 
+		port.prfid in ('DERV', 'DERV2') ? 9804 :
+		port.prfid = 'MONY 9802' ? 9802 : 
+		port.prfid = 'JOB6' ? 9808 :
+		port.prfid = 'JOB8' ? 9807 : 
+		port.prfid = 'FOREX' ? 9832 :
+		port.prfid = 'SF Carries And Repos' ? 7534 :  
+		0 */
+pp.prfid 'CostC',
+	d.day			'day',
+	d.dividend		'amount',
+	d.pay_day		'payday',
+	0.0			'rate',
+	display_id(i,'curr')	'curr',
+	t.trdnbr,
+	'Issuer' 		'PartyType',
+	0.0			'RecAcc',
+	0.0			'PayAcc',
+	trd.issid 		'Party',
+	trd.CounterParty		
+
+into
+	CF
+
+from	
+portfolio pp,
+portfolioLink pl,
+
+instrument	i,
+	dividend	d,
+	trade		t,
+	TRD		trd,
+	portfolio	port,
+
+	macros m
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+and	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	t.trdnbr=trd.trdnbr
+and 	port.prfnbr=t.prfnbr
+and 	d.day >= m.Start
+and 	d.day <= m.End
+
+
+
+		
+select
+
+	c.day					'EnteredDay',
+	sum(c.amount)				'Amount',
+	c.Portfolio				'Portfolio',
+	c.CostC					'Cost Centre',
+	sum(c.amount) > 0 ? 'D' : 'C'		'Dr/Cr',
+	c.trdnbr				'DealNumber',
+	m.Start					'Frm',
+	0.0					'ClosingBalance',
+	c.CounterParty      'CounterParty'
+from
+	CF c,
+	macros m
+
+where
+	c.day >= m.Start
+and 	c.day <= m.End
+/*and	c.Portfolio *= cc.Portfolio*/
+
+
+
+union
+
+select
+	c.day					'EnteredDay',
+	sum(c.amount)				'Nominal',
+	c.Portfolio				'Portfolio',
+	c.CostC					'Cost Centre',
+	sum(c.amount) > 0 ? 'D' : 'C'		'Dr/Cr',
+	c.trdnbr				'DealNumber',	
+	m.Start					'Frm',
+	m.OpeningBalance + sum(c.amount)	'ClosingBalance',
+	c.CounterParty      'CounterParty'
+from
+	CF c,
+	macros m
+
+where
+	c.day >= m.Start
+and 	c.day <= m.End
+/*and	c.Portfolio *= cc.Portfolio*/
+
+
+group by 7

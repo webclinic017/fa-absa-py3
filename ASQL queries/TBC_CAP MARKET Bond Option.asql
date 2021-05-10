@@ -1,0 +1,213 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_CAP MARKET Bond Option') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_CAP MARKET Bond Option' and p.type = 'SQL Query' 
+ 
+
+
+/*
+
+Query Name = Bond_Option_MtM
+coded by AP
+last updated = 2003-01-08 reflect tier 2 exposures
+	2004-11-23 - ap - report reflect exercised trades up to option expiry dates	
+	2005-07-18 (Madiba's birthday - ap - create 2 new columns fot asset and liability based on the current MtM
+
+
+
+*/
+
+Select
+
+'YES' ? i.insid : '' 'option',
+i.exercise_type='American' ? 'A' : 'E' 'A_E',
+ui.extern_id1'bond',
+p.prfid'prfid',
+'YES' ? @To_Date{Today;} : '' 'valuation',
+'YES' ? i.exp_day : '''exp_day',
+convert('double', mtm_price(ui), 5)'spot_yield',
+convert('double', i.strike_price, 4)'strike_price',
+convert('double', used_vol(i), 4)'vol',
+convert('double', yc_rate(yc,date_add_banking_day(@To_Date{Today;},,3),date_add_banking_day(i.exp_day,,3),'Simple','Act/365','Spot Rate')*100, 7)'rfr',
+convert('double', used_rate(i), 7)'used_rate',
+i.call_option='YES' ? 'C' : 'P' 'C_P',
+'YES' ? t.trdnbr : '''trdnbr',
+'YES' ? (t.type='Normal' ? ' ' : t.type) : '''Type',
+(t.quantity*i.contr_size)'nominal',
+party.ptyid'ptyid',
+'YES' ? t.value_day : '''value_day', 
+
+'YES' ? i.exp_day<@To_Date{Today;} ? 0 : ((dirty_from_yield(ui,spot_date(ui),'RSA',,spot_price(ui)))) : '''und_dirty_spot_price',
+'YES' ? i.exp_day<@To_Date{Today;} ? 0 : ((dirty_from_yield(ui,spot_date(ui),'RSA',,i.strike_price))) : '''und_dirty_strike_price',
+'YES' ? i.exp_day<@To_Date{Today;} ? 0 : i.call_option='Yes' ? maxval((dirty_from_yield(ui,spot_date(ui),'RSA',,spot_price(ui)))-(dirty_from_yield(ui,spot_date(ui),'RSA',,i.strike_price)),0) : maxval((dirty_from_yield(ui,spot_date(ui),'RSA',,i.strike_price))-(dirty_from_yield(ui,spot_date(ui),'RSA',,spot_price(ui))),0) : '''intrinsic',
+'YES' ? theor_price(i) : '''theor_price',
+
+
+
+
+
+
+
+
+time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0 'YTD_MtM_Curr',
+(delta_explicit(i)*t.quantity*i.contr_size*1)'Delta_Hedge',
+vega(t)'vega',
+ael_f(,'BondOpt_Gamma.Theor', i)			'Gamma',
+time_to_day(t.time)<=@From_Date{Yesterday;} ? i.exp_day>@From_Date{Yesterday;} ? mtm_value_bo(t,@From_Date{Yesterday;},,,,) : 0 : 0 'YTD_MtM_Prev' ,
+(time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0)-(time_to_day(t.time)<=@From_Date{Yesterday;} ? i.exp_day>@From_Date{Yesterday;} ? mtm_value_bo(t,@From_Date{Yesterday;},,,,) : 0 : 0 ) 'MtM_Diff',
+
+(time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0 )>= 0.00 ? (time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0 ) : 0 'MTM_ASSET',
+
+(time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0 )< 0.00 ? (time_to_day(t.time)<=@To_Date{Today;} ? i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0 : 0 ) : 0 'MTM_LIABILITY'
+
+
+
+
+into summary
+
+from
+instrument i,
+instrument ui,
+trade t,
+portfolio p,
+party party,
+yieldcurve yc
+
+where
+i.instype='Option'
+and i.und_instype='Bond'
+and t.insaddr=i.insaddr
+and p.prfnbr=t.prfnbr
+and yc.yield_curve_name='ZAR_Bond_Repo_YC'
+and i.und_insaddr=ui.insaddr
+and p.prfid~='IRR'
+and t.counterparty_ptynbr=party.ptynbr
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+and i.exp_day>=@From_Date{Yesterday;}
+/*
+and (t.type~='Exercise' 
+or time_to_day(t.updat_time)>=@From_Date{Yesterday;})
+*/
+
+
+and time_to_day(t.time)<=(@To_Date{Today;})
+
+order by 4,3,6,11 /* p.prfid,ui.extern_id1,exp_day,i.call_option*/
+/*order by i.exp_day, t.trdnbr*/
+
+
+select 
+s.option'Option',
+s.A_E'A_E',
+s.bond'Bond',
+s.prfid'Prfid',
+s.valuation'Value_Date',
+s.exp_day'Exp_Day',
+s.spot_yield'Spot',
+s.strike_price'Strike',
+s.vol'Vol',
+s.rfr'rfr',
+s.used_rate'used_rate',
+s.C_P 'C_P',
+s.trdnbr,
+s.Type,
+s.nominal'Nominal',
+s.ptyid'Party',
+s.und_dirty_spot_price,
+s.und_dirty_strike_price,
+s.intrinsic,
+s.theor_price,
+s.YTD_MtM_Curr,
+s.Delta_Hedge,
+s.vega,
+s.Gamma,
+s.YTD_MtM_Prev,
+s.MtM_Diff,
+s.MTM_ASSET,
+s.MTM_LIABILITY
+
+
+from summary s
+
+
+order by s.prfid,s.bond,s.exp_day,s.C_P
+
+union
+
+select 
+'Bond Sub-total per portfolio' /*s.option*/,
+s.A_E'A_E',
+s.bond'Bond',
+s.prfid'Prfid',
+s.valuation'Value_Date',
+s.exp_day'Exp_Day',
+s.spot_yield'Spot',
+s.strike_price'Strike',
+s.vol'Vol',
+s.rfr'rfr',
+s.used_rate'used_rate',
+s.C_P 'C_P',
+s.trdnbr,
+s.Type,
+sum(s.nominal)'Nominal',
+s.ptyid'Paty',
+s.und_dirty_spot_price,
+s.und_dirty_strike_price,
+s.intrinsic,
+s.theor_price,
+sum(s.YTD_MtM_Curr),
+sum(s.Delta_Hedge),
+sum(s.vega),
+s.Gamma,
+sum(s.YTD_MtM_Prev),
+sum(s.MtM_Diff),
+sum(s.MTM_ASSET),
+sum(s.MTM_LIABILITY)
+
+
+from summary s
+
+
+group by s.prfid,s.bond
+
+
+union
+
+select 
+'Portfolio Total' /*s.option*/,
+s.A_E'A_E',
+s.bond'Bond',
+s.prfid'Prfid',
+s.valuation'Value_Date',
+s.exp_day'Exp_Day',
+s.spot_yield'Spot',
+s.strike_price'Strike',
+s.vol'Vol',
+s.rfr'rfr',
+s.used_rate'used_rate',
+s.C_P 'C_P',
+s.trdnbr,
+s.Type,
+sum(s.nominal)'Nominal',
+s.ptyid'Paty',
+s.und_dirty_spot_price,
+s.und_dirty_strike_price,
+s.intrinsic,
+s.theor_price,
+sum(s.YTD_MtM_Curr),
+sum(s.Delta_Hedge),
+sum(s.vega),
+s.Gamma,
+sum(s.YTD_MtM_Prev),
+sum(s.MtM_Diff),
+sum(s.MTM_ASSET),
+sum(s.MTM_LIABILITY)
+
+
+from summary s
+
+
+group by s.prfid
+

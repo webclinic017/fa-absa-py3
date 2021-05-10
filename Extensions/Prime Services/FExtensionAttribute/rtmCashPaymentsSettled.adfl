@@ -1,0 +1,9 @@
+[Prime Services]FInstrument:rtmCashPaymentsSettled = denominatedvalue(0.0, currency, , valuationDate);
+[Prime Services]FInstrumentAndTrades:rtmCashPaymentsSettled = instrument:rtmCashPaymentsSettled [positionObject];
+[Prime Services]FLeg:rtmCashPaymentsSettled = select(categoryChlItem, 
+  "Performance"->-denominatedvalue(double(securityInstrumentAndTrades :* "opaque(cashPaymentsSettled)" [displayCurrency, profitAndLossStartDate = object.StartDate]), displayCurrency, , valuationDate), 
+  default->denominatedvalue(0.0, currency, , valuationDate));
+[Prime Services]FLegAndTrades:rtmCashPaymentsSettled = -riskPosition * (leg:rtmCashPaymentsSettled);
+[Prime Services]FMultiInstrumentAndTrades:rtmCashPaymentsSettled = sumOf(instruments :* "rtmCashPaymentsSettled" [positionObject]);
+[Prime Services]FPortfolioSwap:rtmCashPaymentsSettled = -riskPosition * sumOf(legs :* "rtmCashPaymentsSettled");
+[Prime Services]FTradeRow:rtmCashPaymentsSettled = instrument:rtmCashPaymentsSettled [singleTradePosition];

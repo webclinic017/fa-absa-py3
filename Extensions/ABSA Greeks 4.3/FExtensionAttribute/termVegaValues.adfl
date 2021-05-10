@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FInstrument:termVegaValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(termVegaValuesInstrument, valuesOnSpot) * riskPosition);
+[ABSA Greeks 4.3]FInstrumentAndTrades:termVegaValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->sumOf(instrument :* "termVegaValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, positionObject])));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:termVegaValues = sumOf(unSettledInstrumentsNonZero :* "termVegaValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, positionObject]);

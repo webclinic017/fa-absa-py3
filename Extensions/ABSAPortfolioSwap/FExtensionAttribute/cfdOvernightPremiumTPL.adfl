@@ -1,0 +1,10 @@
+[ABSAPortfolioSwap]FInstrument:cfdOvernightPremiumTPL = object :* "plZero" [displayCurrency];
+[ABSAPortfolioSwap]FLeg:cfdOvernightPremiumTPL = switch(legDescription, 
+  "Overnight Premium"->object :* "tPL" [positionObject], 
+  default->object :* "plZero" [displayCurrency]);
+[ABSAPortfolioSwap]FLegAndTrades:cfdOvernightPremiumTPL = leg :* "cfdOvernightPremiumTPL";
+[ABSAPortfolioSwap]FMultiInstrumentAndTrades:cfdOvernightPremiumTPL = sumOf(instruments :* "cfdOvernightPremiumTPL" [positionObject, displayCurrency]);
+[ABSAPortfolioSwap]FPortfolioSwap:cfdOvernightPremiumTPL = switch(legs == [], 
+  true->object :* "plZero" [displayCurrency], 
+  false->sumOf(legs :* "cfdOvernightPremiumTPL" [positionObject]));
+[ABSAPortfolioSwap]FSingleInstrumentAndTrades:cfdOvernightPremiumTPL = instrument :* "cfdOvernightPremiumTPL" [positionObject, displayCurrency];

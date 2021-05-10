@@ -1,0 +1,9 @@
+#grouping: aef base/profit and loss
+
+[Default]FCombInstrMapAndTrades:thUPL = nil;
+[Default]FDeliverableLinkAndTrades:thUPL = nil;
+[Default]FInstrumentAndTrades:thUPL = theoreticalPeriodValue + profitAndLossUplAdjustmentTheoretical;
+[Default]FLegAndTrades:thUPL = nil;
+[Default]FPriceAggregate:thUPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "thUPL");

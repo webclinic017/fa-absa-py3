@@ -1,0 +1,5 @@
+[Core Risk]FInstrument:liquidCommodityFutures = select("Market" == priceBase, 
+  true->object, 
+  false->select(mappedPriceCurveLink, 
+    nil->object, 
+    default->priceCurveComponent.BenchmarkInstruments.SortByProperty("ExpiryDate")));

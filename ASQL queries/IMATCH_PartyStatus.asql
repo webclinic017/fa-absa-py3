@@ -1,0 +1,27 @@
+/* ***********************************
+ * INTELLIMATCH QUERY. DO NOT CHANGE *
+ * ***********************************
+*/ 
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PartyStatus') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PartyStatus' and p.type = 'SQL Query' 
+
+/* ********** Description **********
+Date        Issue#  Who                 What        CR#
+2009-09-01  1905    Heinrich Cronje     Created     
+
+PartyStatus needed for recon between Front and Midbase
+to ensure that all internal parties from Midbase has the
+correct PartyStatus in Front Arena
+*/
+
+select
+    p.ptynbr,
+    p.ptyid,
+    add_info(p,'PartyStatus')   'PartyStatus'
+from
+    party p

@@ -1,0 +1,10 @@
+[Default]FCombInstrMapAndTrades:taxLotClosings = nil;
+[Default]FInstrumentAndTrades:taxLotClosings = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->taxLotClosingsLive, 
+  "Inception to Historical"->taxLotClosingsEnd, 
+  "Historical to Present"->createDictionary([profitAndLossEndDate, profitAndLossStartDate], [taxLotClosingsLive, taxLotClosingsStart]), 
+  "Historical to Historical"->createDictionary([profitAndLossEndDate, profitAndLossStartDate], [taxLotClosingsEnd, taxLotClosingsStart]));
+[Default]FLegAndTrades:taxLotClosings = nil;
+[Default]FMultiInstrumentAndTrades:taxLotClosings = nil;
+[Default]FTaxLot:taxLotClosings = object.TaxLotClosings(valuationDate);
+[Default]FTrade:taxLotClosings = taxLotClosingsPerTrade.At(object);

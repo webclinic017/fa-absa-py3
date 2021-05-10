@@ -1,0 +1,6 @@
+[Default]FCurrencySwap:mtmPriceSuggestMultiCurrencyMarketPrice = legs :* "mtmPriceSuggestMultiCurrencyMarketPrice" [priceSource];
+[Default]FFxSwap:mtmPriceSuggestMultiCurrencyMarketPrice = select(isGeneric, 
+  true->instrument :* "marketPrice" [priceSource], 
+  default->legs :* "mtmPriceSuggestMultiCurrencyMarketPrice" [priceSource]);
+[Default]FInstrument:mtmPriceSuggestMultiCurrencyMarketPrice = throwError("Functionality only supported for Currency Swaps and FX Swaps");
+[Default]FLeg:mtmPriceSuggestMultiCurrencyMarketPrice = instrument :* "marketPrice" [priceSource, adsPriceCurrency := currency];

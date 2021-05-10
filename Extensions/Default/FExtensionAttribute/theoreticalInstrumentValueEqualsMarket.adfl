@@ -1,0 +1,3 @@
+[Default]FInstrument:theoreticalInstrumentValueEqualsMarket = select(isMultiCurrencyInstrument, 
+  true->delta(object:theoreticalInstrumentSpotValueForPrice [theoreticalOrMarketInstrumentValue = theoreticalInstrumentValue], opaque(object:moveValue [moveStartValue = marketSpotValue, moveToDate = instrumentSpotDate, legs, priceSource, valuesOnSpotOverride] - object:theoreticalInstrumentSpotValueForPrice [theoreticalOrMarketInstrumentValue = theoreticalInstrumentValue])), 
+  false->delta(theoreticalInstrumentValue, opaque(object:moveValue [moveStartValue = marketSpotValue, moveToDate = date(theoreticalInstrumentValue), legs, priceSource, valuesOnSpotOverride] - theoreticalInstrumentValue)));

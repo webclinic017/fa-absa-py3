@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:collateralPnlBSB = sumOf(children :* "collateralPnlBSB");
+[ABSA Specific 4.3]FTradeRow:collateralPnlBSB = select(startDate < dateToday, 
+  true->select(trade.StartCash < 0, 
+    true->trade.StartCash * int(endDate - startDate) * ((zarAbsaTOP20Call.UsedPrice(startDate, "ZAR", "internal") + zarAbsaMMClr.UsedPrice(startDate, "ZAR", (zarAbsaMMClr :* "priceOrderBook.SelectedPrice(marketPriceSearchOrder)"))) / 100 - tradedRepoRate / 100) / 365, 
+    false->trade.StartCash * int(endDate - startDate) * (zarAbsaTOP20Call.UsedPrice(startDate, "ZAR", "internal") / 100 - tradedRepoRate / 100) / 365), 
+  false->select(trade.StartCash < 0, 
+    true->trade.StartCash * int(endDate - startDate) * ((zarAbsaTOP20Call.UsedPrice(startDate, "ZAR", (zarAbsaTOP20Call :* "priceOrderBook.SelectedPrice(marketPriceSearchOrder)")) + zarAbsaMMClr.UsedPrice(startDate, "ZAR", (zarAbsaMMClr :* "priceOrderBook.SelectedPrice(marketPriceSearchOrder)"))) / 100 - tradedRepoRate / 100) / 365, 
+    false->trade.StartCash * int(endDate - startDate) * (zarAbsaTOP20Call.UsedPrice(startDate, "ZAR", (zarAbsaTOP20Call :* "priceOrderBook.SelectedPrice(marketPriceSearchOrder)")) / 100 - tradedRepoRate / 100) / 365));

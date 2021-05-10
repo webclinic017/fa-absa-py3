@@ -1,0 +1,7 @@
+[Default]FNamedParameters:vegaStrikeBucketsConverted = select(vegaStrikeBucketsToStrikeType == object.Parameter("strikeType"), 
+  true->vegaStrikeBucketArray, 
+  false->select(vegaStrikeBucketsToStrikeType == "Absolute", 
+    true->absoluteStrikePriceFromRelativeInType(vegaStrikeBucketArray, vegaStrikeBucketsReferencePrice, object.Parameter("strikeType")), 
+    false->select(object.Parameter("strikeType") == "Absolute", 
+      true->relativeStrikePriceFromAbsolute(vegaStrikeBucketsReferencePrice, vegaStrikeBucketArray, vegaStrikeBucketsToStrikeType, false), 
+      false->throwError("Cannot currently convert between between strike types"))));

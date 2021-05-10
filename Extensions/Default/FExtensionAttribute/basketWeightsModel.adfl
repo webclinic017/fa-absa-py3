@@ -1,0 +1,6 @@
+[Default]FCertificate:basketWeightsModel = select(baseValuationOnUnderlyingComponents, 
+  true->basketFxAdjustedWeights, 
+  default->1.0);
+[Default]FOption:basketWeightsModel = select(isPerformancePayoff, 
+  true->basketWeights ./ multiUnderlyingInitialFixing, 
+  false->basketFxAdjustedWeights);

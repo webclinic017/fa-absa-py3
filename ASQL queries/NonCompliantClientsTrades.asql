@@ -1,0 +1,99 @@
+SELECT
+    pty.ptynbr,
+    pty.ptyid,
+    pty.type,
+    pty.not_trading,
+    add_info(pty, 'FICA_Compliant') 'FICA_Compliant',
+    add_info(pty, 'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+    add_info(pty, 'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID'
+INTO
+    TempParty
+FROM
+    Party pty
+WHERE
+    pty.type in ('Counterparty','Client')
+    and (pty.not_trading = 'Yes'
+        or add_info(pty, 'FICA_Compliant') = 'No')
+
+
+SELECT
+    trd.trdnbr,
+    pty.ptynbr,
+    pty.ptyid,
+    pty.type,
+    pty.not_trading,
+    pty.FICA_Compliant,
+    pty.BarCap_SMS_CP_SDSID,
+    pty.BarCap_SMS_LE_SDSID,
+    trd.acquire_day,
+    trd.value_day,
+    trd.status,
+    trd.time,
+    'acquirer_ptynbr' 'link_type',
+    ins.insaddr,
+    ins.insid,
+    ins.instype,
+    ins.exp_day,
+    display_id(trd, 'acquirer_ptynbr') 'acquirer'
+INTO
+    TempTrades
+FROM
+    Trade trd,
+    TempParty pty,
+    Instrument ins
+WHERE
+    trd.acquirer_ptynbr = pty.ptynbr
+    and ins.insaddr = trd.insaddr
+    and trd.value_day > @ValueDay{Yesterday}
+    and trd.status not in ('Void', 'Simulated', 'Terminated')
+
+
+SELECT
+    trd.trdnbr,
+    pty.ptynbr,
+    pty.ptyid,
+    pty.type,
+    pty.not_trading,
+    pty.FICA_Compliant,
+    pty.BarCap_SMS_CP_SDSID,
+    pty.BarCap_SMS_LE_SDSID,
+    trd.acquire_day,
+    trd.value_day,
+    trd.status,
+    trd.time,
+    'counterparty_ptynbr' 'link_type',
+    ins.insaddr,
+    ins.insid,
+    ins.instype,
+    ins.exp_day,
+    display_id(trd, 'acquirer_ptynbr') 'acquirer'
+INTO
+    TempTrades
+FROM
+    Trade trd,
+    TempParty pty,
+    Instrument ins
+WHERE
+    trd.counterparty_ptynbr = pty.ptynbr
+    and ins.insaddr = trd.insaddr
+    and trd.value_day > @ValueDay
+    and trd.status not in ('Void', 'Simulated', 'Terminated')
+
+
+SELECT DISTINCT
+    trd.ptyid 'Name (FA short name)',
+    trd.BarCap_SMS_CP_SDSID,
+    trd.BarCap_SMS_LE_SDSID,
+    trd.not_trading = 'Yes'? 'Yes': 'No' 'Not Trading',
+    trd.FICA_Compliant,
+    trd.trdnbr 'Trade Number',
+    trd.acquirer 'Trade Acquirer',
+    trd.instype 'Instrument Type',
+    trd.acquire_day 'Trade Date',
+    trd.value_day 'Trade Value Date',
+    trd.status 'Trade Status',
+    trd.exp_day 'Expiry Date'
+FROM
+    TempTrades trd
+WHERE
+    (trd.trdnbr in (@TradeNumber{''}) or '' in (@TradeNumber))

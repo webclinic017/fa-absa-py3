@@ -1,0 +1,591 @@
+[ABSAIntegrationConfigSettings]FObject:FConfirmation_Config_Settings
+<!--
+        =============================================================
+        MODULE                          :       FConfirmation_Config_Settings
+        PURPOSE                         :       Configure confirmation and affirmation integration setting here for different environments,
+                                                        e.g. Dev, UAT, Prod ext...
+        DEPARTMENT AND DESK     :       Money Market Desk
+        REQUASTER                       :       IT Initiative
+        DEVELOPER                       :       Tshepo Mabena
+        CR NUMBER                       :       
+        =============================================================
+
+        HISTORY
+        =============================================================
+        Date            Change no       Developer                       Description
+        =============================================================
+        2012-02-28      XXXXXX         Heinrich Cronje					Sybase Exodus - Added all the different environments.
+        2012-05-23      C209780        Anwar Banoo						Updated queue details for all environments that were missing.
+		2016-04-07      ABITFA-4209    Lawrence Mucheka					Updated amb settings for dev/testing environments.
+        
+        =============================================================
+        DESCRIPTION OF PARAMETERS:
+            
+            Host                        :       AMB server name for the AMB connection.
+            Port                        :       Port for the AMB connection.
+            ReceiverName        :       Receiver channel name that will receive messages from the AMB.
+            ReceiverSource      :       Source that will be subscribed to. This should be the same as 
+                                                specified in the AMBA ini.
+            ambAddress           : Address of the AMB that the Trident ATS will connect to.
+            tridentConnectionReceiverMBName  : Receiver channel name that will receive messages from the AMB.
+            affirmationReceiverMBName : Receiver channel name that will receive messages from the AMB.
+            documentationReceiverMBName : Receiver channel name that will receive messages from the AMB.
+            tridentConnectionSenderMBName : Sender channel name that will send messages to the AMB.
+            MQChannel   :       MQ Channel name.
+            MQSecExit   :       Secuirity keyes to make the MQ secure.
+            MQQueueManager      : MQ Queue Manager name
+            MQHostName  : Host name of the MQ channel.
+            MQTridentSenderQueue        : Queue to place messages on.
+            MQTridentReceiverQueue      : Queue to receive messages from.
+            Environment         : This information will be determined from extension value EnvironmentSettings.
+
+        =============================================================
+        Config Settings
+        =============================================================
+-->
+<ConfigParameters>
+       <Environment ArenaDataServer ="DEV0Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9301</Port>
+                <ReceiverName></ReceiverName>
+                <ReceiverName>D0_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D0_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D0_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D0_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D0_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D0_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV1Setting">
+                <Host>fa-dev-comp01.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>DEV1_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>DEV1_CONF_AMBA</ReceiverSource>
+                 
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/ambprod/Password1000</Login>
+                <tridentConnectionReceiverMBName >DEV1_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >DEV1_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >DEV1_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >DEV1_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+ 
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSDEV01</MQQueueManager>
+                <MQHostName>22.144.141.127</MQHostName>
+
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV2Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D2_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D2_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D2_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D2_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D2_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D2_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV3Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D3_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D3_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D3_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D3_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D3_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D3_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV4Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D4_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D4_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D4_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D4_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D4_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D4_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+	
+         <Environment ArenaDataServer ="DEV5Setting">
+                <Host>fa-dev5-ads.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>DEV5_CONF_RECEIVER</ReceiverName>
+                <ReceiverSource>DEV5_CONF_AMBA</ReceiverSource>
+
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/mb/Password1000</Login>
+                <documentationReceiverMBName >DEV5_OPSCONF_SENDER</documentationReceiverMBName >
+
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSDEV01</MQQueueManager>
+                <MQHostName>22.144.141.127</MQHostName>
+        </Environment>
+
+        <Environment ArenaDataServer ="DEV6Setting">
+                <Host>JHBDSM020000239</Host>
+                <Port>9301</Port>
+                <Login>/ats_mb/hiddenpwd1000x9471b25cf9192f1654689ace1b089f7979ffe037294f42</Login>
+                <ReceiverName>D6_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D6_CONF_AMBA</ReceiverSource>
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D6_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D6_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D6_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D6_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV8Setting">
+                <Host>fa-dev5-ads.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>DEV8_CONF_RECEIVER</ReceiverName>
+                <ReceiverSource>DEV8_CONF_AMBA</ReceiverSource>
+
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/mb/Password1000</Login>
+                <documentationReceiverMBName >DEV8_OPSCONF_SENDER</documentationReceiverMBName >
+
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSDEV01</MQQueueManager>
+                <MQHostName>22.144.141.127</MQHostName>
+        </Environment>
+
+        <Environment ArenaDataServer ="DEV12Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D12_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D12_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D12_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D12_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D12_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D5TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV13Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D13_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D13_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D13_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D13_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D13_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D13_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV14Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D14_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D14_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D14_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D14_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D14_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D14_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DEV15Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>D15_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D15_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D15_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D15_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D15_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D15TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT0Setting">
+                <Host>JHBDSM020000239</Host>
+                <Port>9301</Port>
+                <Login>/ats_mb/hiddenpwd1000x9471b25cf9192f1654689ace1b089f7979ffe037294f42</Login>
+                <ReceiverName>D1_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>D1_CONF_AMBA</ReceiverSource>
+                <ambAddress >10.110.92.110</ambAddress >
+                <tridentConnectionReceiverMBName >D1_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >D1_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >D1_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >D1_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                <MQQueueManager>MQFJBD01</MQQueueManager>
+                <MQHostName>jbmwfarm01-dev(1421)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT1Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U1_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U1_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U1_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U1_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U1_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U1_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT2Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U2_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U2_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U2_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U2_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U2_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U2_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT3Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U3_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U3_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U3_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U3_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U3_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U3_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT4Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U4_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U4_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U4_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U4_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U4_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U4_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT5Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U5_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U5_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U5_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U5_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U5_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U5_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT6Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U6_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U6_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U6_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U6_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U6_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U6_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT7Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U7_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U7_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U7_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U7_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U7_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U7_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT8Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U8_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U8_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U8_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U8_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U8_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U8_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT9Setting">
+                <Host>jhbdsm020000223</Host>
+                <Port>9301</Port>
+                <Login>/ats_mb/Password200</Login>
+                <ReceiverName>U9_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U9_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >jhbdsm020000223</ambAddress >
+                <tridentConnectionReceiverMBName >U9_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U9_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U9_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U9_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="UAT10Setting">
+                <Host>127.0.0.1</Host>
+                <Port>9300</Port>
+                <ReceiverName>U10_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>U10_CONF_AMBA</ReceiverSource>
+                
+                <ambAddress >10.110.92.155</ambAddress >
+                <tridentConnectionReceiverMBName >U10_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >U10_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >U10_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >U10_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                 <MQChannel>FAAJB.CLIENTS.UN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+                
+                <MQQueueManager>MQFJBT01</MQQueueManager>
+                <MQHostName>jbmwfarm01-uat(1431)</MQHostName>
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.T01.JB.01</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.T01.JB.01</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="PreProdSetting">
+                <Host>fa-preprod-comp01.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>PP_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>PP_CONF_AMBA</ReceiverSource>
+                                
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/ats_mb/hiddenpwd1000xd75fd750b6d084ce2d12b749f877c585b1b88388c90fc6</Login>
+                <tridentConnectionReceiverMBName >PP_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >PP_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >PP_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >PP_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+                
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSUAT01</MQQueueManager>
+                <MQHostName>mqauat1.absa.co.za</MQHostName>
+
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="PRODSetting">
+                <Host>fa-prod-comp01.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>P_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>P_CONF_AMBA</ReceiverSource>
+                                
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/ats_mb/hiddenpwd1000xd75fd750b6d084ce2d12b749f877c585b1b88388c90fc6</Login>
+                <tridentConnectionReceiverMBName >P_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >P_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >P_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >P_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+ 
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSPRD01</MQQueueManager>
+                <MQHostName>22.241.52.29</MQHostName>
+
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+        
+        <Environment ArenaDataServer ="DRSetting">
+                <Host>fa-dr-comp01.corp.dsarena.com</Host>
+                <Port>9300</Port>
+                <ReceiverName>P_CONF_ATS_RECEIVER</ReceiverName>
+                <ReceiverSource>P_CONF_AMBA</ReceiverSource>
+                                
+                <ambAddress >127.0.0.1</ambAddress >
+                <Login>/ats_mb/hiddenpwd1000xd75fd750b6d084ce2d12b749f877c585b1b88388c90fc6</Login>
+                <tridentConnectionReceiverMBName >P_TRIDENT_ATS_SENDER</tridentConnectionReceiverMBName >
+                <affirmationReceiverMBName >P_AFF_ATS_RECEIVER</affirmationReceiverMBName >
+                <documentationReceiverMBName >P_OPDOC_ATS_RECEIVER</documentationReceiverMBName >
+                <tridentConnectionSenderMBName >P_TRIDENT_ATS_RECEIVER</tridentConnectionSenderMBName >
+ 
+                <MQChannel>FRONTARENA.SVRCONN</MQChannel>
+                <MQSecExit>BCPKIJCExit_60R(SECSEND)</MQSecExit>
+
+                <MQQueueManager>CIBMKTSPRD01</MQQueueManager>
+                <MQHostName>22.241.52.29</MQHostName>
+
+                <MQTridentSenderQueue>PRV.TRIDENTSFF1.FRONTARENA.D01.JB.00</MQTridentSenderQueue>
+                <MQTridentReceiverQueue>PRV.TRIDENTSFF2.FRONTARENA.D01.JB.00</MQTridentReceiverQueue>
+        </Environment>
+</ConfigParameters>
+...

@@ -1,0 +1,63 @@
+[Default]FObject:Security Temporary In
+{
+  Parameters:
+  [
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+}
+temporaryInstrumentAmount = If(Compare.IsEqual(&'type', $settlementType), Switch(&['trdnbr','insaddr','instype'], ['Repo/Reverse', &'amount', 'SecurityLoan', &'amount', 'BuySellback', &'amount', 0.0]), 0.0);
+
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    }
+  ]
+}
+collateralAmount = If(And(Compare.IsEqual(&'type', 'Security Nominal'), Compare.IsEqual(&['trdnbr','type'], $tradeType)), &'amount', 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    },
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+  
+}
+temporaryAmount = If(Compare.IsEqual(&['trdnbr','category'], 'Collateral'), @collateralAmount($tradeType), @temporaryInstrumentAmount($settlementType));
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+  DisplayInformation:
+  {
+    Label:'Temporary In',
+    GroupLabel:'Security',
+    Description:'Settled security settlements identified as temporary, Repo/Reverse, SecurityLoan, Collateral, and BuySellBack, where the amount is positive at the start of the trade.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(&'settledSecurityExtAttr', If(@isAmountPositive(), @temporaryAmount('Normal','Security Nominal'), @temporaryAmount('Closing', 'End Security')), 0.0));
+
+
+...

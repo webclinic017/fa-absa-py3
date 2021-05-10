@@ -1,0 +1,84 @@
+[StructuredProductsDealPackage]FObject:udmcAutocallableBasketPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for autocallable basket option
+#
+#--------------------------------------------
+
+#PARAMETERS
+param int nAssets;
+param int payoffType;
+param double couponAsPct;
+param double couponBarrierAsPct;
+param double capitalProtectionAsPct;
+param double fxStrikeToInstrument;
+param matrix(double) weights;
+param matrix(double) timeSteps;
+param matrix(double) priceFixings;
+param matrix(double) initialFixings;
+
+#PROCESS
+process matrix(double) S;
+
+#LOCAL VARIABLES
+int t = 0;
+int terminationDate = 0;
+int tMax = length(timeSteps);
+double value = 1.0;
+double minPerformance = 0.0;
+matrix(double) performance = zeros(nAssets);
+matrix(double) performanceWeighted = zeros(nAssets);
+matrix(double) minBoolMatrix = zeros(nAssets);
+matrix(double) callablePrice = zeros(nAssets);
+matrix(double) kickInPrice = zeros(nAssets);
+callablePrice = couponBarrierAsPct*S[:,0];
+kickInPrice = capitalProtectionAsPct*S[:,0];
+
+
+#MAIN LOOP
+value = 1.0;
+terminationDate = -1;
+
+for t = 1 to tMax
+{
+    if(terminationDate < 0)
+    {
+        if(sum(S[:,t] >= callablePrice) == nAssets)
+        # If all basket components are above their callable levels 
+        {
+            terminationDate = t;
+            value = 1.0 + (t * couponAsPct);
+        };
+    };
+};
+
+if(terminationDate < 0)
+{
+    if(payoffType==1)
+    # Payoff based on basket performance
+    {
+            performance = S[:, tMax-1]./ S[:,0];
+            performanceWeighted =   performance .* transpose(weights);
+            if(sum(performanceWeighted) <= capitalProtectionAsPct)
+            # If basket ends below its Kick-in Price
+            {
+                value = sum(performanceWeighted);
+            };
+    };
+    if(payoffType==2)
+    # Payoff based on worst performing basket component
+    {
+            if(sum(S[:,tMax-1] <= kickInPrice) > 0)
+            # If any basket component ends below its Kick-in Price
+            {
+                performance = S[:, tMax-1]./ S[:,0];
+                value = min(performance);
+            };
+    };
+    terminationDate = tMax - 1;
+};
+
+#CASHFLOW
+cashFlow(terminationDate, value*(1.0/fxStrikeToInstrument));
+
+...

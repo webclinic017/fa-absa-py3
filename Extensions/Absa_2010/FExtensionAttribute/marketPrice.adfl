@@ -1,0 +1,4 @@
+[Absa_2010]FCombInstrMap:marketPrice = denominatedvalue(double(instrument :* "marketOrTheorPrice" [priceSource]), instrumentCurrency, , value(combination:instrumentSpotDate));
+[Absa_2010]FCombination:marketPrice = select(secondarySplitPageInstruments.Includes(object), 
+  false->object.UnitValueToQuote(discountAndConvertToCurrency(opaque((sumOf(instrumentMaps :* "marketPrice * weight * instrument:contractSize" [priceSource, doSplitAll, isSplitAllGrouped]) / combinationDivisionFactor)), instrumentDiscountCurvesPerUnit, value(instrumentSpotDate), instrumentCurrencies :* "fxSpotRate" [fxToCurrency = currency], displayCurrency, filterUnit), valuationDate, dateToday, true, legInformations, staticLegInformations, quotation, couponToValueFactor, couponPriceAdjustment), 
+  true->marketPriceMethod);

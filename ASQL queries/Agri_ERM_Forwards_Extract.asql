@@ -1,0 +1,94 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Agri_ERM_Forwards_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Agri_ERM_Forwards_Extract' and p.type = 'SQL Query' 
+
+/*
+Query   :               Agri_ERM_Forwards_Extract
+Purpose :               Show all forward trades in trade filter 'Physicals_Agri_Portfolio'.
+Logic   :               Straightforward.
+History :               
+                2001/04/01 - jg - initial query
+                2002/06/04 - ap - point portfolio to trade filter
+                2002/06/04 - ap - conversion factors based on individual portfolio definition        
+                2003/10/27 - Russel Webber - Amended selection criteria to always return trades whenever have trades with missing values than exclude trades.
+                2003/10/28 - Russel Webber - Modified to use a macro for user selection of the trade filter.
+                2007/08/20 - Jurg du Preez - added a union to return all the Future/Forward instype in the Base Metal portfolio.
+                2010/03/16 - Rishaan Ramnarain - added filter and removed the Optional TradArea field
+                2010/07/21 - Rishaan Ramnarain - added filter for Base and Energy trades.
+
+*/
+ 
+
+/*Agri Forwards*/
+
+select
+    Today                                                                   'Today',
+    t.trdnbr                                                                'TrdNo',
+    display_id(t,'prfnbr')                                                  'Portfolio',
+    display_id(t,'optkey1_chlnbr')                                          'TradeArea',
+    display_id(t,'counterparty_ptynbr')                                     'Counterparty',
+    i.exp_day                                                               'Expiry_Date',
+    i.insid                                                                 'Instrument',
+    convert('double',nominal_amount(t),4)                                   'Tonnage',
+    display_id(i,'und_insaddr')                                             'Underlying',
+    t.price                                                                 'Price',
+    add_info(t,'AgriTransportDiff')                                         'Transport_Diff',
+    nominal_amount(t)>0 ? 'Buy' : 'Sell'                                    'Buy_Sell',
+    display_id(i,'curr')                                                    'Currency',
+    t.value_day                                                             'Deal_Date',
+    mtm_price(t),
+        (mtm_price(t)
+            -to_double(add_info(t,'AgriTransportDiff'))) * t.quantity       'Curr_Reval',
+    display_id(t,'prfnbr') in ('SUNFLOWER','WHEAT','SOYA') 
+                ? 50 : 100                                                  'Conv_Factor',
+    (t.quantity) /
+    (display_id(t,'prfnbr') in ('SUNFLOWER','WHEAT','SOYA') 
+                ? 50 : 100)                                                 'Contract_Conv'
+
+from
+    trade           t,
+    instrument      i
+
+where
+    match_filter(t, @TradeFilter{Agri_ERM_Forwards_Filter; tradefilter.fltid})
+and i.insaddr = t.insaddr
+
+
+
+union
+
+ 
+/*Base and Energy Futures and Forwards*/
+
+select
+    Today                                                                   'Today',
+    t.trdnbr                                                                'TrdNo',
+    display_id(t,'prfnbr')                                                  'Portfolio',
+    display_id(t,'optkey1_chlnbr')                                          'TradeArea',
+    display_id(t,'counterparty_ptynbr')                                     'Counterparty',
+    i.exp_day                                                               'Expiry_Date',
+    i.insid                                                                 'Instrument',
+    convert('double',nominal_amount(t),4)                                   'Tonnage',
+    display_id(i,'und_insaddr')                                             'Underlying',
+    t.price                                                                 'Price',
+    add_info(t,'AgriTransportDiff')                                         'Transport_Diff',
+    nominal_amount(t) > 0 ? 'Buy' : 'Sell'                                  'Buy_Sell',
+    display_id(i,'curr')                                                    'Currency',
+    t.value_day                                                             'Deal_Date',
+    mtm_price(t),
+        (mtm_price(t)
+                -to_double(add_info(t,'AgriTransportDiff'))) * t.quantity   'Curr_Reval',
+    100                                                                     'Conv_Factor',
+    (t.quantity) / 100                                                      'Contract_Conv'
+                    
+from
+    trade        t,
+    instrument   i,
+    portfolio    p
+
+where
+    match_filter(t, @TradeFilter2{BaseEner_ERM_Forwards_Filter; tradefilter.fltid})
+and i.insaddr = t.insaddr

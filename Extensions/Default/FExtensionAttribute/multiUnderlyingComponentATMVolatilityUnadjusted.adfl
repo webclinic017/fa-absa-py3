@@ -1,0 +1,9 @@
+[Default]FInstrument:multiUnderlyingComponentATMVolatilityUnadjusted = select(volatilityInformationHasGenericValueFunction, 
+  true->collapse(genericATMParametricMultiVolatilityValue), 
+  false->select(volatilityInformationType, 
+    "Parametric"->select(volatilityInformation.ParametricVolatilityType, 
+      "Sabr"->sabrATMParametricMultiVolatilityValue, 
+      "Malz"->collapse(genericATMParametricMultiVolatilityValue), 
+      default->nan), 
+    "Single"->singleATMPointMultiVolatilityValue, 
+    default->defaultATMMultiVolatilityValue));

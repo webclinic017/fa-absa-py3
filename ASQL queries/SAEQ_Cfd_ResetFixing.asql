@@ -1,0 +1,31 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Cfd_ResetFixing') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Cfd_ResetFixing' and p.type = 'SQL Query' 
+
+
+
+select
+	t.trdnbr,
+	p.prfid,
+	@ABUser{;user.userid}                                               'ABUser',
+	@Date{today}                                                        'Date',
+    ael_s(,'as_test_cfds.CheckUser', @ABUser{;user.userid}) = 'Allow' 
+                    ? ael_s(,'as_test_cfds.FixCurrentResets', t, @Date{today})
+                    : 'Access Denied'                                   'ResetFixed'
+
+from
+	Trade t,
+	Portfolio p,
+	Instrument i
+
+where
+	i.insaddr = t.insaddr
+and	t.prfnbr = p.prfnbr
+and p.prfid like '%CFD_Funding'
+and i.exp_day >= @Date{today}
+and	t.status not in ('Terminated', 'Simulated', 'Void')
+and i.instype = 'Deposit'
+

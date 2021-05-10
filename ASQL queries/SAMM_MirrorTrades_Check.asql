@@ -1,0 +1,51 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_MirrorTrades_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_MirrorTrades_Check' and p.type = 'SQL Query' 
+
+
+
+/* ALL INTERNAL TRADES */
+/* === ======== ====== */
+
+select 
+    t.trdnbr 'Trade_Number',
+    p.ptyid 'Counter_Party',
+    pl.ptyid 'Acquirer',
+    t.mirror_trdnbr 'Mirror_Trade_Nbr',
+    (t.mirror_trdnbr > 0) ? 'Mirrored' : 'Not Mirrored'   'Mirror_Status',
+    pf.prfid 'Portfolio',
+    i.exp_day 'Exp_Day',
+    i.instype 'Ins_Type',
+    u.userid          'Trader',
+    u.name            'Trader_Name',
+    time_to_day(t.time) 'Trade_Date',
+    nominal_amount(t) 'Nominal_Amount',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'Product_Code'
+  
+from 
+    trade t,
+    party p,
+    party pl,
+    instrument i,
+    portfolio pf,
+    user u
+
+where 
+    t.counterparty_ptynbr = p.ptynbr
+and p.type = 'Intern Dept'
+and t.status not in ('Simulated','Terminated','Void')
+and	i.exp_day > today
+and t.prfnbr = pf.prfnbr
+and t.insaddr = i.insaddr
+and t.acquirer_ptynbr = pl.ptynbr
+/*and pl.ptyid = @Acquirer{Funding Desk; party.ptyid}*/
+and ( 'Any' in (@Acquirer{Any; }) or pl.ptyid in (@Acquirer{; party.ptyid}))
+and add_info(t, 'Funding Instype') in ('CD','CL')
+and t.trader_usrnbr = u.usrnbr
+and time_to_day(t.creat_time) = @Date{TODAY}

@@ -1,0 +1,13 @@
+[Core Risk]FCashFlowInstrument:fixingAggregatedNominal = select(timeBucketsSetExternally, 
+  nil->fixingAggregatedNominalValue, 
+  default->scenarioaxisarray(fixingAggregatedNominalValue, , <["fixingNominalBucket"], , , timeBucketsSetExternally>));
+[Core Risk]FInstrument:fixingAggregatedNominal = timeBucketsSetExternallyZeroVector;
+[Core Risk]FInstrumentAndTrades:fixingAggregatedNominal = select(fixingShiftValueValid, 
+  false->timeBucketsSetExternallyNilVector, 
+  default->shunt(isOpenPosition, 
+    true->openInstrument :* "collapse(fixingAggregatedNominal)" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk], 
+    false->timeBucketsSetExternallyNilVector));
+[Core Risk]FLegAndTrades:fixingAggregatedNominal = timeBucketsSetExternallyNilVector;
+[Core Risk]FMultiInstrumentAndTrades:fixingAggregatedNominal = select(fixingShiftValueValid, 
+  false->timeBucketsSetExternallyNilVector, 
+  default->sumOf(openInstruments :* "collapse(fixingAggregatedNominal)" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk]));

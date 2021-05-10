@@ -1,0 +1,11 @@
+[Automated Trading]QuoteAndHedgeBasketSpread:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeDeltaNeutral:quoteLegPotentialPrice = quoteLegCalculatedPrice;
+[Automated Trading]QuoteAndHedgePriceSpread:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeRightIssue:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Automated Trading]QuoteAndHedgeTotalPrice:quoteLegPotentialPrice = quoteAndHedgeTotalPrice - hedgeLegLimitPriceForPotentialQuantity;

@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:priceContractGamma = shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->convertToCurrency(priceGammaPercentValues, priceGreekFxRates, displayCurrencySymbol, filterUnit) / (singlePriceGreekRiskFactorValueInDisplayCurrency / 100), 
+  default->denominatedValueZero);
+[Default]FTimeBucketAndObject:priceContractGamma = scenarioaxisarray(rowInstrumentAndTrades:priceContractGamma [displayCurrency, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm], timeDistributionPriceGreekPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

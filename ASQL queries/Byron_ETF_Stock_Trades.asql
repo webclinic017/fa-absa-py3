@@ -1,0 +1,32 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Byron_ETF_Stock_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Byron_ETF_Stock_Trades' and p.type = 'SQL Query' 
+
+/*
+Developer   : Nidheesh Sharma
+Date        : 17 April 2012, [17/04/2012]
+Description : A report that produces results for the "si_GLD_NWV_SC trade" filter
+Change No. 	: C144984
+Requestor   : Melissa Pillay
+*/
+
+select
+    t.trdnbr                        'Trade No',
+    t.quantity                      'Quantity',
+    t.price                         'Price',
+    t.time                          'Time',
+    t.premium                       'Premium',
+    display_id(t,'trader_usrnbr')   'Trader',
+    i.insid                         'Instrument',
+    i.instype                       'Instrument Type'
+from
+    trade t,
+    instrument i
+where
+    t.time >= @1_StartDay{Yesterday}
+and t.time <= @2_EndDay{Today}
+and i.insaddr=t.insaddr
+and match_filter(t,@3_Filter{si_GLD_NWV_SC trade;Tradefilter.fltid})

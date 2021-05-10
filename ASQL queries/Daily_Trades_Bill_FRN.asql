@@ -1,0 +1,194 @@
+/*
+Developer         : Tshepo Mabena, Anwar Banoo, Anil Parbhoo, Aaeda Salejee, Willie van der Bank, Willie van der Bank
+Requester         : n/a, Sipho Ndlalane, Miguel da Silva, Miguel da Silva, Sipho Ndlalane, Molemo Masuku
+Date              : 09/09/2009, , , , 2012-04-12, 2012-07-19
+Description       : Returns all trades of Bills and FRN for a specified period.
+Issue             : n/a, 224594, 713436, 128652, 332310
+tracker           : 1933, 1768, PSB-56, ABITFA-995, ABITFA-1296, ABITFA-1402
+
+Issue Description : The code crashed on users and therefore it needed to be optimised.
+                  : Updated. Added additional info for JOB12/REPO DESK/Underlying BILL
+                  : - Report to exclude trades pertaining to PB portfolios (i.e. Portfolio = PB_*) and reflect portfolio add info fields
+                    - Replace CP with Portfolio name from the PB agency trade if the trans ref points to a prime services trade
+                    - Replace Host ID with the Nutron Client Code (i.e. value on “AgencyTradPrincipal” field) from the PB agency trade if the trans ref points to a prime services trade
+                    - in the case of a transref for a non PB portfolio reflect the Unexcor code of the portfolio add info field of the PB agency trade
+                  : Added a default filter (Daily_Trades_Bill_FRN), only returns ABCAP trades.
+                  : Added Cpty UnexCor_Code.
+                  : Added BuySellbacks and Repo/Reverse
+*/
+
+/****************** Usage code for this ASQL ******************/
+select
+ael_i(p,'ASQL_log','Daily_Trades_Bill_FRN') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Daily_Trades_Bill_FRN' and p.type = 'SQL Query'
+
+
+
+select
+	t.trdnbr,
+	c.entry					            'TradeArea',
+	display_id(t, 'acquirer_ptynbr')	'Acquirer',
+	i.instype in ('BuySellback','Repo/Reverse')
+        ? display_id(i,'und_insaddr')
+        : i.insid					            'InstrumentID',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.hostid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr) 'hostid',
+	i.extern_id1,
+	t.creat_time				        'Deal Date',
+	t.quantity*1000000   			    'Nominal',
+	t.premium,
+	t.value_day				            'Settlement',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.ptyid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr) 'CP',
+	t.status,
+	t.price					            'Trade Yield',
+	round(t.premium-(dirty_from_yield(i,t.value_day,,,t.price)*-t.quantity*10000),0)	'diff to calc prem',
+	u.name,
+	t.trx_trdnbr                        'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')   'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? '' 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    add_info(t,'Confo Date Sent')   'Confo Date Sent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'Confo Text',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? add_info(party,'UnexCor Code') 
+        : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+from
+	instrument i,
+	trade t,
+	choicelist c,
+	portfolio p,
+	party party,
+	user u
+
+where        
+    match_filter(t, @1_Filter{Daily_Trades_Bill_FRN;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and t.optkey1_chlnbr *= c.seqnbr
+and	p.prfnbr = t.prfnbr
+and u.usrnbr = t.creat_usrnbr
+and t.counterparty_ptynbr = party.ptynbr
+and (i.instype in ('Bill','FRN') or (i.instype in ('BuySellback','Repo/Reverse') and i.und_instype = 'FRN'))
+and time_to_day(t.creat_time) >= @FromDate{Yesterday;}
+and time_to_day(t.creat_time) <= @ToDate{Today;}
+
+union
+
+select
+	t.trdnbr,
+	c.entry					            'TradeArea',
+	display_id(t, 'acquirer_ptynbr')	'Acquirer',
+	i.insid					            'InstrumentID',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.hostid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr) 'hostid',
+	i.extern_id1,
+	t.creat_time				        'Deal Date',
+	t.quantity*1000000   			    'Nominal',
+	t.premium,
+	t.value_day				            'Settlement',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.ptyid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr) 'CP',
+	t.status,
+	t.price					            'Trade Yield',
+	round(t.premium-(dirty_from_yield(i,t.value_day,,,t.price)*-t.quantity*10000),0)	'diff to calc prem',
+	u.name,
+	t.trx_trdnbr                        'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')   'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? '' 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    add_info(t,'Confo Date Sent')   'Confo Date Sent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'Confo Text',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? add_info(party,'UnexCor Code') 
+        : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+    
+from
+	instrument i,
+	trade t,
+	choicelist c,
+	portfolio p,
+	party party,
+	party a,
+	user u
+	
+where        
+    match_filter(t, @1_Filter{Daily_Trades_Bill_FRN;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and t.optkey1_chlnbr *= c.seqnbr
+and	p.prfnbr = t.prfnbr
+and u.usrnbr = t.creat_usrnbr
+and t.counterparty_ptynbr = party.ptynbr
+and t.acquirer_ptynbr = a.ptynbr
+and i.und_instype = 'Bill' 
+and p.prfid = 'JOB12' 
+and a.ptyid in ('REPO DESK', 'CM Funding', 'PRIME SERVICES DESK')
+and time_to_day(t.creat_time) >= @FromDate{Yesterday;}
+and time_to_day(t.creat_time) <= @ToDate{Today;}
+
+union
+
+select
+	t.trdnbr,
+	c.entry					            'TradeArea',
+	display_id(t, 'acquirer_ptynbr')	'Acquirer',
+	i.insid					            'InstrumentID',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.hostid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr) 'hostid',
+	i.extern_id1,
+	t.creat_time				        'Deal Date',
+	t.quantity*1000000   			    'Nominal',
+	t.premium,
+	t.value_day				            'Settlement',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? party.ptyid 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr) 'CP',
+	t.status,
+	t.price					            'Trade Yield',
+	round(t.premium-(dirty_from_yield(i,t.value_day,,,t.price)*-t.quantity*10000),0)	'diff to calc prem',
+	u.name,
+	t.trx_trdnbr                        'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')   'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? '' 
+        : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    add_info(t,'Confo Date Sent')   'Confo Date Sent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'Confo Text',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr 
+        ? add_info(party,'UnexCor Code') 
+        : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+from
+	instrument i,
+	trade t,
+	choicelist c,
+	portfolio p,
+	party party,
+	party a,
+	user u
+	
+where        
+    match_filter(t, @1_Filter{Daily_Trades_Bill_FRN;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and t.optkey1_chlnbr *= c.seqnbr
+and	p.prfnbr = t.prfnbr
+and u.usrnbr = t.creat_usrnbr
+and t.counterparty_ptynbr = party.ptynbr
+and t.acquirer_ptynbr = a.ptynbr
+and i.und_instype = 'Bill' 
+and p.prfid = '9803CARRIES' 
+and a.ptyid in ('Investments', 'PRIME SERVICES DESK')
+and time_to_day(t.creat_time) >= @FromDate{Yesterday;}
+and time_to_day(t.creat_time) <= @ToDate{Today;}
+
+order by 
+    t.trdnbr

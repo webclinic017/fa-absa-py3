@@ -1,0 +1,532 @@
+/* ***********************************
+ * INTELLIMATCH QUERY. DO NOT CHANGE *
+ * ***********************************
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Daily_Movement_IM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Daily_Movement_IM' and p.type = 'SQL Query' 
+
+/*
+Date            Who                 CR Number     What
+26/05/2009      Willie van der Bank               Created
+22/09/2009      Willie van der Bank 1927          Exclude forward dated cashflows (in line with 'Call_Daily_Movement_Corona')
+*/
+
+
+/******************************************************************************
+
+VERY IMPORTANT
+
+Any change made to this report must be duplicated in the following extract
+ASQL : Call_Daily_Movement_Corona
+
+******************************************************************************/
+
+
+/*---------------------------------------------------------------Macro--------------------------------------------------------------------------------*/
+select
+    to_date(@3_Start_Date{Today})                 'Start_Date',
+    to_date(@4_End_Date{Today})                   'End_Date',
+    @5_Backdates{Include;'Include','Exclude'}     'Backdates'
+into
+    macro
+from
+    serverdata s
+where
+    srdnbr > 0
+/*---------------------------------------------------------------------------------------------------------------------------------------------------*/    
+
+/*--------------------------------------------------------------Cash Trades--------------------------------------------------------------------------*/
+select
+    t.trdnbr                                    'Trade_Nbr',
+    display_id(t,'counterparty_ptynbr')         'Counterparty',
+    i.insid                                     'Insid',
+    cf.cfwnbr                                   'Cashflow_Nbr',
+    to_double(t.quantity*cf.fixed_amount)       'Amount',
+    /*cf.pay_day                                  'cf_payday',*/
+    cf.type = 'Fixed Amount' 
+        ? cf.start_day ~= 0 ? cf.start_day : cf.pay_day
+        : cf.pay_day                            'cf_payday', /*Value_Day'*/
+    to_date(cf.creat_time)                      'Deal_Date',
+    display_id(t,'prfnbr')                      'Portfolio',
+    add_info(t,'Funding Instype')               'Funding_Instype',
+    display_id(cf,'creat_usrnbr')               'Dealer',
+    cf.type                                     'CashType',
+    l.rolling_base_day                          'RollingBaseDay',
+    to_double(t.quantity*projected_cf(cf))      'ProjectedCF',
+    add_info(cf,'Call Midas_nbr')               'Midas_nbr',
+    add_info(cf,'Call Print')                   'Printed',
+    cf.creat_time                               'Create_Time',
+    t.value_day                                 't_valueday',
+    cf.start_day                                'cf_startday',
+    cf.end_day                                  'cf_endday',
+    display_id(l,'curr')	                    'curr',
+    nominal_amount(t)                           'nominal',
+    cf.nominal_factor                           'nominalFactor',
+    projected_cf(cf) * t.quantity	            'amount_AS',
+    t.optional_key                              'DevonRef',
+    'CP'                                        'PartyType',
+    t.status,
+    t.time,
+    t.your_ref 	                                'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+            : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+                    : add_info(t, 'Instype'))	'MM_Instype',
+    l.reinvest                                  'Reinvest'
+    /*,sm.seqnbr   'Seqnbr'*/
+    
+into
+    cash
+from
+    instrument i,
+    cashflow cf,
+    leg l,
+    trade t
+    /*,settlement sm*/
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and match_filter(t, @1_Filter{IMATCH_Call_All_Trds;tradefilter.fltid}, @2_TrdNos{})
+    /*and t.trdnbr *= sm.trdnbr*/
+   
+/*---------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*-----------------All Cashflow information - Include Backdates-----------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.Amount,
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    'Capital'   'Type',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+    
+into
+    temp
+from
+    cash c,
+    macro m
+where
+        c.CashType = 'Fixed Amount'
+    and m.Backdates = 'Include'
+    and ((c.Create_Time >= c.cf_payday and c.Create_Time >= m.Start_Date and c.Create_Time <= m.End_Date)
+        or (c.Create_Time < c.cf_payday and c.cf_payday >= m.Start_Date and c.cf_payday <= m.End_Date))    /*Forward dated cashflows*/
+/*--------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*------------------All Cashflow information - Exclude Backdates-----------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.Amount,
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    'Capital'   'Type',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+	
+into
+    temp
+from
+    cash c,
+    macro m
+where
+        c.CashType = 'Fixed Amount'
+    and m.Backdates = 'Exclude'
+    and c.cf_payday >= m.Start_Date
+    and c.cf_payday <= m.End_Date
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*------------------Normal Interest Payments---------------------------------------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.ProjectedCF  'Amount',
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    'Interest'  'Type',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+    
+into
+    temp
+from
+    cash c,
+    macro m
+where
+        c.cf_payday >= m.Start_Date
+    and c.cf_payday < m.End_Date
+    and c.CashType = 'Call Fixed Rate Adjustable'
+    and c.Reinvest = 'No'
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*------------------Backdate Interest Payments---------------------------------------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.ProjectedCF  'Amount',
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    'Backdated Interest'  'Type',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+    
+into
+    temp
+from
+    cash c,
+    macro m
+where
+        c.cf_payday >= m.Start_Date
+    and c.cf_payday <= m.End_Date
+    and c.CashType = 'Call Fixed Rate Adjustable'
+    and c.Reinvest = 'No'
+    and c.cf_endday < c.cf_payday
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*------------------Fixed Interest Payments---------------------------------------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.ProjectedCF  'Amount',
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    'Fixed Interest'  'Type',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+    
+into
+    temp
+from
+    cash c,
+    macro m
+where
+        c.cf_payday >= m.Start_Date
+    and c.cf_payday <= m.End_Date
+    and c.CashType = 'Fixed Rate Adjustable'
+    and c.Reinvest = 'No'
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+
+
+
+/*------------------Rolling Interest Temp----------------------------------------------------------------*/
+select
+    c.Trade_Nbr,
+    c.Counterparty,
+    c.Insid,
+    c.Cashflow_Nbr,
+    c.ProjectedCF   'Amount',
+    c.cf_payday    'Value_Day',
+    c.Deal_Date,
+    c.Portfolio,
+    c.Funding_Instype,
+    c.Dealer,
+    c.CashType,
+    ael_s(cf,'Call_Rolling_Interest.Call_Rolling_Interest2',m.Start_Date,m.End_Date)  'RollingBaseDay',
+    c.Midas_nbr,
+    c.Printed,
+    c.Create_Time,
+    
+    c.t_valueday,
+    c.cf_startday,
+    c.cf_endday,
+    c.curr,
+    c.nominal,
+    c.nominalFactor,
+    c.amount_AS,
+    c.DevonRef,
+    c.PartyType,
+    c.status,
+    c.time,
+    c.CPRef,
+	c.MM_Instype,
+	c.Reinvest
+    
+into
+    RollingIntTemp
+from
+    cash c,
+    cashflow cf,
+    macro m
+where
+        c.CashType = 'Call Fixed Rate Adjustable'
+    and c.cf_payday = m.End_Date
+    and c.Cashflow_Nbr = cf.cfwnbr
+    and c.Reinvest = 'No'
+    /*and cf.end_day = '2008-05-01'*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*------------------Rolling Interest----------------------------------------------------------------------*/
+select
+    r.Trade_Nbr,
+    r.Counterparty,
+    r.Insid,
+    r.Cashflow_Nbr,
+    r.Amount,
+    r.Value_Day,
+    r.Deal_Date,
+    r.Portfolio,
+    r.Funding_Instype,
+    r.Dealer,
+    'Rolling Interest'   'Type',
+    r.Midas_nbr,
+    r.Printed,
+    r.Create_Time,
+    
+    r.t_valueday,
+    r.cf_startday,
+    r.cf_endday,
+    r.curr,
+    r.nominal,
+    r.nominalFactor,
+    r.amount_AS,
+    r.DevonRef,
+    r.PartyType,
+    r.status,
+    r.time,
+    r.CPRef,
+	r.MM_Instype,
+	r.Reinvest
+    
+into
+    temp
+from
+    RollingIntTemp r
+where
+        r.CashType = 'Call Fixed Rate Adjustable'
+    and r.RollingBaseDay = 'in'
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+
+/*------------------All Settlement Instruction Rules - Accounts-------------------------------------------*/
+select
+    a.accnbr,
+    a.name,
+    a.account,
+    display_id(a,'correspondent_bank_ptynbr')   'Correspondent_Bank',
+    ael_s(,'getSwiftCode', a.accnbr)            'SwiftCode',
+    display_id(a, 'ptynbr') 'ptyid',
+    a.accounting
+into
+    accs
+from
+    account a
+/*----------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+
+
+
+    
+/*---------------------------------------------------------------Final--------------------------------------------------------------------------------*/
+Select
+    'Detail'            'Section',
+    t.Value_Day         'Day',
+    t.Deal_Date         'startday',
+    
+    t.curr              'Curr',
+    t.Type              'Itype',
+    /*instype?*/
+    
+    t.Insid             'insid',
+    t.nominal           'Nominal',
+    t.nominalFactor     'NominalFactor',
+    1/t.nominalFactor   'InvNominalFactor',
+    
+    t.Amount > 0 ? 'B' : 'S'    'Buy_Sell',
+    t.Amount            'Amount',
+    t.Amount            'HVAL',
+        
+    t.Type              'Type',
+    t.Trade_Nbr         'TrdNbr',
+    t.DevonRef          'DevonRef',
+    t.PartyType         'PartyType',
+    t.Counterparty      'Party',
+    t.status,
+    to_time(t.Deal_Date)    'time',
+    t.portfolio         'Portfolio',
+    t.CPRef             'CPRef',
+    t.MM_Instype        'MM_Instype',
+
+    a.name              'AccName',
+    a.account           'AccNum',
+    a.SwiftCode         'Swift',
+
+    t.Dealer            'DealerCode',
+    t.Cashflow_Nbr
+
+into
+    final
+
+from
+    temp t,
+    accs a
+    
+where
+    t.Counterparty *= a.ptyid
+   
+group by t.Cashflow_Nbr
+
+Select
+    s.status,
+    s.seqnbr,
+    s.trdnbr,
+    s.cfwnbr,
+    s.amount
+into
+    tsettle
+From
+    Settlement s
+Where
+        s.status in ('Acknowledged','Pending Closure','Closed','Released','Hold')
+    and s.value_day >= to_date(@3_Start_Date{Today})
+    and s.value_day <= to_date(@4_End_Date{Today})
+    
+Select
+    f.Section,
+    f.Day,
+    f.startday,
+    f.Curr,
+    f.Itype,
+    f.insid,
+    f.Nominal,
+    f.NominalFactor,
+    f.InvNominalFactor,
+    f.Buy_Sell,
+    s.seqnbr is Null ? f.Amount : s.amount  'Amount',
+    f.HVAL,
+    f.Type,
+    f.TrdNbr,
+    f.DevonRef,
+    f.PartyType,
+    f.Party,
+    f.status,
+    f.time,
+    f.Portfolio,
+    f.CPRef,
+    f.MM_Instype,
+    f.AccName,
+    f.AccNum,
+    f.Swift,
+    f.DealerCode,
+    f.Cashflow_Nbr,
+    s.seqnbr
+From
+    final f,
+    tsettle s
+Where
+        f.trdnbr *= s.trdnbr
+    and f.Cashflow_Nbr *= s.cfwnbr

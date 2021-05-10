@@ -1,0 +1,11 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:preTradeVolumePeriodAverage = sumOf(removeNil(prePostTradeOrders :* "preTradeVolumePeriodAverage"));
+[PreAndPostTradeAnalysis]FOrderProgram:preTradeVolumePeriodAverage = switch(preTradeAnalysisHasPeriod, 
+  true->sumOf(memberOrders :* "preTradeVolumePeriodAverage"), 
+  default->0);
+[PreAndPostTradeAnalysis]FOwnOrder:preTradeVolumePeriodAverage = nil;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:preTradeVolumePeriodAverage = switch(object.VolumePattern, 
+  nil->0.0, 
+  default->switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+    true->object.VolumePattern.PeriodQuantity(preTradeAnalysisStartTime, preTradeAnalysisEndTime, true) + object.VolumePattern.PeriodQuantity(preTradeAnalysisStartTime, preTradeAnalysisEndTime, false), 
+    false->object.VolumePattern.PeriodQuantity(preTradeAnalysisStartTime, preTradeAnalysisEndTime, false)));
+[PreAndPostTradeAnalysis]FSalesOrder:preTradeVolumePeriodAverage = prePostTradeAnalysis:preTradeVolumePeriodAverage;

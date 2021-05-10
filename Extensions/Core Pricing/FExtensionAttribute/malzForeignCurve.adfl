@@ -1,0 +1,7 @@
+[Core Pricing]FMalzVolatilityStructure:malzForeignCurve = select(malzInstrumentPair <> nil, 
+  true->select(malzInstrumentPair.Cid, 
+    "Precious Metal Pair"->malzForeignCurrency:discountCurve, 
+    default->malzForeignCurrency:fxDiscountCurve), 
+  default->select(referenceInstrument <> nil, 
+    true->referenceInstrument:discountCurve, 
+    default->nil));

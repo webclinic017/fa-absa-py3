@@ -1,0 +1,5 @@
+[Core Pricing]FConvertible:volatilityStrikePrice = conversionPrice;
+[Core Pricing]FInstrument:volatilityStrikePrice = select((volatilityStrikePriceType == "Absolute") and (underlyingQuotation == "Coupon"), 
+  true->delta(volatilityStrikePriceUnadjusted, timesHundred(underlyingCouponPriceAdjustment)), 
+  false->collapse(volatilityStrikePriceUnadjusted));
+[Core Pricing]FVolatilityFuture:volatilityStrikePrice = collapse(underlyingSpotPrice);

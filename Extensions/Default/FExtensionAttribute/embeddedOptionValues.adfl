@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:embeddedOptionValues = select(isCallable or isPutable, 
+  true->object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = embeddedOptionSpotValues], 
+  false->baseDateZero);
+[Default]FCombInstrMapAndTrades:embeddedOptionValues = switch(isSettled, 
+  true->baseDateZero, 
+  false->combination:discountAndConvertToBase [filterUnit, combination:discountAndConvertToBaseDate [groupingSpotDiscountDate, valuesOnSpotOverride], discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = combinationEmbeddedOptionInstrumentPositionValue] / (combination:underlyingOrSelf).Factor);
+[Default]FInstrument:embeddedOptionValues = baseDateZero;
+[Default]FInstrumentAndTrades:embeddedOptionValues = shunt(isOpenPosition, 
+  true->instrument :* "embeddedOptionValues" [priceSource, isSplitAllGrouped, positionObject, singleTradePosition, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate], 
+  false->baseDateZero, 
+  default->nil);

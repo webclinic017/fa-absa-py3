@@ -1,0 +1,41 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_BondTRS_Benchmark_deltas') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_BondTRS_Benchmark_deltas' and p.type = 'SQL Query' 
+ 
+/*
+Requestor: Kepler Klynsmith
+Date: 2010-12-09
+Developer: Paul Jacot-Guillarmod 
+CR Number: 521283
+Purpose: Calculate benchmark deltas on a tradefilter that contains TRS's on bonds.
+         This done by simulating a fixing on the TRS's.
+         
+Date        Changed by          CR              Description      
+01/07/2015  Lawrence Mucheka    CHNG            Allow passing of shift size to the delta calculation engine
+        
+*/
+
+select
+    TODAY                                   'RepDate',
+    @02_Filter{Dirk_tmp;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+        ins.insid                           'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    ael_f(ins, 'dirk_utils.bm_delta',
+        @02_Filter{Dirk_tmp;tradefilter.fltid},
+        yc.yield_curve_name,
+        1,
+        to_double(@04_ShiftSize{0.01})                'pv01'
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and ael_d(ins, 'dirk_utils.bm_maturity') < to_date(@03_EndDate{BIGDATE;})
+order by 3, 5

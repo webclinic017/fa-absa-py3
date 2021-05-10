@@ -1,0 +1,8 @@
+[Prime Services]FSingleInstrumentAndTrades:corporateActionLDT = switch(corporateActionType, 
+  "Coupon"->py("PS_CorporateActions", context).GetLDT(instrument, profitAndLossEndDate), 
+  "Dividend"->switch(instrument:primeDividends <> nil, 
+    true->accountingCurrency.Calendar.AdjustBankingDays(switch(instrument:primeDividends.IsKindOf("FDividend"), 
+      default->(instrument:primeDividends :* "object.ExDivDay"), 
+      true->(instrument:primeDividends.ExDivDay)), -1), 
+    default->nil), 
+  default->nil);

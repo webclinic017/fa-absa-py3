@@ -1,0 +1,14 @@
+[Deal Sales Trading Interaction]FGroupingOrder:isTraded = switch(count(memberOrders) > 0, 
+  true->sumOf(memberOrders :* "isTraded"), 
+  default->nil);
+[Deal Sales Trading Interaction]FMultiQuoteRequestRow:isTraded = switch(count(children) > 0, 
+  true->sumOf(children :* "isTraded"), 
+  default->nil);
+[Deal Sales Trading Interaction]FSalesOrder:isTraded = select(object.SalesState, 
+  "Completed"->1, 
+  default->0);
+[Deal Sales Trading Interaction]FSingleQuoteRequestRow:isTraded = select(quoteRequestInfo.Role, 
+  "Sales"->select(quoteRequestInfo.Status, 
+    "Accepted"->1, 
+    default->0), 
+  "Trading"->0);

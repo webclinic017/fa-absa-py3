@@ -1,0 +1,11 @@
+[Pegasus]FCombInstrMapAndTrades:deprecAmountHedgeRef = nil;
+[Pegasus]FDeliverableLinkAndTrades:deprecAmountHedgeRef = nil;
+[Pegasus]FInstrumentAndTrades:deprecAmountHedgeRef = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->deprecAmountLiveHedgeRef, 
+  "Inception to Historical"->deprecAmountEnd, 
+  "Historical to Present"->deprecAmountLiveHedgeRef - deprecAmountStart, 
+  "Historical to Historical"->deprecAmountEnd - deprecAmountStart);
+[Pegasus]FLegAndTrades:deprecAmountHedgeRef = nil;
+[Pegasus]FPriceAggregate:deprecAmountHedgeRef = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "deprecAmountHedgeRef");

@@ -1,0 +1,7 @@
+[Core Risk]FInstrumentAndTrades:interestRateDeltaFixingShift = select(fixingShiftValueValid, 
+  true->select(deltaDisplayType, 
+    "Absolute"->differential(interestRatePresentValueFixingShiftUp, presentValueFixingShift, abs(fixedYieldShift) / 0.0001), 
+    "Relative"->differential(interestRatePresentValueFixingShiftUp, presentValueFixingShift, abs(fixedYieldShift) / 0.0001) - object:interestRateDelta [timeBucketsSetExternally := nil, benchmarkDeltaCurve]), 
+  false->timeBucketsSetExternallyNilVector);
+[Core Risk]FLegAndTrades:interestRateDeltaFixingShift = timeBucketsSetExternallyNilVector;
+[Core Risk]FPortfolioInstrumentAndTrades:interestRateDeltaFixingShift = timeBucketsSetExternallyNilVector;

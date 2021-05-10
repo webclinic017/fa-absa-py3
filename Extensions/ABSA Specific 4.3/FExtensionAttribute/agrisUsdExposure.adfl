@@ -1,0 +1,21 @@
+[ABSA Specific 4.3]FFuture:agrisUsdExposure = select(object.UnderlyingType, 
+  "Curr"->profitAndLossPositionDisplay * contractSize * (actualUnderlying:usdfxrate).Number, 
+  "Commodity"->select(currency, 
+    "USD"->sumOf((currencyZAR:discountCurve).DiscountValue(ael("Commodities", context).getUSDExpforCBOT(tradesInPosition, profitAndLossStartDate, profitAndLossEndDate, profitAndLossUsedPriceEnd.Number), profitAndLossEndDate)).Number, 
+    "ZAR"->select(agrisCbotUnd, 
+      nil->0.0, 
+      default->agrisCbotUnd:profitAndLossUsedPriceEnd.Number * profitAndLossPositionDisplay * contractSize * agrisCbotUnd:quotationFactor / (agrisConvFactor)), 
+    default->0.0), 
+  default->0.0);
+[ABSA Specific 4.3]FFxRate:agrisUsdExposure = sumOf((foreignCurrency:discountCurve).DiscountValue(ael("Commodities", context).getUSDExpforTrades(tradesInPosition, profitAndLossStartDate, profitAndLossEndDate), profitAndLossEndDate)).Number;
+[ABSA Specific 4.3]FInstrument:agrisUsdExposure = 0.0;
+[ABSA Specific 4.3]FInstrumentAndTrades:agrisUsdExposure = instrument :* "agrisUsdExposure" [positionObject];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:agrisUsdExposure = sumOf((instruments) :* "select(isExpired, false->agrisUsdExposure.Number, default->0.0)" [positionObject]);
+[ABSA Specific 4.3]FOption:agrisUsdExposure = select(object.UnderlyingType, 
+  "Future/Forward"->py("Commodities", context).OptionDollarExposure(object, profitAndLossPositionDisplay).Number, 
+  default->0.0);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:agrisUsdExposure = select(instrument:isExpired, 
+  false->select((instrument.InsType == "Option") and (instrument.UnderlyingType == "Curr"), 
+    true->absaDeltaUSD, 
+    default->instrument :* "agrisUsdExposure" [positionObject]), 
+  default->0.0);

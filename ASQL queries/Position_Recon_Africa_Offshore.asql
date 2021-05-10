@@ -1,0 +1,85 @@
+/* update_method=0 */
+/*
+Purpose                       :  Removed the line that excludes internal trades and excluded certain acquirers.
+Department and Desk           :  OPS
+Requester                     :  Richard Son
+Developer                     :  Bhavnisha Sarawan
+CR Number                     :  CHNG0004734808
+
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+      ael_i(p,'ASQL_log','Position_Recon_Africa_Offshore') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Position_Recon_Africa_Offshore' and p.type = 'SQL Query' 
+
+select 
+    trd.trdnbr
+from
+    Trade trd,
+    Portfolio p,
+    Instrument i fill,
+    Instrument und fill,
+    Party counterP,
+    Party issuer,
+    Leg l
+where
+		trd.insaddr = i.insaddr
+    and i.und_insaddr = und.insaddr
+    and trd.prfnbr = p.prfnbr
+    and i.insaddr *= l.insaddr
+    and trd.counterparty_ptynbr =* counterP.ptynbr
+    and trd.counterparty_ptynbr not in (24,30539,32668)
+    and i.issuer_ptynbr *= issuer.ptynbr
+    and i.issuer_ptynbr ~= 209 
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ABSA BANK LTD') = 1 
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GROUP TREASURY') = 0
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIME SERVICES TRADING') = 0
+    and i.isin not like '%ZA%'
+    and und.isin not like '%ZA%'
+    and trd.status not in ('Simulated','Void','Terminated')
+	/*SPECIFIC EXCLUSIONS BIGEN HERE */
+    AND 
+	(
+		(
+			i.instype in ('Bond','FRN','Bill','Zero','IndexLinkedBond')
+            and trd.acquire_day <= Today
+			and i.exp_day >= Tomorrow
+		)
+		OR
+		(
+            i.instype = 'Stock'
+            and trd.acquire_day <= Today
+        )
+		OR  
+		(
+			i.instype in ('Repo/Reverse','BuySellback')
+			and trd.acquire_day <= Today 
+			and (i.exp_day >= Tomorrow or i.open_end = 'Open End')
+		)
+		OR
+		(
+            i.instype = 'SecurityLoan'
+            and event_date(l,'FirstStartDay') <= today
+            and (i.exp_day >= Tomorrow or i.open_end = 'Open End')
+        )
+		OR 
+		(
+            i.instype in ('Bond','FRN','Bill','Zero','IndexLinkedBond')
+            and trd.category = 'Collateral' 
+			and trd.acquire_day <= Today 
+			and (trd.re_acquire_day >= Tomorrow or trd.re_acquire_day = '0000-01-01')
+		)
+	)	
+    AND 
+	(
+		i.insid not like '%PASSTHROUGH%' and  i.insid not like '%PASS-THROUGH%' and  i.insid not like '%PASSTH%' 
+		and i.insid not like'%LOAN%' and i.insid not like'%Loan%'
+	)
+    AND 
+	(
+		i.extern_id2 not like '%PASSTHROUGH%' and i.extern_id2 not like '%PASS-THROUGH%' and i.extern_id2 not like ' %PASSTH%' 
+		and i.extern_id2 not like '%LOAN%' and i.extern_id2 not like '%UNLISTED%'
+	)

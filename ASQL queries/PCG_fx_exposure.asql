@@ -1,0 +1,39 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_fx_exposure') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_fx_exposure' and p.type = 'SQL Query' 
+
+
+
+
+/* 2009-07-21 bs rewrite for 4.3 */
+select 
+    c.insid,
+    0.01 * sum(accumulated_cash(t, TODAY, c.insid)) 'cash_pv01',
+    0.01 * sum(present_value(t, TODAY, '2099-01-01', '2099-01-01', c.insid)) 'pv_pv01'
+into
+    tmpcash
+from
+    Instrument c,
+    trade t
+where
+    match_filter(t,@01_Filter{Dirk_tmp;tradefilter.fltid})
+    and c.insid like '___'
+    and c.instype = 'Curr'
+    and currency_included(t, c.insid) = 1
+group by
+    c.insid
+
+select
+    TODAY 'RepDate',
+    @01_Filter 'filter',
+    insid 'curr',
+    cash_pv01,
+    pv_pv01,
+    cash_pv01 + pv_pv01 'pv01'
+from
+    tmpcash
+where 
+    (cash_pv01 + pv_pv01) ~= 0

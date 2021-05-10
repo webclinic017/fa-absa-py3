@@ -1,0 +1,7 @@
+[Default]FDerivative:quotePeriod = quotePeriod(staticLegInformations, underlyingType, contractSize, roundingInformation);
+[Default]FFuture:quotePeriod = select(underlyingType, 
+  "Swap"->couponToValueFactor, 
+  default->select(isDIFuture, 
+    true->firstStaticLegInformation.LastNonFixedAmountCashFlowInfo.Period(valuationDate, expiryDate), 
+    false->quotePeriod(staticLegInformations, underlyingType, contractSize, roundingInformation)));
+[Default]FInstrument:quotePeriod = 1.0;

@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FFuture:timeShiftedSpotPrice = select(isFinite(marketPrice), 
+  false->denominatedvalue(nan, currency, , valuationDate), 
+  default->marketPrice);
+[Equity Pricing and Risk]FInstrument:timeShiftedSpotPrice = select(isFinite(marketPrice), 
+  false->denominatedvalue(nan, currency, , valuationDate), 
+  default->marketPrice - dividendsNonDiscounted);

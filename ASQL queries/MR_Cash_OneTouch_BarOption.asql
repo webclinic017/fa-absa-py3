@@ -1,0 +1,58 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536,316586
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Cash_OneTouch_BarOption') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Cash_OneTouch_BarOption' and p.type = 'SQL Query'
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Cash_OneTouch_BarOption.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Cash_OneTouch_BarOption.csv'},@3_PositionName{'MR_Cash_OneTouch_BarOption_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File ' 'Process',
+    ael_s(i,'MR_Cash_OneTouch_BarOption.Write',@1_path{'f:\'},@2_FileName{'MR_Cash_OneTouch_BarOption.csv'},@3_PositionName{'MR_Cash_OneTouch_BarOption_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+From 
+ Instrument i, 
+ Exotic e
+Where   
+   i.insaddr = e.insaddr
+And  (i.exp_day = 0 or i.exp_day > Today)
+And  i.instype in ('Option')
+And  i.digital in ('Yes')                            /* Includes only binary options */
+And  i.exotic_type in ('Other')                      /* All digital options are excluded */
+and  i.settlement in ('Cash')            /* Includes only cash settled option */
+And  e.average_method_type in ('None')               /* Exclude all averaging type options */
+And  e.barrier_option_type in ('Down & In','Up & In')/* Includes only Knock In options */
+And  e.barrier_monitoring not in ('Window')     /* Excludes Window Barrier options */
+And  e.barrier_crossed_status not in ('Confirmed','Crossed')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

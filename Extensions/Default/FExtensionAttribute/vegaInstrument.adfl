@@ -1,0 +1,13 @@
+[Default]FInstrument:vegaInstrument = select(noVolatilityGreekRiskFactorsExist, 
+  true->instrumentSpotZero, 
+  false->select(priceGreekIncludeQuoteScaling, 
+    true->select(isSupportingQuoteScaling, 
+      true->spotValueToQuoteFactor * vegaValuesInstrumentConverted, 
+      false->instrumentSpotZero), 
+    false->collapse(vegaValuesInstrumentConverted)));
+[Default]FInstrumentAndTrades:vegaInstrument = openInstrumentOrInstrument :* "vegaInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling] * combinationInstrumentMapFactor;
+[Default]FMultiInstrumentAndTrades:vegaInstrument = nil;
+[Default]FOrderBook:vegaInstrument = equivalentInstrument :* "vegaInstrument" [priceSource, valuesOnSpot := true, priceGreekIncludeQuoteScaling];
+[Default]FPriceAggregate:vegaInstrument = priceFeed:vegaInstrument [priceSource, priceGreekIncludeQuoteScaling, useVanillaEquivalent];
+[Default]FPriceFeed:vegaInstrument = equivalentInstrument :* "vegaInstrument" [priceSource, valuesOnSpot := true, priceGreekIncludeQuoteScaling];
+[Default]FTradeRow:vegaInstrument = equivalentInstrument :* "vegaInstrument" [isSplitAllGrouped, priceSource, currency = tradeRowCurrency, priceGreekIncludeQuoteScaling] * combinationInstrumentMapFactor;

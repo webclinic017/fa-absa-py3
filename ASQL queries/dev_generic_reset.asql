@@ -1,0 +1,284 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_generic_reset') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_generic_reset' and p.type = 'SQL Query' 
+
+/*************************** Fixed Leg ***************************/
+
+select distinct
+
+     ael_s(t,'InstrType.InstrumentType')                     'Instype',
+     'FixedLeg'		                                         'TypeofLeg',
+     0.00                                                    'ResetVal',
+     t.optional_key			                                 'DevNbr',
+     display_id(i, 'curr')		                             'Curr',
+     i.pay_offset_method		                             'Method',
+     nominal_amount(l,c.start_day)*t.quantity                'Nominal',
+     t.trdnbr			                                     'Trdnbr',
+     t.bo_trdnbr			                                 'BOTrdnbr',
+     time_to_day(t.time)                	                 'Time',
+     c.pay_day~= @ResetPayDate{}? '' 
+	 : convert('date',c.start_day,'%Y-%m-%d')                'Start',
+     c.pay_day~= @ResetPayDate{}? '' 
+	 : convert('date',c.end_day,'%Y-%m-%d')	                 'End',
+     p.fullname			                                     'CP',
+     nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+     nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+     p.attention			                                 'Attention',
+     p.address			                                     'Address',
+     p.address2			                                     'Address2',
+     p.zipcode			                                     'Zipcode',
+     p.city				                                     'City',
+     p.fax				                                     'Fax',
+     c.pay_day~= @ResetPayDate{}? '' 
+	 : convert('date',c.pay_day,'%Y-%m-%d')	                 'Pay_Dates',
+     c.pay_day ~= @ResetPayDate{} ? 0.00 : c.rate            'Rate',
+     display_id(l, 'float_rate')	                         'Float_Rate',
+     l.spread			                                     'Spread',
+     l.daycount_method		                                 'Daycount',
+     display_id(l, 'pay_calnbr')	                         'Business_Days',
+     p.country			                                     'CP_Country',
+     t.status			                                     'Status',
+     c.pay_day~= @ResetPayDate{}? 0.00 
+     : (projected_cf(c)*t.quantity)	                         'cashflow',
+     c.pay_day~= @ResetPayDate{}? 0.00 
+     : rpl(t,c.start_day,c.end_day)	                         'RPL',
+     c.pay_day~= @ResetPayDate{}? 0.00 
+     : c.end_day-c.start_day		                         'days',
+     rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You'        'usyou',
+     t.your_ref			                                     'YourRef'
+
+into
+    fixed
+from
+
+instrument i,
+trade	   t,
+leg		   l,
+cashflow   c,
+party	   p
+
+where
+
+	i.insaddr = t.insaddr
+and	l.legnbr  = c.legnbr
+and	l.insaddr = i.insaddr
+and i.instype = 'Swap'
+and	l.type    = 'fixed'
+and	p.ptynbr  = t.counterparty_ptynbr
+and c.pay_day = @ResetPayDate{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+/************** Float Legs using ael to cal average reset **************/
+
+select distinct
+
+    ael_s(t,'InstrType.InstrumentType')                     'Instype',
+    'FloatLeg'		                                        'TypeofLeg',
+    period_rate(c,c.start_day,c.end_day)                    'ResetVal',
+    t.optional_key			                                'DevNbr',
+    display_id(i, 'curr')		                            'Curr',
+    i.pay_offset_method		                                'Method',
+    nominal_amount(l,c.start_day)*t.quantity	            'Nominal',
+    t.trdnbr			                                    'Trdnbr',
+    t.bo_trdnbr			                                    'BOTrdnbr',
+    time_to_day(t.time)		                                'Time',
+    c.pay_day~= @ResetPayDate{}? '' 
+        : convert('date',c.start_day,'%Y-%m-%d')            'Start',
+    c.pay_day~= @ResetPayDate{}? '' 
+        : convert('date',c.end_day,'%Y-%m-%d')	            'End',
+    p.fullname			'CP',
+    nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+    nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+    p.attention			                                    'Attention',
+    p.address			                                    'Address',
+    p.address2			                                    'Address2',
+    p.zipcode			                                    'Zipcode',
+    p.city				                                    'City',
+    p.fax				                                    'Fax',
+    c.pay_day~= @ResetPayDate{}? '' 
+        : convert('date',c.pay_day,'%Y-%m-%d')	            'Pay_Dates',
+    c.pay_day ~= @ResetPayDate{} ? 0.00 : l.fixed_rate		'Rate',
+    display_id(l, 'float_rate')	                            'Float_Rate',
+    l.spread			                                    'Spread',
+    l.daycount_method		                                'Daycount',
+    display_id(l, 'pay_calnbr')	                            'Business_Days',
+    p.country			                                    'CP_Country',
+    t.status			                                    'Status',
+    c.pay_day~= @ResetPayDate{}? 0.00 
+      : (projected_cf(c)*t.quantity)	                    'cashflow',
+    c.pay_day~= @ResetPayDate{}? 0.00 
+      : rpl(t,c.start_day,c.end_day)	                    'RPL',
+    c.pay_day~= @ResetPayDate{}? 0.00 
+      : c.end_day-c.start_day		                        'days',
+    rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You'        'usyou',
+    t.your_ref			                                    'YourRef'
+
+into 
+    float
+from
+
+instrument	i,
+trade		t,
+leg		    l,
+cashflow	c,
+party		p
+
+where
+
+	i.insaddr = t.insaddr
+and	l.legnbr  = c.legnbr
+and	l.insaddr = i.insaddr
+and i.instype = 'Swap'
+and	l.type    = 'float'
+and	p.ptynbr  = t.counterparty_ptynbr
+and c.pay_day = @ResetPayDate{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+/********************************* Final Temp *********************************************/
+
+select distinct
+    fl.instype,
+    fl.ResetVal,
+    fl.DevNbr,
+    fl.Curr,
+    fl.Method,
+    fl.Nominal,
+    fl.Trdnbr,
+    fl.BOTrdnbr,
+    fl.Time,
+    fl.Start                                    'Start_Float',
+    fx.Start                                    'Start_Fixed',
+    fl.End,
+    fl.CP,
+    fl.FixedPayer,
+    fl.FloatPayer,
+    fl.Attention,
+    fl.Address,
+    fl.Address2,
+    fl.Zipcode,
+    fl.City,
+    fl.Fax,
+    fx.Pay_Dates                                'Pay_Dates_Fixed',
+    fl.Pay_Dates                                'Pay_Dates_Float',
+    fx.Rate                                     'Fixed_Rate',
+    fl.Float_Rate                               'Float_Rate',
+    fl.Spread,
+    fl.Daycount,
+    fl.Business_Days,
+    fl.CP_Country,
+    fl.Status,
+    (fx.cashflow)                               'Cashflow_Fixed',
+    (fl.cashflow)                               'Cashflow_Float',
+    (fx.cashflow)+fl.cashflow	                'RPL',
+    fl.days 		                            'days_float',
+    fx.days		                                'days_fixed',
+    fx.cashflow+fl.cashflow > 0  ? 'Us' : 'You' 'usyou',
+    fl.YourRef
+into    
+    temp 
+from
+     float fl,
+     fixed fx 
+where
+    fx.trdnbr =* fl.trdnbr
+    and (fx.cashflow+fl.cashflow) ~=0.00
+     
+select distinct
+    fx.instype,
+    fx.ResetVal,
+    fx.DevNbr,
+    fx.Curr,
+    fx.Method,
+    fx.Nominal,
+    fx.Trdnbr,
+    fx.BOTrdnbr,
+    fx.Time,
+    fl.Start                                    'Start_Float',
+    fx.Start                                    'Start_Fixed',
+    fx.End,
+    fx.CP,
+    fx.FixedPayer,
+    fx.FloatPayer,
+    fx.Attention,
+    fx.Address,
+    fx.Address2,
+    fx.Zipcode,
+    fx.City,
+    fx.Fax,
+    fx.Pay_Dates                                'Pay_Dates_Fixed',
+    fl.Pay_Dates                                'Pay_Dates_Float',
+    fx.Rate                                     'Fixed_Rate',
+    fl.Float_Rate                               'Float_Rate',
+    fx.Spread,
+    fx.Daycount,
+    fx.Business_Days,
+    fx.CP_Country,
+    fx.Status,
+    (fx.cashflow)                               'Cashflow_Fixed',
+    (fl.cashflow)                               'Cashflow_Float',
+    (fx.cashflow)+fl.cashflow	                'RPL',
+    fl.days 		                            'days_float',
+    fx.days		                                'days_fixed',
+    fx.cashflow+fl.cashflow > 0  ? 'Us' : 'You' 'usyou',
+    fx.YourRef
+
+into
+    temp
+from
+    float fl,
+    fixed fx
+where
+    fx.trdnbr *= fl.trdnbr
+    and (fx.cashflow+fl.cashflow) ~=0.00
+    
+/*************************** FINAL Temp *********************************/
+select distinct
+    t.instype,
+    t.ResetVal,
+    t.DevNbr,
+    t.Curr,
+    t.Method,
+    t.Nominal,
+    t.Trdnbr,
+    t.BOTrdnbr,
+    t.Time,
+    t.Start_Float,
+    t.Start_Fixed,
+    t.End,
+    t.CP,
+    t.FixedPayer,
+    t.FloatPayer,
+    t.Attention,
+    t.Address,
+    t.Address2,
+    t.Zipcode,
+    t.City,
+    t.Fax,
+    t.Pay_Dates_Fixed,
+    t.Pay_Dates_Float,
+    t.Fixed_Rate,
+    t.Float_Rate,
+    t.Spread,
+    t.Daycount,
+    t.Business_Days,
+    t.CP_Country,
+    t.Status,
+    abs(t.Cashflow_Fixed)                       'Cashflow_Fixed',
+    abs(t.Cashflow_Float)                       'Cashflow_Float',
+    (t.Cashflow_Fixed)
+      + (t.Cashflow_Float)	                    'RPL',
+    t.days_float,
+    t.days_fixed,
+    (t.Cashflow_Fixed)
+      + (t.Cashflow_Float) > 0  ? 'Us' : 'You' 'usyou',
+    t.YourRef
+from
+    temp t
+where
+    t.ResetVal ~= 0.0    
+

@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FBond:lowerBoundForImpliedFlatYieldSpread = select(isCallable, 
+  true->select(marketPrice < theoreticalPriceRiskFree, 
+    true->0.0, 
+    default->-theoreticalYieldToMaturityRiskFreeNoCall), 
+  default->lowerBoundForImpliedFlatYieldSpreadDefault);
+[Fixed Income Pricing and Risk]FFuture:lowerBoundForImpliedFlatYieldSpread = select(isInterestRateFuture, 
+  true->-double(underlyingForwardCoupon), 
+  default->lowerBoundForImpliedFlatYieldSpreadDefault);
+[Fixed Income Pricing and Risk]FInstrument:lowerBoundForImpliedFlatYieldSpread = lowerBoundForImpliedFlatYieldSpreadDefault;

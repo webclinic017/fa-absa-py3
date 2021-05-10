@@ -1,0 +1,408 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_Commodity_Notionals') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_Commodity_Notionals' and p.type = 'SQL Query' 
+
+
+select
+	@Date{TODAY}							        'DATA_DATE',
+	@DateEnd{TODAY}							        'END_DATE',
+	@DateStart{2000-01-01}						    'START_DATE',
+	@HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+	
+	
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.DATA_DATE = today ? used_price(hc, m.DATA_DATE, curr.insid) 
+		: mtm_price(hc, m.DATA_DATE, curr.insid)		'fxRepDay'
+		
+
+into
+	fx
+
+from
+	macros      m,
+	instrument	hc,
+	instrument	curr
+
+where
+        hc.insid = m.hcur
+	and curr.instype = 'Curr'
+	
+
+select 
+	t.trdnbr							            'TradeNumber',
+	display_id(t,'trader_usrnbr')					'Trader',
+	display_id(t,'counterparty_ptynbr')				'Counterparty',
+	time_to_day(t.time)						        'DealDate',
+	i.exp_day							            'Expiry_Date',
+	display_id(t,'insaddr')					    	'Instrument',
+	display_id(t,'curr')                            'Currency',
+	
+	i.instype							            'InstrumentType',
+	i.instype = 'Stock' ? display_id(t,'insaddr')
+ 		: i.und_instype = ' Future/Forward' ? iii.insid	
+		: display_id(i,'und_insaddr')				'Underlying',
+		
+	i.und_instype							        'UnderlyingType',
+
+	ii.und_instype							        'UnderUnderType',
+	t.price                                         'Price',
+	
+	i.instype = 'Future/Forward' ? t.price
+		: i.strike_price					        'Strike_Price',
+		
+	(i.und_instype = 'Stock' and i.insid like '%ASIA%') ? 1
+		: i.contr_size						        'Contract_Size',
+		
+	t.quantity < 0 ?'S':'B'						    'Buy_Sell',
+	
+
+	t.quantity 							            'Number_of_Contracts',    
+	t.premium							            'Premium',             	
+
+/* $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Inputs $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ */
+
+	m.DATA_DATE,
+	m.END_DATE,
+	m.START_DATE,
+    m.hcur,
+
+
+/* $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ */
+    i.insaddr                                       'insaddr',
+	display_id(pl,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')					    	'SubPortFolio'
+    
+
+into
+	temp	
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	portfoliolink pl,
+	macros m,
+	leg l,
+	fx
+
+where 
+	match_filter(t,@TradeFilter{;tradefilter.fltid})
+	and i.insaddr=t.insaddr
+	and i.und_insaddr*=ii.insaddr
+	and ii.und_insaddr*=iii.insaddr
+	and t.prfnbr=pl.member_prfnbr
+	and i.instype ~= 'Zero'
+	and (time_to_day(t.time) >= @DateStart{2000-01-01} and time_to_day(t.time) <= @DateEnd{TODAY})
+    /*and l.payleg = 'yes'
+    and l.curr = fx.curr*/
+
+/* ****************************************** FxSwaps ****************************************************** */
+
+select
+	temp.TradeNumber							,
+	temp.Counterparty							,
+	temp.DealDate								,
+	temp.Expiry_Date							,
+	temp.Instrument								,
+	temp.Currency                               ,
+	display_id(l,'curr')                        'LegCcy',
+	temp.InstrumentType							,
+	temp.Underlying								,
+	temp.UnderlyingType							,
+    temp.Price                                  ,
+	temp.Strike_Price							,
+
+	temp.Buy_Sell								,
+
+	temp.Number_of_Contracts						,
+
+	fx.fxRepDay                                 'FX_Rate' ,
+	temp.Contract_Size                          'Nominal_Contract_Size',
+	
+/* i'm using contract size here because it happens to return the correct nominal and is not dependent on 
+instr maturity */
+  	
+  	abs(temp.Contract_Size / fx.fxRepDay)       'Notional',
+  	
+	m.DATA_DATE								    'Report_Day',
+	
+	
+    
+    days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '1: 0-1 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 9 ? '2: 0-8 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 31 ? '3: 9d-1m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 91 ? '4: 1-3 m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 181 ? '5: 3-6 m'
+        : years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 1 ? '6: 6m-1yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '7: 1-2 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 3 ? '8: 2-3 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 4 ? '9: 3-4 yr'
+		: '10: 4-10 yr'                         'Maturity_Bucket',
+
+
+	temp.Portfolio								,
+	temp.SubPortFolio	
+
+into
+    fxswap
+							
+from
+	temp,
+	fx,
+	leg l,
+    macros m
+	
+where
+    l.insaddr *= temp.insaddr
+and l.payleg = 'yes'
+and display_id(l,'curr') = fx.curr
+and temp.InstrumentType in ('FXSwap')
+/* ********************************************************************************************************** */
+
+/* ****************************************** Options ****************************************************** */
+
+select
+	temp.TradeNumber							,
+	temp.Counterparty							,
+	temp.DealDate								,
+	temp.Expiry_Date							,
+	temp.Instrument								,
+	temp.Currency                               ,
+	fx.curr                        'LegCcy',
+	temp.InstrumentType							,
+	temp.Underlying								,
+	temp.UnderlyingType							,
+    temp.Price                                  ,
+	temp.Strike_Price							,
+
+	temp.Buy_Sell								,
+
+	temp.Number_of_Contracts						,
+
+	fx.fxRepDay                                 'FX_Rate' ,
+	temp.Contract_Size                          'Nominal_Contract_Size',
+	
+    temp.UnderlyingType = 'Future/Forward' ? abs(temp.Contract_Size * temp.Number_of_Contracts * temp.Strike_Price)
+        : temp.UnderlyingType = 'Curr' ? abs(temp.Number_of_Contracts * temp.Strike_Price) / fx.fxRepDay
+        : 0                                     'Notional',
+  	
+	m.DATA_DATE								    'Report_Day',
+	
+	
+    
+    days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '1: 0-1 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 9 ? '2: 0-8 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 31 ? '3: 9d-1m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 91 ? '4: 1-3 m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 181 ? '5: 3-6 m'
+        : years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 1 ? '6: 6m-1yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '7: 1-2 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 3 ? '8: 2-3 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 4 ? '9: 3-4 yr'
+		: '10: 4-10 yr'                         'Maturity_Bucket',
+
+
+	temp.Portfolio								,
+	temp.SubPortFolio	
+
+into
+    options
+    
+from
+	temp,
+	fx,
+	leg l,
+    macros m
+	
+where
+    temp.InstrumentType in ('Option')
+and temp.Currency = fx.curr
+/* ********************************************************************************************************** */
+
+/* ****************************************** Stock and Commodity ********************************************* */
+
+select
+	temp.TradeNumber							,
+	temp.Counterparty							,
+	temp.DealDate								,
+	temp.Expiry_Date							,
+	temp.Instrument								,
+	temp.Currency                               ,
+    'ZAR'                                    'LegCcy',
+	temp.InstrumentType							,
+	temp.Underlying								,
+	temp.UnderlyingType							,
+    temp.Price                                  ,
+	temp.Strike_Price							,
+
+	temp.Buy_Sell								,
+
+	temp.Number_of_Contracts						,
+
+     1.0                                        'FX_Rate' ,
+	temp.Contract_Size                          'Contract_Size',
+	
+ 
+    abs(temp.Number_of_Contracts * temp.Price * temp.Contract_Size)      'Notional',
+    
+	m.DATA_DATE								    'Report_Day',
+	
+	
+    
+    days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '1: 0-1 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 9 ? '2: 0-8 d'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 31 ? '3: 9d-1m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 91 ? '4: 1-3 m'
+        : days_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 181 ? '5: 3-6 m'
+        : years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 1 ? '6: 6m-1yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 2 ? '7: 1-2 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 3 ? '8: 2-3 yr'
+		: years_between(m.DATA_DATE,temp.Expiry_Date,'Act/365') < 4 ? '9: 3-4 yr'
+		: '10: 4-10 yr'                         'Maturity_Bucket',
+
+
+	temp.Portfolio								,
+	temp.SubPortFolio	
+
+into
+    comm
+    
+from
+	temp,
+	fx,
+	leg l,
+    macros m
+	
+where
+    temp.InstrumentType in ('Stock', 'Commodity','Future/Forward')
+
+/* ********************************************************************************************************** */
+
+/* **************** Union of tables ************************ */
+select
+/* ****************************************** FxSwaps ****************************************************** */
+	fxswap.TradeNumber							,
+	fxswap.Counterparty							,
+	fxswap.DealDate								,
+	fxswap.Expiry_Date							,
+	fxswap.Instrument								,
+	fxswap.Currency                               ,
+	fxswap.LegCcy                               ,
+	fxswap.InstrumentType							,
+	fxswap.Underlying								,
+	fxswap.UnderlyingType							,
+    fxswap.Price                                  ,
+	fxswap.Strike_Price							,
+
+	fxswap.Buy_Sell								,
+
+	fxswap.Number_of_Contracts						,
+
+	fxswap.FX_Rate                                ,
+	fxswap.Nominal_Contract_Size                   ,
+	
+  	
+  	fxswap.Notional                                 ,
+  	
+	fxswap.Report_Day                               ,
+	
+    fxswap.Maturity_Bucket                          ,
+
+	fxswap.Portfolio								,
+	fxswap.SubPortFolio	
+
+from fxswap
+/* ********************************************************************************************************** */
+
+union
+
+select
+/* ****************************************** Options ****************************************************** */
+
+	options.TradeNumber							,
+	options.Counterparty							,
+	options.DealDate								,
+	options.Expiry_Date							,
+	options.Instrument								,
+	options.Currency                               ,
+	options.LegCcy                                  ,
+	options.InstrumentType							,
+	options.Underlying								,
+	options.UnderlyingType							,
+    options.Price                                  ,
+	options.Strike_Price							,
+
+	options.Buy_Sell								,
+
+	options.Number_of_Contracts						,
+
+	options.FX_Rate                                  ,
+	options.Nominal_Contract_Size                           ,
+	
+    options.Notional                                    ,
+  	
+	options.Report_Day                              ,
+	
+	
+    
+    options.Maturity_Bucket                         ,
+
+
+	options.Portfolio								,
+	options.SubPortFolio	
+
+from options
+/* ********************************************************************************************************** */
+
+union
+
+select
+/* ****************************************** Stock and Commodity ********************************************* */
+
+	comm.TradeNumber							,
+	comm.Counterparty							,
+	comm.DealDate								,
+	comm.Expiry_Date							,
+	comm.Instrument								,
+	comm.Currency                               ,
+    comm.LegCcy                                 ,
+	comm.InstrumentType							,
+	comm.Underlying								,
+	comm.UnderlyingType							,
+    comm.Price                                  ,
+	comm.Strike_Price							,
+
+	comm.Buy_Sell								,
+
+	comm.Number_of_Contracts						,
+
+    comm.FX_Rate                                 ,
+	comm.Contract_Size                          ,
+	
+ 
+    comm.Notional                               ,
+    
+	comm.Report_Day                             ,
+	
+	
+    
+    comm.Maturity_Bucket                        ,
+
+
+	comm.Portfolio								,
+	comm.SubPortFolio	
+
+from comm
+/* ********************************************************************************************************** */

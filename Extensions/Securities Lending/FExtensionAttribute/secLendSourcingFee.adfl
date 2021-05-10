@@ -1,0 +1,14 @@
+[Securities Lending]FInstrumentAndTrades:secLendSourcingFee = secLendMarketRateOrOverride;
+[Securities Lending]FMultiInstrumentAndTrades:secLendSourcingFee = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->secLendMarketRateOrOverride);
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendSourcingFee = nil;
+[Securities Lending]FSecurityLoan:secLendSourcingFee = select(secLendGetMasterLoan <> nil, 
+  true->secLendMarketRateOrOverride, 
+  default->nil);
+[Securities Lending]FSingleInstrumentAndTrades:secLendSourcingFee = select(instrument.InsType == "SecurityLoan", 
+  true->select(secLendGetMasterLoan <> nil, 
+    true->secLendMarketRateOrOverride, 
+    default->nil), 
+  default->nil);
+[Securities Lending]FTrade:secLendSourcingFee = instrument:secLendSourcingFee;

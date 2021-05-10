@@ -1,0 +1,62 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET BSB Bug') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET BSB Bug' and p.type = 'SQL Query' 
+ 
+  /*
+BSB that crosses books close date but expires before End date needs to be fixed.  
+Set MTM from feed ON (special, instrument properties),
+and provide a SPOT price of 0.000001 on END day in the morning 
+*/
+
+
+
+
+
+
+
+
+
+select
+display_id(t,'prfnbr') 'Portfolio',
+t.trdnbr 'TradeNumber',
+i.instype,
+i.insid,
+t.value_day							'StartDay',	
+i.exp_day							'EndDay',
+und.exp_day 'und exp day',
+days_between(t.value_day, i.exp_day, 'Act/365')			'Term',
+t.premium							'Cash1',
+i.ref_value*t.quantity						'Cash2',
+/*ex_coupon_date(cf)						'ex_coupon_date',*/
+i.rate								'RepoRate',
+i.rate / 36500 * days_between(t.value_day, i.exp_day, 'Act/365') * t.premium 'interest',
+i.ref_value*t.quantity	 + t.premium	+ i.rate / 36500 * days_between(t.value_day, i.exp_day, 'Act/365') * t.premium 'diff',
+i.mtm_from_feed,
+l.fixed_rate 'couponRate',
+nominal_amount(t)*l.fixed_rate /200 'CouponAmt'
+
+from 
+trade t,
+instrument i,
+Leg l,
+/*Cashflow cf,*/
+instrument und
+
+where
+i.insaddr =* t.insaddr
+and	i.und_insaddr *= und.insaddr
+and und.insaddr=l.insaddr
+/*and	l.insaddr = und.insaddr
+and	l.legnbr = cf.legnbr*/
+/*and	t.value_day < cf.end_day
+and	cf.start_day < i.exp_day
+and	cf.type ~= 'Fixed Amount'*/
+and i.instype = 'BuySellback'
+and und.instype in ('Bond','IndexLinkedBond')
+and i.exp_day > '2007-07-01'
+and t.status in ('FO Confirmed','BO-BO Confirmed','BO Confirmed')
+and abs(i.ref_value*t.quantity	 + t.premium	+ i.rate / 36500 * days_between(t.value_day, i.exp_day, 'Act/365') * t.premium ) > 500
+

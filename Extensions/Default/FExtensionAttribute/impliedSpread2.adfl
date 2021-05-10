@@ -1,0 +1,12 @@
+[Default]FCashFlowInstrument:impliedSpread2 = select(numberOfFloatOrCapFloorLegs, 
+  1->firstNonFixedLeg :* "impliedSpread2" [priceSource], 
+  default->nil);
+[Default]FInstrument:impliedSpread2 = nil;
+[Default]FInstrumentAndTrades:impliedSpread2 = instrument :* "impliedSpread2" [priceSource];
+[Default]FLeg:impliedSpread2 = shunt[priceSource](staticLegInformation.IsSpread and isFloatOrCapFloorLeg and implyValid, 
+  true->imply(shiftedFloatFactor, theoreticalPriceShiftSpread2, marketPrice, implyPrecision, impliedSpreadMinValue, impliedSpreadMaxValue, implyMaxIterations), 
+  false->nil);
+[Default]FLegAndTrades:impliedSpread2 = select(leg:isFloatOrCapFloorLeg, 
+  true->leg :* "impliedSpread2" [priceSource], 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:impliedSpread2 = nil;

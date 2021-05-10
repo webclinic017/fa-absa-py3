@@ -1,0 +1,357 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SAIRD_CURRSWAP_CONF_SHORT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SAIRD_CURRSWAP_CONF_SHORT' and p.type = 'SQL Query' 
+/* Audit trail
+
+Date		Who		What
+2005-05-10	Aaeda Salejee	Added columns for pay calenders and added  
+				clause 9 adjustment to Final exchange
+2004-12-09	Kim Madeley	Created new Basis swap script
+2004-02-15	Kim Madeley	Released to prod for testing
+Report templates using theis script are:
+
+SAIRD_CURRSWAP_CONF_SHORT		
+*/
+
+select
+t.trdnbr,
+l.legnbr,
+l.curr,
+l.fixed_rate 'Rate',
+l.spread = 0 ? 'None' : l.spread 'Spread'
+
+into tmprate
+
+from 
+
+trade t, instrument i, leg l, cashflow cf
+
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and l.start_day = cf.start_day
+and t.trdnbr in (@Trdnbr)
+/*and cf.type = 'Float Rate'*/
+and t.status not in ('Simulated', 'Terminated', 'Void')
+
+
+select
+t.trdnbr,
+l.legnbr,
+l.curr,
+cf.pay_day
+
+into tmpDate
+
+from 
+
+trade t, instrument i, leg l, cashflow cf
+
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and t.trdnbr in (@Trdnbr)
+/*and cf.type = 'Float Rate'*/
+and t.status not in ('Simulated', 'Terminated', 'Void')
+
+
+select t.trdnbr, cl.entry, ag.dated
+
+into tmpIsda1
+
+from trade t, agreement ag, ChoiceList cl
+where t.counterparty_ptynbr = ag.counterparty_ptynbr
+and ag.document_type_chlnbr = cl.seqnbr
+and cl.entry = 'ISDA'
+and t.trdnbr in (@Trdnbr)
+
+select  tt.entry ,tt.dated, t.trdnbr
+
+into  tmpIsda2
+
+from  tmpIsda1 tt, trade t
+
+where tt.trdnbr =* t.trdnbr
+and t.trdnbr in (@Trdnbr)
+
+select 
+(t.entry = '' or convert('date',t.dated) = '0000-01-01') ? 'NO ISDA DATE CAPTURED! PLS USE LONG FORM CONFIRMATION!' : t.dated 'ISDA',
+
+ t.dated, t.trdnbr 
+
+into tmpIsda3
+
+from  tmpIsda2 t
+
+
+select
+
+t3.ISDA,
+p.free1_chlnbr = 0 ? 'NoLawType' : display_id(p,'free1_chlnbr')  'LawType',
+'Initial Payer1',
+t.trdnbr,
+time_to_day(t.time) 'TradeDate',
+l.start_day,
+l.start_day 'EffDate',
+l.end_day 'TermDate',
+cf.pay_day,
+/*i.start_day,*/
+display_id(l,'Curr') 'Curr',
+projected_cf(cf) 'Initial_Amt',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'ABSA' : 'Counterparty'	'payer_initial',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'ABSA' : 'Counterparty'	'payer',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+l.fixed_rate 'Rate',
+l.spread = 0 ? 'None' : l.spread 'Spread',
+td.pay_day 'payday',
+p.ptyid,
+p.fullname,
+p.fax,
+display_id(l, 'float_rate') like '%LIBOR%' ?  'USD-LIBOR-BBA' : display_id(l, 'float_rate') like '%JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method	'Daycount',
+p.address,
+p.address2,
+p.city,
+p.zipcode,
+p.country,
+l.rolling_period.count 'Count',
+l.rolling_period.unit 'Unit',
+l.nominal_scaling = 'FX' ? ',subject to adjustment in accordance ' : '' 'Clause',
+l.nominal_scaling = 'FX' ? 'with provision 9 of this confirmation' : '' 'Clause2',
+display_id(l, 'float_rate') like '%LIBOR%' ?  '' :  'Fixed' 'FixFloat',
+l.pay_calnbr = 0 ? ' ' : display_id(l, 'pay_calnbr')		'PayCal',
+l.pay2_calnbr = 0 ? ' ' : display_id(l, 'pay2_calnbr')		'PayCal2',
+l.pay3_calnbr = 0 ? ' ' : display_id(l, 'pay3_calnbr') 		'PayCal3',
+l.pay4_calnbr = 0 ? ' ' : display_id(l, 'pay4_calnbr')		'PayCal4',
+l.pay5_calnbr = 0 ? ' ' : display_id(l, 'pay5_calnbr')		'PayCal5'
+
+from 
+
+trade t, instrument i, leg l, cashflow cf, tmprate tr, party p, tmpIsda3 t3,  tmpDate td
+
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and l.start_day = cf.pay_day
+and l.type = 'Fixed'
+and p.ptynbr = t.counterparty_ptynbr
+and t.trdnbr in (@Trdnbr)
+and cf.type = 'Fixed Amount'
+and l.legnbr = tr.legnbr
+and l.curr = tr.curr
+and tr.trdnbr = t.trdnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and t.trdnbr = t3.trdnbr
+and l.legnbr = td.legnbr
+and l.curr = td.curr
+and td.trdnbr = t.trdnbr
+
+union
+
+select
+
+t3.ISDA,
+p.free1_chlnbr = 0 ? 'NoLawType' : display_id(p,'free1_chlnbr')  'LawType',
+'Initial Payer2',
+t.trdnbr,
+time_to_day(t.time) 'TradeDate',
+l.start_day,
+l.start_day 'EffDate',
+l.end_day 'TermDate',
+cf.pay_day,
+/*i.start_day,*/
+display_id(l,'Curr') 'Curr',
+projected_cf(cf) 'Initial_Amt',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'ABSA' : 'Counterparty'	'payer_initial',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'ABSA' : 'Counterparty'	'payer',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+period_rate(cf) 'Rate',
+l.spread = 0 ? 'None' : l.spread 'Spread',
+td.pay_day 'payday',
+p.ptyid,
+p.fullname,
+p.fax,
+display_id(l, 'float_rate') like '%LIBOR%' ?  'USD-LIBOR-BBA' : display_id(l, 'float_rate') like '%JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method	'Daycount',
+p.address,
+p.address2,
+p.city,
+p.zipcode,
+p.country,
+l.rolling_period.count 'Count',
+l.rolling_period.unit 'Unit',
+l.nominal_scaling = 'FX' ? ',subject to adjustment in accordance ' : '' 'Clause',
+l.nominal_scaling = 'FX' ? 'with provision 9 of this confirmation' : '' 'Clause2',
+display_id(l, 'float_rate') like '%LIBOR%' ?  '' :  'Fixed' 'FixFloat',
+l.pay_calnbr = 0 ? ' ' : display_id(l, 'pay_calnbr')		'PayCal',
+l.pay2_calnbr = 0 ? ' ' : display_id(l, 'pay2_calnbr')		'PayCal2',
+l.pay3_calnbr = 0 ? ' ' : display_id(l, 'pay3_calnbr') 		'PayCal3',
+l.pay4_calnbr = 0 ? ' ' : display_id(l, 'pay4_calnbr')		'PayCal4',
+l.pay5_calnbr = 0 ? ' ' : display_id(l, 'pay5_calnbr')		'PayCal5'
+
+from
+
+trade t, instrument i, leg l, cashflow cf, tmprate tr,  party p, tmpIsda3 t3,   tmpDate td
+
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and l.start_day = cf.pay_day
+and l.type = 'Float'
+and p.ptynbr = t.counterparty_ptynbr
+and t.trdnbr in (@Trdnbr)
+and cf.type = 'Fixed Amount'
+and l.legnbr = tr.legnbr
+and l.curr = tr.curr
+and tr.trdnbr = t.trdnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and t.trdnbr = t3.trdnbr
+and l.legnbr = td.legnbr
+and l.curr = td.curr
+and td.trdnbr = t.trdnbr
+
+
+union
+
+select
+
+t3.ISDA,
+p.free1_chlnbr = 0 ? 'NoLawType' : display_id(p,'free1_chlnbr')  'LawType',
+'Final Payer1',
+t.trdnbr,
+time_to_day(t.time) 'TradeDate',
+l.start_day,
+l.start_day 'EffDate',
+l.end_day 'TermDate',
+cf.pay_day,
+/*i.start_day,*/
+display_id(l,'Curr') 'Curr',
+projected_cf(cf) 'Initial_Amt',
+''	'payer_initial',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'ABSA' : 'Counterparty'	'payer',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)),0)	'end_nominal',
+l.fixed_rate 'Rate',
+l.spread = 0 ? 'None' : l.spread 'Spread',
+td.pay_day 'payday',
+p.ptyid,
+p.fullname,
+p.fax,
+display_id(l, 'float_rate') like '%LIBOR%' ?  'USD-LIBOR-BBA' : display_id(l, 'float_rate') like '%JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method	'Daycount',
+p.address,
+p.address2,
+p.city,
+p.zipcode,
+p.country,
+l.rolling_period.count 'Count',
+l.rolling_period.unit 'Unit',
+l.nominal_scaling = 'FX' ? ',subject to adjustment in accordance ' : '' 'Clause',
+l.nominal_scaling = 'FX' ? 'with provision 9 of this confirmation' : '' 'Clause2',
+display_id(l, 'float_rate') like '%LIBOR%' ?  '' :  'Fixed' 'FixFloat',
+l.pay_calnbr = 0 ? ' ' : display_id(l, 'pay_calnbr')		'PayCal',
+l.pay2_calnbr = 0 ? ' ' : display_id(l, 'pay2_calnbr')		'PayCal2',
+l.pay3_calnbr = 0 ? ' ' : display_id(l, 'pay3_calnbr') 		'PayCal3',
+l.pay4_calnbr = 0 ? ' ' : display_id(l, 'pay4_calnbr')		'PayCal4',
+l.pay5_calnbr = 0 ? ' ' : display_id(l, 'pay5_calnbr')		'PayCal5'
+
+from 
+
+trade t, instrument i, leg l, cashflow cf, tmprate tr, party p,  tmpDate td, tmpIsda3 t3
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and l.end_day = cf.pay_day
+and l.type = 'Fixed'
+and p.ptynbr = t.counterparty_ptynbr
+and t.trdnbr in (@Trdnbr)
+and cf.type = 'Fixed Amount'
+and l.legnbr = tr.legnbr
+and l.curr = tr.curr
+and tr.trdnbr = t.trdnbr
+and l.legnbr = td.legnbr
+and l.curr = td.curr
+and td.trdnbr = t.trdnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and t.trdnbr = t3.trdnbr
+
+union
+
+select
+
+t3.ISDA,
+p.free1_chlnbr = 0 ? 'NoLawType' : display_id(p,'free1_chlnbr')  'LawType',
+'Final Payer2',
+t.trdnbr,
+time_to_day(t.time) 'TradeDate',
+l.start_day,
+l.start_day 'EffDate',
+l.end_day 'TermDate',
+cf.pay_day,
+/*i.start_day,*/
+display_id(l,'Curr') 'Curr',
+projected_cf(cf) 'Initial_Amt',
+''	'payer_initial',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'ABSA' : 'Counterparty' 'payer',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)),0)	'end_nominal'	,
+period_rate(cf) 'Rate',
+l.spread = 0 ? 'None' : l.spread 'Spread',
+td.pay_day 'payday',
+p.ptyid,
+p.fullname,
+p.fax,
+display_id(l, 'float_rate') like '%LIBOR%' ?  'USD-LIBOR-BBA' : display_id(l, 'float_rate') like '%JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method	'Daycount',
+p.address,
+p.address2,
+p.city,
+p.zipcode,
+p.country,
+l.rolling_period.count 'Count',
+l.rolling_period.unit 'Unit',
+l.nominal_scaling = 'FX' ? ',subject to adjustment in accordance ' : '' 'Clause',
+l.nominal_scaling = 'FX' ? 'with provision 9 of this confirmation' : '' 'Clause2',
+display_id(l, 'float_rate') like '%LIBOR%' ?  '' :  'Fixed' 'FixFloat',
+l.pay_calnbr = 0 ? ' ' : display_id(l, 'pay_calnbr')		'PayCal',
+l.pay2_calnbr = 0 ? ' ' : display_id(l, 'pay2_calnbr')		'PayCal2',
+l.pay3_calnbr = 0 ? ' ' : display_id(l, 'pay3_calnbr') 		'PayCal3',
+l.pay4_calnbr = 0 ? ' ' : display_id(l, 'pay4_calnbr')		'PayCal4',
+l.pay5_calnbr = 0 ? ' ' : display_id(l, 'pay5_calnbr')		'PayCal5'
+/*
+display_id(l,'pay_calnbr') + ' ' + display_id(l,'pay2_calnbr') + ' ' + display_id(l,'pay3_calnbr') + ' ' + display_id(l,'pay4_calnbr') + ' ' + display_id(l,'pay5_calnbr') 'PayCalFinal'*/
+
+from 
+
+trade t, instrument i, leg l, cashflow cf, tmprate tr, party p,  tmpDate td, tmpIsda3 t3
+
+where t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'CurrSwap'
+and i.exp_day >= TODAY
+and l.end_day = cf.pay_day
+and l.type = 'Float'
+and p.ptynbr = t.counterparty_ptynbr
+and t.trdnbr in (@Trdnbr)
+and cf.type = 'Fixed Amount'
+and l.legnbr = tr.legnbr
+and l.curr = tr.curr
+and tr.trdnbr = t.trdnbr
+and l.legnbr = td.legnbr
+and l.curr = td.curr
+and td.trdnbr = t.trdnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and t.trdnbr = t3.trdnbr
+

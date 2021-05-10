@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:moveValueViaReportDate = select(valuesOnSpot, 
+  true->collapse(moveValueViaSpot), 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->collapse(moveValueViaAccountingDate), 
+    false->collapse(moveValue)));
+[Default]FCombination:moveValueViaReportDate = select(valuesOnSpot, 
+  true->collapse(moveValueViaSpot), 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->collapse(moveValueViaAccountingDate), 
+    false->collapse(moveValue)));
+[Default]FInstrument:moveValueViaReportDate = collapse(moveValue);

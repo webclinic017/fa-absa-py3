@@ -1,0 +1,96 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAGEN_AUDIT_BM_PRICES') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_AUDIT_BM_PRICES' and p.type = 'SQL Query' 
+ 
+  /* 
+    ================================================================
+    Dirk Strauss    14-Sept-2007
+    Zaakirah - Extended April 2009
+    ================================================================
+*/
+
+select
+    date_add_banking_day(to_date(@03_EndDate{YESTERDAY;}), 'ZAR', -1)  't0',
+    to_date(@03_EndDate{YESTERDAY;})                                   't1'
+    
+into
+    parm
+from 
+    serverdata s
+WHERE
+	s.srdnbr > 0
+
+select    
+    TODAY                                   'RepDate',
+    p.t0                                    'T0',
+    p.t1                                     'T1',
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    p0.settle                               'prc_t0',
+    p1.settle                               'prc_t1',
+    (p1.settle - p0.settle) * 100           'diff_bp',
+    display_id(p1,'updat_usrnbr')           'update_user'
+    
+into final
+
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p0,
+    price p1,
+    parm p,
+    party pty
+where
+    yc.yield_curve_type in ('Benchmark','Spread')
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr    
+    and p0.insaddr = ins.insaddr
+    and p1.insaddr = ins.insaddr    
+    and p0.day = p.t0
+    and p1.day = p.t1
+    and p0.ptynbr = pty.ptynbr
+    and p1.ptynbr = pty.ptynbr
+    and pty.ptyid = 'SPOT'
+    and p.t1 ~= TODAY
+order by 4, 6
+
+
+
+select    
+    TODAY                                   'RepDate',
+    p.t0                                    'T0',
+    p.t1                                    'T1',
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    p0.settle                               'prc_t0',
+    used_price(ins)                          'prc_t1',
+    (used_price(ins) - p0.settle) * 100      'diff_bp',
+    display_id(p0,'updat_usrnbr')           'update_user'
+    
+into final
+
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p0,
+    parm p,
+    party pty
+where
+    yc.yield_curve_type in ('Benchmark','Spread')
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr    
+    and p0.insaddr = ins.insaddr
+    and p0.day = p.t0
+    and p0.ptynbr = pty.ptynbr
+    and pty.ptyid = 'SPOT'
+    and p.t1 = TODAY
+order by 4, 6
+
+select * from final f where f.diff_bp ~= 0

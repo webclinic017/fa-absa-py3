@@ -1,0 +1,9 @@
+[Default]FDeliverableLinkAndTrades:instrumentAccrued = nil;
+[Default]FInstrumentAndTrades:instrumentAccrued = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->instrumentAccruedLive, 
+  "Inception to Historical"->instrumentAccruedEnd, 
+  "Historical to Present"->instrumentAccruedLive - instrumentAccruedStart, 
+  "Historical to Historical"->instrumentAccruedEnd - instrumentAccruedStart);
+[Default]FPriceAggregate:instrumentAccrued = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "instrumentAccrued");

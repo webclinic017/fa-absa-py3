@@ -1,0 +1,7 @@
+[ACL]FCurrencySwap:faclAttrReceivePrincipal = select(faclReceiveLeg, 
+  nil->nil, 
+  default->object.RecLeg.NominalFactor * instrument.ContractSize);
+[ACL]FInstrument:faclAttrReceivePrincipal = nil;
+[ACL]FTradeRow:faclAttrReceivePrincipal = faclAttrScalingFactor * select(trade.Quantity * instrument:contractSize > 0, 
+  true->abs(trade.Quantity * instrument:faclAttrReceivePrincipal), 
+  false->abs(trade.Quantity * instrument:faclAttrPayPrincipal));

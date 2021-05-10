@@ -1,0 +1,112 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_InterestTurn') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_InterestTurn' and p.type = 'SQL Query' 
+ 
+  select
+    t.trdnbr                        'Trade ID',
+    i.instype                       'Instrument',
+    nominal_amount(c)*t.quantity    'Nominal',
+    c.start_day                     'Start Day',
+    c.end_day                       'End Day',
+    c.pay_day                       'Pay Day',    
+    r.day < YESTERDAY ? r.value + c.spread : forward_rate(c) 'Rate',
+    l.start_day                     'Ins_Start Day',
+    i.exp_day                       'Ins_Exp Day',
+    c.type                          'Type',
+    p.prfid                         'Portfolio',
+    x.ptyid                         'Counter Party'
+
+from    
+    reset r,
+    trade t,    
+    instrument i,
+    cashflow c,
+    leg l,
+    portfolio p,
+    party x
+    
+where
+    p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = x.ptynbr    
+and t.insaddr = i.insaddr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and r.cfwnbr =* c.cfwnbr
+and match_filter(t,@TradeFilter{;tradefilter.fltid})
+and c.type in ('Fixed Amount')
+order by 1,5
+
+union
+
+select
+    t.trdnbr                        'Trade ID',
+    i.instype                       'Instrument',
+    nominal_amount(c)*t.quantity    'Nominal',
+    c.start_day                     'Start Day',
+    c.end_day                       'End Day',
+    c.pay_day                       'Pay Day',    
+    c.rate                          'Rate',
+    i.start_day                     'Ins_Start Day',
+    i.exp_day                       'Ins_Exp Day',
+    c.type                          'Type',
+    p.prfid                         'Portfolio',
+    x.ptyid                         'Counter Party'
+
+from    
+    reset r,
+    trade t,    
+    instrument i,
+    cashflow c,
+    leg l,
+    portfolio p,
+    party x
+    
+where
+    p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = x.ptynbr    
+and t.insaddr = i.insaddr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and r.cfwnbr =* c.cfwnbr
+and match_filter(t,@TradeFilter{;tradefilter.fltid})
+and c.type in ('Fixed Rate')
+order by 1,5    
+    
+union
+
+select
+    t.trdnbr                        'Trade ID',
+    i.instype                       'Instrument',
+    nominal_amount(c)*t.quantity    'Nominal',
+    c.start_day                     'Start Day',
+    c.end_day                       'End Day',
+    c.pay_day                       'Pay Day',    
+    r.day < YESTERDAY ? r.value + c.spread : forward_rate(c) 'Rate',
+    i.start_day                     'Ins_Start Day',
+    i.exp_day                       'Ins_Exp Day',
+    c.type                          'Type',
+    p.prfid                         'Portfolio',
+    x.ptyid                         'Counter Party'
+
+from    
+    reset r,
+    trade t,    
+    instrument i,
+    cashflow c,
+    leg l,
+    portfolio p,
+    party x
+    
+where
+    p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = x.ptynbr    
+and t.insaddr = i.insaddr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and r.cfwnbr =* c.cfwnbr
+and match_filter(t,@TradeFilter{;tradefilter.fltid})
+and c.type in ('Float Rate')
+order by 1,5

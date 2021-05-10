@@ -1,0 +1,36 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','DW_BOND_DELTA') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'DW_BOND_DELTA' and p.type = 'SQL Query' 
+ 
+  select
+i.insid,
+nominal_amount(t) 'Nominal',
+nominal_amount(t)/1000000     'Quantity',
+
+( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  - 0.5  )- 
+  Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  + 0.5  )   ) / (0.5+0.5) 'Deltap1',
+(( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  - 0.5  )- 
+  Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  + 0.5  )   ) / (0.5+0.5)/10000) 'Delta_bps',  
+nominal_amount(t) *  (( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  - 0.5  )- 
+  Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,0),,, (mtm_price(i,date_add_banking_day(@2_Date{today},,0))  )  + 0.5  )   ) / (0.5+0.5)/10000) 'Delta_Exposure', 
+mtm_price(i,date_add_banking_day(@2_Date{today},,0)) 'YTM',
+today                                               'DATE',
+i.exp_day                                           'Expiry_Day'
+
+from 
+
+trade t,
+instrument i
+
+where
+
+match_filter(t, @1_Filter{CredDer_All;tradefilter.fltid})
+and i.instype in ('Bond','IndexLinkedBond')
+and t.insaddr = i.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+group by 1
+order by 9

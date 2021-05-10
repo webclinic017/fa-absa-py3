@@ -1,0 +1,7 @@
+[Adaptiv XVA]FInstrumentAndTrades:AAriskBaseValueBenchmarkShiftDown = select(AAOptimise and supportBenchmarkShiftDown, 
+  true->select(timeBucketsSetExternally, 
+    nil->scenarioaxis(riskBaseValue, <["cvaScenName"], , , "BenchmarkShiftDown">), 
+    default->select(isSupportedTimeBuckets and supportBenchmarkShiftDownBucket, 
+      true->scenarioaxisarray(riskBaseValue, <["cvaScenName"], , , benchmarkShiftDownTimeBucketsScenName :* "object">), 
+      false->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, shiftBenchmarkPriceBucket benchmarkDeltaShiftParametersDown))), 
+  false->shift(riskBaseValue, benchmarkCurvesInRiskBaseValue, shiftBenchmarkPriceBucket benchmarkDeltaShiftParametersDown));

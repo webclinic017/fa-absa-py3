@@ -1,0 +1,8 @@
+[Core Pricing]FCombination:useCombinationModel[startPointFromCombination, baseValuationOnUnderlyingComponents] = select(baseValuationOnUnderlyingComponents, 
+  true->true, 
+  false->select(startPointFromCombination, 
+    false->collapse(useLinearCombinationModel), 
+    true->select(needsLegInformation, 
+      true->true, 
+      false->collapse(isMultiCurrencyInstrument))));
+[Core Pricing]FInstrument:useCombinationModel = false;

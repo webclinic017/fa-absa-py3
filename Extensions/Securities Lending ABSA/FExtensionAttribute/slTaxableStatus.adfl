@@ -1,0 +1,8 @@
+[Securities Lending ABSA]FInstrument:slTaxableStatus = (object.Trades.At(0)) :* "slTaxableStatus";
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTaxableStatus = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.TAXABLE_STATUS), 
+  default->nil);
+[Securities Lending ABSA]FParty:slTaxableStatus = object.AdditionalInfo.TAXABLE_STATUS;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTaxableStatus = instrument:slTaxableStatus;
+[Securities Lending ABSA]FTrade:slTaxableStatus = true_counterparty.AdditionalInfo.TAXABLE_STATUS;
+[Securities Lending ABSA]FTradeRow:slTaxableStatus = trade:slTaxableStatus;

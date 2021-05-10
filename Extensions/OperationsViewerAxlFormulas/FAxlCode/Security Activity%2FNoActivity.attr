@@ -1,0 +1,12 @@
+[OperationsViewerAxlFormulas]FObject:Security Activity/NoActivity
+{
+  DisplayInformation:
+  {
+    Label:'Activity/NoActivity',
+    GroupLabel:'Security',
+    Description:'Partition used on ISIN level to group ISIN in group for Activity, where unsettled security settlements exist, vs group for NoActivity, where no unsettled security settlements exist.'
+  }
+}
+main = If(Compare.IsEqual(Aggregate.Unique(Or(&'unSettledSecurityExtAttr', &'settledSecurityExtAttr')), True), If(Compare.IsEqual(Aggregate.Unique(&'unSettledSecurityExtAttr'), False), 'NoActivity', 'Activity'), 'Rest');
+
+...

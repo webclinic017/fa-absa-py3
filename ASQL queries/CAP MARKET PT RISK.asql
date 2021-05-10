@@ -1,0 +1,174 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET PT RISK') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET PT RISK' and p.type = 'SQL Query' 
+ 
+  /*
+bonds and repos settlement positions per portfolio per bond
+*/
+select
+/*Today*/ @Day{Today} 'Day',
+pp.prfid  'cost_centre',
+t.trdnbr,
+t.status,
+i.instype = 'Bond' ? 'Bond' : i.instype  'Type',
+i.insid,
+i.start_day,
+i.exp_day,
+t.quantity*1000000'Nominal',
+p.prfid,
+
+
+((dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})+0.01)-dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})))*-10000) 'RPPNT',
+((dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})+0.01)-dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})))*-10000) 'R157_RPPNT',
+
+/*avg*/((((dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})+0.01)-dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})))*-10000))
+     /(((dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})+0.01)-dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})))*-10000)))  'RPPNT_Factor',
+     
+/*sum*/(t.quantity*1000000*((((dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})+0.01)-dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})))*-10000))
+     /(((dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})+0.01)-dirty_from_yield(r,date_add_banking_day(@Day{Today},,3),,,mtm_price(r,@Day{Today})))*-10000))))  'Bond_ADJ_NOM',
+
+((dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})+0.01)-dirty_from_yield(i,date_add_banking_day(@Day{Today},,3),,,mtm_price(i,@Day{Today})))*-10000) * t.quantity  'RPPNTEXP'/*,
+party.ptyid'CP'*/
+
+into temp
+
+from
+
+portfolio pp,
+portfolioLink pl,
+instrument i,
+trade t,
+portfolio p,
+/*party party,*/
+instrument r
+
+where
+p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and r.insid='ZAR/R157'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+/*and t.counterparty_ptynbr=party.ptynbr*/
+and i.instype in ('Bond','IndexLinkedBond'/*,'BuySellback','Repo/Reverse'*/)
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day>=Today 
+and time_to_day(t.creat_time) <= @Day{Today}
+
+
+
+/*Build different sections of query*/
+/*Details per portfolio*/
+select
+@Day{Today} 'today' ,
+t.cost_centre 'cost_centre',
+t.prfid 'Portfolio',
+t.insid 'Instrument',
+sum(t.Nominal) 'nom',
+avg(t.RPPNT) 'rppnt',
+avg(t.R157_RPPNT) 'r157_prppnt',
+avg(t.RPPNT_Factor) 'rppfact',
+sum(t.Bond_ADJ_NOM) 'adj_nom',
+sum(t.RPPNTEXP) 'RPPNTEXP'
+into temp2
+from 
+temp t
+group by t.cost_centre , t.prfid , t.insid 
+
+/*Per portfolio*/
+select
+@Day{Today} 'today' ,
+t.cost_centre 'cost_centre',
+t.prfid 'Portfolio',
+'' 'Instrument',
+sum(t.Nominal) 'nom',
+avg(t.RPPNT) 'rppnt',
+avg(t.R157_RPPNT) 'r157_prppnt',
+avg(t.RPPNT_Factor) 'rppfact',
+sum(t.Bond_ADJ_NOM) 'adj_nom',
+sum(t.RPPNTEXP) 'RPPNTEXP'
+into temp3
+from 
+temp t
+group by t.cost_centre , t.prfid 
+
+
+/*Per instrument total*/
+select
+@Day{Today} 'today' ,
+t.cost_centre 'cost_centre',
+'' 'Portfolio',
+t.insid 'Instrument',
+sum(t.Nominal) 'nom',
+avg(t.RPPNT) 'rppnt',
+avg(t.R157_RPPNT) 'r157_prppnt',
+avg(t.RPPNT_Factor) 'rppfact',
+sum(t.Bond_ADJ_NOM) 'adj_nom',
+sum(t.RPPNTEXP) 'RPPNTEXP'
+into temp4
+from 
+temp t
+group by t.cost_centre , t.insid 
+
+/*Per cost centre totals*/
+select
+@Day{Today} 'today' ,
+t.cost_centre 'cost_centre',
+'' 'Portfolio',
+'' 'Instrument',
+sum(t.Nominal) 'nom',
+0.0 'rppnt',
+0.0 'r157_prppnt',
+0.0 'rppfact',
+sum(t.Bond_ADJ_NOM) 'adj_nom',
+sum(t.RPPNTEXP) 'RPPNTEXP'
+into temp5
+from 
+temp t
+group by t.cost_centre 
+
+
+/*Final Query*/   /*remove: and t.cost_centre = '3179' , to see other portfolios/cc*/
+
+select 
+*
+from temp2 t
+where (round((t.Nom))>0 or round((t.Nom))<-0)
+/*and t.cost_centre = '3179'*/
+union
+select 
+*
+from temp3 t
+where (round((t.Nom))>0 or round((t.Nom))<-0)
+/*and t.cost_centre = '3179'*/
+union
+select 
+*
+from temp4 t
+where (round((t.Nom))>0 or round((t.Nom))<-0)
+/*and t.cost_centre = '3179'*/
+union
+select 
+*
+from temp5 t
+where (round((t.Nom))>0 or round((t.Nom))<-0)
+/*and t.cost_centre = '3179'*/
+union
+select 
+t.today,
+t.cost_centre,
+'Tier II: R300m ',
+'% Utilised',
+0.0,
+0.0,
+0.0,
+0.0,
+0.0,
+abs(t.adj_nom / 300000000)*100
+
+from temp5 t
+where (round((t.Nom))>0 or round((t.Nom))<-0)
+/*and t.cost_centre = '3179'*/
+

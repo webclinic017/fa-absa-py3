@@ -1,0 +1,5 @@
+[Convertible Market Making]FQuoteController:qTheorBidAsk = select(underlyingIsValuedFromLegs, 
+  true->shiftarray(theoreticalPrice, snoop(theoreticalPrice, "spotPriceAsUnderlying"), fixedvariant [qUndBidPrice, qUndAskPrice]), 
+  false->shunt(qVolaAddOnEnabled, 
+    true->qTheorBidAskWithVolOffset, 
+    false->qTheorBidAskWithoutVolOffset));

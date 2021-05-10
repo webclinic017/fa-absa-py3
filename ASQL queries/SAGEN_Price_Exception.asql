@@ -1,0 +1,88 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAGEN_Price_Exception') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_Price_Exception' and p.type = 'SQL Query' 
+ 
+  select 
+    p.settle,
+    p.day,
+    display_id(p,'curr')    'Curr',
+    display_id(p,'insaddr') 'Insid',
+    display_id(p,'ptynbr')  'Market',
+    i.instype,
+    i.und_instype,
+    i.exp_day
+into
+    temp1 
+from
+    price p, 
+    instrument i,
+    party pr
+where
+    p.day = date_add_banking_day(@Date{},'ZAR',-1)
+/*and (i.exp_day > @Date{} or i.exp_day = '0000-01-01')*/
+and i.insaddr = p.insaddr
+and p.settle ~= 0.0
+and pr.ptyid ~= 'internal'
+and p.ptynbr = pr.ptynbr
+
+select 
+    p.settle,
+    p.day,
+    display_id(p,'curr')    'Curr',
+    display_id(p,'insaddr') 'Insid',
+    display_id(p,'ptynbr')  'Market'
+into 
+    temp2
+from
+    price p, 
+    instrument i,
+    party pr
+where
+    p.day = @Date{}
+/*and (i.exp_day >= @Date{} or i.exp_day = '0000-01-01')*/
+and i.insaddr = p.insaddr
+and p.settle ~= 0.0
+and pr.ptyid ~= 'internal'
+and p.ptynbr = pr.ptynbr
+    
+select
+    t1.insid,
+    t1.instype,
+    t1.und_instype,
+    t1.exp_day,
+    t1.day                  'PreviousDay',
+    t2.day                  'CurrentDay',
+    t1.settle               'PreviousPrice',
+    t2.settle               'CurrentPrice',
+    t1.curr,
+    t1.Market
+into 
+    fin
+from
+    temp1 t1,
+    temp2 t2
+where
+    t1.curr *= t2.curr
+and t1.insid *= t2.insid
+and t1.market *= t2.market
+
+select 
+    Insid,
+    Instype,
+    und_instype     'UnderlyingType',
+    exp_day,
+    PreviousDay,
+    PreviousPrice,
+    Curr,
+    Market
+from
+    fin 
+where
+    currentday = ''
+    and Market = 'SPOT'
+
+
+        

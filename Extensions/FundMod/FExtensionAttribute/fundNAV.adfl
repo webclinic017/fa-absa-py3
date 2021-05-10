@@ -1,0 +1,7 @@
+[FundMod]FFund:fundNAV = select(fundPortfolio, 
+  nil->nan, 
+  default->portfolioInstrumentAndTrades :* "nAV" [priceSource, isSplitAllGrouped, filterCurrency, displayCurrency := currency]);
+[FundMod]FInstrument:fundNAV = nil;
+[FundMod]FInstrumentAndTrades:fundNAV = nil;
+[FundMod]FSingleInstrumentAndTrades:fundNAV = openInstrumentOrInstrument :* "collapse(fundNAV)" [priceSource, isSplitAllGrouped, filterCurrency];
+[FundMod]FTradeRow:fundNAV = instrument:fundNAV [priceSource, isSplitAllGrouped, filterCurrency, currency = tradeRowCurrency];

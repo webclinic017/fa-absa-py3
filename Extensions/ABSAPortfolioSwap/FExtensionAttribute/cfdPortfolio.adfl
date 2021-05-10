@@ -1,0 +1,15 @@
+[ABSAPortfolioSwap]FInstrument:cfdPortfolio = removeNil(removeDuplicates(tradesInPosition :* "cfdPortfolio")).First;
+[ABSAPortfolioSwap]FInstrumentAndTrades:cfdPortfolio = switch(groupingReference, 
+  default->switch(groupingReference.IsKindOf("FPortfolio"), 
+    true->groupingReference, 
+    false->object.Portfolio), 
+  nil->switch(object.Portfolio.Compound, 
+    true->object.Portfolio, 
+    false->switch(sumOf(object.Portfolio.MemberLinks.Size), 
+      default->object.Portfolio.MemberLinks.First.OwnerPortfolio, 
+      0->object.Portfolio)));
+[ABSAPortfolioSwap]FTrade:cfdPortfolio = switch(object.Portfolio.Compound, 
+  true->object.Portfolio, 
+  false->switch(sumOf(object.Portfolio.MemberLinks.Size), 
+    default->object.Portfolio.MemberLinks.First.OwnerPortfolio, 
+    0->object.Portfolio));

@@ -1,0 +1,18 @@
+/* update_method=1 */
+select
+    t.trdnbr,
+    i.insid,
+    t.acquire_day,
+    t.value_day
+from
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and i.instype = 'BuySellback'
+    /*and t.creat_time >= today*/
+    and display_id(t,'creat_usrnbr') = 'ABHH006'
+    and t.value_day = @Incorrect_Date{Today}
+    and t.acquire_day = @Incorrect_Date{Today}
+    and i.exp_day = @Expiry_Date{}
+    

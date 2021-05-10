@@ -1,0 +1,14 @@
+[Default]FCombination:theoreticalPriceBid = object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = theoreticalInstrumentValueBid, priceSource, doSplitAll];
+[Default]FInstrument:theoreticalPriceBid = select(isCalculatedTheoretically, 
+  true->shift(theoreticalPrice, snoop(theoreticalPrice, "marketPrice"), fixedvariant underlyingOrSelfBidPrice), 
+  false->nil);
+[Default]FOrderBook:theoreticalPriceBid = shunt(isCalculatedTheoretically, 
+  true->equivalentInstrument :* "theoreticalPriceBid" [priceSource, quotation] * fxInstrumentToOrderBook, 
+  false->nil);
+[Default]FPriceAggregate:theoreticalPriceBid = priceFeed:theoreticalPriceBid [priceSource];
+[Default]FPriceFeed:theoreticalPriceBid = shunt(isCalculatedTheoretically, 
+  true->equivalentInstrument :* "theoreticalPriceBid" [priceSource, quotation] * fxInstrumentToPriceFeed, 
+  false->nil);
+[Default]FTradingInterface:theoreticalPriceBid = shunt(isCalculatedTheoretically, 
+  true->instrument :* "theoreticalPriceBid" [priceSource, quotation] * fxInstrumentToOrderBook, 
+  false->nil);

@@ -1,0 +1,5 @@
+[Core Risk]FInstrument:priceDeltaCommodityShiftSize = select(isFinite(absoluteShiftSize(object)), 
+  true->absoluteShiftSize(object) / relativePriceShiftSize, 
+  false->select(isFinite(marketSpotValue), 
+    true->marketSpotValue, 
+    default->100));

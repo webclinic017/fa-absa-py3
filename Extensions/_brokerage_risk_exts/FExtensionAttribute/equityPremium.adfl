@@ -1,0 +1,8 @@
+[_brokerage_risk_exts]FInstrument:equityPremium = switch(portfolio:portfolioType, 
+  "Financing Account"->currencyZero, 
+  "Cash Account"->shunt((totalPosition > 0) and (stdPosition > 0), 
+    true->equityPremiumValue, 
+    false->equityPremiumDefault), 
+  default->currencyZero);
+[_brokerage_risk_exts]FMultiInstrumentAndTrades:equityPremium = convertToCurrency(sumOf(instruments :* "collapse(equityPremium)" [portfolio, priceSource, valuesOnSpotOverride, positionObject]), portfolioFxRates, displayCurrencySymbol, filterUnit);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:equityPremium = convertToCurrency(instrument:equityPremium [portfolio, priceSource, valuesOnSpotOverride, positionObject], portfolioFxRates, displayCurrencySymbol, filterUnit);

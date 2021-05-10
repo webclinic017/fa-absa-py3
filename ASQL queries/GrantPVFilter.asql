@@ -1,0 +1,109 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GrantPVFilter') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GrantPVFilter' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr                                'TrdNo',
+    time_to_day(t.time)                     'DealDate',
+    i.instype                               'Instrument',
+    i.exp_day                               'Expiry',
+    display_id(t,'prfnbr')                  'Portfolio',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    nominal_amount(t,,display_id(i,'curr')) 'Nominal',
+    present_value(t)                        'PresentValue',
+    display_id(i,'curr')                    'CCY',
+    display_id(t,'broker_ptynbr')           'Broker',
+    u.name                                  'Trader',
+    t.fee                                   'Fee',
+    t.status                                'Status'
+
+into
+    trds
+    
+from
+    trade t,
+    instrument i,
+    user u
+
+where
+    t.insaddr = i.insaddr
+and u.usrnbr = t.trader_usrnbr
+and match_filter(t,@1_Filter{;tradefilter.fltid*})
+and (time_to_day(t.time) >= @2_StartDate{}
+and time_to_day(t.time) <= @3_EndDate{})
+
+
+
+
+select
+    t.TrdNo,
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.Nominal,
+    t.PresentValue,
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    t.Fee,
+    t.Status
+    
+from
+    trds t
+    
+order by
+    t.Expiry
+
+
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+    t.Status
+    
+from
+    trds t
+    
+group by
+    t.Instrument
+    
+    
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+    t.Status
+    
+from
+    trds t
+    
+group by t.CCY

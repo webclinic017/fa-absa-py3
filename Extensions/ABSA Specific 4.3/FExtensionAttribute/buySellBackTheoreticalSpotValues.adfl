@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FBuySellBack:buySellBackTheoreticalSpotValues = shunt(isExpired, 
+  true->theoreticalSpotValues, 
+  false->spotHandlingZero);
+[ABSA Specific 4.3]FInstrument:buySellBackTheoreticalSpotValues = instrumentSpotZero;
+[ABSA Specific 4.3]FInstrumentAndTrades:buySellBackTheoreticalSpotValues = select(isSettled, 
+  false->spotHandlingZero, 
+  true->instrument :* "buySellBackTheoreticalSpotValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride] * riskPosition);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:buySellBackTheoreticalSpotValues = unSettledInstrumentsNonZero :* "buySellBackTheoreticalSpotValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride] * riskPositionsNonZero;

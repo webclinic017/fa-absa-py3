@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_Stock_Collateral') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_Stock_Collateral' and p.type = 'SQL Query' 
+
+
+
+
+
+SELECT
+    i.insid 'Instrument',
+    i.instype 'Type',
+    pt.ptyid 'Counter party',
+    t.trdnbr 'Trade Number',
+    t.price 'Price',
+    t.quantity 'Quantity',
+    t.status 'Status',
+    t.quantity*used_price(i, YESTERDAY,, 'Close') 'Value',
+    t.trx_trdnbr 'Trans Ref',
+    ptr.prfid 'Original Portfolio'
+FROM
+    Instrument i,
+    Trade t,
+    Portfolio p,
+    Party pt,
+    Trade tr,
+    Portfolio ptr
+WHERE
+    i.insaddr = t.insaddr
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = pt.ptynbr
+and t.trx_trdnbr *= tr.trdnbr
+and tr.prfnbr *= ptr.prfnbr
+and t.category = 'Collateral'
+and p.prfid in (@Portfolio{Equity Script Lending;Portfolio.prfid*})
+and time_to_day(t.time) >= @StartDate{TODAY;}
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated')
+
+;

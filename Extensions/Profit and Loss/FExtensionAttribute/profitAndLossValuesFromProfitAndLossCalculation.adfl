@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrument:profitAndLossValuesFromProfitAndLossCalculation[tradesInPosition, positionObject, singleTradePosition, tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, legs, legId, includeAllTrades, pLDividendComparisonMethod, createClosingLotInfos, taxLotPositionObject, taxLotPnL] = select(singleTradePosition == nil, 
+  true->profitAndLossValuesCalculation["ProfitAndLossValues"], 
+  false->select(taxLotPnL, 
+    true->profitAndLossValuesTaxLotCalculation, 
+    false->profitAndLossValuesTradeCalculation));

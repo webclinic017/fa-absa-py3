@@ -1,0 +1,69 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRA_CONF_ENGINE') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'FRA_CONF_ENGINE' and p.type = 'SQL Query' 
+ 
+
+
+/*  Bronwyn Ladner November 2007  */
+
+
+select
+	ael_s(,'FRA_CONFO.OpenFile')	'OpenFile'
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+select distinct 
+	t.trdnbr					'Trdnbr', 
+/*	ael_s(t,'COnfo_test_AS.conTest')		'BuildConfirmation',	 */
+    ael_s(t,'InstrType.InstrumentType')		'Instype',
+	t.status					            'Status',
+    add_info(t,'Confo Date Sent')           'Confo_Date_Sent',
+    add_info(t,'Confo Date Sent') = '' ? 'No' : 'Yes'  'Sent',    
+    add_info(t,'Confo Text')                'Confo_Text'
+
+into
+    Table
+from 
+	trade t,
+	instrument i,
+	temp tt
+ 
+where
+	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and	t.insaddr = i.insaddr
+and	tt.OpenFile = 'Success'
+and	i.instype = 'FRA'
+and time_to_day(t.time) = @Date{} 
+and t.status in (@TradeStatus{BO Confirmed;trade.status*})
+and i.exp_day >= TODAY
+
+
+select
+    tt.Trdnbr,
+    tt.Instype,
+    t.status                                'Status',
+    ael_s(,'FRA_CONFO.conTest', t)	        'BuildConfirmation',
+    tt.Sent                                 'Confo_Sent',
+    tt.Confo_Date_Sent                      'Add Info Confo_Date_Sent',
+    tt.Confo_Text                           'Add Info Confo_Text'
+
+    
+from
+    Table tt,
+    Trade t
+
+where
+    t.trdnbr = tt.trdnbr
+and Sent = @Confo_Sent{No; 'Yes','No'}
+
+    
+

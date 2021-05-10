@@ -1,0 +1,5 @@
+[Cash Analysis]FMoneyFlowAndTrades:moneyFlowCallAccountInterestFlag = select((object.MoneyFlow.Type == "Call Fixed Rate Adjustable") or (object.MoneyFlow.Type == "Fixed Rate Adjustable"), 
+  true->select(object.Trade.Instrument.InsType == "Deposit", 
+    true->py("CBFETR_Helper_Functions", context).CallFixedRateAdjustableTest(object.MoneyFlow, dateToday), 
+    default->false), 
+  default->false);

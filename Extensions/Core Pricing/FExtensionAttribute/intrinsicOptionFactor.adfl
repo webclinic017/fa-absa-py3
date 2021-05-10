@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:intrinsicOptionFactor = select(isFinite(underlyingStartValueInStrikeCurrency) and isFinite(strikeValueModelTargetInTheoreticalPrice) and (1 == count(underlyingStartValueInStrikeCurrency)), 
+  false->nil, 
+  default->select(almostZero(double(strikeValueModelTargetInTheoreticalPrice), 1e-05), 
+    true->nil, 
+    false->select(isReciprocal, 
+      true->inv(double(underlyingStartValueInStrikeCurrency)) / double(strikeValueModelTargetInTheoreticalPrice), 
+      false->double(underlyingStartValueInStrikeCurrency) / double(strikeValueModelTargetInTheoreticalPrice))));

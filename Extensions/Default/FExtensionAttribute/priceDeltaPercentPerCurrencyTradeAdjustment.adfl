@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:priceDeltaPercentPerCurrencyTradeAdjustment = select(isCandidateForPremiumAdjustedDelta, 
+  true->instrument :* "collapse(priceDeltaPercentTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate, priceDeltaTradeAdjustmentCurrency := priceDeltaCurrency], 
+  false->priceDeltaPerCurrencyZero);
+[Default]FMultiInstrumentAndTrades:priceDeltaPercentPerCurrencyTradeAdjustment = sumOf(premiumAdjustedDeltaInstruments :* "collapse(priceDeltaPercentTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate, priceDeltaTradeAdjustmentCurrency := priceDeltaCurrency]);
+[Default]FTradeRow:priceDeltaPercentPerCurrencyTradeAdjustment = instrument :* "priceDeltaPercentTradeAdjustment" [singleTradePosition, includeAllTrades, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate, priceDeltaTradeAdjustmentCurrency := priceDeltaCurrency];

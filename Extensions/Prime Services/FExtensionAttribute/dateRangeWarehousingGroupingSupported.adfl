@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:dateRangeWarehousingGroupingSupported = 
+# just like dateRangeWarehousing, but supports grouping. Is ~2x more time consuming, use with care
+sumOf(children :* "dateRangeWarehousingGroupingSupported");
+[Prime Services]FSingleInstrumentAndTrades:dateRangeWarehousingGroupingSupported = switch(isFundingPortfolio and isWarehousingInstrument, 
+  true->py("PS_FundingCalculations", context).CalculateWarehousingGroupingSupported(instrument, fundingInstrument, profitAndLossStartDate, profitAndLossEndDate, tradesInPosition), 
+  false->0);

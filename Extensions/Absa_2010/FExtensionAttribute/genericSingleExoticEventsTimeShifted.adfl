@@ -1,0 +1,10 @@
+[Absa_2010]FOption:genericSingleExoticEventsTimeShifted = 
+# Adjustment to usage of "timeShiftDividendAdjustedFixings" function.
+# Number and type of arguments for this method have changed between 2010.2 and 2013.3.
+# The comparison between the [Default] use of the method in 2010.2 and the FOption customisation
+# has been made and the same changes merged into the [Default] implementation for
+# FInstrument in 2013.3. At this stage, this a technical migration which assumes behavioural
+# equivalence between the [Default] implementation in 2010.2 and 2013.3.
+select(not secondarySplitPageInstruments.Includes(underlying) and isExpired and isAsian, 
+  true->timeShiftDividendAdjustedFixings(genericSingleExoticEventsStored, dividendsNonDiscountedForSingleExoticEvents, underlying :* "marketPrice" [priceSource], value(underlyingSpotPriceAsUnderlying), valuationDateTime), 
+  default->timeShiftDividendAdjustedFixings(genericSingleExoticEventsStored, dividendsNonDiscountedForSingleExoticEvents, underlyingSpotPriceAsUnderlying, value(underlyingSpotPriceAsUnderlying), valuationDateTime));

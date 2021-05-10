@@ -1,0 +1,27 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_TRADE_VOLUMES') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_TRADE_VOLUMES' and p.type = 'SQL Query' 
+
+
+select 
+
+count(t.trdnbr),
+
+display_id(t, 'prfnbr')       'Portfolio',
+t.status 'Status',
+t.execution_time
+
+from
+Trade t
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.execution_time => day_to_time(@2_StartDay{today})
+and t.execution_time =< day_to_time(@3_EndDay{today})
+
+
+
+group by 2,3,4

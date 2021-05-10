@@ -1,0 +1,137 @@
+select 
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    display_id(p, 'curr')       'curr',
+    pty.ptyid                   'market',    
+    'PriceDefinition'           'label', 
+    p.defnbr,
+    p.data[1] = '' ? '1' : p.data[2] = '' ? '2' : '3'  'type'  
+    
+into
+    temp
+    
+from
+    PriceDefinition p,
+    Party pty,
+    Instrument i
+
+where
+    p.insaddr = i.insaddr
+and pty.ptynbr = p.source_ptynbr
+and p.source_ptynbr = 10 /*SPOT*/
+and i.instype not in ('RateIndex')
+and i.insid not in (
+'AUD_USD_Scaling',
+'EUR_USD_Scaling',
+'GBP_USD_Scaling',
+'USD_CAD_Scaling',
+'USD_CHF_Scaling',
+'USD_JPY_Scaling',
+'USD_ZAR_Scaling')
+
+
+
+select 
+    t.type,
+    t.insid,
+    t.insaddr,
+    t.instype,
+    t.exp_day,
+    t.curr,
+    t.label,
+    t.market,
+    p.defnbr,
+    p.data[0]               'old_data0',
+    t.insid,
+    t.instype = 'EquityIndex' 
+        ? ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[0]), 0, '0800', '1230')
+        : ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[0]), 0, '0800', '1155') 'new_data0',
+    p.updat_time,
+    p.data[1]               'old_data1',
+    t.insid,
+    ''                      'new_data1',
+    p.data[2]               'old_data2',
+    ''                      'new_data2'
+        
+from
+    PriceDefinition p,
+    temp t
+    
+where
+    p.defnbr = t.defnbr
+and t.type = 1
+
+
+order by 10
+
+
+union
+
+
+select 
+    t.type,
+    t.insid,
+    t.insaddr,
+    t.instype,
+    t.exp_day,
+    t.curr,
+    t.label,
+    t.market,
+    p.defnbr,
+    p.data[0]                   'old_data0',
+    t.insid,
+    ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[0]), 0, '0800', '1205') 'new_data0',
+    p.updat_time,
+    p.data[1]                   'old_data1',
+    t.insid,
+    ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[1]), 1, '1205', '1230') 'new_data1',
+    p.data[2]                   'old_data2',
+    ''                          'new_data2'
+
+from
+    PriceDefinition p,
+    temp t
+
+where
+    p.defnbr = t.defnbr
+and t.type = 2
+
+order by 10
+
+
+union
+
+
+select 
+    t.type,
+    t.insid,
+    t.insaddr,
+    t.instype,
+    t.exp_day,
+    t.curr,
+    t.label,
+    t.market,
+    p.defnbr,
+    p.data[0]                   'old_data0',
+    t.insid,
+    ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[0]), 0, '0800', '1155') 'new_data0',
+    p.updat_time,
+    p.data[1]                   'old_data1',
+    t.insid,
+    ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[1]), 1, '0000', '0000') 'new_data1',
+    p.data[2]                   'old_data2',
+    ael_s(p,'SAIT_YearEnd.change_times', to_string(p.data[2]), 2, '0000', '0000') 'new_data2'
+
+from
+    PriceDefinition p,
+    temp t
+
+where
+    p.defnbr = t.defnbr
+and t.type = 3
+
+order by 10
+
+

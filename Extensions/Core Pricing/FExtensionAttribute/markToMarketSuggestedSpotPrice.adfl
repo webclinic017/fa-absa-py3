@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:markToMarketSuggestedSpotPrice = select(mtmFromFeed, 
+  true->shunt(useMarkToMarketPriceToday, 
+    0->shunt(isFinite(marketPrice), 
+      true->marketPrice, 
+      false->object:theoreticalPrice [priceSource, theoreticalPriceIsExpired = isExpiredFullDay]), 
+    1->shunt(hasMarkToMarketPriceToday, 
+      true->collapse(markToMarketPriceAsDenominatedValue), 
+      false->marketPrice), 
+    2->collapse(markToMarketPriceAsDenominatedValue)), 
+  false->object:theoreticalPrice [priceSource, theoreticalPriceIsExpired = isExpiredFullDay]);

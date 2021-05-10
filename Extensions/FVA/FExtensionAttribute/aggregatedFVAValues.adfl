@@ -1,0 +1,4 @@
+[FVA]FCreditBalance:aggregatedFVAValues = adjustForSpotHandling(aggregatedFVAResult, valuesOnSpot);
+[FVA]FInstrument:aggregatedFVAValues = spotHandlingZero;
+[FVA]FInstrumentAndTrades:aggregatedFVAValues = instrument :* "collapse(aggregatedFVAValues)" [priceSource, positionObject];
+[FVA]FMultiInstrumentAndTrades:aggregatedFVAValues = sumOf(instruments :* "collapse(aggregatedFVAValues)" [priceSource, positionObject]);

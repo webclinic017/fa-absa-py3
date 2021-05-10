@@ -1,0 +1,82 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','OIS_PCG_BenchDelta_Cross_stres2') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'OIS_PCG_BenchDelta_Cross_stres2' and p.type = 'SQL Query' 
+ 
+select 
+      ael_f(,'OIS_mr_utils.shiftBasisCurve',@05_ShiftYieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *},@04_BmLevel) 'pv0'
+into temp1
+from TextObject p 
+where p.name = 'PCG_Benchmark_deltas' and p.type = 'SQL Query' 
+
+select
+    TODAY                                   'RepDate',
+    @02_Filter{Dirk_tmp;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+        ins.insid                           'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    ael_f(ins, 'OIS_mr_new_dirk_utils.bm_delta',
+        @02_Filter{Dirk_tmp;tradefilter.fltid},
+        yc.yield_curve_name)                'pv01'
+into pv01
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    temp1 t1
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and ael_d(ins, 'dirk_utils.bm_maturity') < to_date(@03_EndDate{BIGDATE;})
+    /*and ins.insid in ('ZAR-JIBAR-3M','ZAR/FRA/JI/3X6')*/
+
+/*end*/ 
+ 
+select
+    TODAY                                   'RepDate',
+    @02_Filter{Dirk_tmp;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+    yp.date_period.count 'date_period_count',
+    yp.date_period.unit 'date_period_unit',
+    ael_d(yp, 'dirk_utils.sprd_point_maturity')    'mat',
+    ael_f(ys, 'OIS_mr_new_dirk_utils.basis_delta',@02_Filter{Dirk_tmp;tradefilter.fltid},yc.yield_curve_name)                'pv01',
+    display_id(ys,'creat_usrnbr') 'creat_usrnbr'  
+
+into
+    Temp
+
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *})
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr        
+    and ael_d(yp, 'dirk_utils.sprd_point_maturity') < to_date(@03_EndDate{BIGDATE;})
+    
+
+select 
+      ael_d(,'OIS_mr_utils.revertshiftBasisCurve',@05_ShiftYieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *}) 
+into temp2
+from TextObject p 
+where p.name = 'PCG_Benchmark_deltas' and p.type = 'SQL Query' 
+
+select
+        t.RepDate,
+        t.filter,
+        t.yc,
+        t.date_period_count 'date_period.count',
+        t.date_period_unit 'date_period.unit',
+        t.mat,
+        t.pv01
+
+from
+    Temp t
+where
+    t.creat_usrnbr ~= 'ATS'
+    
+order by 3,6

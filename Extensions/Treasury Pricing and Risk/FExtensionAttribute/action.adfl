@@ -1,0 +1,6 @@
+[Treasury Pricing and Risk]FTrade:action = select(instrument.InsType, 
+  "Option"->py("FManualExerciseHook", context).actionStatus(object), 
+  "Future/Forward"->py("FManualExerciseHook", context).actionStatus(object), 
+  "Warrant"->py("FManualExerciseHook", context).actionStatus(object), 
+  default->"Normal");
+[Treasury Pricing and Risk]FTradeRow:action = var("Normal");

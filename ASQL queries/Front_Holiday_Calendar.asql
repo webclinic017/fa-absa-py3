@@ -1,0 +1,21 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Front_Holiday_Calendar') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Front_Holiday_Calendar' and p.type = 'SQL Query' 
+
+
+
+select
+    convert('string', c.calid, 3)       'CalendarID',
+    c.description                       'Description',
+    cd.daynbr                           'Date'
+
+from
+    Calendar c,
+    CalendarDate cd
+
+where
+    c.calnbr = cd.calnbr
+and cd.daynbr >= to_date(@YearEndDate{2011-01-01})

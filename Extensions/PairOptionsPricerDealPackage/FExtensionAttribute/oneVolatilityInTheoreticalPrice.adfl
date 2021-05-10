@@ -1,0 +1,5 @@
+[PairOptionsPricerDealPackage]FInstrumentAndTrades:oneVolatilityInTheoreticalPrice = select(instrument:isLongShortStrategy, 
+  true->shunt(arrayAny(theoreticalPrice).Size == 2, 
+    true->implyBidAsk(object, node(theoreticalPrice), "volatility", arrayAny(theoreticalPrice), context, instrument:implyPrecision, 0, 0.75, 50), 
+    default->imply(volatilitiesInTheoreticalPrice, theoreticalPrice, theoreticalPrice, instrument:implyPrecision, 0, 0.75, 50)), 
+  default->imply(volatilitiesInTheoreticalPrice, theoreticalPrice, theoreticalPrice, instrument:implyPrecision, 0, 0.75, 50));

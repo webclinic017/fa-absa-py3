@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrumentAndTrades:sweepingPosition = sumOf(tradesInPosition :* "sweepingPosition" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:sweepingPosition = nil;
+[Securities Lending ABSA]FTrade:sweepingPosition = switch(sl_instype, 
+  "SecurityLoan"->switch((sl_startDate <= profitAndLossEndDate) and not (instrument:sl_isExpired) and (sl_quantity > 0), 
+    true->sl_quantity, 
+    false->0), 
+  default->nil);

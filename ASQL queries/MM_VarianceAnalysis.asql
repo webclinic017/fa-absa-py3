@@ -1,0 +1,32 @@
+/*------------------------------------------------------------------
+    MM_VarianceAnalysis
+
+    Purpose             : [Finds applicable trade for the MM_VarianceAnalysis report. 
+                          Updated to retrieve trades whose expiry is from 30 days back to live trades]
+    Department and Desk : [PCG FX]
+    Requester           : [Jolanda Nieuwoudt]
+    Developer           : [Bhavnisha Sarawan]
+    CR Number           : [CHNG0001601302]
+------------------------------------------------------------------*/
+select 
+    t.trdnbr
+
+from    
+    Trade t,
+    Portfolio p,
+    Instrument i,
+    AdditionalInfo ai
+
+where   
+    t.trdnbr = ai.recaddr
+and p.prfnbr = t.prfnbr
+and t.insaddr = i.insaddr
+and ai.recaddr = t.trdnbr
+and t.status NOT IN ('Simulated', 'Void', 'Confirmed Void', 'Terminated')
+and i.exp_day >= date_add_delta(TODAY, -30,0,0)
+/*ai.addinf_specnbr IN (492, 493) means additional info = Funding Instype or MM_Instype*/
+and ai.addinf_specnbr IN (492, 493)
+and ai.value IN ('CD', 'CD Pre Payable', 'CD Roll-up', 'CL', 'CL Pre Payable', 'CL Roll-up','CD SNR', 'CL SNR')
+and ael_i(p,'SAGEN_IT_Functions.get_Port_Struct_from_Port','ABSA BANK LTD') = 1
+
+

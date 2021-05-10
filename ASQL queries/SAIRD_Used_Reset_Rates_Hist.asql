@@ -1,0 +1,25 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Used_Reset_Rates_Hist') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Used_Reset_Rates_Hist' and p.type = 'SQL Query' 
+select
+	i.insid		'Reset Reference',
+	c.insid		'Currency',
+	p.settle	'Rate',
+	p.day		'Effective Date',
+	used_price(i,@Date{today}) = p.settle ? 'USED' : 'NOT USED'	'Used_NotUsed',
+	p.updat_time	'Last Updated'
+from
+	instrument	i,
+	instrument	c,
+	price	p
+where
+	i.insaddr = p.insaddr
+and	c.insaddr = i.curr
+and	p.day = @Date{}
+and	(i.insid like 'ZAR-JIB%' /*(@Instruments{;instrument.insid* where instype = 'RateIndex'})*/
+or	i.insid like 'EUR-EUR%'
+or	i.insid like 'USD-LIB%'
+or	i.insid like 'JPY-LIB%')

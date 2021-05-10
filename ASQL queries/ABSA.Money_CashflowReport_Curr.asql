@@ -1,0 +1,406 @@
+/*------------------------------------------------------------------
+ABSA.Money_CashflowReport_Curr
+
+Query based on .App/Portfoliocashflows
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+1_StartDay      - Cashflows from this date (incl) will be shown
+2_EndDay        - Cashflows up to and incl this date are shown
+3_Filter        - The tradefilter from which the payments will be presented 
+4_TrdNbrs       - Selecting specific trade numbers 
+5_ReportDate    - Date of the exhange rates
+6_HomeCurrency  - The currency of the payments. More than one curr can be selected
+
+
+Columns :
+Day - Payday
+Amount - Amount
+Curr - Currency
+Type - Type of payment: Premium, Cashflow, End Premium/Sec Loan Fee,Additional Payment or Dividend 
+TrdNbr - Trade number
+PartyType - 'Issuer' if cashflow from security (Bond,FRN,Zero,PromisLoan,Bill,CD or Convertible),
+ 'CP' otherwise
+Party - Issuer ID if cashflow from security, else Counterparty ID
+
+
+History:
+When: 		Who:		What:
+070403		Debbie Osler 	Created
+2003-05-20 	Debbie Osler	Added Cols - Portfolio, Trade Time
+				Trade Status,deal date, B/S 
+2004-02-12	Debbie Osler	Added Col to explain section
+				Fixed Macros so that they are correct
+2009-10-06  Jaysen Naicker  Remove reference to FXSwaps - not used in this report.
+
+Date                : 2010-03-15
+Purpose             : Optimize query. 
+                      Amend query to use a specific date’s exchange rate and 
+                      to include all non-ZAR currencies
+Department and Desk : PCG Accounting 
+Requester           : Tamara Timothy
+Developer           : Herman Hoon
+CR Number           : 251395
+
+------------------------------------------------------------------*/ 
+
+
+/*------------------------------------------------------------------
+    Usage code for this ASQL
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','ABSA.Money_CashflowReport_Curr') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'ABSA.Money_CashflowReport_Curr' 
+and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@5_ReportDate{Today})                                   'RepDay',
+    @6_HomeCurrency{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay'
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros		m
+where
+    hc.insid     = m.hcur
+and curr.instype = 'Curr'
+and curr.insid like '___' 
+
+/*------------------------------------------------------------------
+	Premium amounts
+------------------------------------------------------------------*/
+select
+	t.value_day	'day',
+	t.value_day	'startday',
+	t.premium	'amount',
+	display_id(t,'curr')	'curr',
+	t.trade_process not in (4096,8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+	t.trade_process not in (4096,8192, 16384,32768) ? nominal_amount(t) :  t.premium  'Nominal',
+	t.trade_process not in (4096,8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)  'NominalFactor',
+	t.connected_trdnbr                                'trdnbr',
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')               'type',
+	'CP'                                              'PartyType',
+	display_id(t, 'counterparty_ptynbr')              'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from
+	trade t,
+	instrument i
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	t.value_day >= to_date(@1_StartDay{Today})
+and	t.value_day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Premium amounts 2
+------------------------------------------------------------------*/
+select
+    t.value_day	    'day',
+	t.value_day	    'startday',
+	t.quantity	    'amount',
+	display_id(i,'curr')	'curr',
+	t.trade_process not in (4096,8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+    t.trade_process not in (4096,8192, 16384,32768) ? t.quantity : t.premium  'Nominal',
+	t.trade_process not in (4096,8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)   'NominalFactor',
+	t.connected_trdnbr                                'trdnbr',
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')               'type',
+	'CP'                                              'PartyType',
+	display_id(t, 'counterparty_ptynbr')              'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                            'Portfolio',
+	t.your_ref		                                  'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from
+	trade t,
+	instrument i
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	i.instype = 'Curr'
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	t.value_day >= to_date(@1_StartDay{Today})
+and	t.value_day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Cashflows
+------------------------------------------------------------------*/
+select
+    c.pay_day	'day',
+	t.value_day	'startday',
+	projected_cf(c) * t.quantity	'amount',
+	display_id(l,'curr')	'curr',
+	'Cashflow'	'CFType',
+	t.quantity*i.contr_size*c.nominal_factor  'Nominal',
+	c.nominal_factor   'NominalFactor',
+	t.trdnbr,
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	c.type = 'Fixed Amount' ? 'Fixed Amount' : c.type	'type',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? display_id(i,'issuer_ptynbr') : display_id(t, 'counterparty_ptynbr') 'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	c.pay_day >= t.acquire_day
+and	c.pay_day >= to_date(@1_StartDay{Today})
+and	c.pay_day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	End premiums and sec loan fees 
+------------------------------------------------------------------*/
+select
+	i.exp_day	'day',
+	t.value_day	'startday',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+	t.quantity * projected_cf(i)	'amount',
+	display_id(t,'curr')	'curr',
+	'End Premium/Sec Loan Fee'	'CFType',
+	nominal_amount(t) 'Nominal',
+	1.00 'NominalFactor',
+	t.trdnbr,
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'type',
+	'CP'                                'PartyType',
+	display_id(t, 'counterparty_ptynbr') 'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from
+	trade t,
+	instrument i
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and	i.exp_day >= to_date(@1_StartDay{Today})
+and	i.exp_day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Commod Futures
+------------------------------------------------------------------*/
+select
+	i.exp_day	'day',
+	t.value_day	'startday',
+	nominal_amount(t)*t.price*-1	'amount',
+	display_id(t,'curr')	'curr',
+	'Commodity Future'	'CFType',
+	nominal_amount(t) 'Nominal',
+	1.00 'NominalFactor',
+	t.trdnbr,
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'type',
+	'CP'                                'PartyType',
+	display_id(t, 'counterparty_ptynbr') 'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from
+	trade t,
+	instrument i
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and	i.und_instype = 'Commodity'
+and	i.exp_day >= to_date(@1_StartDay{Today})
+and	i.exp_day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Additional payments
+------------------------------------------------------------------*/
+select
+	a.payday	'day',
+	t.value_day	'startday',
+	a.amount	'amount',
+	display_id(a,'curr')	'curr',
+	'Additional Payment'	'CFType',
+	nominal_amount(t) 'Nominal',
+	1.00 'NominalFactor',
+	t.trdnbr,
+	t.optional_key                                    'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'type',
+	'CP'                                'PartyType',
+	display_id(t, 'counterparty_ptynbr') 'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into 
+	CF
+from
+	payment a,
+	trade t,
+	instrument i
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	a.trdnbr = t.trdnbr
+and i.insaddr = t.insaddr
+and	a.payday >= to_date(@1_StartDay{Today})
+and	a.payday <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Dividend payments
+------------------------------------------------------------------*/	
+select
+	d.day			'day',
+	t.value_day		'startday',
+	d.dividend		'amount',
+	display_id(i,'curr')	'curr',
+	'Dividend'		'CFType',
+	nominal_amount(t) 'Nominal',
+	1.00            'NominalFactor',
+	t.trdnbr,
+	t.optional_key                                      'DevonRef',
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'type',
+	'CP'                                 'PartyType',
+	display_id(t, 'counterparty_ptynbr') 'Party',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')                             'Portfolio',
+	t.your_ref		                                   'CPRef',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    display_id(t,'trader_usrnbr')                                   'DealerCode'
+into
+	CF
+from	
+    instrument	i,
+	dividend	d,
+	trade		t
+where
+    match_filter(t, @3_Filter{IRP_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	t.status not in ('Simulated','Terminated','Void')	
+and	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	d.day >= to_date(@1_StartDay{Today})
+and	d.day <= to_date(@2_EndDay{Today})
+
+/*------------------------------------------------------------------
+	Details Section
+------------------------------------------------------------------*/
+select
+	'Details'		'Section',
+	c.day 	        'Day',
+	c.startday,
+	c.curr		    'Curr',
+	c.type,
+	c.insid,
+	c.Nominal,
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.amount / fx.fxRepDay)'HVAL',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+    c.DealerCode
+from
+	CF c,
+	fxrates		fx
+where
+	c.curr = fx.curr
+and c.curr ~= fx.hcurr 

@@ -1,0 +1,6 @@
+[ATSU7]FInstrument:originalPremiumNew = sumOf((positionOriginalPremium.Keys) :* "posOrigPrem.At(object) * fxShowCurrTheorCurr" [displayCurrency = portfolioCurrency, positionOriginalPremium, fxToCurrency = portfolioCurrency, fxBaseCurrency = currency]);
+[ATSU7]FInstrumentPartAndTrades:originalPremiumNew = nil;
+[ATSU7]FMultiInstrumentAndTrades:originalPremiumNew = sumOf(instruments :* "originalPremiumNew" [positionObject, portfolioCurrency]);
+[ATSU7]FSingleInstrumentAndTrades:originalPremiumNew = instrument :* "originalPremiumNew" [positionObject, portfolioCurrency];
+[ATSU7]FTrade:originalPremiumNew = object.OriginalPremium(pLCurrencyOverride, pLHistoricalFXChoiceOverride, pLHistoricalFXDayOverride, profitAndLossEndDate);
+[ATSU7]FTradeRow:originalPremiumNew = trade :* "originalPremiumNew" [profitAndLossEndDate];

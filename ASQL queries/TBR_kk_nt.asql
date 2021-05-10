@@ -1,0 +1,28 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_kk_nt') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_kk_nt' and p.type = 'SQL Query' 
+
+
+
+
+
+select 
+    t.trdnbr
+from
+    trade t,
+    portfolio p,
+    instrument i
+where
+    (t.status = 'FO Confirmed'
+  or  t.status = 'BO-BO Confirmed'
+  or  t.status = 'BO Confirmed')
+and p.prfid = 'JOB12'
+and p.prfnbr = t.prfnbr
+and (i.instype = 'BuySellback'
+ or i.instype = 'Repo/Reverse')
+and i.exp_day >= today
+and t.time >= today
+and i.insaddr = t.insaddr 

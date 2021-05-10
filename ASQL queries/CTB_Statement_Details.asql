@@ -1,0 +1,38 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+      ael_i(p,'ASQL_log','CTB_Statement_Details') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'CTB_Statement_Details' and p.type = 'SQL Query' 
+
+/*
+Purpose             : Retrieves the statement details needed for the FICA project                
+Department and Desk : IT - CTB
+Requester           : Karin Bonthuys
+Developer           : Bhavnisha Sarawan          
+CR Number           : C514880     
+*/
+
+select distinct
+    p.ptynbr                                    'Party Num',
+    p.ptyid                                     'Party Name',
+    add_info(p,'BarCap_SMS_LE_SDSID')           'BarCap_SMS_LE_SDSID',
+    add_info(p,'BarCap_SMS_CP_SDSID')           'BarCap_SMS_CP_SDSID',
+    to_string(add_info(c,'Comm Type - Monthly'))           'Preferred Method',
+    c.attention                                 'Contact Name',
+    add_info(c,'Comm Freq - Monthly')           'Statement Frequency',
+    c.address                                   'Address 1',
+    c.address2                                  'Address 2',
+    c.city                                      'Town',
+    c.country                                   'Country',
+    to_string(c.zipcode)                        'Zip code',
+    ael_s(,'CTB_Account_funcs.removePlus',c.telephone)   'Tel',
+    ael_s(,'CTB_Account_funcs.removePlus',c.fax)         'Fax',
+    c.email                                     'Email'
+
+from
+    party p,
+    contact c
+  
+where
+    p.ptynbr = c.ptynbr

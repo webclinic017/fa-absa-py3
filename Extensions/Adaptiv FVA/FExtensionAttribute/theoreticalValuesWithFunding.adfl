@@ -1,0 +1,5 @@
+[Adaptiv FVA]FInstrument:theoreticalValuesWithFunding = select(forwardFxRateConversion, 
+  true->discountAndConvertToCurrency(theoreticalValuesUndiscounted, discountAndConvertToBaseForwardFXConversionFundingCurve, discountAndConvertToBaseDate, 1.0, forwardFXConversionCurrencySymbol, filterUnit, discountAndConvertToBaseForwardFXConversionCurves, discountAndConvertToBaseForwardFXConversionFXRates, forwardFXConversionCurrencySymbol), 
+  false->discountAndFilterCurrency(theoreticalValuesUndiscounted, discountAndConvertToFundingCurves, discountAndConvertToBaseDate, filterUnit));
+[Adaptiv FVA]FInstrumentAndTrades:theoreticalValuesWithFunding = instrument :* "theoreticalValuesWithFunding" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate];
+[Adaptiv FVA]FMultiInstrumentAndTrades:theoreticalValuesWithFunding = sumOf(instruments :* "theoreticalValuesWithFunding" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate]);

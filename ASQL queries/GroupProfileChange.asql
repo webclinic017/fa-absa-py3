@@ -1,0 +1,32 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GroupProfileChange') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GroupProfileChange' and p.type = 'SQL Query' 
+
+/*
+Purpose                       :  Display group profiles that have been changed
+Department and Desk           :  IT
+Requester                     :  Rod Jardine
+Developer                     :  Ickin Vural
+CR Number                     :  C000000419316,C000000477924
+
+*/
+
+select distinct
+    g.grpid         'Group',
+    up.profid       'Profile added',
+    g.updat_time        'Group Update',
+    display_id(g,'updat_usrnbr') 'Update User'
+    
+from
+    GroupProfileLink gl,
+    Front.group      g,
+    UserProfile up
+    
+where
+     g.grpnbr = gl.grpnbr
+and  up.profnbr = gl.profnbr
+and  g.updat_time >= @Date{today}
+and  gl.updat_time >= @Date{today}

@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:markToMarketPriceLastDayOfPreviousMonth = markToMarketPriceSourceLastDayOfPreviousMonth.Get;
+[Core Pricing]FInstrumentAndTrades:markToMarketPriceLastDayOfPreviousMonth = shunt(portfoliosAccountingParameters.Size == 1, 
+  true->instrument:markToMarketPriceLastDayOfPreviousMonth [accountingParameters = portfoliosAccountingParameters.First], 
+  false->instrument:markToMarketPriceLastDayOfPreviousMonth);
+[Core Pricing]FMultiInstrumentAndTrades:markToMarketPriceLastDayOfPreviousMonth = nil;
+[Core Pricing]FPriceAggregate:markToMarketPriceLastDayOfPreviousMonth = instrument:markToMarketPriceLastDayOfPreviousMonth;

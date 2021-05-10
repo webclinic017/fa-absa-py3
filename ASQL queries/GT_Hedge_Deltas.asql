@@ -1,0 +1,76 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Hedge_Deltas') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Hedge_Deltas' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+
+t.trdnbr,
+i.insid,
+@date{Today;}'date',
+display_id(t,'prfnbr')'portfolio',
+i.instype,
+i.exp_day,
+present_value(t,@date{Today;}),
+risk(t,'Delta',,,,,,0,'3m','4m','1y','2y','5y')'Delta_Total',
+risk(t,'Delta',,,,,,1,'3m','4m','1y','2y','5y')'3m_Delta',
+risk(t,'Delta',,,,,,2,'3m','4m','1y','2y','5y')'4m_Delta',
+risk(t,'Delta',,,,,,3,'3m','4m','1y','2y','5y')'1y_Delta',
+risk(t,'Delta',,,,,,4,'3m','4m','1y','2y','5y')'2y_Delta',
+risk(t,'Delta',,,,,,5,'3m','4m','1y','2y','5y')'5y_Delta'
+
+from
+
+trade t,
+instrument i
+
+where
+
+match_filter(t,@filter{ERM IRR Struct;tradefilter.fltid})
+and t.insaddr=i.insaddr
+and status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day>=@date{Today;}
+and time_to_day(t.creat_time)<=@date{Today;}
+
+order by t.trdnbr
+
+union
+
+select
+
+t.trdnbr,
+'Portfolio Total' /*i.insid*/,
+@date{Today;}'date',
+display_id(t,'prfnbr')'portfolio',
+i.instype,
+i.exp_day,
+sum(present_value(t,@date{Today;})),
+sum(risk(t,'Delta',,,,,,0,'3m','4m','1y','2y','5y'))'Delta_Total',
+sum(risk(t,'Delta',,,,,,1,'3m','4m','1y','2y','5y'))'3m_Delta',
+sum(risk(t,'Delta',,,,,,2,'3m','4m','1y','2y','5y'))'4m_Delta',
+sum(risk(t,'Delta',,,,,,3,'3m','4m','1y','2y','5y'))'1y_Delta',
+sum(risk(t,'Delta',,,,,,4,'3m','4m','1y','2y','5y'))'2y_Delta',
+sum(risk(t,'Delta',,,,,,5,'3m','4m','1y','2y','5y'))'5y_Delta'
+
+from
+
+trade t,
+instrument i
+
+where
+
+match_filter(t,@filter{ERM IRR Struct;tradefilter.fltid})
+and t.insaddr=i.insaddr
+and status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day>=@date{Today;}
+and time_to_day(t.creat_time)<=@date{Today;}
+
+group by 4 /* portfolio */
+
+

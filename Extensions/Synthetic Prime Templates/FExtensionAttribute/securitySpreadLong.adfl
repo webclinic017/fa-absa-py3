@@ -1,0 +1,8 @@
+[Synthetic Prime Templates]FInstrument:securitySpreadLong = select(spreadInstrument, 
+  nil->denominatedvalue(0.0, nil, nil, adsPriceDate), 
+  default->denominatedvalue(spreadInstrument :* "marketPriceFromMarketPriceTypeArray" [priceSource, marketPriceType = "AverageBidPrice", adsPriceDate], nil, nil, adsPriceDate));
+[Synthetic Prime Templates]FInstrumentAndTrades:securitySpreadLong = instrument:securitySpreadLong [priceSource];
+[Synthetic Prime Templates]FLeg:securitySpreadLong = select(indexReference, 
+  nil->nil, 
+  default->indexReference :* "securitySpreadLong" [priceSource, marketPriceType = "AverageBidPrice", adsPriceDate = spreadFixingEstimateDates]);
+[Synthetic Prime Templates]FMultiInstrumentAndTrades:securitySpreadLong = nil;

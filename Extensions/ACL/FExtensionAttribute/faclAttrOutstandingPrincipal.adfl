@@ -1,0 +1,20 @@
+[ACL]FCashFlowInstrument:faclAttrOutstandingPrincipal = select(isSingleLegInstrument, 
+  false->nil, 
+  true->firstLeg :* "faclOutstandingPrincipal" [faclTradeQuantity]);
+[ACL]FCreditDefaultSwap:faclAttrOutstandingPrincipal = select(faclTradeQuantity > 0, 
+  true->select(faclReceiveLeg, 
+    nil->nil, 
+    default->faclReceiveLeg :* "faclOutstandingPrincipal" [faclTradeQuantity]), 
+  false->select(faclPayLeg, 
+    nil->nil, 
+    default->faclPayLeg :* "faclOutstandingPrincipal" [faclTradeQuantity]));
+[ACL]FInstrument:faclAttrOutstandingPrincipal = nil;
+[ACL]FSwap:faclAttrOutstandingPrincipal = select(faclTradeQuantity > 0, 
+  true->select(faclReceiveLeg, 
+    nil->nil, 
+    default->faclReceiveLeg :* "faclOutstandingPrincipal" [faclTradeQuantity]), 
+  false->select(faclPayLeg, 
+    nil->nil, 
+    default->faclPayLeg :* "faclOutstandingPrincipal" [faclTradeQuantity]));
+[ACL]FTrade:faclAttrOutstandingPrincipal = instrument :* "faclAttrOutstandingPrincipal" [faclTradeQuantity = faclTradeNominal];
+[ACL]FTradeRow:faclAttrOutstandingPrincipal = trade:faclAttrOutstandingPrincipal;

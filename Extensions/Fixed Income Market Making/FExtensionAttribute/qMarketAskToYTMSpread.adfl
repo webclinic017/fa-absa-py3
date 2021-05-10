@@ -1,0 +1,6 @@
+[Fixed Income Market Making]FFrn:qMarketAskToYTMSpread = nil;
+[Fixed Income Market Making]FFuture:qMarketAskToYTMSpread = denominatedvalue(spreadBenchmarkYTMMarketPriceBid, currency, , valuationDate) - qMarketAskIncludingQuotes * object:ctdFactor [underlying = spreadBenchmarkYTM];
+[Fixed Income Market Making]FInstrument:qMarketAskToYTMSpread = object:marketYieldToMaturity [marketUnitValueClean = qMarketAskUnitValueClean, marketPrice = qMarketAskIncludingQuotes] - spreadBenchmarkYieldToMaturityAsk;
+[Fixed Income Market Making]FQuoteController:qMarketAskToYTMSpread = shunt(isFinite(qMarketAskIncludingQuotes), 
+  false->nil, 
+  true->instrument :* "qMarketAskToYTMSpread" [qMarketAskUnitValueClean, spreadBenchmarkYieldToMaturityAsk, qMarketAskIncludingQuotes, spreadBenchmarkDiscountMarginAsk, spreadBenchmarkMarketPriceAsk, spreadBenchmarkYTM, qMarketAskInInstrumentQuotation]);

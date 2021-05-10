@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:cashStart = nil;
+[Default]FDeliverableLinkAndTrades:cashStart = nil;
+[Default]FInstrumentAndTrades:cashStart = shunt(profitAndLossStartDateIsActivated, 
+  true->actualCashStart, 
+  false->plZero);
+[Default]FPriceAggregate:cashStart = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "cashStart");

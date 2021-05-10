@@ -1,0 +1,12 @@
+[Core Pricing]FConvertible:strikeValue = denominatedvalue(1.0, strikeCurrency, , expiryDate);
+[Core Pricing]FExerciseEvent:strikeValue = collapse(strikeValueRoundingAdjusted);
+[Core Pricing]FInstrument:strikeValue = select(underlyingValueType, 
+  "IRF Option"->collapse(irfOptionStrikeValue), 
+  "Zero Coupon Fix"->shift(stepUpSwaptionStrikeValue, snoop(stepUpSwaptionStrikeValue, "uniqueCoupon"), 0.01 * absoluteStrikePriceInUnderlyingQuotation), 
+  "Swaption"->collapse(swaptionStrike), 
+  "Spread Option"->collapse(spreadOptionStrikeValue), 
+  default->select(isAsian and not averageStrikeTypeIsFix, 
+    true->denominatedvalue(0.0, strikeCurrency, , expiryDate), 
+    false->select(isDeltaStrikeQuotation, 
+      true->object:strikeValueRoundingAdjusted [underlyingQuotation = strikeQuotation, priceSource, doSplitAll], 
+      default->collapse(strikeValueRoundingAdjusted))));

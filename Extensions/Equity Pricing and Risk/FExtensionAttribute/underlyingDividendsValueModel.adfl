@@ -1,0 +1,12 @@
+[Equity Pricing and Risk]FCashFlowDerivativeInstrument:underlyingDividendsValueModel = select(dividendForecast, 
+  nil->underlying:instrumentSpotZero, 
+  default->select(baseValuationOnUnderlyingComponents, 
+    true->multiUnderlyingDividendsDiscounted, 
+    default->collapse(underlyingDividendsDiscounted)));
+[Equity Pricing and Risk]FInstrument:underlyingDividendsValueModel = select(dividendForecast, 
+  nil->underlying:instrumentSpotZero, 
+  default->select(doGermanCorrection, 
+    true->collapse(underlyingDividendsDiscountedAndGermanGAAdjusted), 
+    default->select(isPerformancePayoff, 
+      true->forwardStartPerformanceFactor * underlyingDividendsDiscounted, 
+      false->collapse(underlyingDividendsDiscounted))));

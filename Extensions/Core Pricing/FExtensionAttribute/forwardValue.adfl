@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:forwardValue = select(hasModelValuationDate, 
+  true->object :* "forwardValueWithModelValuationDateInCalculationCurrency" [priceSource, doSplitAll, modelValuationDate = lot(forwardValueDate)], 
+  false->select(singleProvider, 
+    true->ProviderValue(forwardValueProvider, forwardValuationDate, forwardValuationCurrencySymbol), 
+    false->ProviderValues(forwardValueProvider, forwardValuationDate, forwardValuationCurrencySymbol)));
+[Core Pricing]FPriceIndex:forwardValue = select(hasModelValuationDate, 
+  true->object :* "forwardValueWithModelValuationDateInCalculationCurrency" [priceSource, doSplitAll, modelValuationDate = lot(forwardValueDate)], 
+  false->getInterpolatedIndexValue(estimatedInflationValues, forwardValueDateForInflation, priceInformation, indexTypePriceIndexOrOverridden, valuationDate, firstCashFlowPayDateIfAUD, mappedCPIFunctionLinkOrOverridden, nil));

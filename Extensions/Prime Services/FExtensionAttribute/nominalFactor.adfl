@@ -1,0 +1,6 @@
+[Prime Services]FLeg:nominalFactor = shunt(isCFDPSwap, 
+  true->object.getPSwapNominalFactor(forwardValueDate, forwardValueDate, object.Oid), 
+  default->staticLegInformation.NominalFactor(forwardValueDate, legInformation));
+[Prime Services]FPortfolioSwap:nominalFactor = shunt(isCFDPSwap, 
+  true->sumOf(legs :* "nominalFactorAdjusted" [forwardValueDate, doSettlementFxScaling]), 
+  default->sumOf(legs :* "nominalFactor" [forwardValueDate, doSettlementFxScaling]));

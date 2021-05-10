@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:volatilityATMStructureValue = select(volatilityInformationHasGenericValueFunction, 
+  true->collapse(genericATMParametricVolatilityValue), 
+  false->select(volatilityInformationType, 
+    "Parametric"->select(volatilityInformation.ParametricVolatilityType, 
+      "Sabr"->sabrATMParametricVolatilityValue, 
+      "Malz"->collapse(genericATMParametricVolatilityValue), 
+      default->nan), 
+    "Single"->singleATMPointVolatilityValue, 
+    default->volatilityInformation.Value(underlyingMaturityDate, expiryDate, value(underlyingForwardPriceForVolatility), isCallForVolatility, underlyingIsGeneric, true, value(underlyingForwardPriceForVolatility), exactOrSurroundingSkewForwardPrices, foreignRateForVolatility, domesticRateForVolatility)));

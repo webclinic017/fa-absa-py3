@@ -1,0 +1,20 @@
+[ABSA Accounting 4.3]FCashFlow:depositBalance = cashFlowInformation:projectedCashFlow [legInformation, roundingInformation, unRoundedProjectedCashFlow];
+[ABSA Accounting 4.3]FDeposit:depositBalance = redemptionAmountProjectedCashFlow = switch(redemptionAmountProjectedCashFlow.IsKindOf("FDenominatedValue"), 
+  true->redemptionAmountProjectedCashFlow, 
+  false->displayCurrencyZero), convertToCurrency((-redemptionAmountProjectedCashFlow - firstLeg:depositBalance [profitAndLossEndDate]) * riskPosition, profitAndLossEndFXRates, displayCurrencySymbol);
+[ABSA Accounting 4.3]FInstrument:depositBalance = 
+# Upgrade 2013.3 note: Absa's extension attribute `balance` requires an immediate refactoring as Balance is defined only for Call Accounts. A nice example to refer is `cashBalance` extension attribute.
+select(count(legs), 
+  0->displayCurrencyZero, 
+  default->convertToCurrency(-(firstLeg :* "depositBalance" [profitAndLossEndDate]) * riskPosition, profitAndLossEndFXRates, displayCurrencySymbol));
+[ABSA Accounting 4.3]FInstrumentAndTrades:depositBalance = instrument :* "depositBalance" [profitAndLossEndDate, positionObject, priceSource, valuesOnSpotOverride, profitAndLossEndFXRates, displayCurrency, displayCurrencyZero];
+[ABSA Accounting 4.3]FLeg:depositBalance = sumOf((futureAdjustableCashFlows) :* "depositBalance" [staticLegInformation]);
+[ABSA Accounting 4.3]FMultiInstrumentAndTrades:depositBalance = sumOf(instruments :* "depositBalance" [profitAndLossEndDate, positionObject, priceSource, valuesOnSpotOverride, profitAndLossEndFXRates, displayCurrency, displayCurrencyZero]);
+[ABSA Accounting 4.3]FTrade:depositBalance = switch(object.Instrument.InsType, 
+  "Deposit"->switch(object.Instrument.OpenEnd, 
+    "None"->0.0, 
+    default->instrument :* "-redemptionAmountProjectedCashFlow - firstLeg:depositBalance [profitAndLossEndDate]" * object.Quantity), 
+  default->0.0);
+[ABSA Accounting 4.3]FTradeRow:depositBalance = balanceBase = stripDateTimePart(trade:depositBalance), switch(balanceBase, 
+  0->displayCurrencyZero, 
+  default->convertToCurrency(balanceBase, profitAndLossEndFXRates, displayCurrencySymbol));

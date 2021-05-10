@@ -1,0 +1,114 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_BA_Maturity') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_BA_Maturity' and p.type = 'SQL Query' 
+/*
+name = SAMM_BA_Maturity
+query to reflect trades for given maturity dates of following product citeria
+only Bankers Acceptance
+
+ony Primary BA issues
+
+
+*/
+
+
+
+
+select
+@From_Maturity_Date{Yesterday;}'FromDate',
+@To_Maturity_Date{Today;}'ToDate',
+s.srdnbr
+
+into
+temp
+
+from
+serverdata s
+
+/*---------------------------*/
+
+
+select
+
+t.trdnbr,
+i.insid,
+add_info(t,'MM_Instype')'product',
+p.prfid'Portfolio',
+party.ptyid'CounterParty',
+t.quantity*1000000'Amount',
+i.exp_day'Maturity_Date',
+broker.ptyid'Branch',
+add_info(t,'Brok Div')'Division',
+t.optional_key'reference'
+
+into
+summary
+
+from
+
+instrument i,
+trade t,
+portfolio p,
+party party,
+party broker fill,
+temp tt 
+
+
+
+where
+i.insaddr=t.insaddr
+and p.prfid in ('MONB 0681','MONY 9802')
+and t.counterparty_ptynbr=party.ptynbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype in ('Bill')
+and i.exp_day between tt.FromDate and tt.ToDate
+and t.prfnbr=p.prfnbr
+and t.broker_ptynbr=broker.ptynbr
+and add_info(t,'MM_Instype')='BA'
+and add_info(t,'MM_Primary_Issue')='Yes'
+
+/*---------------*/
+
+select
+
+'Yes' ? s.trdnbr : '''Trade_No',
+s.insid,
+s.product,
+s.POrtfolio,
+s.CounterParty,
+s.Amount,
+s.Branch,
+'Yes' ? s.Maturity_Date : '' 'Maturity_Date',
+s.Division,
+s.reference
+
+from 
+summary s
+
+order by s.branch,8 /* s.Maturity_Date*/
+
+
+union
+
+select
+
+'' /*'Yes' ? s.trdnbr : ''*/,
+'Total per Branch' /*s.insid*/,
+''/*s.product*/,
+''/*s.Portfolio*/,
+'Total per Branch' /*s.CounterParty*/,
+sum(s.Amount),
+s.Branch,
+'' /*'Yes' ? s.Maturity_Date : ''*/ ,
+s.Division,
+''/*s.reference*/
+
+from 
+summary s
+
+group by s.Branch
+
+order by s.branch

@@ -1,0 +1,5 @@
+[Settlement Extension]FSettlement:pairOffPaymentAmount = select(object.Type, 
+  "Pair Off Payment"->settlementAmount, 
+  default->select(isLeftOverCashSettlementFromPartialPairOff, 
+    true->settlementAmount - expectedCashAmountForLeftOverSecurityNominal, 
+    false->nil));

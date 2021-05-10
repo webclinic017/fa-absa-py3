@@ -1,0 +1,14 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:sl_portPosition = select(object.Portfolio.Name, 
+  "RemoteSheetHeader"->timeBucketsSetExternally, 
+  default->select(timeBucketsSetExternally == nil, 
+    true->nil, 
+    default->select(isPortfolioGrouping, 
+      true->select(isReservedStock, 
+        true->sl_inventoryPosition :* "select(object < 0, true->object, false->0)", 
+        default->sl_inventoryPosition), 
+      default->select(groupingReference == nil, 
+        true->timeBucketsSetExternallyZeroVector, 
+        default->sumOf(children :* "sl_portPosition" [timeBucketsSetExternally])))));
+[Securities Lending ABSA]FSingleInstrumentAndTrades:sl_portPosition = select(timeBucketsSetExternally == nil, 
+  true->nil, 
+  default->sl_inventoryPosition);

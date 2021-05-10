@@ -1,0 +1,66 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SWAP_CONF_ENGINE_BREAK') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SWAP_CONF_ENGINE_BREAK' and p.type = 'SQL Query' 
+
+
+select
+	ael_s(,'SWAP_CONF_ENGINE_BREAK.OpenFile')	'OpenFile'
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+select distinct 
+	t.trdnbr					            'Trdnbr', 
+/*	ael_s(t,'COnfo_test_AS.conTest')		'BuildConfirmation',	 */
+    ael_s(t,'InstrType.InstrumentType')		'Instype',
+	t.status					            'Status',
+    add_info(t,'Confo Date Sent')           'Confo_Date_Sent',
+    add_info(t,'Confo Date Sent') = '' ? 'No' : 'Yes'  'Sent',    
+    add_info(t,'Confo Text')                'Confo_Text'
+into
+    Table
+from 
+	trade t,
+	instrument i,
+	temp tt
+ 
+where
+	 match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and	t.insaddr = i.insaddr
+and	tt.OpenFile = 'Success'
+and	i.instype =   'Swap'
+and	ael_s(t,'InstrType.InstrumentType') = 'Swap'
+and time_to_day(t.time) = @Date{} 
+/*and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})*/
+and t.status in (@TradeStatus{BO Confirmed;trade.status*})
+/*and	t.status not in ('Simulated', 'Terminated', 'Void')*/
+/*and 	(t.trdnbr IN (@Trdnbr{;*}) or time_to_day(t.time) = @Date{})*/
+and i.exp_day >= TODAY
+/*and t.trdnbr IN (@Trdnbr{;*})*/
+select
+    tt.Trdnbr,
+    tt.Instype,
+    t.status                                    'Status',
+    ael_s(,'SWAP_CONF_ENGINE_BREAK.conTest', t)	'BuildConfirmation',
+    tt.Sent                                     'Confo_Sent',
+    tt.Confo_Date_Sent                          'Add Info Confo_Date_Sent',
+    tt.Confo_Text                               'Add Info Confo_Text'
+
+    
+from
+    Table tt,
+    Trade t
+
+where
+    t.trdnbr = tt.trdnbr
+and Sent = @Confo_Sent{No; 'Yes','No'}
+
+

@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedSpreadMaxValue = select(uniqueStrikeInTheoreticalPrice, 
+  nil->1.0, 
+  default->0.01 * uniqueStrikeInTheoreticalPrice);
+[Fixed Income Pricing and Risk]FLeg:impliedSpreadMaxValue = select(uniqueStrikeInTheoreticalInstrumentValue, 
+  nil->1.0, 
+  default->select(isFloorLeg or staticLegInformation:isSpread, 
+    true->1.0, 
+    false->0.01 * uniqueStrikeInTheoreticalInstrumentValue + stripDateTimePart(atmParLevelForLeg)));
+[Fixed Income Pricing and Risk]FTradeRow:impliedSpreadMaxValue = instrument:impliedSpreadMaxValue;

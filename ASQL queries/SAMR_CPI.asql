@@ -1,0 +1,59 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_CPI') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMR_CPI' and p.type = 'SQL Query'
+
+
+
+/*  Extracts CPI prices from Price Entry */
+
+
+
+/*
+select
+    i.insaddr   'nbr'
+into
+    counter
+from    
+    Instrument i
+where
+    i.insaddr >= 1
+and i.insaddr <= 6000
+*/
+
+
+
+select distinct
+    p.day 'Fixing_Day',
+    i.insid 'RateIndex',    
+    p.settle 'Fixing',
+    0  'Counter',
+    today 'DATA_DATE'
+
+into
+    temp
+    
+from
+    instrument i,
+    price p,
+    party pty
+    
+where
+    i.insaddr = p.insaddr
+    and i.insid = 'SACPI'
+    and p.ptynbr = pty.ptynbr
+    and pty.ptyid in ('internal', 'SPOT')
+   
+
+
+
+select
+    t.RateIndex,    
+    t.Fixing_Day,
+    t.Fixing,
+    t.Counter,
+    t.DATA_DATE
+from
+    temp t

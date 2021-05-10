@@ -1,0 +1,33 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Africa_Reset_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Africa_Reset_Report' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr                     'Trade Number',
+    i.instype                    'Instrument Type',
+    r.day                        'Reset Date' ,
+    r.value                      'Floating Rate',
+    display_id(l,'float_rate')   'Float Rate Reference'
+    
+from
+    reset      r,
+    trade      t,
+    cashflow   cf,
+    instrument i,
+    leg        l,
+    portfolio  p
+where
+        t.insaddr  = i.insaddr
+    and t.prfnbr   = p.prfnbr    
+    and l.insaddr  = i.insaddr
+    and cf.legnbr  = l.legnbr     
+    and cf.cfwnbr  = r.cfwnbr
+    and cf.type    = 'Float Rate'
+    and r.day      >= @DateFrom{} 
+    and r.day      <= @DateTo{}
+    and match_filter(t,@Filter{Africa_Resets;tradefilter.fltid})
+    
+;

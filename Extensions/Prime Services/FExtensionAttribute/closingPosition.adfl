@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:closingPosition = sumOf(children :* "closingPosition" [profitAndLossStartDate := longTimeAgo]);
+[Prime Services]FSingleInstrumentAndTrades:closingPosition = select(instrumentType == "Deposit", 
+  true->-1 * denominatedvalue(object :* "profitAndLossPositionDisplay" [profitAndLossStartDate := longTimeAgo], displayCurrency, nil, nil), 
+  false->denominatedvalue(object :* "profitAndLossPositionDisplay" [profitAndLossStartDate := longTimeAgo], displayCurrency, nil, nil));

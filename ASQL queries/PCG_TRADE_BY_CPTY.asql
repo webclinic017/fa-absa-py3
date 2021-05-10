@@ -1,0 +1,36 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_TRADE_BY_CPTY') 
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_TRADE_BY_CPTY' and p.type = 'SQL Query' 
+
+
+select 
+
+t.trdnbr,
+t.time,
+display_id(t, 'prfnbr')       'Portfolio',
+display_id(t, 'counterparty_ptynbr')  'Counterparty',
+nominal_amount(t) 'Notional',
+i.exp_day 'Expiry',
+t.status 'Status',
+t.acquire_day 'Acquire Day',
+present_value(t)'PV',
+display_id(t,'curr') 'Curr',
+t.maturity_date 'Maturity Date',
+i.start_day 'Start Date'
+
+
+
+
+from
+Trade t,
+instrument i
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and to_date(t.time) => @2_StartDay{today}
+and to_date(t.time) =< @3_EndDay{today}
+and display_id(t, 'counterparty_ptynbr') = @4_CPTY{;party.ptyid}
+and t.insaddr = i.insaddr

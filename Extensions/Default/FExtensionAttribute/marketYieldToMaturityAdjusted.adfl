@@ -1,0 +1,7 @@
+[Default]FInstrument:marketYieldToMaturityAdjusted = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYieldAdjusted, "yield"), theoreticalInstrumentSpotValueCleanFromYieldAdjusted, marketUnitValueCleanForImpliedCalculations, ytmAccuracy, 0, 1.0, implyMaxIterations)), 
+  false->nil);
+[Default]FInstrumentAndTrades:marketYieldToMaturityAdjusted = instrument :* "marketYieldToMaturityAdjusted" [priceSource];
+[Default]FMultiInstrumentAndTrades:marketYieldToMaturityAdjusted = nil;

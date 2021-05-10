@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:nextInterestDateInsTra = select(instrument:isCashFlowInstrument, 
+  true->select(count(instrument:legs), 
+    1->select(firstLeg:isFloatLeg, 
+      true->minOf((firstLeg:futureResets) :* "startDate"), 
+      false->nil), 
+    default->select(((firstLegMin = minOf((firstLeg:futureResets) :* "startDate")) > (lastLegMin = minOf((lastLeg:futureResets) :* "startDate")) and (lastLegMin <> nil)) or (firstLegMin == nil), 
+      true->lastLegMin, 
+      false->firstLegMin)), 
+  false->nil);
+[ABSA Specific 4.3]FLegAndTrades:nextInterestDateInsTra = minOf(futureResets :* "startDate");
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:nextInterestDateInsTra = nil;

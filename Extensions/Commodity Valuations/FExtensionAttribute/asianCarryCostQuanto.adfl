@@ -1,0 +1,7 @@
+[Commodity Valuations]FInstrument:asianCarryCostQuanto = select(baseValuationOnUnderlyingComponents, 
+  true->carryCost, 
+  false->select(isQuantoOption, 
+    true->quantoAdjustedCarryCost(asianCarryCost, underlyingFXCorrelation, volatilityForQuantoAdjustedCarryCost, fxVolatility), 
+    false->select(isCompoOption, 
+      false->asianCarryCost, 
+      true->compo_adj_carry(carryStartDate, asianCarryEndDates, (underlyingCurrency :* "fxForwardRate" [fxForwardDate = carryStartDate, fxToCurrency := calculationCurrency]).Number, (underlyingCurrency :* "fxForwardRate" [fxForwardDate = asianCarryEndDates, fxToCurrency := calculationCurrency]), asianCarryCost))));

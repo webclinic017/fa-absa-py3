@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FOption:asianStrikeWeight = select(isOptionValuedAsPureSingle, 
+  true->1.0 / count(asianAverageStrikeEvents), 
+  false->select(asianBasketAsSingleHasStrikeEventsDefinedOnComponents, 
+    true->1.0 / count(asianBasketAverageStrikeEvents[0]), 
+    false->1.0 / count(asianAverageStrikeEvents)));

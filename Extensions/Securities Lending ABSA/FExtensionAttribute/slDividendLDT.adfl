@@ -1,0 +1,11 @@
+[Securities Lending ABSA]FInstrument:slDividendLDT = shunt(slDividendExDivDay, 
+  nil->nil, 
+  default->date_add_banking_day(slDividendExDivDay, currencyZAR, -1));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slDividendLDT = shunt(groupingReference.IsKindOf("FInstrument"), 
+  true->shunt(slDividendExDivDay, 
+    nil->nil, 
+    default->date_add_banking_day(slDividendExDivDay, currencyZAR, -1)), 
+  false->nil);
+[Securities Lending ABSA]FSecurityLoan:slDividendLDT = underlying:slDividendLDT;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slDividendLDT = instrument:slDividendLDT;
+[Securities Lending ABSA]FTrade:slDividendLDT = instrument:slDividendLDT;

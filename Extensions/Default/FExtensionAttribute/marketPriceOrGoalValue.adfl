@@ -1,0 +1,4 @@
+[Default]FInstrument:marketPriceOrGoalValue = switch(isFinite(marketPrice), 
+  true->marketPrice, 
+  false->object.QuoteToQuote(denominatedvalue(unitGoalValueForPar, unitGoalValueUnit, "Price", valuationSystemDate), valuationDate, legInformations, staticLegInformations, "Pct of Nominal", quotation, false, roundingInformation, roundingInformationsPerLeg));
+[Default]FLeg:marketPriceOrGoalValue = instrument :* "marketPriceOrGoalValue" [priceSource];

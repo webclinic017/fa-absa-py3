@@ -1,0 +1,15 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeProRegBeta = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeProRegEnabled, 
+    "True"->getTimeSeriesDvValueFromDP(object.DealPackage, timeSeriesSpecId, hedgeProRegBetaId), 
+    default->nil));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeProRegBeta = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeProRegEnabled, 
+    "True"->getTimeSeriesDvValue(lowestChild.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeProRegBetaId), 
+    default->nil));
+[HedgeAccountingMod]FTradeRow:hedgeProRegBeta = switch(usedInHedge, 
+  default->nil, 
+  true->switch(hedgeProRegEnabled, 
+    "True"->getTimeSeriesDvValue(object.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeProRegBetaId), 
+    default->nil));

@@ -1,0 +1,7 @@
+[Adaptiv XVA]FCreditBalance:cvaMessageXML = AssembleXML(deals, calculations, marketdata, stressdata);
+[Adaptiv XVA]FInstrument:cvaMessageXML = nil;
+[Adaptiv XVA]FInstrumentAndTrades:cvaMessageXML = instrument:cvaMessageXML [deals = snoop01(theoreticalValue, "dealXML"), calculations = snoop01(theoreticalValue, "cvaCalculationXML"), marketdata = snoop01(theoreticalValue, "cvaMarketDataXML"), stressdata = snoop01(theoreticalValue, "cvaStressDataXML")];
+[Adaptiv XVA]FMultiInstrumentAndTrades:cvaMessageXML = nil;
+[Adaptiv XVA]FSingleInstrumentAndTrades:cvaMessageXML = shunt(("Credit Balance" == instrument.InsType), 
+  true->AssembleXML(cvaDealsXML, cvaCalculationXML, cvaDealsMarketDataXML, cvaStressDataXML), 
+  false->nil);

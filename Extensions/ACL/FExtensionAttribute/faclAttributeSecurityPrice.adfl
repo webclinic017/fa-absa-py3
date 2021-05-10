@@ -1,0 +1,7 @@
+[ACL]FTrade:faclAttributeSecurityPrice = select(abs(instrument:marketPrice) > 0, 
+  true->instrument:marketPrice, 
+  false->select(abs(object.Price) > 0, 
+    true->denominatedvalue(object.Price, currency, , dateToday), 
+    false->select((instrument.Trades.Size == 1), 
+      true->denominatedvalue(instrument.Trades.At(0).Price, currency, , dateToday), 
+      false->nil)));

@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:sl_endDate = expiryDate;
+[Securities Lending ABSA]FSecurityLoan:sl_endDate = select(isOpenEnd, 
+  true->bigDate, 
+  false->object.Legs.At(0).EndDate);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:sl_endDate = instrument:sl_endDate;
+[Securities Lending ABSA]FStock:sl_endDate = bigDate;
+[Securities Lending ABSA]FTrade:sl_endDate = instrument:sl_endDate;

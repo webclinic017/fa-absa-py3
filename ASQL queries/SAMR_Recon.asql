@@ -1,0 +1,61 @@
+    /* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_Recon') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMR_Recon' and p.type = 'SQL Query' 
+
+
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	@Date{}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)		            'fxRepDay'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+
+
+
+
+
+select
+    i.instype = 'Curr'? t.hedge_trdnbr : t.trdnbr    'TradeNumber',
+    i.insid                                     'Instrument',
+    i.instype = 'Curr'? 'FxSwap' : i.instype    'Instype',
+    t.status                                    'Status',
+    i.instype = 'Curr'? t.value_day : i.exp_day 'Exp_Day',
+    display_id(t, 'prfnbr')                     'Portfolio',
+    @Date{yesterday}                            'BusinessDate',
+    /*mtm_value_fo(t, @Date{yesterday}, c.insid, 2, 0, 1)      'PV',*/
+    present_value(t) * 1/fx.fxRepDay            'PresentValue',
+    delta_implicit(t)                           'Delta'
+    
+from
+    Trade t,
+    Instrument i,
+    Instrument c,
+    fxrates fx
+    
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})    
+and t.insaddr = i.insaddr    
+and i.curr = c.insaddr
+and fx.curr =* c.insid
+and t.status not in ('Simulated','Terminated','Void')
+and ( (i.instype = 'Curr'  and t.value_day >= @Date{yesterday}) 
+    or ((i.instype ~= 'Curr') and (i.exp_day >= @Date{yesterday} or i.exp_day = '0000/01/01')))
+and t.trade_process ~= 16384   
+    
+    

@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FInstrument:barrierAbsolute = select(isBarrierOption, 
+  true->select(storedStrikeType, 
+    Absolute->collapse(barrierStored), 
+    default->shunt(isForwardStarting, 
+      true->absoluteStrikePriceFromRelative(underlyingPriceForStrikeForwardStart, barrierStored), 
+      false->absoluteStrikePriceFromRelative(underlyingPriceForStrike, barrierStored))), 
+  false->nil);

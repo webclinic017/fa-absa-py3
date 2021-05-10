@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FO_Equity_Volumes') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FO_Equity_Volumes' and p.type = 'SQL Query' 
+
+
+
+/*
+Purpose: 		        Calculate total nett volume, buy + sell, of stock trades traded in 9806 per instrument id 
+Department and Desk: 	FO trading and sales
+Requester:		        Cameron Ashton
+Developer:		        Marko Milutinovic
+CR Number:		        198952
+
+Date:			28/12/2009
+
+*/
+
+select
+i.insid 'Stock ID',
+sum(abs(t.quantity)) 'Volume',
+sum(abs((t.price/100)*t.quantity)) 'Market Value'
+from
+    trade t,
+    instrument i,
+    party p,
+    user u
+where
+    p.ptynbr = t.counterparty_ptynbr
+    and p.ptyid = 'JSE'
+    and i.instype = 'Stock'
+    and i.insaddr = t.insaddr
+    and time_to_day(t.execution_time) >= @1_Start_Date{2010-01-11}
+    and time_to_day(t.execution_time) <= @2_End_Date{2010-01-11}
+    and match_portfolio(t, @3_Portfolio{'9806';portfolio.prfid})
+    and t.status not in ('Void', 'Simulated')
+    and t.trader_usrnbr *= u.usrnbr
+    and u.userid ~= 'FMAINTENANCE'
+
+group by 1

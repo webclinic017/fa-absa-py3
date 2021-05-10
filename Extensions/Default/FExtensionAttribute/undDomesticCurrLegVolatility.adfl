@@ -1,0 +1,8 @@
+#grouping: greek perimeters/price greek perimeters
+#grouping: risk factors/volatility value
+
+[Default]FInstrument:undDomesticCurrLegVolatility = select(undDomesticCurrLeg:isFloatLeg, 
+  true->select(undDomesticCurrLegVolatilityInformationHasGenericValueFunction, 
+    true->undDomesticCurrLegVolatilityValue, 
+    false->defaultUndDomesticCurrLegVolatility), 
+  false->0.0);

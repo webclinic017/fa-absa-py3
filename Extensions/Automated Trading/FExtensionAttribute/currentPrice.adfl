@@ -1,0 +1,6 @@
+[Automated Trading]ConditionalOrder:currentPrice = switch(triggerPriceType, 
+  "Bid"->orderBook.PriceFeed.BidPriceDepth.LimitPriceForQuantity(triggerQuantity, false), 
+  "Ask"->orderBook.PriceFeed.AskPriceDepth.LimitPriceForQuantity(triggerQuantity, false), 
+  "Last"->double(orderBook.PriceFeed.LastPrice.Get), 
+  "Match"->orderBook.PriceFeed.PriceDepth(matchSide).LimitPriceForQuantity(triggerQuantity, false), 
+  "SpreadAverage"->double(orderBook.PriceFeed.SpreadAveragePrice.Get));

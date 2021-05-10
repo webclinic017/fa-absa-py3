@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:counterPartyInternalExternal = nil;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:counterPartyInternalExternal = counterparty = object.Trades.AsArray.At(0).Counterparty, select(counterparty, 
+  nil->nil, 
+  default->select(counterparty.Type, 
+    "Intern Dept"->"Internal", 
+    default->"External"));

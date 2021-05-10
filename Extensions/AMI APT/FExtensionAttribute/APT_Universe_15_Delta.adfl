@@ -1,0 +1,7 @@
+[AMI APT]FSingleInstrumentAndTrades:APT_Universe_15_Delta = select(instrument.IsKindOf("FDerivative"), 
+  true->select(instrument:underlyingType, 
+    "EquityIndex"->APT_Universe_15_Delta(double(priceDeltaPercentInstrument) * 100.0 / double(instrument:underlyingValueModel)), 
+    "VarianceSwap"->APT_Universe_15_Delta(vegaInstrument), 
+    "VolatilitySwap"->APT_Universe_15_Delta(vegaInstrument), 
+    default->APT_Universe_15_Delta(priceDeltaInstrument)), 
+  default->APT_Universe_15_Delta(priceDeltaInstrument));

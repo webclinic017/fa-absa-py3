@@ -1,0 +1,12 @@
+[Fixed Income Pricing and Risk]FInstrument:instrumentSpreadDeltaInstrument = select(priceGreekIncludeQuoteScaling, 
+  true->select(isSupportingQuoteScaling, 
+    true->spotValueToQuoteFactor * differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, instrumentSpreadRiskFactorNames), riskFactorShiftInstrumentSpread instrumentSpreadShiftParametersUp), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001), 
+    false->spotHandlingZero), 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, instrumentSpreadRiskFactorNames), riskFactorShiftInstrumentSpread instrumentSpreadShiftParametersUp), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001));
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:instrumentSpreadDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->openInstrumentOrInstrument :* "collapse(instrumentSpreadDeltaInstrument)" [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling] * combinationInstrumentMapFactor);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:instrumentSpreadDeltaInstrument = nil;
+[Fixed Income Pricing and Risk]FPriceAggregate:instrumentSpreadDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument :* "instrumentSpreadDeltaInstrument" [priceSource, priceGreekIncludeQuoteScaling]);

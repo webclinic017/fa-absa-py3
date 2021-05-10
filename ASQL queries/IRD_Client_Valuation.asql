@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','IRD_Client_Valuation') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'IRD_Client_Valuation' and p.type = 'SQL Query'
+
+/* 
+    Name      : IRD_Client_Valuation
+    Purpose   : Build Client Valuation in PDF format
+    Developer : Tshepo Mabena
+    Date      : 05-02-2009
+*/
+
+
+select
+	ael_s(,'IRD_Client_Valuation.ASQL')	  'OpenFile' /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

@@ -1,0 +1,6 @@
+[Regulatory Notional]FLeg:rtmRegulatoryNotional = stripDateTimePart(indexReference:theorOrMarkToMPrice * securityInstrumentAndTrades:rtmRegulatoryNotional * indexReference:quotationFactor);
+[Regulatory Notional]FPortfolioSwap:rtmRegulatoryNotional = convertToCurrency(rtmPerformanceLegs :* "rtmRegulatoryNotional", rtmPerformanceLegSecurityCurrencies :* "immediateOrSpotFxRate" [fxToCurrency = displayCurrency], displayCurrencySymbol);
+[Regulatory Notional]FSingleInstrumentAndTrades:rtmRegulatoryNotional = sumOf(tradesInPosition :* "rtmRegulatoryNotional");
+[Regulatory Notional]FTrade:rtmRegulatoryNotional = select(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades = false], 
+  true->0.0, 
+  default->abs(quantity));

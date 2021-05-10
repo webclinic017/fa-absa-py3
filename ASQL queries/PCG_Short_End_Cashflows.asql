@@ -1,0 +1,38 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','PCG_Short_End_Cashflows') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+    where p.name = 'PCG_Short_End_Cashflows' and p.type = 'SQL Query' 
+
+ 
+select
+    t.trdnbr                        'Trd',
+    cf.pay_day                      'Payday',
+    maturity_date(t)                'Trdexpiry',
+    i.instype                       'Instrument Type',
+    l.type                          'Leg Type',
+    display_id(l,'curr')            'curr',
+    projected_cf(cf,,,display_id(l,'curr'))*t.quantity 'Currency_Cashflow',
+    p.fullname                      'Counterparty',
+    p.type                          'CPTY_Type',
+    dirk_utils.get_fx_rate('ZAR',display_id(l,'curr')) 'FXRate',
+    dirk_utils.get_fx_rate('ZAR',display_id(l,'curr')) * projected_cf(cf,,,display_id(l,'curr'))*t.quantity 'ZAR Equivalent'
+
+from
+    trade t,
+    leg l,
+    cashflow cf,
+    instrument i,
+    party p
+    
+where
+    cf.pay_Day <= to_date(date_add_delta(@2_StartDay{TODAY},0,@3_Num_Months_to_adj{3},0)) 
+    and cf.pay_day >= to_date(@2_StartDay{TODAY})
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and display_id(l , 'curr') = @4_Currency{USD}
+    and t.counterparty_ptynbr = p.ptynbr
+
+

@@ -1,0 +1,8 @@
+[Default]FAbstractReset:convexityAdjustment = select(convexityAdjustmentValid, 
+  true->convexityAdjustments[fixingIndex], 
+  default->0.0);
+[Default]FCashFlowInformation:convexityAdjustment = select(needsConvexityAdjustment, 
+  true->select(needsAdjustmentForWeightedOptionModelPart, 
+    true->object.AdjustmentForWeightedOptionModelPart(fixingValue, volatility, fixingDate, valuationDate), 
+    false->getConvexityAdjustment), 
+  false->0.0);

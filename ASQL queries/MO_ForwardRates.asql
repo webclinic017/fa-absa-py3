@@ -1,0 +1,54 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_ForwardRates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_ForwardRates' and p.type = 'SQL Query' 
+ 
+  
+/*Generate sequence 0-9 */
+select
+	u1.usrnbr,
+	count(u2.usrnbr) -1  	'Nbr'
+into 
+	TMP
+from
+	user u1,
+	user u2
+where
+	u1.usrnbr < u2.usrnbr
+group by u1.usrnbr
+
+/* Generate sequence 1-1000 */
+select
+	100*t3.Nbr + 10*(t2.Nbr) + t1.Nbr	'Nbr'
+into 
+	SCEN	
+from
+	TMP t1,
+	TMP t2,
+	TMP t3
+where
+	t1.Nbr < 10 
+and	t2.Nbr < 10
+and	t3.Nbr < 70
+
+
+/* Calculate result by scenario */
+select
+	date_add_banking_day(@1_Start_Date{TODAY},display_id(yc,'curr'),s.Nbr)					'Date',
+	date_add_delta(date_add_banking_day(@1_Start_Date{TODAY},display_id(yc,'curr'),s.Nbr),,@5_ForwardRate_Maturity{6},) 'Maturity',
+	yc_rate(yc,date_add_banking_day(@1_Start_Date{TODAY},display_id(yc,'curr'),s.Nbr),date_add_delta(date_add_banking_day(@1_Start_Date{TODAY},display_id(yc,'curr'),s.Nbr),,@5_ForwardRate_Maturity{6},),'Simple',@4_DayCount{'Act/360'; instrument.daycount_method},'Spot Rate',,)*100	'Yield Curve Point',
+	s.Nbr
+
+
+from
+
+	SCEN s,
+	yieldcurve yc
+where
+   	
+	yc.yield_curve_name = @3_YieldCurve{;yieldcurve.yield_curve_name}
+and	s.Nbr <= @2_Nbr_7000_is_29years[20]
+
+order by 1

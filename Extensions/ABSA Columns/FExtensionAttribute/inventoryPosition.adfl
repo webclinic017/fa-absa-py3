@@ -1,0 +1,5 @@
+[ABSA Columns]FPortfolioInstrumentAndTrades:inventoryPosition = select(timeBucketsSetExternally, 
+  nil->nil, 
+  default->shunt(0 == count(inventoryPositionOpenInstruments), 
+    true->timeBucketsSetExternally :* "0.0", 
+    false->sumOf(inventoryPositionOpenInstruments :* "collapse(inventoryPosition)" [positionObject, timeBucketsSetExternally])));

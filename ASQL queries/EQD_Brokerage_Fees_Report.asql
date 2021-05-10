@@ -1,0 +1,32 @@
+/* update_method=0 */
+select 
+    distinct t.trdnbr              'Trade Number',
+    i.insid                         'Ins Name',
+    i.instype                       'Instrument Type',
+    t.status                        'Trade Status',
+    display_id(t,'prfnbr')          'Portfolio Name',
+    display_id(pl,'owner_prfnbr')   'compound Portfolio',
+    t.execution_time                'Execution Time',
+    p.text                          'Payment Description',
+    p.amount                        'AMOUNT',
+    p.payday                        'PAY DAY',
+    display_id(p,'curr')            'curr',
+    p.type                          'Type',
+    display_id(p,'ptynbr')          'Payment Cpty',
+    display_id(t,'acquirer_ptynbr') 'Desk'
+From 
+    Instrument i,
+    Trade t,
+    Payment p,
+    Portfolio pr,
+    PortfolioLink pl
+where 
+    i.insaddr = t.insaddr
+and p.text like '%Fee%'
+and t.trdnbr = p.trdnbr
+and t.Status not in ('Void','Simulated')
+and p.payday > TODAY-32
+and t.acquirer_ptynbr in ('9710')
+and pr.prfnbr = pl.member_prfnbr
+and display_id(pl,'owner_prfnbr') in ('9806')
+

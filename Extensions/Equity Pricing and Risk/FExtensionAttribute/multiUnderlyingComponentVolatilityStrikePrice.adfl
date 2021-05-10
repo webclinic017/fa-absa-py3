@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FInstrument:multiUnderlyingComponentVolatilityStrikePrice = select(optionParent:isOutsideBarrier, 
+  false->select(optionParent:isKirkSpreadOption, 
+    false->componentBasketMoneyness, 
+    true->marketSpotValue), 
+  true->select((optionParent:outsideBarrierInstrument).IsEqual(object), 
+    true->optionParent:barrierValue, 
+    false->optionParent:strikeValue));

@@ -1,0 +1,128 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+				Exclude trades where the end date on the last cashflow on the return leg is <= Today
+Department and Desk     :IT, IT
+Requester:              :Natalie Austin, Susan Kruger 
+Developer               :Douglas Finkel, Jaysen Naicker
+CR Number               :264536, CHNG0000052347
+
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Swap_Float_Leg') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Swap_Float_Leg' and p.type = 'SQL Query' 
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+    
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Swap_Float_Leg.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Swap_Float_Leg.csv'},@3_PositionName{'MR_Swap_Float_Leg_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*
+Select
+    i.insaddr,
+    l.nominal_scaling = 'Dividend' ? 'DivSwap' : 'EQSwap' 'instype'
+into
+    divswap
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+    i.insaddr = l.insaddr
+and l.index_ref = ir.insaddr
+and (i.exp_day = 0 or i.exp_day > Today)
+and i.instype in ('TotalReturnSwap')
+and ir.instype in ('Stock','EquityIndex','ETF')
+group by 1
+
+select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Swap_Float_Leg.Write',@1_path{'f:\'},@2_FileName{'MR_Swap_Float_Leg.csv'},@3_PositionName{'MR_Swap_Float_Leg_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i,
+    instrument ir,
+    divswap d,
+    leg l
+where
+    i.insaddr = l.insaddr
+and i.insaddr = d.insaddr
+and l.index_ref = ir.insaddr
+and (i.exp_day = 0 or i.exp_day > Today)
+and i.instype in ('TotalReturnSwap')
+and d.instype in ('EQSwap')
+and ir.instype in ('Stock','EquityIndex','ETF')
+and l.type in ('Float')
+*/
+
+
+Select 
+    'Write File' 'Process', 
+    ael_s(i,'MR_Swap_Float_Leg.Write',@1_path{'f:\'},@2_FileName{'MR_Swap_Float_Leg.csv'},@3_PositionName{'MR_Swap_Float_Leg_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+    Instrument i,  
+    Instrument ir,
+    trade t,
+    Leg l,
+    Leg lr,
+    valid_portfolios vp
+    
+Where i.insaddr = l.insaddr
+And i.insaddr = t.insaddr
+And l.index_ref = ir.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And l.end_day > Today
+And i.instype = 'TotalReturnSwap'
+And ir.instype in ('Stock','EquityIndex','ETF')
+And i.insid not like '%Divswap%'
+And i.insid not like '%DIVSWAP%'
+And i.insid not like '%divswap%'
+And i.insid not like '%DivSwap%'
+And l.type = 'Float'
+And i.insaddr = lr.insaddr
+And lr.type = 'Total Return'
+And event_date(lr,'LastEndday') > Today
+And t.status not in ('Void', 'Terminated', 'Simulated', 'Confirmed Void') 
+and t.prfnbr = vp.prfnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

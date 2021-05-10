@@ -1,0 +1,9 @@
+[Default]FCap:absoluteVolatilityStrikePriceAsArray = nil;
+[Default]FFloor:absoluteVolatilityStrikePriceAsArray = nil;
+[Default]FInstrument:absoluteVolatilityStrikePriceAsArray = absoluteStrikePriceAsArray;
+[Default]FOption:absoluteVolatilityStrikePriceAsArray = select(underlying:isFixedFloatSwap, 
+  true->arrayAny(delta(absoluteStrikePrice, timesHundred(underlyingCouponPriceAdjustment))), 
+  default->absoluteStrikePriceAsArray);
+[Default]FSwap:absoluteVolatilityStrikePriceAsArray = select(isFixedFloatSwap and exerciseEventsExist, 
+  true->arrayAny(delta(absoluteStrikePrice, timesHundred(underlyingCouponPriceAdjustment))), 
+  default->absoluteStrikePriceAsArray);

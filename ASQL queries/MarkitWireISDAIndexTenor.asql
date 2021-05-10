@@ -1,0 +1,6 @@
+select instraliastype.alias_type_name,instraliastype.alias_type_description,instralias.insaddr,ins.insid,instralias.alias,instralias.type,instralias.oid,instralias.cid 
+  from InstrumentAlias instralias, Instrument ins, InstrAliasType instraliastype
+    where instralias.insaddr = ins.insaddr
+     and instralias.cid = instraliastype.cid
+      and instraliastype.alias_type_name in ('ISDAIndexTenor')
+       order by ins.insid

@@ -1,0 +1,9 @@
+[ABSA Accounting 4.3]FCombInstrMapAndTrades:maturityValue = nil;
+[ABSA Accounting 4.3]FLegAndTrades:maturityValue = nil;
+[ABSA Accounting 4.3]FMultiInstrumentAndTrades:maturityValue = sumOf(children :* "maturityValue");
+[ABSA Accounting 4.3]FPriceAggregate:maturityValue = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "maturityValue");
+[ABSA Accounting 4.3]FSingleInstrumentAndTrades:maturityValue = matValue = object :* "cash" [profitAndLossEndDate = instrument.ExpiryDate], select(matValue <> nil, 
+  true->matValue, 
+  false->displayCurrencyZero);

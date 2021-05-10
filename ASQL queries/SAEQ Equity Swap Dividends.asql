@@ -1,0 +1,213 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ Equity Swap Dividends') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ Equity Swap Dividends' and p.type = 'SQL Query'
+
+/* Zaakirah Kajee   29/01/2009 */
+
+
+/* Get all instruments */
+
+select
+        t.trdnbr 'trd',
+        i.insid 'swapins',
+        i.insaddr 'swapinsaddr',
+        und.insid 'undins',
+        und.insaddr 'insaddr',
+        und.instype 'undinstype',
+        l.start_day 'startd',
+        l.end_day 'endd',
+        und.index_factor 'factor'
+
+into trades
+
+from trade t,
+    instrument i,
+    instrument und,
+    leg l
+        
+where i.insaddr = t.insaddr
+and i.instype = 'TotalReturnSwap'
+and t.status not in ('Void', 'Simulated', 'Terminated')
+and l.insaddr = i.insaddr
+/*and l.type = 'Float'*/
+and und.insaddr = l.index_ref 
+and und.instype in ('EquityIndex','Stock')
+group by 2
+
+
+/* get dividends for stocks*/
+select distinct t.undins,
+        t.swapins 'parent',
+        d.ex_div_day,
+        d.pay_day,
+        d.dividend,
+        d.description
+into divs
+from trades t,
+    Dividend d
+    
+where
+    t.insaddr = d.insaddr
+and d.ex_div_day >= @1_Start_Day{2008-06-01}
+and d.ex_div_day <= @2_End_Day{2009-02-01}
+and d.ex_div_day >= t.startd
+and d.ex_div_day <= t.endd
+and t.undinstype = 'Stock'
+and d.description not re_like_nocase 's.*'
+
+/*match dividends to instruments */
+select 'Underlying Dividends' 'Description',
+    t.swapins'TotalReturnSwap',
+    t.undins'Ref_Ins',
+    t.undins 'Div_Ins',
+    d.ex_div_day'Ex_Div',
+    d.pay_day 'Pay_Day',
+    d.dividend 'Dividend',
+    t.startd 'Ins_Start_Day',
+    t.endd 'Ins_Exp_Day',
+    d.description 'Div_Desc'
+into final    
+from trades t,
+    divs d
+    
+where t.undins = d.undins
+and d.parent = t.swapins
+
+
+/* index componets */
+select
+        t.undins,
+        ci.insaddr,
+        ci.insid 'comp_ins',
+        cl.weight
+        
+
+into ind
+from  trades t,
+      CombinationLink cl,
+      instrument ci
+        
+where 
+ cl.owner_insaddr = t.insaddr 
+and cl.member_insaddr = ci.insaddr 
+and ci.instype = 'Stock'
+
+group by 3,1
+
+
+/* index dividends */
+select  i.comp_ins,
+        i.undins 'parent',
+        d.ex_div_day,
+        d.pay_day,
+        d.dividend*i.weight 'dividend',
+        d.description
+        
+into div2
+from ind i,
+    Dividend d
+    
+where
+    i.insaddr = d.insaddr
+and d.ex_div_day >= @1_Start_Day{2008-06-01}
+and d.ex_div_day <= @2_End_Day{2009-02-01}
+and d.description not re_like_nocase 's.*'
+
+
+
+/*match dividends to instruments */
+select distinct 'Underlying Dividends' 'Description',
+    t.swapins'TotalReturnSwap',
+    t.undins'Ref_Ins',
+    d.comp_ins 'Div_Ins',
+    d.ex_div_day'Ex_Div',
+    d.pay_day 'Pay_Day',
+    d.dividend/t.factor 'Dividend',
+    t.startd 'Ins_Start_Day',
+    t.endd 'Ins_Exp_Day',
+    d.description 'Div_Desc'
+
+into final    
+from trades t,
+    div2 d
+    
+where t.undins = d.parent
+and d.ex_div_day >= t.startd
+and d.ex_div_day <= t.endd
+
+
+
+select  'Equity Swap Dividends' 'Description',
+        t.swapins'TotalReturnSwap',
+        t.undins'Ref_Ins',
+        '' 'Div_Ins',
+        d.ex_div_day 'Ex_Div',
+        d.pay_day 'Pay_Day',
+        d.dividend 'Dividend',
+        t.startd 'Ins_Start_Day',
+        t.endd 'Ins_Exp_Day',
+        d.description 'Div_Desc'
+        
+into es_divs
+from trades t,
+    Dividend d
+    
+where
+    t.swapinsaddr = d.insaddr
+and d.ex_div_day >= @1_Start_Day{2008-06-01}
+and d.ex_div_day <= @2_End_Day{2009-02-01}
+and d.ex_div_day >= t.startd
+and d.ex_div_day <= t.endd
+and d.description not re_like_nocase 's.*'
+
+select f., e.TotalReturnSwap 'isNull'
+into 
+    tmp
+from
+    final f,
+    es_divs e
+where 
+    f.TotalReturnSwap *= e.TotalReturnSwap
+    and f.Ex_Div *= e.Ex_Div
+
+
+/*select * from tmp*/
+
+
+select 
+    *
+from final 
+
+
+
+union 
+
+
+
+select 
+    * 
+from es_divs 
+
+
+
+union
+
+
+
+select 'Missing Dividends' 'Description',
+    t.TotalReturnSwap,
+    t.Ref_Ins,
+    t.Div_Ins,
+    t.Ex_Div,
+    t.Pay_Day,
+    t.Dividend,
+    t.Ins_Start_Day,
+    t.Ins_Exp_Day,
+    t.Div_Desc
+
+from tmp t
+
+where isNull = ''

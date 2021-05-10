@@ -1,0 +1,7 @@
+[Default]FInstrument:portfolioOrderCanBeSent = select(portfolioInstrumentHasOrderBooks, 
+  true->switch(portfolioTrading, 
+    nil->false, 
+    default->portfolioTrading.IsAvailable), 
+  default->nil);
+[Default]FPriceLevelRow:portfolioOrderCanBeSent = instrument:portfolioOrderCanBeSent;
+[Default]FSingleInstrumentAndTrades:portfolioOrderCanBeSent = instrument:portfolioOrderCanBeSent;

@@ -1,0 +1,9 @@
+[_brokerage_risk_exts]FBond:exposureValue = switch(stdPosition <> 0, 
+  true->netPosition * marketSpotUnitValue, 
+  default->currencyZero);
+[_brokerage_risk_exts]FFxRate:exposureValue = switch(marketValues.Size > 0, 
+  true->marketValues.At(1), 
+  default->currencyZero);
+[_brokerage_risk_exts]FInstrument:exposureValue = switch(stdPosition <> 0, 
+  true->netPosition * marketSpotUnitValue * contractSize, 
+  default->currencyZero);

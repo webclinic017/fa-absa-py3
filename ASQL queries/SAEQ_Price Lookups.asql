@@ -1,0 +1,32 @@
+/* Get closing prices of a given index's constituents for a given date */
+
+select
+    s.insid 'Constituent',
+    c.weight 'Weight',
+    mtm_price(s,YESTERDAY) 'Prev Close'
+
+from
+    instrument s,
+    instrument i,
+    CombinationLink c
+    
+where
+    i.insid = 'ZAR/ALSI_TR'
+and c.owner_insaddr = i.insaddr
+and c.member_insaddr = s.insaddr
+
+order by
+    1 ASC
+    
+/* Get given currency pair for a given date */
+
+select
+    mtm_price(cur,YESTERDAY,zar.insid) 'Prev Close'
+
+from
+    instrument zar,
+    instrument cur
+    
+where
+    zar.insid = 'ZAR'
+and cur.insid = 'USD'

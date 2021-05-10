@@ -1,0 +1,80 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_Maturity_dates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_Maturity_dates' and p.type = 'SQL Query' 
+ 
+  select
+
+i.insid,
+i.extern_id1,
+i.instype,
+i.exp_day
+
+
+into matdates
+
+from
+instrument i
+
+
+
+
+
+where
+i.instype in ('bond','IndexLinkedBond')
+and i.generic~='Yes'
+and (i.insid not like '%BD%'
+and i.insid not like 'NO%'
+and i.insid not like '%FRN%'
+and i.insid not like 'SAIRD%'
+and i.insid not like '%CPNCD%')
+
+and i.insid not in ('ZAR/COJ_TEST','ZAR/K001','ZAR/R150','ZAR/R178 - No Trading','ZAR/SP05','udeshtekwini','zar/zerods')
+
+
+/*-------*/
+
+select
+
+i.insid,
+i.extern_id1,
+i.instype,
+i.exp_day
+
+
+into matdates
+
+from
+instrument i
+
+
+
+
+
+where
+i.instype in ('Bill')
+and i.generic~='Yes'
+
+and (i.insid like 'AB%'
+or i.insid like 'ABB%'
+or i.insid like 'ABD%'
+or i.insid like 'ABA%')
+
+
+
+/*-select from matdates---------*/
+
+select
+
+i.insid,
+i.extern_id1,
+i.instype,
+i.exp_day
+
+
+from matdates i
+
+order by 1
+

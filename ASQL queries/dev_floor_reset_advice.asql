@@ -1,0 +1,74 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_floor_reset_advice') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_floor_reset_advice' and p.type = 'SQL Query' 
+
+
+/*Floor Rate Info*/
+
+select
+t.optional_key  'DevonNbr',
+r.value				'Reset',
+i.insid				'Instrument',
+i.pay_offset_method		'Method',
+t.quantity*i.contr_size*c.nominal_factor		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'End',
+p.fullname			'CP',
+t.quantity*i.contr_size*c.nominal_factor > 0 ? 'ABSA BANK LIMITED' : p.fullname 'FixedPayer',
+t.quantity*i.contr_size*c.nominal_factor < 0 ? 'ABSA BANK LIMITED' : p.fullname 'FloatPayer',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.attention			'Attention',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+t.premium			'Premium',
+l.strike			'Strike',
+'Yes' ? display_id(l, 'float_rate') : ''		'Float_Rate',
+'YES' ? l.spread : ''		'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.swift				'Swift_Code',
+a.account			'Account',
+p.country			'CP_Country',
+display_id(p, 'document_type_chlnbr')	'Document',
+t.status			'Status',
+display_id(i, 'curr')		'Curr',
+l.rolling_period.count		'Rolling',
+l.pay_day_offset.count		'PayOffset',
+date_add_banking_day(l.start_day, display_id(i, 'curr'), l.pay_day_offset.count) 'StartOffset',
+abs(c.start_day-c.end_day)	'Days',
+(t.quantity*projected_cf(c)) 	'NetPayment',
+t.quantity*i.contr_size*c.nominal_factor >0  ? 'us' : 'them'	'usthem'
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p,
+account				a
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr*=c.legnbr
+and	l.insaddr=*i.insaddr
+and 	i.instype='Floor'
+and	r.cfwnbr=*c.cfwnbr
+and	p.ptynbr=*t.counterparty_ptynbr
+and	a.ptynbr=*p.ptynbr
+and (ael_i(i,'CashFlowCount',c.cfwnbr)) > 1
+and	r.day=@ResetDate{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')

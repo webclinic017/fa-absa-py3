@@ -1,0 +1,20 @@
+[Fixed Income Pricing and Risk]FBond:tickValue = select(isCouponQuoted, 
+  true->tickValueFromCoupon, 
+  false->tickValueFromPrice);
+[Fixed Income Pricing and Risk]FDeposit:tickValue = tickValueFromCoupon;
+[Fixed Income Pricing and Risk]FFra:tickValue = tickValueFromCoupon;
+[Fixed Income Pricing and Risk]FFuture:tickValue = select(underlyingType, 
+  "Bond"->select(isYieldQuoted, 
+    true->nil, 
+    false->tickValueFromPrice), 
+  "RateIndex"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  "Swap"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  "Deposit"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  default->nil);
+[Fixed Income Pricing and Risk]FInstrument:tickValue = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:tickValue = instrument :* "tickValue" [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:tickValue = nil;
+[Fixed Income Pricing and Risk]FSwap:tickValue = tickValueFromCoupon;
+[Fixed Income Pricing and Risk]FZeroBond:tickValue = select(isCouponQuoted, 
+  true->tickValueFromCoupon, 
+  false->tickValueFromPrice);

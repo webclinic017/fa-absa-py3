@@ -1,0 +1,9 @@
+[Default]FCombInstrMapAndTrades:volgaValues = instrument :* "volgaValues" [isSplitAllGrouped, priceSource, timeBucketsSetExternally, positionTradeQuantities, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate, contractSize := contractSizeWeighted];
+[Default]FInstrument:volgaValues = select(isSettled or noVolatilityGreekRiskFactorsExist, 
+  true->baseDateZero, 
+  false->select(forwardFxRateConversion, 
+    true->discountAndConvertToCurrency(volgaValuesUndiscounted, discountAndConvertToBaseForwardFXConversionMoneyMarketCurve, discountAndConvertToBaseDate, 1.0, forwardFXConversionCurrencySymbol, filterUnit, discountAndConvertToBaseForwardFXConversionCurves, discountAndConvertToBaseForwardFXConversionFXRates, forwardFXConversionCurrencySymbol), 
+    false->discountAndFilterCurrency(volgaValuesUndiscounted, discountAndConvertToBaseDiscountCurves, discountAndConvertToBaseDate, filterUnit)));
+[Default]FInstrumentAndTrades:volgaValues = openInstrument :* "collapse(volgaValues)" [isSplitAllGrouped, priceSource, positionObject, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:volgaValues = sumOf(openInstruments :* "collapse(volgaValues)" [isSplitAllGrouped, priceSource, positionObject, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate]);
+[Default]FTradeRow:volgaValues = openInstrument :* "volgaValues" [isSplitAllGrouped, priceSource, singleTradePosition, includeAllTrades, volatilityGreekFilter, filterUnit, groupingSpotDiscountDate];

@@ -1,0 +1,8 @@
+[Prime Services]FInstrumentAndTrades:clientDailyTPL = shunt(children.IsEmpty, 
+  false->sumOf(children :* "clientDailyTPL"), 
+  default->denominatedvalue(0, displayCurrency, nil, nil));
+[Prime Services]FSingleInstrumentAndTrades:clientDailyTPL = select(instrumentType, 
+  "Deposit"->plZero, 
+  default->select(isCFDPortfolio, 
+    true->dailyTPL - (object :* "brokerageCFD" [profitAndLossStartDate = previousBusinessDateStart]) + denominatedvalue(dailyExecutionFee, displayCurrency, nil, nil), 
+    false->dailyTPL + psDailyTPLAdjustmentSum));

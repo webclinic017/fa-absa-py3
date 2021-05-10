@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:clientSpreadLong = select(clientSpreadInstrument, 
+  nil->throwError("No client rate index found"), 
+  default->denominatedvalue(clientSpreadInstrument :* "marketPriceFromMarketPriceTypeArray" [priceSource, marketPriceType = "AverageBidPrice", adsPriceDate = profitAndLossEndDate], nil, nil, profitAndLossEndDate));
+[Fixed Income Pricing and Risk]FLeg:clientSpreadLong = select(clientSpreadInstrument, 
+  nil->nil, 
+  default->denominatedvalue(clientSpreadInstrument :* "marketPriceFromMarketPriceTypeArray" [priceSource, marketPriceType = "AverageBidPrice", adsPriceDate = spreadFixingEstimateDates], nil, nil, spreadFixingEstimateDates));

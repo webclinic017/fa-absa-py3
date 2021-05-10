@@ -1,0 +1,6 @@
+[Fixed Income Market Making]FQuoteController:driverToDriver = shunt(toDriver == fromDriver, 
+  true->fromValue, 
+  default->shunt(toDriver, 
+    "Spread Bid Driver"->bidDriverSign * (object:quoteToDriver [bidOrAskDriver, driver = object:effectiveDriver [driver = toDriver], myQuote = object:driverToQuote [bidOrAskDriver, driverValue = fromValue, driver = fromDriver]] - proposedDriverValueBid), 
+    "Offset"->object:quoteToDriver [bidOrAskDriver, driver = object:effectiveDriver [driver = qOffsetDriver], myQuote = object:driverToQuote [bidOrAskDriver, driverValue = object:effectiveDriverValue [bidOrAskDriver, driver = fromDriver, driverValue = fromValue], driver = object:effectiveDriver [driver = fromDriver]]] - object:effectiveDriverValue [bidOrAskDriver, driver = qOffsetRootDriver, driverValue = qOffsetAccumulatedDriverValue], 
+    default->object:quoteToDriver [bidOrAskDriver, driver = toDriver, myQuote = object:driverToQuote [bidOrAskDriver, driverValue = object:effectiveDriverValue [bidOrAskDriver, driver = fromDriver, driverValue = fromValue], driver = object:effectiveDriver [driver = fromDriver]]]));

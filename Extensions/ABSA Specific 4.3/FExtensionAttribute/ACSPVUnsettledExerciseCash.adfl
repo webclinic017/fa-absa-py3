@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ACSPVUnsettledExerciseCash = sumOf((tradesInPosition.Filter(voidAndSimulatedFilter)) :* "ACSPVUnsettledExerciseCash" [positionObject, profitAndLossEndDate]);
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:ACSPVUnsettledExerciseCash = nil;
+[ABSA Specific 4.3]FTrade:ACSPVUnsettledExerciseCash = select(not object.Payments.IsEmpty, 
+  true->(sumOf((object.Payments) :* "shunt(object.Type, \"Exercise Cash\"->shunt((object.ValidFrom <= profitAndLossEndDate) and (object.PayDay > profitAndLossEndDate), true->(currencyZAR:discountCurve).DiscountValue(denominatedvalue(object.Amount, currencyZAR, , object.PayDay), profitAndLossEndDate).Number, default->0), default->0)")), 
+  false->0, 
+  default->0);

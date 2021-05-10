@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:daysToDiscountDisplay = select(instrument:hasValidExpiryDateTime, 
+  true->select(instrument:isMultiExercise, 
+    false->instrument:daysToDiscount, 
+    true->select(instrument:exerciseEventsExist, 
+      true->instrument :* "daysToDiscount" [exerciseEvents := lastExerciseEvent], 
+      false->nil)), 
+  false->nil);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:daysToDiscountDisplay = nil;
+[ABSA Specific 4.3]FOrderBook:daysToDiscountDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->instrument:daysToDiscount);

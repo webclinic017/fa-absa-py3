@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:cliquetLocalCapPercent = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:cliquetLocalCapPercent = instrument:cliquetLocalCapPercent;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:cliquetLocalCapPercent = nil;
+[Equity Pricing and Risk]FOption:cliquetLocalCapPercent = select(isCliquet, 
+  true->switch(cliquetIsLocalCap, 
+    false->nil, 
+    true->exotic.LocalCap), 
+  false->nil);
+[Equity Pricing and Risk]FPriceAggregate:cliquetLocalCapPercent = instrument:cliquetLocalCapPercent;

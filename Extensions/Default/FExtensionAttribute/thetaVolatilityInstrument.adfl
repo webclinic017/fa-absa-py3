@@ -1,0 +1,6 @@
+[Default]FInstrument:thetaVolatilityInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, volatilityInformationRiskFactorNames), shiftVolatilityTheta (thetaShiftSize * relativeThetaVolatilityShiftSize)), theoreticalInstrumentSpotValueForPrice, relativeThetaVolatilityShiftSize));
+[Default]FInstrumentAndTrades:thetaVolatilityInstrument = openInstrumentOrInstrument :* "collapse(thetaVolatilityInstrument)" [isSplitAllGrouped, priceSource] * combinationInstrumentMapFactor;
+[Default]FMultiInstrumentAndTrades:thetaVolatilityInstrument = nil;
+[Default]FPriceAggregate:thetaVolatilityInstrument = instrument :* "thetaVolatilityInstrument" [priceSource];

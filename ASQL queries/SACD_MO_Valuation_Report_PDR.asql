@@ -1,0 +1,567 @@
+/*----------------------------------------------------------------------------------------------------------
+    Purpose               : The query is scheduled to run on a daily basis to feed portfolio trades into PDR.  
+    Department and Desk   : PCG - Loan Portfolio 
+    Requester             : Latisha Pillay 
+    Developer             : Tshepo Mabena 
+    CR Number             : 676338 
+-----------------------------------------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------
+                    Usage code for this ASQL 
+-------------------------------------------------------------------*/
+
+select
+ael_i(p,'ASQL_log','SACD_MO_Valuation_Report_PDR')   'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACD_MO_Valuation_Report_PDR' and p.type = 'SQL Query' 
+
+Select
+    hc.insid                                                        'hcurr',
+    curr.insid                                                      'curr',
+    @3_EndDay{today} = today ? used_price(hc, @3_EndDay{today}, curr.insid) :
+        mtm_price(hc, @3_EndDay{today}, curr.insid)                 'fxRepDay'
+into
+    fxrates 
+from
+    instrument         hc,
+    instrument         curr
+where
+         hc.insid    = 'ZAR'
+    and curr.instype = 'Curr'
+
+select distinct
+    i.insid                                                  'insid',
+    display_id(l,'credit_ref') = ''? display_id(i,'issuer_ptynbr') : display_id(l,'credit_ref')  'CreditReference',
+    p.ptyid                                                  'issuer',
+    i.instype in ('FRN','Swap') ? l.spread : l.fixed_rate    'cdsSpr',
+    par_rate(i)                                              'ParRate',
+    add_info(p,'BarCap_Eagle_SDSID')                         'SSID',
+    t.trdnbr
+into 
+    credref             
+from
+    instrument i,
+    instrument und,
+    party p,
+    leg l,
+    trade t
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})    
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and und.insaddr = l.credit_ref
+    and und.issuer_ptynbr = p.ptynbr
+    and l.type = 'Fixed'
+    and i.instype ~= 'Combination'
+    
+select distinct
+    i.insid                                                     'insid',
+    display_id(l,'credit_ref') = ''? display_id(i,'issuer_ptynbr') : display_id(l,'credit_ref')  'CreditReference',
+    p.ptyid                                                     'issuer',
+     i.instype in ('FRN','Swap') ? l.spread : l.fixed_rate      'cdsSpr',
+    par_rate(mem)                                               'ParRate',
+    add_info(p,'BarCap_Eagle_SDSID')                            'SSID',
+    t.trdnbr
+into 
+    credref
+from
+    instrument i,
+    instrument und,
+    party p,
+    leg l,
+    trade t,
+    combinationlink cl,
+    instrument mem
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.insaddr = t.insaddr
+    and cl.owner_insaddr = i.insaddr
+    and mem.insaddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and l.credit_ref = und.insaddr
+    and und.issuer_ptynbr = p.ptynbr
+    and l.type = 'Fixed'
+    and i.instype not in ('FRN')
+    
+select distinct
+    i.insid                                                   'insid',
+    display_id(l,'credit_ref') = ''? display_id(i,'issuer_ptynbr') : display_id(l,'credit_ref')  'CreditReference',
+    p.ptyid                                                   'issuer',
+     i.instype in ('FRN','Swap') ? l.spread : l.fixed_rate    'cdsSpr',
+    par_rate(i)                                               'ParRate',
+    add_info(p,'BarCap_Eagle_SDSID')                          'SSID',
+    t.trdnbr
+into 
+    credref             
+from
+    instrument i,
+    party p,
+    leg l,
+    trade t
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and i.issuer_ptynbr = p.ptynbr  
+    and i.instype ~= 'Combination'
+    and l.type in ('Float')
+    and i.instype not in ('IndexLinkedSwap','Swap')
+    
+select distinct
+    i.insid                                                   'insid',
+    display_id(l,'credit_ref') = ''? display_id(i,'issuer_ptynbr') : display_id(l,'credit_ref')  'CreditReference',
+    p.ptyid                                                   'issuer',
+     i.instype in ('FRN','Swap') ? l.spread : l.fixed_rate    'cdsSpr',
+    par_rate(i)                                               'ParRate',
+    add_info(p,'BarCap_Eagle_SDSID')                          'SSID',
+    t.trdnbr
+into 
+    credref             
+from
+    instrument i,
+    party p,
+    leg l,
+    trade t
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and i.issuer_ptynbr = p.ptynbr  
+    and i.instype ~= 'Combination'
+    and i.instype in ('Swap')    
+    
+select distinct
+    i.insid                                                     'insid',
+    display_id(l,'credit_ref') = ''? display_id(i,'issuer_ptynbr') : display_id(l,'credit_ref')  'CreditReference',
+    p.ptyid                                                     'issuer',
+     i.instype in ('FRN','Swap') ? l.spread : l.fixed_rate      'cdsSpr',
+    par_rate(i)                                                 'ParRate',
+    add_info(p,'BarCap_Eagle_SDSID')                            'SSID',
+    t.trdnbr
+into 
+    credref             
+from
+    instrument i,
+    party p,
+    leg l,
+    trade t
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and i.issuer_ptynbr = p.ptynbr  
+    and i.instype ~= 'Combination'
+    and l.type in ('Fixed','Floor')
+    and i.instype not in ('CreditDefaultSwap')
+     
+/*-------------------- Get all the paydays for all instruments except COMBINATION (Start) --------------- */
+
+select distinct
+    i.insid     'insid',
+    cf.pay_day  'pay_day',
+    t.trdnbr
+into
+    pd
+from
+    instrument i,
+    leg l,
+    trade t,
+    cashflow cf
+where
+        i.insaddr=t.insaddr
+    and l.insaddr = i.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and (i.instype ~= 'Deposit' ? l.type = 'Float' : l.type in ('Float','Fixed'))
+    and l.legnbr = cf.legnbr
+    and cf.start_day <= @3_EndDay{today}                         
+    and cf.end_day   > @3_EndDay{today}
+    and ((l.curr = 2 and i.instype = 'CurrSwap') or i.instype ~= 'CurrSwap')
+    and i.instype ~= 'Combination'    
+/*---------------------- Get all the paydays for all instruments except COMBINATION (End) -------------------- */
+
+
+/*---------------------- Get all the paydays for COMBINATIONS (Start)-------------------- */
+select
+    distinct(i.insid)  'insid',
+    cf.pay_day         'pay_day',
+    t.trdnbr
+into
+    pd
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    combinationlink cl,
+    Instrument MemIns
+where
+        i.insaddr = t.insaddr
+    and cl.owner_insaddr = I.insaddr
+    and MemIns.InsAddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and l.type = 'Float'
+    and l.legnbr = cf.legnbr
+    and cf.start_day <= @3_EndDay{today}
+    and cf.end_day > @3_EndDay{today}
+    and ((l.curr = 2 and i.instype = 'CurrSwap') or i.instype ~= 'CurrSwap')
+    
+/*---------------------- Get all the paydays for COMBINATIONS (End) ------------------------ */  
+
+/*---------------------- Get all the nominal amounts for COMBINATIONS (Start) -------------- */
+/*   Get the nominal of the current cashflow if report day is AFTER OR EQUAL TO value day    */
+
+Select distinct 
+    t.TrdNbr,
+    MAX(nominal_amount(cf)*(t.quantity/i.index_factor))                 'nominal_amount',
+    MAX(nominal_amount(cf)*1/fx.fxRepDay*(t.quantity/i.index_factor))   'ZAR_nominal_amount'
+into 
+    Combination_Nominal
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    instrument cr,
+    combinationlink cl,
+    Instrument MemIns,
+    fxrates fx
+where
+        T.insaddr = I.insaddr
+    and cl.owner_insaddr = I.insaddr
+    and MemIns.InsAddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and cf.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and cf.start_day <= @3_EndDay{today}
+    and cf.end_day >= @3_EndDay{today}
+    and cf.pay_day >= @3_EndDay{today}
+    and t.value_day <= @3_EndDay{today}
+    and i.curr = cr.insaddr
+    and fx.curr = cr.insid
+    and cr.instype = 'Curr'
+    and ((l.curr = 2 and i.instype = 'CurrSwap') or i.instype ~= 'CurrSwap')
+                           
+GROUP BY t.Trdnbr
+
+/*---------------------- Get all the nominal amounts for COMBINATIONS (End)---------------------- */
+
+/*------------------ Get the nominal of the trade if report day is before value day --------------*/
+
+select distinct
+    t.TrdNbr,
+    MAX(nominal_amount(t))               'nominal_amount',
+    MAX(nominal_amount(t)*1/fx.fxRepDay) 'ZAR_nominal_amount'
+into
+    Combination_Nominal
+from
+    trade t,
+    instrument i,
+    instrument cr,
+    combinationlink cl,
+    Instrument MemIns,
+    fxrates fx
+where
+        T.insaddr = I.insaddr
+    and cl.owner_insaddr = I.insaddr
+    and MemIns.InsAddr = cl.member_insaddr
+    and i.curr = cr.insaddr
+    and fx.curr = cr.insid
+    and cr.instype = 'Curr'
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and t.value_day > @3_EndDay{today}
+    
+GROUP BY t.Trdnbr
+
+/*---------------------- Get all the nominal amounts for COMBINATIONS----------------------- */
+
+/*-------------------------------------------------------------------------------------------*/
+/* Select Trade Data into Temp Table for all instruments except the combination instruments  */
+
+select
+    display_id(t,'prfnbr')          'Portfolio',
+    t.value_day                     'valday',
+    to_date(t.time)                 'tradetime',
+    t.counterparty_ptynbr           'CounterParty',
+    display_id(l,'credit_ref')      'CreditReference',
+    i.instype,
+    i.instype  = 'CLN' 
+        ? (nominal_amount(t)<0 ? 'CLN Issued' : 'CLN Bought')
+        : i.instype = 'CreditDefaultSwap'
+            ? nominal_amount(t) < 0 ? 'CDS Purchased' : 'CDS Sold'      
+                : 'Other'           'Issued',
+    i.insid,
+    display_id(i,'curr')            'curr',
+    t.trdnbr,
+    l.type,
+    cf.type                             'CFType',
+    nominal_amount(t)                   'nominal_amount',
+    nominal_amount(t) * 1/fx.fxRepDay   'ZAR_nominal_amount',
+    i.instype = 'FreeDefCF' ? cf.end_day : cf.pay_day  'pay_day',
+    period_rate(cf,,cf.end_day),
+    l.spread                                           'SpreadLeg',
+    cf.spread                                          'SpreadCF',
+    /*cf.type in ('Call Fixed Rate','Call Float Rate','Fixed Rate','Float Rate','Credit Default') ? to_double(add_info(t,'CreditDefaultSpread'))
+        : 0.00 'CreditDefSpread',*/
+    to_double(add_info(t,'CreditDefaultSpread'))       'CreditDefSpread',
+    cf.rate,
+    projected_cf(cf)*t.quantity * used_price(cr,@3_EndDay{today},'ZAR')    'ProjectedCF',
+    present_value(t)* used_price(cr,@3_EndDay{today},'ZAR')                'PVTrade',
+    present_value(cf)*t.quantity * used_price(cr,@3_EndDay{today},'ZAR')   'PVCF',
+    discount_factor(cf),
+    l.payleg,
+    cf.start_day,
+    cf.end_day,
+    days_between(cf.start_day,cf.end_day,'Act/365') 'Days',
+    l.nominal_factor,
+    cf.fixed_amount,
+    cf.float_rate_factor,
+    cf.float_rate_offset,
+    t.quantity,
+    i.contr_size,
+    /*((cf.type = 'Float Rate' and cf.start_day <= @3_EndDay{today} and cf.end_day >= @3_EndDay{today}) ? nominal_amount(t) * period_rate(cf,,cf.end_day) * days_between(cf.start_day,@3_EndDay{today},'Act/365') / 36500 : 0.0) * used_price(cr,@3_EndDay{today},'ZAR')  'Accrd_Int'*/
+    /*louw_edit*/(((i.instype ~= 'Deposit' ? cf.type = 'Float Rate': cf.type in ('Float Rate','Fixed Rate')) and cf.start_day <= @3_EndDay{today} and cf.end_day > @3_EndDay{today}) ? (nominal_amount(cf)*t.quantity) * period_rate(cf,,cf.end_day) * (days_between(cf.start_day,@3_EndDay{today},'Act/365')+1) / 36500 : 0.0) * used_price(cr,@3_EndDay{today},'ZAR')  'Accrd_Int',
+    i.exp_day   'ExpDay',
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365')  'DaysToExp',
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') /365 'YrsToExp',
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 1 ? '0-1' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 8 ? '2-8' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 30 ? '9-30' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 90 ? '31-90 1m-3m' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 180 ? '91-180 3m-6m' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 365 ? '181-365 6m-1yr' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 730 ? '366-730 1yr-2yr' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 1095 ? '731-1095 2yr-3yr' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 1460 ? '1096-1460 3yr-4yr' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 1825 ? '1461-1825 4yr-5yr' :
+    days_between(@3_EndDay{today},i.exp_day, 'Act/365') <= 3650 ? '1826-3650 5yr-10yr' :
+                                                                    '>3650 >10yr' 'TTM',
+    0.00 'Unsettled_Premium',
+    t.premium
+into
+   final
+from
+    instrument i,
+    leg l,
+    trade t,
+    cashflow cf,
+    instrument cr,
+    fxrates fx
+where
+        i.insaddr=t.insaddr
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and cf.pay_day >= @3_EndDay{today}
+    and i.curr = cr.insaddr
+    and fx.curr = cr.insid
+    and cr.instype = 'Curr'
+    and    ((l.curr = 2 and i.instype = 'CurrSwap') or i.instype ~= 'CurrSwap')
+/*----------------------------------------------------------------------------------------*/
+/*Select Trade Data into Temp Table for all instruments except the combination instruments*/
+
+/*----------------------------------------------------------------------------------------*/    
+/*----------------------------------------------------------------------------------------*/    
+/*----------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------------------*/
+/*Select Trade Data into Temp Table for the COMBINATION instrument*/
+select
+    display_id(t,'prfnbr')  'Portfolio',
+    t.value_day 'valday',
+    to_date(t.time) 'tradetime',
+    t.counterparty_ptynbr   'CounterParty',
+    display_id(l,'credit_ref')  'CreditReference',
+    i.instype,
+    i.instype  = 'CLN' 
+        ? (nominal_amount(t) < 0 
+            ? 'CLN Issued' 
+            : 'CLN Bought')
+                : i.instype = 'CreditDefaultSwap'
+                    ? nominal_amount(t) < 0 
+                        ? 'CDS Purchased' 
+                            : 'CDS Sold'          
+                                : 'Other'   'Issued',
+    i.insid,
+    display_id(i,'curr') 'curr',
+    t.trdnbr,
+    l.type,
+    cf.type 'CFType',
+    Combination_Nominal.nominal_amount  'nominal_amount',
+    Combination_Nominal.ZAR_nominal_amount  'ZAR_nominal_amount',
+    i.instype = 'FreeDefCF' ? cf.end_day : cf.pay_day   'pay_day',
+    period_rate(cf,,cf.end_day),
+    l.spread    'SpreadLeg',
+    cf.spread   'SpreadCF',
+    /*cf.type in ('Call Fixed Rate','Call Float Rate','Fixed Rate','Float Rate','Credit Default') 
+    ? */to_double(add_info(t,'CreditDefaultSpread'))    'CreditDefSpread',
+    cf.rate,
+    projected_cf(cf)*t.quantity * used_price(cr,@3_EndDay{today},'ZAR') 'ProjectedCF',
+    present_value(t)* used_price(cr,@3_EndDay{today},'ZAR') 'PVTrade',
+    MemIns.InsType = 'CreditDefaultSwap'
+        ? (present_value(cf)*(t.quantity/i.index_factor) * used_price(cr,@3_EndDay{today},'ZAR')) * cl.weight
+        /* : MemIns.InsType IN ('Swap','FRN') AND cf.start_day <= @3_EndDay{today} AND cf.end_day >= @3_EndDay{today}
+            ? projected_cf(cf) * (t.quantity/i.index_factor) * used_price(cr,@3_EndDay{today},'ZAR') */
+            : 0.00  'PVCF',
+    discount_factor(cf),
+    l.payleg,
+    cf.start_day,
+    cf.end_day,
+    days_between(cf.start_day,cf.end_day,'Act/365') 'Days',
+    l.nominal_factor,
+    cf.fixed_amount,
+    cf.float_rate_factor,
+    cf.float_rate_offset,
+    t.quantity,
+    i.contr_size,
+    /*((cf.type = 'Float Rate' and cf.start_day <= @3_EndDay{today} and cf.end_day >= @3_EndDay{today}) ? nominal_amount(t) * period_rate(cf,,cf.end_day) * days_between(cf.start_day,@3_EndDay{today},'Act/365') / 36500 : 0.0) * used_price(cr,@3_EndDay{today},'ZAR')  'Accrd_Int'
+    and MemIns.InsType ~= 'CreditDefaultSwap'*/
+    (((MemIns.InsType IN ('Swap','FRN','IndexLinkedSwap','Deposit')) and cf.start_day <= @3_EndDay{today} and cf.end_day > @3_EndDay{today})
+        ? ((projected_cf(cf)*(t.quantity/i.index_factor)) / days_between(cf.start_day,cf.end_day,'Act/365')) * (days_between(cf.start_day,@3_EndDay{today},'Act/365')+1)
+            : 0.0) * used_price(cr,@3_EndDay{today},'ZAR')  'Accrd_Int',
+    MemIns.exp_day  'ExpDay',
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365')    'DaysToExp',
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') /365   'YrsToExp',
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 1 ? '0-1' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 8 ? '2-8' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 30 ? '9-30' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 90 ? '31-90 1m-3m' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 180 ? '91-180 3m-6m' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 365 ? '181-365 6m-1yr' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 730 ? '366-730 1yr-2yr' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 1095 ? '731-1095 2yr-3yr' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 1460 ? '1096-1460 3yr-4yr' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 1825 ? '1461-1825 4yr-5yr' :
+    days_between(@3_EndDay{today},MemIns.exp_day, 'Act/365') <= 3650 ? '1826-3650 5yr-10yr' :
+                                                                    '>3650 >10yr'   'TTM',
+    t.value_day > @3_EndDay{today}
+        ? t.premium
+        : 0.00  'Unsettled_Premium',
+    t.premium
+into 
+  final
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    instrument cr,
+    combinationlink cl,
+    Instrument MemIns,
+    Combination_Nominal
+where
+        T.insaddr = I.insaddr
+    and cl.owner_insaddr = I.insaddr
+    and MemIns.InsAddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and cf.legnbr = l.legnbr
+    and t.trdnbr *= Combination_Nominal.trdnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and cf.pay_day >= @3_EndDay{today}
+    and i.curr = cr.insaddr
+    and cr.instype = 'Curr'
+    and ((l.curr = 2 and i.instype = 'CurrSwap') or i.instype ~= 'CurrSwap')
+    
+/*----------------------------------------------------------------------------------------*/    
+/*----------------------------------------------------------------------------------------*/    
+/*----------------------------------------------------------------------------------------*/
+/*Select Trade Data into Temp Table for the COMBINATION instrument*/
+
+/*Calculate CreditSpread Portion of Interest Payments*/             
+select
+    t.Portfolio,
+    t.tradetime,
+    t.valday,
+    t.CounterParty,
+    cr.CreditReference,
+    cr.SSID,
+    t.instype,
+    t.Issued,
+    t.instype = 'CreditDefaultSwap' ?
+        t.CFType = 'Fixed Amount' 
+             ? t.Issued = 'CDS Purchased' 
+                ? (t.PVCF > 0 ? 'Asset' : 'Liab')
+                : (t.PVCF < 0 ? 'Asset' : 'Liab')
+            : '-'
+        : '-'   'AssetLiab',
+    t.insid,
+    t.curr,
+    t.trdnbr,
+    t.type,
+    t.CFType 'CFType',
+    t.nominal_amount,
+    t.ZAR_nominal_amount,
+    pd.pay_day,
+    t.period_rate  'Rate',
+    t.SpreadCF,
+    t.CreditDefSpread,
+    (t.CFType = 'Credit Default') ? (t.projectedCF): ((t.CFType = 'Fixed Rate') ? (t.CreditDefSpread*t.days/36500*t.nominal_amount) : 0.0)   'ProjectedCF_CreditSpread',
+    (t.CFType = 'Float Rate') ? (t.projectedCF - t.CreditDefSpread*t.days/36500*t.nominal_amount) : (t.CFType = 'Fixed Rate') ? 0.0: 0.0  'ProjectedCF_Int',
+    ((t.CFType = 'Credit Default') ? (t.projectedCF): ((t.CFType = 'Fixed Rate') ? (t.CreditDefSpread*t.days/36500*t.nominal_amount) : 0.0)) + ((t.CFType = 'Float Rate') ? (t.projectedCF - t.CreditDefSpread*t.days/36500*t.nominal_amount) : (t.CFType = 'Fixed Rate') ? 0.0: 0.0) 'projectedCF',
+    (t.CFType = 'Credit Default') ? t.PVCF : (t.CFType = 'Fixed Rate') ?  (t.CreditDefSpread*t.days/36500*t.nominal_amount*t.discount_factor): 0.0  'PVCF_CreditSpread',
+    (t.CFType = 'Float Rate') ? t.PVCF - t.CreditDefSpread*t.days/36500*t.nominal_amount*t.discount_factor : (t.CFType = 'Fixed Rate') ? 0.0 : 0.0 'PVCF_Int',
+    ((t.CFType = 'Credit Default') ? t.PVCF : (t.CFType = 'Fixed Rate') ? t.PVCF : 0.0)  'PVCF',
+    t.PVTrade,
+    t.days,
+    t.discount_factor,
+    t.Accrd_Int,
+    t.Expday,
+    t.DaysToExp,
+    t.YrsToExp,
+    t.ttm,
+    t.Unsettled_Premium,
+    t.premium,
+    cr.cdsSpr,
+    cr.ParRate
+into 
+    temp
+from
+    final t,
+    credref cr,
+    pd
+where
+       t.trdnbr *= cr.trdnbr
+   and t.insid *= pd.insid
+
+select
+    'Total by TrdNbr'       'Section',
+    i.Portfolio,
+    p.fullname              'Counterparty',
+    i.CreditReference,
+    i.SSID,
+    i.instype,
+    i.instype = 'CreditDefaultSwap'
+        ? i.nominal_amount > 0
+            ? 'CDS-SOLD'
+            : 'CDS-PURCHASED'
+        : ''        'Product_Detail',
+    (i.instype not in ('Deposit','CurrSwap')) ? ((sum(i.PVCF) >= 0) ? 'Reval Asset' : ('Reval Liability')): ''    'AssetLiab',
+    i.insid,
+    i.curr,
+    i.trdnbr,
+    i.tradetime             'Trade Time',
+    i.valday                'Value Day',
+    i.nominal_amount,
+    i.ZAR_nominal_amount,
+    i.premium,
+    i.pay_day,
+    i.cdsSpr,
+    i.ParRate,
+    sum(i.PVCF)             'PVCFXCP',
+    i.PVTrade               'PVTrade',
+    sum(i.Accrd_Int)        'Accrd_Int',
+    i.Expday,
+    i.DaysToExp,
+    i.YrsToExp,
+    i.ttm,
+    i.Unsettled_Premium     'Unsettled_Premium'
+from
+    temp i,
+    party p
+where
+    i.CounterParty *= p.ptynbr
+        
+group by i.trdnbr,i.SSID,i.cdsSpr
+
+
+

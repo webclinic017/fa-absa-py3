@@ -1,0 +1,8 @@
+[Core Pricing]FCombInstrMap:combinationMarkToMarketRealizedValues = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->valuationInstrument :* "markToMarketRealizedInstrumentValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities = (positionTradeQuantities * weight)]);
+[Core Pricing]FCombination:combinationMarkToMarketRealizedValues = select(mtmFromFeed, 
+  true->markToMarketInstrumentPositionValuesTodayFlat, 
+  false->shunt[priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities, useBidAskValuation](splitCombination, 
+    true->sumOf((instrumentMaps) :* "combinationMarkToMarketRealizedValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities]) / underlyingOrSelf.Factor, 
+    false->markToMarketInstrumentPositionValuesTodayFlat));

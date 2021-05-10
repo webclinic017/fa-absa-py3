@@ -1,0 +1,654 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2015-08-20     CHNG0003108176   Wentzel DeClercq   Nico Louw          Included Float Rate factor in Notional 
+                                                                      calculation for floating leg on swap instruments.
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','eagle_cf') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'eagle_cf' and p.type = 'SQL Query' 
+ 
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+min(l.legnbr)                                                    'SOURCE_LEG_ID',
+nominal_amount(t)                                     'NOTIONAL',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+l.curr,
+l.insaddr
+
+into GetLegs
+from
+
+trade t,
+instrument i,
+leg l,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and t.insaddr = l.insaddr
+and i.instype in ('Swap', 'CAP', 'Floor', 'CurrSwap','IndexLinkedSwap','FreeDefCF')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+group by 1, 5
+
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+nominal_amount(t)                                      'NOTIONAL',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+l.curr,
+l.insaddr
+
+into GetLegs
+from
+
+trade t,
+instrument i,
+leg l,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and t.insaddr = l.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('FRA')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+/* and mtm_value_fo(t,@Date{TODAY},display_id(i,'curr')) ~= 0 */
+
+
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',          
+1                                                           'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',p.payday)                         'CASHFLOW_DATE',
+p.paynbr                                                    'CASHFLOW_NUMBER',
+p.amount                                                     'CASHFLOW_AMOUNT',
+display_id(p,'curr')                                         'ORIG_CASHFLOW_CURRENCY',
+p.type = 'Premium' ? 'PREMIUM' :
+p.type = 'Broker Fee' ? 'BROKERAGE' :
+'FEE'                                                      'CASHFLOW_TYPE',
+''                                                           'INTEREST_START_DATE',
+''                                                           'INTEREST_END_DATE',
+''                                                          'FIXING_DATE',
+nominal_amount(t)                                             'NOTIONAL',
+0.00                                                            'SPREAD',
+0.00                                                        'STRIKE',
+'A'                                                         'CASHFLOW_IND',
+p.curr
+
+into AddPay
+
+
+from
+
+trade t,
+instrument i,
+payment p,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and p.trdnbr = t.trdnbr
+and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Swap', 'CAP', 'FreeDefCF', 'Floor', 'CurrSwap','IndexLinkedSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE' 
+
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',          
+1                                                           'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',p.payday)                         'CASHFLOW_DATE',
+p.paynbr                                                    'CASHFLOW_NUMBER',
+p.amount                                                     'CASHFLOW_AMOUNT',
+display_id(p,'curr')                                         'ORIG_CASHFLOW_CURRENCY',
+p.type = 'Premium' ? 'PREMIUM' :
+p.type = 'Broker Fee' ? 'BROKERAGE' :
+'FEE'                                                      'CASHFLOW_TYPE',
+''                                                           'INTEREST_START_DATE',
+''                                                           'INTEREST_END_DATE',
+''                                                          'FIXING_DATE',
+nominal_amount(t)                                             'NOTIONAL',
+0.00                                                            'SPREAD',
+0.00                                                        'STRIKE',
+'A'                                                         'CASHFLOW_IND',
+p.curr
+
+into AddPay
+
+
+from
+
+trade t,
+instrument i,
+payment p,
+leg l,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and l.insaddr = t.insaddr
+and p.trdnbr = t.trdnbr
+and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('FRA')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+/* and mtm_value_fo(t,@Date{TODAY},display_id(i,'curr')) ~= 0 */
+
+
+select
+
+p.SOURCE_TRADE_ID,          
+l.SOURCE_LEG_ID,
+p.EXTRACT_DATE,
+p.CASHFLOW_DATE,
+p.CASHFLOW_NUMBER,
+p.CASHFLOW_AMOUNT,
+p.ORIG_CASHFLOW_CURRENCY,
+p.CASHFLOW_TYPE,
+p.INTEREST_START_DATE,
+p.INTEREST_END_DATE,
+p.FIXING_DATE,
+l.NOTIONAL,
+p.SPREAD,
+p.STRIKE,
+p.CASHFLOW_IND
+
+
+into tmpPay
+
+from
+
+    AddPay p,
+    GetLegs l
+    
+where
+   
+    p.SOURCE_TRADE_ID  *= l.SOURCE_TRADE_ID
+and p.curr *= l.curr
+ 
+ 
+ 
+  select
+/*i.instype,*/
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',c.pay_day)                       'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+projected_cf(c) * t.quantity                                'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type in ('Fixed Amount', 'Return') ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type in ('Fixed Amount', 'Return') ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type in ('Fixed Amount', 'Return') ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+l.type = 'Fixed' ? ''
+: (c.type in ('Fixed Amount', 'Return') ? '' 
+: ael_s(,'Eagle_Date.CDate',c.start_day))                   'FIXING_DATE',
+
+(i.instype = 'Swap' and l.type = 'Float')
+    ? ( abs(nominal_amount(c) *t.quantity) = 0.00 
+            ? abs(nominal_amount(t) * l.float_rate_factor) 
+            : abs(nominal_amount(c) * t.quantity * l.float_rate_factor)) 
+
+    : ( abs(nominal_amount(c) * t.quantity) = 0.00 
+            ? abs(nominal_amount(t)) 
+            : abs(nominal_amount(c) * t.quantity))          'NOTIONAL',
+            
+c.spread                                                    'SPREAD',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price   'STRIKE',
+l.type = 'Fixed' ? 'A' : (c.type in ('Return','Fixed Amount') ? 'A' : (c.pay_day <= TODAY ? 'A' : 'P'))  'CASHFLOW_IND'
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+cashflow c,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and t.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Swap', 'CAP', 'Floor', 'CurrSwap','IndexLinkedSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+/*and c.type not in ('Return')*/
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+
+
+union
+
+  select
+/*i.instype,*/
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',c.pay_day)                       'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+projected_cf(c) * t.quantity                                'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type = 'Fixed Amount' ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+l.type = 'Fixed' ? ''
+: (c.type = 'Fixed Amount' ? '' 
+: ael_s(,'Eagle_Date.CDate',c.start_day))                   'FIXING_DATE',
+abs(nominal_amount(c) *t.quantity)                               'NOTIONAL',
+c.spread                                                    'SPREAD',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price   'STRIKE',
+l.type = 'Fixed' ? 'A' : (c.type = 'Fixed Amount' ? 'A' : (c.pay_day <= TODAY ? 'A' : 'P'))  'CASHFLOW_IND'
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+cashflow c,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and t.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and i.instype in ('FRA')
+and cp.ptynbr = t.counterparty_ptynbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+/*and c.type not in ('Return')*/
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+and l.start_day > TODAY
+
+
+
+/*
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+convert('time', c.pay_day, '%Y%m%d')                        'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+projected_cf(c) * t.quantity                                'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type = 'Fixed Amount' ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+''                                                           'FIXING_DATE',
+nominal_amount(c) *t.quantity                               'NOTIONAL',
+c.spread                                                    'SPREAD',
+i.strike_price                                              'STRIKE',
+l.type = 'Fixed' ? 'A' : (c.type = 'Fixed Amount' ? 'A' : (c.pay_day <= TODAY ? 'A' : 'P'))  'CASHFLOW_IND'
+
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument und,
+leg l,
+cashflow c
+
+where 
+
+    t.insaddr = i.insaddr
+and i.instype in ('Option')
+and i.und_instype = 'Bond'
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @2_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+
+*/
+
+
+
+/*
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                           'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+convert('time', t.value_day, '%Y%m%d')                      'CASHFLOW_DATE',
+i.insaddr                                                   'CASHFLOW_NUMBER',
+t.premium                                                   'CASHFLOW_AMOUNT',
+display_id(t,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+'PREMIUM'                                                   'CASHFLOW_TYPE',
+''                      'INTEREST_START_DATE',
+''                      'INTEREST_END_DATE',
+''                                                          'FIXING_DATE',
+nominal_amount(t)                                           'NOTIONAL',
+0.00                                                        'SPREAD',
+i.strike_price                                              'STRIKE',
+t.value_day <= TODAY ? 'A' : 'P'                              'CASHFLOW_IND'
+
+
+
+
+
+
+
+
+from
+trade t,
+instrument i,
+instrument und,
+leg l
+
+where 
+
+    t.insaddr = i.insaddr
+and i.instype in ('Option')
+and i.und_instype = 'Bond'
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @2_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.premium ~= 0
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+*/
+union
+
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+convert('time', c.pay_day, '%Y%m%d')                        'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+projected_cf(c) * t.quantity                                'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type = 'Fixed Amount' ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+l.type = 'Fixed' ? ''
+: (c.type = 'Fixed Amount' ? '' 
+: ael_s(,'Eagle_Date.CDate',c.start_day))                   'FIXING_DATE',
+abs(nominal_amount(c) *t.quantity)                               'NOTIONAL',
+c.spread                                                    'SPREAD',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price   'STRIKE',
+l.type = 'Fixed' ? 'A' : (c.type = 'Fixed Amount' ? 'A' : (c.pay_day <= TODAY ? 'A' : 'P'))  'CASHFLOW_IND'
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+cashflow c,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and t.insaddr = l.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and l.legnbr = c.legnbr
+and i.instype in ('FreeDefCF')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and t.trdnbr in (746101,746106,754505,836282,1279710,1234027)
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+
+
+/*
+select
+
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+min(l.legnbr)                                                           'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+convert('time', t.value_day, '%Y%m%d')                      'CASHFLOW_DATE',
+i.insaddr                                                   'CASHFLOW_NUMBER',
+t.premium                                                   'CASHFLOW_AMOUNT',
+display_id(t,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+'PREMIUM'                                                   'CASHFLOW_TYPE',
+''                      'INTEREST_START_DATE',
+''                      'INTEREST_END_DATE',
+''                                                          'FIXING_DATE',
+abs(nominal_amount(t))                                           'NOTIONAL',
+0.00                                                        'SPREAD',
+i.strike_price                                              'STRIKE',
+'A'                                                         'CASHFLOW_IND'
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Freedefcf')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and t.premium ~= 0
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.trdnbr in (746101,746106,754505,836282,1279710,1234027)
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+and add_info(cp,'BarCap_Eagle_Incl') = 'Yes'
+group by t.trdnbr*/
+
+union
+
+select
+
+p.SOURCE_TRADE_ID,          
+l.SOURCE_LEG_ID,
+p.EXTRACT_DATE,
+p.CASHFLOW_DATE,
+p.CASHFLOW_NUMBER,
+p.CASHFLOW_AMOUNT,
+p.ORIG_CASHFLOW_CURRENCY,
+p.CASHFLOW_TYPE,
+p.INTEREST_START_DATE,
+p.INTEREST_END_DATE,
+p.FIXING_DATE,
+abs(p.NOTIONAL)  'NOTIONAL',
+p.SPREAD,
+p.STRIKE,
+p.CASHFLOW_IND
+
+from
+
+tmpPay p,
+GetLegs l
+
+where 
+p.SOURCE_LEG_ID = 0
+and p.SOURCE_TRADE_ID = l.SOURCE_TRADE_ID
+
+union
+
+select
+
+p.SOURCE_TRADE_ID,          
+p.SOURCE_LEG_ID,
+p.EXTRACT_DATE,
+p.CASHFLOW_DATE,
+p.CASHFLOW_NUMBER,
+p.CASHFLOW_AMOUNT,
+p.ORIG_CASHFLOW_CURRENCY,
+p.CASHFLOW_TYPE,
+p.INTEREST_START_DATE,
+p.INTEREST_END_DATE,
+p.FIXING_DATE,
+abs(p.NOTIONAL)  'NOTIONAL',
+p.SPREAD,
+p.STRIKE,
+p.CASHFLOW_IND
+
+from
+
+tmpPay p
+where p.SOURCE_LEG_ID ~= 0
+
+union
+
+select
+/*i.instype,*/
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',c.pay_day)                        'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+i.contr_size = 1 ? (projected_cf(c) * 
+(abs(t.quantity)/1000000)) : 
+projected_cf(c) * abs(t.quantity)                            'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type = 'Fixed Amount' ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+l.type = 'Fixed' ? ''
+: (c.type = 'Fixed Amount' ? '' 
+: ael_s(,'Eagle_Date.CDate',c.start_day))                   'FIXING_DATE',
+abs(nominal_amount(t))                    'NOTIONAL',
+c.spread                                                    'SPREAD',
+i.strike_price                                              'STRIKE',
+l.type = 'Fixed' ? 'A' : (c.type = 'Fixed Amount' ? 'A' : (c.pay_day <= TODAY ? 'A' : 'P'))  'CASHFLOW_IND'
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument und,
+leg l,
+cashflow c,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Option')
+and i.und_instype = 'Swap'
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and (projected_cf(c) * t.quantity) ~= 0
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+
+union
+
+select
+/*i.instype,*/
+t.trdnbr                                                    'SOURCE_TRADE_ID',
+l.legnbr                                                    'SOURCE_LEG_ID',
+convert('time', TODAY, '%Y%m%d')                            'EXTRACT_DATE',
+ael_s(,'Eagle_Date.CDate',c.pay_day)                        'CASHFLOW_DATE',
+c.cfwnbr                                                    'CASHFLOW_NUMBER',
+projected_cf(c) * abs(t.quantity)                                'CASHFLOW_AMOUNT',
+display_id(l,'curr')                                        'ORIG_CASHFLOW_CURRENCY',
+c.type = 'Fixed Amount' ? 'PRINCIPAL' : 'INTEREST'          'CASHFLOW_TYPE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.start_day)                   'INTEREST_START_DATE',
+c.type = 'Fixed Amount' ? ''
+: ael_s(,'Eagle_Date.CDate',c.end_day)                      'INTEREST_END_DATE',
+l.type = 'Fixed' ? ''
+: (c.type = 'Fixed Amount' ? '' 
+: ael_s(,'Eagle_Date.CDate',c.start_day))                   'FIXING_DATE',
+abs(nominal_amount(t))                   'NOTIONAL',
+c.spread                                                    'SPREAD',
+i.strike_price                                              'STRIKE',
+c.pay_day <= TODAY ? 'A' : 'P'  'CASHFLOW_IND'
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument und,
+leg l,
+cashflow c,
+party cp
+
+where 
+
+    t.insaddr = i.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Option')
+and i.und_instype = 'FRA'
+and i.und_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and (projected_cf(c) * t.quantity) ~= 0
+and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'

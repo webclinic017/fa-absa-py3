@@ -1,0 +1,6 @@
+[Default]FCashFlowInstrument:marketAssetCashSpreadForStandardCalculations = select(assetSwapSpreadCalculationValid, 
+  true->firstStaticLegInformation.AssetSwapSpread(denominatedvalue(1.0), assetSwapSpreadRiskFreeValueForStandardCalculations, forwardAssetSwapCouponFactorForStandardCalculations, valuationDate), 
+  false->nil);
+[Default]FInstrument:marketAssetCashSpreadForStandardCalculations = 0.0;
+[Default]FInstrumentAndTrades:marketAssetCashSpreadForStandardCalculations = instrument :* "marketAssetCashSpreadForStandardCalculations" [priceSource, yieldCurve, marketPrice = denominatedvalue(marketPriceForStandardCalculations, , , datetime(marketPrice))];
+[Default]FMultiInstrumentAndTrades:marketAssetCashSpreadForStandardCalculations = nil;

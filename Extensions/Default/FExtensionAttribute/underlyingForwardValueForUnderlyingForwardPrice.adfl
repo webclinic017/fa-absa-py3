@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingForwardValueForUnderlyingForwardPrice = select(underlyingForwardPriceFromForwardValueProvider, 
+  true->select(1 == count(underlyingForwardValueInStrikeCurrency), 
+    true->underlyingForwardValueInStrikeCurrency, 
+    false->nil), 
+  false->select(1 == count(underlyingForwardRateForUnderlyingForwardPrice), 
+    true->underlyingForwardRateForUnderlyingForwardPrice, 
+    false->nil));

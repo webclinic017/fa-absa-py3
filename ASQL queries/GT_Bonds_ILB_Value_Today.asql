@@ -1,0 +1,172 @@
+/*
+
+    Date                : 9 July 2015
+    Purpose             : Reflect Bond, ILB, BSB and Repo trades where casf flow takses place today for Group Treasury
+    Department and Desk : Money market
+    Requester           : Michael David
+    Developer           : Anil Parbhoo
+    CR Number           : 572767
+
+
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GT_Bonds_ILB_Value_Today') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GT_Bonds_ILB_Value_Today' and p.type = 'SQL Query' 
+
+
+/* ------ bonds and ILB that settle today -----*/
+
+select
+
+t.value_day'Today',
+'Bonds and ILB settling Today',
+t.trdnbr,
+i.insid,
+' ' 'open_end',
+i.instype,
+' ' 'Und id',
+' ' 'Und Instype',
+t.status,
+t.quantity*i.contr_size'Nominal',
+c.insid'Currency',
+display_id(t, 'prfnbr')'portfolio'
+
+
+from
+trade t,
+instrument i,
+instrument c
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_MONB0681;})
+and i.instype in ('Bond', 'IndexLinkedBond')
+and t.value_day = Today
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day >= Today
+and i.curr = c.insaddr
+
+
+order by 6,4
+
+
+union /*  -----------Repos that start Today------  */
+
+select
+l.start_day'Today',
+'Repos that start Today',
+t.trdnbr,
+i.insid,
+'Yes' ? i.open_end : '' 'open_end',
+i.instype,
+'YES' ? ui.insid : '' 'Und Id',
+'YES' ? ui.instype : '' 'Und Instype',
+t.status,
+((i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity)'Nominal',
+c.insid 'Currency',
+display_id(t, 'prfnbr')'portfolio'
+
+
+from
+trade t,
+instrument i,
+leg l,
+instrument ui,
+instrument c
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_MONB0681;})
+and i.insaddr = l.insaddr
+and l.start_day = Today
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day ~< Today
+and i.und_insaddr = Ui.insaddr
+and i.curr = c.insaddr
+
+order by 6,8,7
+
+union /*  ------------BsB that start Today-----------  */
+
+select
+i.start_day'Today',
+'BsB that start Today',
+t.trdnbr,
+i.insid,
+'Yes' ? i.open_end : '' 'open_end',
+i.instype,
+'YES' ? ui.insid : '' 'Und Id',
+'YES' ? ui.instype : '' 'Und Instype',
+t.status,
+((i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity)'Nominal',
+c.insid 'Currency',
+display_id(t, 'prfnbr')'portfolio'
+
+
+from
+trade t,
+instrument i,
+instrument ui,
+instrument c
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_MONB0681;})
+and i.start_day = Today
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day ~< Today
+and i.und_insaddr = Ui.insaddr
+and i.curr = c.insaddr
+
+order by 6,8,7
+
+
+union /*  ---------------BSB and Repos that end Today------------  */
+
+select
+
+i.exp_day'Today',
+'BSB and Repos that end Today',
+t.trdnbr,
+i.insid,
+'Yes' ? i.open_end : '' 'open_end',
+i.instype,
+'YES' ? ui.insid : '' 'Und Id',
+'YES' ? ui.instype : '' 'Und Instype',
+t.status,
+(t.premium>0 ? 1 : -1)*abs((i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity)'Nominal',
+c.insid 'Currency',
+display_id(t, 'prfnbr')'portfolio'
+
+
+from
+trade t,
+instrument i,
+instrument ui,
+instrument c
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_MONB0681;})
+and i.exp_day = Today
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.und_insaddr = ui.insaddr
+and i.curr = c.insaddr
+
+order by 6,8,7

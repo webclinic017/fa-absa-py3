@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_SAGEN_HVAL') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_SAGEN_HVAL' and p.type = 'SQL Query' 
+select
+	t.trdnbr,
+	mtm_value_fo(t, TODAY, cr.insid, 2, 0, 1) * used_price(cr,TODAY,'ZAR')  'HVAL'
+
+from
+	trade t,
+	instrument i,
+	instrument cr
+where
+	t.insaddr = i.insaddr 
+and	t.status ~= 'Simulated' 
+and	(i.exp_day > '2005-03-31'  or i.exp_day = '0000-01-01')
+and	i.generic = 'No' 
+and	cr.insaddr =* i.curr

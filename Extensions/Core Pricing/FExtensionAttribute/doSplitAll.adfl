@@ -1,0 +1,12 @@
+[Core Pricing]FCombInstrMap:doSplitAll = isSplitAllGrouped;
+[Core Pricing]FInstrument:doSplitAll = 
+# When calling isSplitGrouped, a reference is set up to the top portfolio row. For re-use reasons, we want to avoid that
+select(nil == isSplitAllGrouped, 
+  true->false, 
+  false->select(doSplitCandidate, 
+    true->isSplitAllGrouped, 
+    false->false));
+[Core Pricing]FLeg:doSplitAll = instrument:doSplitAll;
+[Core Pricing]FOrderBook:doSplitAll = 0;
+[Core Pricing]FVolatilityInformation:doSplitAll = false;
+[Core Pricing]FVolatilityStructure:doSplitAll = false;

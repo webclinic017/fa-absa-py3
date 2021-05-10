@@ -1,0 +1,7 @@
+[Default]FInstrument:impliedMarketCorrelation = select(valuationModelCanCalibrateCorrelation, 
+  false->nil, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(theoreticalPriceBySingleCorrelation, "instrumentCorrelation"), theoreticalPriceBySingleCorrelation, marketPrice, implyPrecision, 0, 0.9999, implyMaxIterations)));
+[Default]FInstrumentAndTrades:impliedMarketCorrelation = instrument :* "impliedMarketCorrelation" [priceSource];
+[Default]FMultiInstrumentAndTrades:impliedMarketCorrelation = nil;

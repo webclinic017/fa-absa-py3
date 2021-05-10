@@ -1,0 +1,7 @@
+[Default]FInstrument:creditTheoreticalValuesConstituentCurves = select(useConstituentsToggleInTheoreticalPrice, 
+  nil->spotHandlingZero, 
+  true->theoreticalValues, 
+  false->shift(theoreticalValues, useConstituentsToggleInTheoreticalPrice, [true]));
+[Default]FInstrumentAndTrades:creditTheoreticalValuesConstituentCurves = openInstrument :* "collapse(creditTheoreticalValuesConstituentCurves)" [isSplitAllGrouped, priceSource, positionObject, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:creditTheoreticalValuesConstituentCurves = sumOf(openInstruments :* "collapse(creditTheoreticalValuesConstituentCurves)" [isSplitAllGrouped, priceSource, positionObject, filterUnit, groupingSpotDiscountDate]);
+[Default]FTradeRow:creditTheoreticalValuesConstituentCurves = instrument :* "creditTheoreticalValuesConstituentCurves" [priceSource, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate];

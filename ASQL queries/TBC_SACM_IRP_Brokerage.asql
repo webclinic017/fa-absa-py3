@@ -1,0 +1,83 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_IRP_Brokerage') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_IRP_Brokerage' and p.type = 'SQL Query' 
+select
+	t.trdnbr	'TrdNo',
+	time_to_day(t.time)	'DealDate',
+	i.instype	'Instrument',
+	i.exp_day	'Expiry',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	nominal_amount(t,,display_id(i,'curr'))	'Nominal',
+	present_value(t)	'PresentValue',
+	display_id(i,'curr')	'CCY',
+	display_id(t,'broker_ptynbr')		'Broker',
+	t.fee
+from
+	trade	t,
+	instrument	i,
+	Party p
+where
+	t.insaddr = i.insaddr
+and	t.broker_ptynbr = p.ptynbr
+and	('All' IN (@Broker{All;Party.ptyid* where type = 'Broker'})
+or	p.ptyid IN (@Broker{All;Party.ptyid* where type = 'Broker'}))
+and	match_filter(t,@1_Filter{;tradefilter.fltid})
+and	(time_to_day(t.time) >= @2_StartDate{}
+and	time_to_day(t.time) <= @3_EndDate{})
+order by
+	i.exp_day
+union
+select
+	count(t.trdnbr)	'TrdNo',
+	time_to_day(t.time)	'DealDate',
+	i.instype	'Instrument',
+	i.exp_day	'Expiry',
+	''	'Counterparty',
+	sum(abs(nominal_amount(t,,display_id(i,'curr'))))	'Nominal',
+	sum(present_value(t))	'PresentValue',
+	display_id(i,'curr')	'CCY',
+	display_id(t,'broker_ptynbr')	'Broker',
+	sum(t.fee)
+from
+	trade	t,
+	instrument	i,
+	Party p
+where
+	t.insaddr = i.insaddr
+and	t.broker_ptynbr = p.ptynbr
+and	('All' IN (@Broker{All;Party.ptyid* where type = 'Broker'})
+or	p.ptyid IN (@Broker{All;Party.ptyid* where type = 'Broker'}))
+and	match_filter(t,@1_Filter{;tradefilter.fltid})
+and	(time_to_day(t.time) >= @2_StartDate{}
+and	time_to_day(t.time) <= @3_EndDate{})
+group by
+	i.instype /*Currency*/
+union
+select
+	count(t.trdnbr)	'TrdNo',
+	time_to_day(t.time)	'DealDate',
+	i.instype	'Instrument',
+	i.exp_day	'Expiry',
+	''	'Counterparty',
+	sum(abs(nominal_amount(t,,display_id(i,'curr'))))	'Nominal',
+	sum(present_value(t))	'PresentValue',
+	display_id(i,'curr')	'CCY',
+	display_id(t,'broker_ptynbr')	'Broker',
+	sum(t.fee)
+from
+	trade	t,
+	instrument	i,
+	Party p
+where
+	t.insaddr = i.insaddr
+and	t.broker_ptynbr = p.ptynbr
+and	('All' IN (@Broker{All;Party.ptyid* where type = 'Broker'})
+or	p.ptyid IN (@Broker{All;Party.ptyid* where type = 'Broker'}))
+and	match_filter(t,@1_Filter{;tradefilter.fltid})
+and	(time_to_day(t.time) >= @2_StartDate{}
+and	time_to_day(t.time) <= @3_EndDate{})
+group by
+	8 /*Currency*/

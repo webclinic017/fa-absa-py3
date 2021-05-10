@@ -1,0 +1,23 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candice yc benchmarks') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candice yc benchmarks' and p.type = 'SQL Query' 
+ 
+  select    
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    bm.instrument                            'bminst',
+    bm.yield_curve_seqnbr,
+    yc.seqnbr,
+    bm.instrument,
+ins.insaddr 
+from
+   yieldcurve yc,
+    benchmark bm,
+    instrument ins
+where
+    yc.yield_curve_name='ZAR-SWAP'
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr    

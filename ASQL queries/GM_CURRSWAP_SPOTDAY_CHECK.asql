@@ -1,0 +1,18 @@
+select
+
+i.instype,
+t.trdnbr,
+i.spot_banking_days_offset
+
+from
+
+instrument i,
+trade t
+
+where
+
+i.insaddr = t.insaddr
+and i.instype = 'CurrSwap'
+and i.exp_day > '2009-12-01'
+and i.spot_banking_days_offset > 0
+and t.status not in ('Simulated','Void')

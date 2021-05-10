@@ -1,0 +1,10 @@
+[CashEquity]FCombInstrMapAndTrades:cashEquityUnderlyingRIC = instrument:cashEquityUnderlyingRIC;
+[CashEquity]FEquityIndex:cashEquityUnderlyingRIC = py("CashEquityRicCode", context).getRicCode(object);
+[CashEquity]FFuture:cashEquityUnderlyingRIC = py("CashEquityRicCode", context).getRicCode(underlying);
+[CashEquity]FInstrument:cashEquityUnderlyingRIC = nil;
+[CashEquity]FMultiInstrumentAndTrades:cashEquityUnderlyingRIC = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference:cashEquityUnderlyingRIC);
+[CashEquity]FOption:cashEquityUnderlyingRIC = py("CashEquityRicCode", context).getRicCode(underlying);
+[CashEquity]FSingleInstrumentAndTrades:cashEquityUnderlyingRIC = instrument:cashEquityUnderlyingRIC;
+[CashEquity]FStock:cashEquityUnderlyingRIC = py("CashEquityRicCode", context).getRicCode(object);

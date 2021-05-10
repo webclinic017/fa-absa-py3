@@ -1,0 +1,52 @@
+
+/*Query checks fixings for non-zar currencies with regard to fixing day*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_Exception_FX_Resets1') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_FX_Resets1' and p.type = 'SQL Query'
+
+Select
+
+
+t.trdnbr 'Trade_Number',
+cf.cfwnbr 'Cashflow_Number',
+l.legnbr 'Leg_Number',
+r.resnbr 'Reset_Number',
+r.day 'Reset_Day',
+cf.start_day 'Cashflow_Start_Day',
+r.type 'Reset_Type',
+fr.insid 'Floating_Rate_Index',
+r.value 'Rate',
+r.day ~= date_add_banking_day(to_date(cf.start_day),display_id(l,'curr'), -2) ? 'Check Reset Day' : 'Reset Day Correct'  'ResetDay_vs_CFStartDay',
+t.status 'Trade_Status'
+
+into temp
+
+from 
+
+trade t,
+cashflow cf,
+leg l,
+reset r,
+instrument i,
+instrument fr
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and cf.legnbr = l.legnbr
+and r.cfwnbr = cf.cfwnbr
+and l.float_rate = fr.insaddr
+and display_id(l, 'curr') ~= 'ZAR'
+and r.type = 'Single'
+and r.day = @2_ResetDate{today}
+
+select * 
+from temp
+where
+ResetDay_vs_CFStartDay ~= 'Reset Day Correct'
+

@@ -1,0 +1,17 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:rPL = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:rPL = nil;
+[Profit and Loss]FInstrumentAndTrades:rPL = select(isCashGrouping, 
+  true->collapse(cashRPL), 
+  default->collapse(assetRPL));
+[Profit and Loss]FMultiInstrumentAndTrades:rPL = select(isCashGrouping, 
+  true->collapse(cashRPL), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetRPL), 
+    default->collapse(cashAssetRPL)));
+[Profit and Loss]FPortfolioInstrumentAndTrades:rPL = collapse(cashAssetRPL);
+[Profit and Loss]FPriceAggregate:rPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "rPL");
+[Profit and Loss]FTaxLotClosing:rPL = object.OpeningCost + object.ClosingCost;

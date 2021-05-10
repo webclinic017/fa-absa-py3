@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrument:slPendingReturn = shunt(slBookedReturns.IsDirty and slBookedReturns.ApplyChanges, 
+  default->select((slBookedReturns.Result).RemoveAll(slSettledTrades.Result) == [], 
+    true->0.0, 
+    default->sumOf(((slBookedReturns.Result).RemoveAll(slSettledTrades.Result)) :* "instrument:slReturnedQty")));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPendingReturn = sumOf(instruments :* "slPendingReturn");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPendingReturn = instrument :* "slPendingReturn";

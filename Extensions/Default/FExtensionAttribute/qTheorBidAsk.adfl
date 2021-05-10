@@ -1,0 +1,5 @@
+[Default]FQuoteController:qTheorBidAsk = select(underlyingIsValuedFromLegs, 
+  true->shiftarray(qTheoreticalPriceQuoting, snoop(qTheoreticalPriceQuoting, "spotPriceAsUnderlying"), fixedvariant [qUndBidPrice, qUndAskPrice]), 
+  false->shunt(qVolaAddOnEnabled, 
+    true->scenarioaxisarray(qTheoreticalPriceQuoting, <[underlyingPriceNodeName], , , [qUndBidPrice, qUndAskPrice]>, <["volatility"], , "delta", [calculateVolatilityAddOn(qVolOffset, qVolSpread, false, qSpreadBiasFactor), calculateVolatilityAddOn(qVolOffset, qVolSpread, true, qSpreadBiasFactor)]>), 
+    false->shiftarray(qTheoreticalPriceQuoting, underlyingPriceNodeInTheoreticalPrice, fixedvariant [qUndBidPrice, qUndAskPrice])));

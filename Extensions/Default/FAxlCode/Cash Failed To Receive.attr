@@ -1,0 +1,35 @@
+[Default]FObject:Cash Failed To Receive
+{
+}
+
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+}
+
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+
+failedRcv = If(And(&'unSettledCashExtAttr', And(@isValueDayBeforeToday(), @isAmountPositive())), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Failed To Receive',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day before today and positive amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@failedRcv()), AttributeDimensions = AttributeList(['curr']));
+
+...

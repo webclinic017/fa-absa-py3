@@ -1,0 +1,5 @@
+[Core Pricing]FCashFlowInstrument:movePositionType = select(hasCustomMoveFunction, 
+  true->"Full", 
+  false->select(isMultiCurrencyInstrument or ("Accounting Date" == instrumentReportDate), 
+    true->"Full", 
+    false->maxOfAny(movePositionType(valuationDate, positionTradeQuantities, staticLegInformations, valuationDate, instrumentSpotDate, repoMoveNotAllowed))));

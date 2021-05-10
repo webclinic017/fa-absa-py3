@@ -1,0 +1,183 @@
+/*
+
+Purpose                 :Market Risk feed files - Month End Specific Risk (Standardised Approach), Optimized Code
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger, Heinrich Cronje
+CR Number               :C000000342851 (done), C000000431684, 629941, C000000788821
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_SpecificRisk_EQ_MonthEnd') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_SpecificRisk_EQ_MonthEnd' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Macros
+------------------------------------------------------------------*/
+select
+    @Date{Today}    'date'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+/*------------------------------------------------------------------
+    FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	m.date = today ? used_price(hc, m.date, curr.insid) 
+                    : mtm_price(hc, m.date, curr.insid)		            'fxRepDay'
+
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros m
+where
+        hc.insid = 'ZAR'
+	and curr.instype = 'Curr'
+
+	
+	
+/* ********** Equity Futures/Forwards on Stocks ********** */
+
+select 
+	display_id(t,'insaddr')	            'Instrument',
+	i.instype                           'InsType',
+	display_id(i,'und_insaddr')	        'Underlying',
+	i.und_instype                       'Underlying_Type',
+	i.exp_day			                'Expiry',
+    display_id(i,'curr')				'Currency',
+	sum(nominal_amount(t))              'Position',
+    display_id(t,'prfnbr')              'Portfolio'
+from 
+	instrument i,
+	trade t,
+	macros m
+where 
+	t.insaddr = i.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype = 'Future/Forward'
+and i.und_instype in ('Stock','EquityIndex')
+and match_portfolio (t, 'SECONDARY MARKETS TRADING')
+and time_to_day(t.time) <= m.date
+and i.exp_day > m.date
+
+group by 1,8
+
+union
+
+/* ******************** CFD's ******************** */
+
+select 
+	i.insid		                        'Instrument',
+	i.instype	                        'InsType',
+	i.instype in ('EquityIndex','Stock') ? i.insid : display_id(i,'und_insaddr')	        'Underlying',
+	i.instype in ('EquityIndex','Stock') ? i.instype : i.und_instype	                    'Underlying_Type',
+    i.exp_day			                'Expiry',
+    i.instype in ('EquityIndex','Stock') ? display_id(t,'curr') : display_id(i,'curr')     'Currency',
+    sum(nominal_amount(t))              'Position',
+    display_id(t,'prfnbr')              'Portfolio'
+
+from 
+	instrument i,
+	trade t,
+	macros m
+	
+where 
+    t.insaddr = i.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype in ('CFD', 'ETF', 'EquityIndex','Stock')
+and match_portfolio (t, 'SECONDARY MARKETS TRADING')
+and time_to_day(t.time) <= m.date
+
+group by 1,8
+
+union
+
+/* ********************** Equity Swaps ********************** */
+
+select distinct
+	i.insid                                     'Instrument',	
+	i.instype                                   'Instype',
+	display_id(l,'index_ref') 				    'Underlying',
+	index.instype                               'Underlying_Type',
+	i.exp_day                                   'Expiry',                    
+	display_id(l, 'curr')					    'Currency',
+	sum(nominal_amount(c)*t.quantity*1/fx.fxRepDay)/(index.quote_type = 'Per 100 Units'? l.initial_index_value / 100
+    : index.quote_type = 'Per 100 Contracts' ? l.initial_index_value / 100 : l.initial_index_value) 'Position',
+    display_id(t,'prfnbr')                      'Portfolio'    
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	instrument ccy,
+    instrument index,
+    fxrates fx,
+    macros m
+where
+	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	l.legnbr = c.legnbr
+and l.index_ref = index.insaddr
+and i.instype = 'TotalReturnSwap'
+and l.type = 'Total Return'
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and	i.exp_day > m.date
+and l.initial_index_value ~= 0
+and i.insid not like '%Divswap%'
+and i.insid not like '%DIVSWAP%'
+and i.insid not like '%divswap%'
+and i.insid not like '%DivSwap%'
+and index.instype in ('Stock','EquityIndex')
+and match_portfolio (t, 'SECONDARY MARKETS TRADING')
+and i.curr = ccy.insaddr
+and fx.curr =* ccy.insid
+
+group by 1,8
+
+union
+
+/* ******************** Portfolio Swaps ******************** */
+
+select
+    i.insid                                                                                         'Instrument',
+    i.instype                                                                                       'Instype',
+    ci.insid                                                                                        'Underlying',
+    ci.instype                                                                                      'Underlying_Type',
+    i.exp_day                                                                                       'Expiry',
+    display_id(ci,'curr')                                                                           'Currency',
+    sum(-1*ct.quantity)  'Position',
+    p.prfid                                                                                         'Portfolio'
+from
+    instrument i,
+    instrument ci,
+    trade t,
+    trade ct,
+    portfolio p,
+    price pr,
+    macros m
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and i.fund_prfnbr = ct.prfnbr
+and ct.insaddr = ci.insaddr
+and ci.insaddr = pr.insaddr
+/*and ci.insaddr = fx.insaddr*/
+and i.instype = 'Portfolio Swap'
+and i.exp_day > m.date
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and ct.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING')
+and display_id(pr,'ptynbr') = 'SPOT'
+and pr.day = m.date
+group by 1,3,8

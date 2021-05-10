@@ -1,0 +1,78 @@
+/*
+**************Developments******************
+
+Purpose               : Ops required new report to show all live CDs for a counterparty as per a date
+Department and Desk   : OPS
+Requester             : Sabir Ballim
+Developer             : Anwar Banoo
+CR Number             : 335194
+
+********************************************
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Ops_LiveCDs') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Ops_LiveCDs' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr,
+    t.quantity,
+    i.insid,
+    i.instype,  
+    add_info(t, 'Funding Instype')  'MM_Instype',
+    p.ptyid 'Counterparty',
+    i.exp_day,
+    t.status,
+    l.legnbr
+into
+    tradeDetail
+from
+    trade t,
+    instrument i,
+    party p,
+    leg l
+where
+    i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.instype = 'CD'
+and	p.ptyid IN (@1_Counterparty{;Party.ptyid*})
+and i.exp_day >= @2_Date{Today}
+
+and t.status not in ('Terminated', 'Void', 'Simulated')
+
+
+select
+    t.trdnbr,
+    cf.type = 'Fixed Amount' ? t.quantity*projected_cf(cf) : 0 'Nominal',
+    cf.type = 'Fixed Rate' ? t.quantity*projected_cf(cf) : 0 'Interest'
+into 
+    tradePayments
+from
+    tradeDetail t,
+    cashflow cf
+where
+    t.legnbr = cf.legnbr
+    
+select distinct
+    td.trdnbr           'Trade number',
+    td.insid            'Instrument',
+    td.instype          'Instrument Type',
+    td.MM_Instype,
+    td.Counterparty     'Counterparty',
+    td.exp_day          'Expiry Day',
+    td.status           'Status',
+    sum(tp.Nominal)     'Nominal',
+    sum(tp.Interest)    'Interest'
+from
+    tradePayments tp,
+    tradeDetail td
+where
+    tp.trdnbr = td.trdnbr
+group by 
+    1
+order by 
+    1

@@ -1,0 +1,8 @@
+[Core Risk]FInstrument:priceDeltaFXRateRiskFactor = select(count(priceGreekRiskFactorsUnfilteredNodeFxRate) == 1, 
+  true->(priceGreekRiskFactorsUnfilteredNodeFxRate)[0], 
+  false->nil);
+[Core Risk]FInstrumentAndTrades:priceDeltaFXRateRiskFactor = shunt(priceGreekRiskFactorNodeCount == 1, 
+  true->select(count(priceGreekRiskFactorsUnfilteredNodeFxRate) == 1, 
+    true->(priceGreekRiskFactorsUnfilteredNodeFxRate)[0], 
+    false->nil), 
+  false->nil);

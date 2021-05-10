@@ -1,0 +1,7 @@
+[Core Pricing]FVolatilityInformation:volatilityValueStrikeQuotation[volatilityValueStrikeDimension, volatilityValueSpotDelta] = switch(volatilityValueStrikeDimension, 
+  "Delta"->deltaQuotation, 
+  "Log Moneyness"->logMoneynessQuotation, 
+  "Absolute"->select(strikeQuotation, 
+    nil->perUnitQuotation, 
+    default->strikeQuotation:quoteConversionPersistentQuotation), 
+  default->nil);

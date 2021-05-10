@@ -1,0 +1,6 @@
+[ATSU7]FInstrument:originalPremiumZAR = sumOf((positionOriginalPremium.Keys) :* "(positionOriginalPremium.At(object) * fxRate).Number" [displayCurrency = portfolioCurrency, positionOriginalPremium, fxToCurrency = portfolioCurrency, fxBaseCurrency = currency]);
+[ATSU7]FInstrumentPartAndTrades:originalPremiumZAR = nil;
+[ATSU7]FMultiInstrumentAndTrades:originalPremiumZAR = sumOf(instruments :* "originalPremiumZAR" [positionObject, portfolioCurrency]);
+[ATSU7]FSingleInstrumentAndTrades:originalPremiumZAR = instrument :* "originalPremiumZAR" [positionObject, portfolioCurrency];
+[ATSU7]FTrade:originalPremiumZAR = object.OriginalPremium(pLCurrencyOverride, pLHistoricalFXChoiceOverride, pLHistoricalFXDayOverride, profitAndLossEndDate);
+[ATSU7]FTradeRow:originalPremiumZAR = trade :* "originalPremiumZAR" [profitAndLossEndDate];

@@ -1,0 +1,202 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_DRA_Settlement_Date') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_DRA_Settlement_Date' and p.type = 'SQL Query' 
+/*
+
+bonds and repos settlement report per portfolio per bond
+
+for counterparty = 'dra transaksies'
+
+coded by anil 2005-10-10
+
+2006-01-13 ap changed report to hook to trade time and not creat_time
+2006-03-28 km changed report to SACM_DRA_Settlement_Date from trade date
+
+*/
+
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.value_day between @from_settlement{Tomorrow;} and @to_settlement{BIGDATE;}
+
+/*and time_to_day(t.time)=@Capture_Date{Today;}*/
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid='DRA TRANSAKSIES'
+
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+p.prfid,
+t.premium'premium'/* premium is same for bsb and repos */,
+party.ptyid'CP'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and t.value_day between @from_settlement{Tomorrow;} and @to_settlement{BIGDATE;}
+
+/*and time_to_day(t.time)=@Capture_Date{Today;}*/
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid='DRA TRANSAKSIES'
+
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+i.exp_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1) 'Nominal',
+p.prfid,
+i.instype='BuySellback' ? i.ref_value*t.quantity : (t.premium*-1)+(l.fixed_rate*t.premium*days_between(t.value_day,i.exp_day,'Act/365')/36500)*-1'premium',
+party.ptyid'CP'
+
+into temp
+
+
+from
+instrument i,
+leg l,
+trade t,
+portfolio p,
+party party,
+instrument ui
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and i.exp_day between @from_settlement{Tomorrow;} and @to_settlement{BIGDATE;}
+
+/*and time_to_day(t.time)=@Capture_Date{Today;}*/
+and i.insaddr*=l.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid='DRA TRANSAKSIES'
+
+order by i.instype, ui.insid
+
+
+/*----select all------*/
+
+
+select
+/*@Capture_Date{Today;}'Capture_Date',*/
+t.Settlement,
+t.trdnbr,
+'YES' ? t.status : '' 'status',
+'YES' ? t.instype : '' 'instype',
+t.insid,
+t.Nominal,
+t.prfid,
+t.premium,
+'YES' ? t.CP : '' 'CP'
+from 
+
+temp t
+
+order by  5/*t.instype*/, 2, t.trdnbr
+
+
+union
+
+select
+/*@Capture_Date{Today;}'Capture_Date',*/
+t.Settlement,
+t.trdnbr,
+'Sub total by bond'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+sum(t.Nominal),
+t.prfid,
+sum(t.premium),
+ '' /* 'CP'*/
+
+from 
+
+temp t
+
+group by t.insid
+order by t.insid
+
+union
+
+select
+/*@Capture_Date{Today;}'Capture_Date',*/
+t.Settlement,
+t.trdnbr,
+'Grand Total'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+sum(t.Nominal),
+t.prfid,
+sum(t.premium),
+ '' /* 'CP'*/
+
+from 
+
+temp t
+
+group by 1
+
+order by 1

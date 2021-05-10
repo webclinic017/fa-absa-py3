@@ -1,0 +1,14 @@
+[ACL]FInstrument:faclExchangeRate = switch(faclTradeObject.Quantity >= 0, 
+  true->switch(faclQuotation, 
+    "Per Unit Inverse"->faclTradeObject.Price, 
+    "Per Unit"->1 / faclTradeObject.Price), 
+  false->switch(faclQuotation, 
+    "Per Unit Inverse"->1 / faclTradeObject.Price, 
+    "Per Unit"->faclTradeObject.Price));
+[ACL]FOdf:faclExchangeRate = switch(object :* "faclAttrIsBuy" [faclTradeObject], 
+  true->switch(faclQuotation, 
+    "Per Unit Inverse"->FACLgetODFRate(faclTradeObject), 
+    "Per Unit"->1 / FACLgetODFRate(faclTradeObject)), 
+  false->switch(faclQuotation, 
+    "Per Unit Inverse"->1 / FACLgetODFRate(faclTradeObject), 
+    "Per Unit"->FACLgetODFRate(faclTradeObject)));

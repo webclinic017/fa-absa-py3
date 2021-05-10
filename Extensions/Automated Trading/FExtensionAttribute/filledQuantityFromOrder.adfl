@@ -1,0 +1,7 @@
+[Automated Trading]ExecutionAlgo:filledQuantityFromOrder = switch(currentOrder, 
+  nil->0.0, 
+  default->currentOrder.FilledQuantity("Order"));
+[Automated Trading]FOrderHandler:filledQuantityFromOrder = select(isExchangeOrder or not exchangeOrdersOnly, 
+  true->object.FilledQuantity("Order"), 
+  default->0.0);
+[Automated Trading]VirtualOrderType:filledQuantityFromOrder = sumOf(orderHandlers :* "filledQuantityFromOrder" [exchangeOrdersOnly]);

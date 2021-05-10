@@ -1,0 +1,6 @@
+[ABSA FXO 4.3]FInstrumentAndTrades:interestRateDeltaCurrency1 = select(currency1 == nil, 
+  true->nil, 
+  false->differential(currency1 :* "interestRateDeltaCurrencies" [thVal = theoreticalValue], theoreticalValue, 1, abs(fixedYieldShift) / 0.0001) / currency1 :* "fxForwardRate" [fxForwardDate := displayDate, fxToCurrency = displayCurrency]);
+[ABSA FXO 4.3]FTimeBucketAndObject:interestRateDeltaCurrency1 = select(currency1 == nil, 
+  true->nil, 
+  false->differential(currency1 :* "interestRateDeltaCurrencies" [thVal = rowObjectTheoreticalValue], rowObjectTheoreticalValue, 1, abs(fixedYieldShift) / 0.0001) / currency1 :* "fxForwardRate" [fxForwardDate := displayDate, fxToCurrency = displayCurrency]);

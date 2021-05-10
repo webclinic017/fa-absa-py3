@@ -1,0 +1,5 @@
+[ABSA FX]FFxRate:fxSpotRateValueSpot = select(isBaseRateCell(fxBaseCurrency, foreignCurrency, domesticCurrency, isLiquidCrossRateCurrencyPair), 
+  true->fxSpotRateFromMatrixSpot, 
+  false->shunt[liveOrSnapshotFXMatrixDate, fxPriceFindingPriceType](fxMatrixSpotDatesAreEqual, 
+    true->fxSpotRateFromMatrixSpot, 
+    false->(domesticCurrency:fxDiscountCurve).DiscountValue(fxSpotRateAtBaseDomesticSpotDate, instrumentSpotDate) * (foreignCurrency:fxDiscountCurve).Discount(fxBaseDomesticSpotDate, instrumentSpotDate)));

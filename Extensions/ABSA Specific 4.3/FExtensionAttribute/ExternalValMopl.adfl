@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ExternalValMopl = select(sumOf(children :* "ExternalValMopl") == [], 
+  true->0.0, 
+  default->sumOf(children :* "ExternalValMopl"));
+[ABSA Specific 4.3]FTradeRow:ExternalValMopl = select(trade.Status, 
+  "Simulated"->0.0, 
+  default->(select(trade.AdditionalInfo.ExternalVal, 
+    nil->0.0, 
+    default->double(trade.AdditionalInfo.ExternalVal))));

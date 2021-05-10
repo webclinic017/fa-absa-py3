@@ -1,0 +1,13 @@
+[Adaptiv XVA]FCreditBalance:incrementalPFE = -maximumPotentialFutureExposureValues + maximumPotentialFutureExposureValuesWithIncrementalTradeArray;
+[Adaptiv XVA]FInstrumentAndTrades:incrementalPFE = shunt(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:incrementalPFE [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FPortfolioInstrumentAndTrades:incrementalPFE = nil;
+[Adaptiv XVA]FSingleInstrumentAndTrades:incrementalPFE = shunt(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:incrementalPFE [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FTrade:incrementalPFE = switch(nil == matchingCreditBalanceInstrument, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:incrementalPFE [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FTradeRow:incrementalPFE = trade:incrementalPFE;
+[Adaptiv XVA]FUndefinedObject:incrementalPFE = nil;

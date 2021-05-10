@@ -1,0 +1,28 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_context_dump') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_context_dump' and p.type = 'SQL Query' 
+ 
+  select     
+    display_id(cl, 'context_seqnbr')               'contect',
+    mapping_type,    
+    display_id(cl, 'group_chlnbr')                  'ValGroup',
+    display_id(cl, 'insaddr')                       'insid',
+    type,
+    cl.name,    
+    display_id(cl, 'curr')                          'Curr',
+    cl.updat_time,
+    u.name,
+    display_id(cl, 'updat_usrnbr')                  'user',
+    cl.updat_time > date_add_banking_day(TODAY,, -1) ?
+        'YES' : '-'                                 'update_last_1b',
+    cl.updat_time > date_add_banking_day(TODAY,, -5) ?
+        'YES' : '-'                                 'update_last_5b'
+from
+    ContextLink cl,
+    user u
+where
+    u.usrnbr = cl.updat_usrnbr
+order by 1,2,3,4,5,6

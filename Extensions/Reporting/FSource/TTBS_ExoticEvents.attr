@@ -1,0 +1,10 @@
+[Reporting]FASQLQuery:TTBS_ExoticEvents
+/* TTBS_ExoticEvents
+    Solution for: Not possible to display the exotic event tables as columns */
+
+select type 'Type         ', i2.insid 'Und Instrument',date 'Date      ',end_date 'End date  ',value 'Value',run_no 'Rung Number'
+  from ExoticEvent e, Instrument i, Instrument i2
+ where e.insaddr = i.insaddr
+    and i.insid = @insid{ANY}
+    and i2.insaddr = e.component_insaddr;
+...

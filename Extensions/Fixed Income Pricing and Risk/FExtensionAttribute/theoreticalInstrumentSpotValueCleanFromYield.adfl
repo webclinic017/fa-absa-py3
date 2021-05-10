@@ -1,0 +1,13 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:theoreticalInstrumentSpotValueCleanFromYield = select(isFinite(ctdFactor), 
+  true->convertToCurrencyValidateDates(legs :* "theoreticalLegComponentSpotValueCleanFromYield" [yieldIsAdjusted, ytmStrikeValue, ytmValueDate, ytmExpiryDate, ytmSettleDate, yield, yieldValue], fxLegsToInstrument, currencySymbol) / ctdFactor, 
+  false->convertToCurrencyValidateDates(legs :* "theoreticalLegComponentSpotValueCleanFromYield" [yieldIsAdjusted, ytmStrikeValue, ytmValueDate, ytmExpiryDate, ytmSettleDate, yield, yieldValue], fxLegsToInstrument, currencySymbol));
+[Fixed Income Pricing and Risk]FDualCurrencyBond:theoreticalInstrumentSpotValueCleanFromYield = switch(ytmStrikeValue, 
+  nil->flatYieldToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, legs :* "legInformation", legs :* "staticLegInformation", valuationDate, currencySymbol, fxRateForYTMCalculations), 
+  default->flatYieldAndStrikeToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, ytmStrikeValue, ytmExpiryDate, ytmSettleDate, legs :* "legInformation", legs :* "staticLegInformation", nil, valuationDate, currencySymbol, fxRateForYTMCalculations));
+[Fixed Income Pricing and Risk]FFlexiBond:theoreticalInstrumentSpotValueCleanFromYield = switch(ytmStrikeValue, 
+  nil->flatYieldToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, legs :* "legInformation", legs :* "staticLegInformation", valuationDate, currencySymbol), 
+  default->flatYieldAndStrikeToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, ytmStrikeValue, ytmExpiryDate, ytmSettleDate, legs :* "legInformation", legs :* "staticLegInformation", nil, valuationDate, currencySymbol));
+[Fixed Income Pricing and Risk]FFuture:theoreticalInstrumentSpotValueCleanFromYield = underlying :* "theoreticalInstrumentSpotValueCleanFromYield" [instrumentSpotDate = payDate, ctdFactor, yield];
+[Fixed Income Pricing and Risk]FInstrument:theoreticalInstrumentSpotValueCleanFromYield = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYield = instrument:theoreticalInstrumentSpotValueCleanFromYield;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYield = nil;

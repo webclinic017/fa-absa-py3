@@ -1,0 +1,9 @@
+[Default]FInstrument:rangeAccrualCap = nil;
+[Default]FInstrumentAndTrades:rangeAccrualCap = instrument:rangeAccrualCap;
+[Default]FMultiInstrumentAndTrades:rangeAccrualCap = nil;
+[Default]FOption:rangeAccrualCap = select(isRangeAccrual, 
+  true->select(storedStrikeType, 
+    Absolute->denominatedvalue(object.Exotic.RangeAccrualCap, strikeCurrency, storedStrikeType, ), 
+    default->absoluteStrikePriceFromRelative(underlyingPriceForStrike, denominatedvalue(object.Exotic.RangeAccrualCap, strikeCurrency, storedStrikeType, ))), 
+  default->nil);
+[Default]FPriceAggregate:rangeAccrualCap = instrument:rangeAccrualCap;

@@ -1,0 +1,12 @@
+[Core Pricing]FCashFlowInstrument:timeDistributionFactor = 1.0;
+[Core Pricing]FCombInstrMap:timeDistributionFactor = double(instrument :* "timeDistributionFactor" [doSplitAll, priceSource]);
+[Core Pricing]FCombination:timeDistributionFactor = select(splitCombination, 
+  true->1.0, 
+  false->timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment));
+[Core Pricing]FDeliverableLinkAndTrades:timeDistributionFactor = select(nil == tradedInstrument, 
+  true->0, 
+  false->tradedInstrument:timeDistributionFactor);
+[Core Pricing]FETF:timeDistributionFactor = 1.0;
+[Core Pricing]FFxRate:timeDistributionFactor = riskPosition;
+[Core Pricing]FInstrument:timeDistributionFactor = timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);
+[Core Pricing]FLeg:timeDistributionFactor = timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);

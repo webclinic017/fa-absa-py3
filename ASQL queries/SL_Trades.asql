@@ -1,0 +1,31 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Trades' and p.type = 'SQL Query' 
+ 
+  /* update_method=1 */
+select
+    t.trdnbr,
+    t.status,
+    t.price,
+    t.quantity,
+    time_to_day(t.time) 'Trade_Date',
+    t.fee,
+    display_id(t,'counterparty_ptynbr')             'Counterparty',
+    display_id(t,'insaddr')                         'Instrument',
+    display_id(t,'acquirer_ptynbr')                 'Acquirer',
+    date_add_banking_day(t.acquire_day,'ZAR',1)     'Settlementdate',
+    display_id(t,'broker_ptynbr')                   'Broker',
+    add_info(t,'AllocatedDesk')                     'AlloctedDesk'
+    
+from
+    trade t,
+    portfolio p 
+where
+    p.prfid = @Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void')
+/*and display_id(t,'counterparty_ptynbr') = 'HSBC 1'*/
+order by 7,8,5 

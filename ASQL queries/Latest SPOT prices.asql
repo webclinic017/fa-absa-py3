@@ -1,0 +1,56 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','Latest SPOT prices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Latest SPOT prices' and p.type = 'SQL Query' 
+ */
+
+
+/*
+Coded By Anil Parbhoo to check Latest SPOT prices
+*/
+
+
+
+
+
+select
+to_string(i.insaddr,'_',hc.insaddr)'concatenate',
+i.insaddr,
+i.insid,
+i.instype,
+i.mtm_from_feed,
+i.generic,
+i.exp_day,
+
+
+
+hpa.ptyid'h_party',
+hp.day'h_day',
+hc.insid'h_curr',
+hc.insaddr'h_curr_insaddr',
+hp.settle'h_settle',
+hp.updat_time'h_updat_time',
+display_id(hp, 'updat_usrnbr')'h_updat_user', 
+now'now'
+
+
+
+
+from
+
+instrument i, lastprice hp, party hpa, instrument hc
+
+where
+i.insaddr = hp.insaddr
+
+and hp.day = Today
+
+and hp.ptynbr = hpa.ptynbr
+and hpa.ptyid = 'SPOT'
+and hp.curr = hc.insaddr
+
+order by hp.updat_time desc
+

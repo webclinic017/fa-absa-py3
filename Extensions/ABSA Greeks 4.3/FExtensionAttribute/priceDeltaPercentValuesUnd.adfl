@@ -1,0 +1,10 @@
+[ABSA Greeks 4.3]FInstrument:priceDeltaPercentValuesUnd = instrumentSpotZero;
+[ABSA Greeks 4.3]FInstrumentAndTrades:priceDeltaPercentValuesUnd = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->instrument :* "priceDeltaPercentValuesUnd" [isSplitAllGrouped, priceSource, priceGreekShiftFilter]));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:priceDeltaPercentValuesUnd = unSettledInstrumentsNonZero :* "priceDeltaPercentValuesUnd" [isSplitAllGrouped, priceSource, priceGreekShiftFilter];
+[ABSA Greeks 4.3]FOption:priceDeltaPercentValuesUnd = select(isSettled, 
+  true->0.0, 
+  false->adjustForSpotHandling(priceDeltaPercentValuesUndTemp, valuesOnSpot));

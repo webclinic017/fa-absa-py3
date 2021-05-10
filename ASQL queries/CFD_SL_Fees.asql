@@ -1,0 +1,156 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CFD_SL_Fees') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CFD_SL_Fees' and p.type = 'SQL Query' 
+
+/* Get current VAT rate */
+select 
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'VAT_RATE'))      'VAT'
+into constant
+from serverdata s
+where s.srdnbr > 0
+
+
+select
+    distinct(i.insaddr),
+    i.insid,
+    i.quote_type,
+    p.settle,
+    mtm_price(i,date_add_banking_day(p.day,'ZAR',-1)) 'settlemin1',
+    p.day
+into
+    instemp
+from
+    price p,
+    instrument i,
+    trade t,
+    party pt,
+    portfolio pr
+    
+where
+    i.instype = 'Stock'
+and p.day >= @StartDate{}
+and p.day <= @EndDate{}
+and p.insaddr = i.insaddr
+and t.insaddr = i.insaddr
+and t.counterparty_ptynbr = pt.ptynbr
+and pt.ptyid in (@Counterparty{'HSBC 1','HSBC 2','HSBC 3','ABSTRA','ABSTREM','ABSEC','CAPITAL 360','ABSASB','ABM21','ABM22','ABSAB','ABCAP','ABDER','ABGOLD','ABSAS21';Party.ptyid;*})
+and t.prfnbr = pr.prfnbr
+and pr.prfid = @Portfolio{;Portfolio.prfid}
+and time_to_day(t.time) <= @EndDate{}
+and display_id(p,'ptynbr') = 'internal'
+
+select 
+    t.trdnbr,
+    t.time,
+    t.acquire_day,
+    i.insid,
+    pt.ptyid                                                                                                    'CP',
+    time_to_day(t.time) <= date_add_banking_day(@EndDate{},'ZAR',-1) ? t.quantity : 0                           'PositionT',
+    display_id(t,'prfnbr')                                                                                      'Portfolio',
+    ((add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '') ? (t.fee/c.VAT) : t.fee) / 100                        'FeePercXVat',
+    i.quote_type = 'Per 100 Units' ? i.settlemin1 / 100 : i.settlemin1                                                  'price',
+    t.fee / 100                                                                                                 'FeePerc',
+    (time_to_day(t.time) <= date_add_banking_day(@StartDate{},'ZAR',-1)) ? (days_between(@StartDate{},@EndDate{},'Act/365') + 1) : (t.quantity < 0 ? (days_between(date_add_banking_day(t.acquire_day,'ZAR',1),@EndDate{},'Act/365') + 1) : (days_between(date_add_banking_day(t.acquire_day,'ZAR',1),@EndDate{},'Act/365') + 1))   'Days',
+    to_int(add_info(p,'Daycount') = '' ? 365 : add_info(p,'Daycount'))                                          'Daycount',
+    ((time_to_day(t.time) >= i.day or time_to_day(t.time) >= @EndDate) ? 0 : t.quantity) * (i.quote_type = 'Per 100 Units' ? i.settlemin1 / 100 : i.settlemin1) * t.fee / 100 / (to_int(add_info(p,'Daycount') = '' ? 365 : add_info(p,'Daycount')))                       'CALCFEE',
+    i.day,
+    i.settlemin1
+into 
+    fin
+from
+    trade t,
+    instemp i,
+    portfolio p,
+    party pt,
+    constant c
+where
+    i.insaddr = t.insaddr
+and p.prfid = @Portfolio{;Portfolio.prfid}
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = pt.ptynbr
+and pt.ptyid in (@Counterparty{'HSBC 1','HSBC 2','HSBC 3','ABSTRA','ABSTREM','ABSEC','CAPITAL 360','ABSASB','ABM21','ABM22','ABSAB','ABCAP','ABDER','ABGOLD','ABSAS21';Party.ptyid;*})
+and time_to_day(t.time) <= @EndDate{}
+order by 
+    t.trdnbr
+
+select
+    'TradeDetail',
+    f.trdnbr,
+    f.time,
+    f.acquire_day,
+    f.insid,
+    f.CP,
+    f.PositionT,
+    f.Portfolio,
+    f.FeePercXVat,
+    f.price,
+    f.FeePerc,
+    f.Days,
+    f.Daycount,
+    sum(f.CALCFEE)    'PeriodFee',
+    mtm_price(i,date_add_banking_day(@EndDate{},'ZAR',-1)),
+    f.settlemin1,
+    f.day
+from
+    fin f,
+    instrument i
+where
+    i.insid = f.insid
+and @TradeDetail{Yes;'Yes','No'} = 'Yes'
+and f.CALCFEE ~= 0.0
+
+Union    
+select
+    'Detail',
+    f.trdnbr,
+    f.time,
+    f.acquire_day,
+    f.insid,
+    f.CP,
+    f.PositionT,
+    f.Portfolio,
+    f.FeePercXVat,
+    f.price,
+    f.FeePerc,
+    f.Days,
+    f.Daycount,
+    sum(f.CALCFEE)    'PeriodFee',
+    mtm_price(i,date_add_banking_day(@EndDate{},'ZAR',-1)),
+    f.settlemin1,
+    f.day
+from
+    fin f,
+    instrument i
+where
+    i.insid = f.insid
+group by 
+    5
+Union    
+select
+    'Total',
+    f.trdnbr,
+    f.time,
+    f.acquire_day,
+    f.insid,
+    f.CP,
+    f.PositionT,
+    f.Portfolio,
+    f.FeePercXVat,
+    f.price,
+    f.FeePerc,
+    f.Days,
+    f.Daycount,
+    sum(f.CALCFEE)    'PeriodFee',
+    mtm_price(i,date_add_banking_day(@EndDate{},'ZAR',-1)),
+    f.settlemin1,
+    f.day
+from
+    fin f,
+    instrument i
+where
+    i.insid = f.insid
+group by 
+    6

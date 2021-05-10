@@ -1,0 +1,7 @@
+[Core Cash Flow Pricing]FCashFlowInformation:projectedCashFlow = object.RoundedProjectedCashFlow(unRoundedProjectedCashFlow * staticLegInformation:contractSize, valuationDate, nominalForJgb, roundingInformation) / staticLegInformation:contractSize;
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:projectedCashFlow = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(cashFlowProjectedFromModelCall, 
+    true->collapse(projectedFromModelCall), 
+    false->cashFlowInformation :* "projectedCashFlow" [roundingInformation, legInformation = legInformationOrEmpty, unRoundedProjectedCashFlow]) * timeApportionFactor);
+[Core Cash Flow Pricing]FPayment:projectedCashFlow = denominatedvalue(object.Amount, object.Currency, "Payment", object.PayDay);

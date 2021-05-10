@@ -1,0 +1,8 @@
+[Securities Lending]FAlert:secLendLastResetDate = select(subject.IsKindOf("FSecurityLoan"), 
+  true->subject:secLendLastResetDate, 
+  default->nil);
+[Securities Lending]FInstrument:secLendLastResetDate = nil;
+[Securities Lending]FSecurityLoan:secLendLastResetDate = getDateFromLastFixing(getSecLendRerateHandler);
+[Securities Lending]FSingleInstrumentAndTrades:secLendLastResetDate = instrument:secLendLastResetDate;
+[Securities Lending]FTrade:secLendLastResetDate = instrument:secLendLastResetDate;
+[Securities Lending]FTradeRow:secLendLastResetDate = instrument:secLendLastResetDate;

@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:capitalisedInterest = sumOf(children :* "capitalisedInterest");
+[Prime Services]FSingleInstrumentAndTrades:capitalisedInterest = switch(profitAndLossEndDate == firstBankingDayOfMonth, 
+  true->py("PS_Functions", context).CapitalisedInterest(instrument, firstDayOfMonth), 
+  false->0);

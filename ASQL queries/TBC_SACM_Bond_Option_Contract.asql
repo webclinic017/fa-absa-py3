@@ -1,0 +1,62 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_Bond_Option_Contract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_Bond_Option_Contract' and p.type = 'SQL Query' 
+/*
+Query	:	SACM_Bond_Option_Contract
+Report	:	SACM_Bond_Option_Contract
+Purpose	:	Provide required data for bond option contracts.
+Logic	:	Straightforward.
+History	:	
+	2003/10/29 - Created.
+*/
+
+select
+	t.trdnbr						'TradeNbr', 
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	cp.ptyid						'CPCode',
+	i.exercise_type = 'American'
+		? 'AMERICAN'
+		: 'EUROPEAN'					'ExerciseType',
+	i.call_option = 'Yes'
+		? 'CALL'
+		: 'PUT'						'OptionType',
+	ael_s(t, 'CreateBondConfoName', 
+	 u.insid, l.fixed_rate,i.exp_day)			'StockDesc',
+	abs(nominal_amount(t))					'Nominal',
+	convert('date', i.exp_day, '%d/%m/%Y')			'ExpiryDate',
+	i.strike_price						'StrikePrice',
+	'IN ACCORDANCE WITH PREVAILING SETTLEMENT PRACTICE'	'SettleDate',
+	'GRANTOR'						'SettleAgent',
+	'JOHANNESBURG'						'SignedAt',
+	convert('date', Today, '%d/%m/%Y')			'SignedOn'
+	
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	instrument	u,
+	leg		l
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	i.und_insaddr = u.insaddr
+and	l.insaddr = u.insaddr
+and	i.instype = 'Option'
+and	u.instype = 'Bond'
+and	t.status in ('FO Confirmed', 'BO Confirmed','BO-BO Confirmed')
+and	(
+	time_to_day(t.time) = @Date{Today}
+and	(	
+	fit_filter(t, @TradeFilter{;tradefilter.fltid})
+or	cp.ptyid = @Counterparty{;party.ptyid where type = 'Counterparty'}
+	)
+or	t.trdnbr = @TradeNumber{0})

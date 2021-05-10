@@ -1,0 +1,5 @@
+[Default]FInstrument:lookbackUnderlyingValueForAfterExpiryValuation = select(isFloatingStrike, 
+  true->underlyingValueForAfterExpiryValuation, 
+  false->select(isCall, 
+    true->max(lookbackExtremeValueInCalculationCurrency, underlyingValueForAfterExpiryValuation), 
+    false->min(lookbackExtremeValueInCalculationCurrency, underlyingValueForAfterExpiryValuation)));

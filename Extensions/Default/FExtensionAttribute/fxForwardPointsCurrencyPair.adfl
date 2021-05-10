@@ -1,0 +1,11 @@
+[Default]FInstrumentAndTrades:fxForwardPointsCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->fxSpotRateCurrencyPair);
+[Default]FTimeBucketAndObject:fxForwardPointsCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->select(timeBucket, 
+    nil->fxSpotRateCurrencyPair, 
+    "Rest"->nil, 
+    default->select(timeBucketIsInceptionToEndBucket or (timeBucketDate == currencyPair.SpotDate(valuationDateTime)), 
+      true->fxSpotRateCurrencyPair, 
+      false->(double(fxForwardRateCurrencyPair) - double(fxSpotRateCurrencyPair)) / currencyPair.PointValue)));

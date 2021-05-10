@@ -1,0 +1,5 @@
+[Default]FGroupingOrder:preTradeValueAverageCustomerCurrency = sumOf(removeNil(prePostTradeOrders :* "preTradeValueAverageCustomerCurrency"));
+[Default]FOrderProgram:preTradeValueAverageCustomerCurrency = sumOf(memberOrders :* "preTradeValueAverageCustomerCurrency");
+[Default]FOwnOrder:preTradeValueAverageCustomerCurrency = nil;
+[Default]FPrePostTradeAnalysis:preTradeValueAverageCustomerCurrency = denominatedvalue(preTradeValueAverage * initCustFxRate, customerCurrency, , );
+[Default]FSalesOrder:preTradeValueAverageCustomerCurrency = prePostTradeAnalysis:preTradeValueAverageCustomerCurrency;

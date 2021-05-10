@@ -1,0 +1,9 @@
+[Core Risk]FInstrument:priceGammaInstrumentIRD = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(count(priceGreekRiskFactorsIRD) == 1 and (not isLot(priceGreekRiskFactorsIRD)), 
+    true->select(priceGreekIncludeQuoteScaling, 
+      true->select(isSupportingQuoteScaling, 
+        true->spotValueToQuoteFactor * stripDateTimePart(priceGammaPercentValuesIRD) / square(singlePriceGreekRiskFactorValueInInstrumentCurrencyIRD * percentAdjustmentFactor), 
+        false->denominatedValueZero), 
+      false->stripDateTimePart(priceGammaPercentValuesIRD) / square(singlePriceGreekRiskFactorValueInInstrumentCurrencyIRD * percentAdjustmentFactor)), 
+    false->denominatedValueZero));

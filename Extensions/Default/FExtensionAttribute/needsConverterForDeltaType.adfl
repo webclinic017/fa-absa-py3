@@ -1,0 +1,9 @@
+[Default]FInstrument:needsConverterForDeltaType[spotDelta, deltaSurfaceVolatilityInformation] = select(spotDelta, 
+  true->deltaSurfaceVolatilityInformation.HasSpotDeltaSkews, 
+  false->deltaSurfaceVolatilityInformation.HasForwardDeltaSkews);
+[Default]FVolatilityInformation:needsConverterForDeltaType[spotDelta] = select(spotDelta, 
+  true->object.HasSpotDeltaSkews, 
+  false->object.HasForwardDeltaSkews);
+[Default]FVolatilityStructure:needsConverterForDeltaType[spotDelta] = select(spotDelta, 
+  true->volatilityBaseData.HasSpotDeltaSkews, 
+  false->volatilityBaseData.HasForwardDeltaSkews);

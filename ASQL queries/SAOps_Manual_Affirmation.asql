@@ -1,0 +1,24 @@
+/*
+Purpose                 :Manually sent Affirmations
+Department and Desk     :FA-TLM Project
+Requester:              :FA-TLM (IRD)
+Developer               :Heinrich Cronje
+CR Number               :478334
+*/
+
+select ael_i(p,'ASQL_log','SAOps_Manual_Affirmation') 'Name'
+into ASQL_LOG_TEMP
+from TextObject p
+where p.name = 'SAOps_Manual_Affirmation' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    ael_s(t,'ABSAAffirmationProcess.send_Affirmation')   'message_sent'
+from
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and t.trdnbr = @1_Trdnbr{}

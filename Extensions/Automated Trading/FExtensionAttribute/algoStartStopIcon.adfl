@@ -1,0 +1,21 @@
+[Automated Trading]FGroupingOrder:algoStartStopIcon = switch(algoCanBeStopped, 
+  true->switch(algoCanBeStarted, 
+    true->"Stop+Play", 
+    false->"Stop"), 
+  false->switch(algoCanBeStarted, 
+    true->"Play", 
+    false->nil));
+[Automated Trading]FOrderProgram:algoStartStopIcon = switch(algoCanBeStopped, 
+  true->switch(algoCanBeStarted, 
+    true->"Stop+Play", 
+    false->"Stop"), 
+  false->switch(algoCanBeStarted, 
+    true->"Play", 
+    false->nil));
+[Automated Trading]FOwnOrder:algoStartStopIcon = switch(algoAgentState, 
+  nil->nil, 
+  "Pending Execution"->"Busy", 
+  "Pending Stop"->"Busy", 
+  "Agent Executing"->"Stop", 
+  "Agent Halted"->"Stop", 
+  default->"Play");

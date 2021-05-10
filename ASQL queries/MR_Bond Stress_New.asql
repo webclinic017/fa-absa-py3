@@ -1,0 +1,40 @@
+/***BONDS***/
+ 
+select
+ 
+ date_add_banking_day(Today,,0)   'ReportDate',
+ 'YES' ? i.instype : ''    'Instype',
+ i.extern_id1     'UnderlyingIns',
+ (nominal_amount(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+0.01)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)))*-10000)*0.000001)  'DeltaPos',
+ (nominal_amount(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+0.51)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+0.5))*-10000)*0.000001)  'up50bps',
+ (nominal_amount(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+1.01)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+1))*-10000)*0.000001)  'up100bps',
+ (nominal_amount(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)-0.49)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)-0.5))*-10000)*0.000001)  'down50bps',
+ (nominal_amount(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)-0.99)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)-1))*-10000)*0.000001)  'down100bps'
+ 
+into temp 
+ 
+from 
+ Trade t,
+ Instrument i
+ 
+where
+ i.insaddr = t.insaddr
+and i.instype = 'Bond'
+and match_filter(t,@Filter{;Tradefilter.fltid})
+and t.status not in ('Simulated', 'Terminated', 'Void')
+
+select
+ tt.ReportDate,
+ tt.Instype,
+ ael_s(,'SAGEN_str_functions.concat','ZAR/',tt.UnderlyingIns,'')    'Underlying',
+ -1*sum(tt.DeltaPos)   'pv01',
+ -1*sum(tt.down100bps) 'down100bps',
+ -1*sum(tt.down50bps)  'down50bps',
+ -1*sum(tt.up50bps)    'up50bps',
+ -1*sum(tt.up100bps)   'up100bps'
+ 
+
+from temp tt
+ 
+group by 2,3
+    

@@ -1,0 +1,10 @@
+[Default]FInstrument:profitAndLossUsedPriceEnd = shunt(profitAndLossEndDate == valuationSystemDate, 
+  true->select(useBidAskValuation, 
+    true->bidAskCalculation(doubleSumOf(positionTradeQuantities), markToMarketSuggestedSpotPriceBidAsk, valuationSystemDate, accountingParameters), 
+    default->markToMarketSuggestedSpotPrice), 
+  default->object:profitAndLossUsedPrice [positionObject, valuationBaseDateTimeInput = profitAndLossEndDate]);
+[Default]FPriceAggregate:profitAndLossUsedPriceEnd = shunt(singleInstrumentAndTrades, 
+  nil->nil, 
+  default->singleInstrumentAndTrades :* "profitAndLossUsedPriceEnd");
+[Default]FSingleInstrumentAndTrades:profitAndLossUsedPriceEnd = instrument :* "profitAndLossUsedPriceEnd" [profitAndLossEndDate, positionObject];
+[Default]FTradeRow:profitAndLossUsedPriceEnd = instrument :* "profitAndLossUsedPriceEnd" [profitAndLossEndDate, positionObject];

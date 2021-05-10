@@ -1,0 +1,208 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Eq_Stock_Trades_per_trade_date') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Eq_Stock_Trades_per_trade_date' and p.type = 'SQL Query' 
+select 
+	t.trdnbr							'TradeNumber',
+	display_id(t,'trader_usrnbr')					'Trader',
+	display_id(t,'counterparty_ptynbr')				'Counterparty',
+	time_to_day(t.time)						'DealDate',
+/*	i.exp_day							'Expiry_Date',*/
+	display_id(t,'insaddr')						'Instrument',
+	i.instype							'InstrumentType',
+/*	display_id(i,'und_insaddr')					'Underlying',
+	i.und_instype							'UnderlyingType',*/
+/*	i.strike_price							'Strike_Price',*/
+	i.contr_size							'Contract_Size',
+	t.price								'Traded_Price',
+/*	used_vol(t)							'Market_Volatility',*/
+	t.quantity < 0 ?'S':'B'						'Buy_Sell',
+/*	i.instype = 'Option' or i.instype = 'Warrant' ? i.call_option = 'No' ? 'P':'C' 	
+		: ' '							'Put_Call',*/		
+ 	i.instype = 'Future/Forward' ? 1.0
+		: delta_explicit(t)                              	'Delta',
+
+	i.instype = 'Stock' ? mtm_price(t,@4_Date,'ZAR',0,0)
+		: 0                             	'MtM_Price', 
+
+	i.instype = 'Stock' ? mtm_price(t,@4_Date,'ZAR',0,0) * .01				
+		: 0 				'MtM_Price_ZAR',
+
+	t.premium							'Premium',
+	t.quantity 							'Number_of_Contracts',                 	
+	@4_Date{TODAY}							'DATA_DATE',
+/*	to_double(@ALSI_Vol{})							'ALSI_Vol',*/
+	display_id(pr,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')						'SubPortFolio'	
+
+into
+	temp	
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','Equity Deriv','Equity_OTC')
+	and to_date(time_to_day(t.time)) >= @1_Start_Day{}
+	and to_date(time_to_day(t.time)) <= @2_End_Day{}
+	and ('All' IN (@3_Portfolio{All;Portfolio.prfid*})
+	or display_id(t,'prfnbr') IN (@3_Portfolio{All;Portfolio.prfid*}))
+	and t.prfnbr = pr.member_prfnbr
+	and i.instype = 'Stock'
+    
+select
+	temp.TradeNumber							,
+	temp.Trader								,
+	temp.Counterparty							,
+	temp.DealDate								,
+/*	temp.Expiry_Date							,*/
+	temp.Instrument								,
+	temp.InstrumentType							,
+/*	temp.Underlying								,
+	temp.UnderlyingType							,*/
+/*	temp.Strike_Price							,*/
+	temp.Contract_Size							,
+	temp.Traded_Price								,
+/*	temp.Market_Volatility							,*/
+	temp.Buy_Sell								,
+/*	temp.Put_Call								,*/
+	temp.MtM_Price			                             	, 
+	temp.MtM_Price_ZAR						, 
+	temp.Number_of_Contracts						,
+ 	temp.Delta				                             	,
+  	temp.Number_of_Contracts * temp.MtM_Price_ZAR * temp.Contract_Size   'Net_Delta_ZAR',
+	   
+/*	temp.Contract_Size = 10 ? temp.Delta * temp.Number_of_Contracts * temp.Underlying_Price_ZAR * 2.33 * square_root(10) * temp.ALSI_Vol
+			: temp.Delta * temp.Number_of_Contracts * temp.Underlying_Price_ZAR * temp.Contract_Size * 2.33 * square_root(10) * temp.ALSI_Vol   'VaR',*/
+	temp.Premium								,
+	              	
+	temp.DATA_DATE								,
+/*	temp.ALSI_Vol								,*/
+	temp.Portfolio								,
+	temp.SubPortFolio							,		
+	1.0									'number_of_trades'
+
+into
+	temp2
+from
+	temp
+
+select
+	temp2.TradeNumber							,
+	temp2.Trader								,
+	temp2.Counterparty							,
+	temp2.DealDate								,
+/*	temp2.Expiry_Date							,*/
+	temp2.Instrument								,
+	temp2.InstrumentType							,
+/*	temp2.Underlying								,
+	temp2.UnderlyingType							,*/
+/*	temp2.Strike_Price							,*/
+/*	temp2.Contract_Size							,*/
+	temp2.Traded_Price								,
+/*	temp2.Market_Volatility							,*/
+	temp2.Buy_Sell								,
+/*	temp2.Put_Call								,*/
+	temp2.MtM_Price			                             	, 
+	temp2.MtM_Price_ZAR						, 
+	temp2.Number_of_Contracts						,
+ 	temp2.Delta				                             	,
+        temp2.Net_Delta_ZAR							,
+/*	temp2.Net_Delta_ZAR/temp2.Underlying_Price_ZAR				'Delta_Tier2',*/
+/*	temp2.VaR								,*/
+	temp2.Premium								,
+	              	
+	temp2.DATA_DATE								,
+/*	temp2.ALSI_Vol								,*/
+	temp2.Portfolio								,
+	temp2.SubPortFolio				,
+	temp2.number_of_trades								
+
+from
+	temp2
+
+union
+
+select
+	temp2.TradeNumber							,
+	temp2.Trader								,
+	temp2.Counterparty							,
+	temp2.DealDate								,
+/*	temp2.Expiry_Date							,*/
+	temp2.Instrument								,
+	temp2.InstrumentType							,
+/*	temp2.Underlying								,
+	temp2.UnderlyingType							,*/
+/*	temp2.Strike_Price							,*/
+/*	temp2.Contract_Size							,*/
+	temp2.Traded_Price								,
+/*	temp2.Market_Volatility							,*/
+	temp2.Buy_Sell								,
+/*	temp2.Put_Call								,*/
+	temp2.MtM_Price			                             	, 
+	temp2.MtM_Price_ZAR						, 
+	temp2.Number_of_Contracts						,
+ 	temp2.Delta				                             	,
+        sum(temp2.Net_Delta_ZAR)							,
+/*      	sum(temp2.Net_Delta_ZAR/temp2.Underlying_Price_ZAR)				'Delta_Tier2',*/
+/*	sum(temp2.VaR)								,*/
+	temp2.Premium								,
+	              	
+	temp2.DATA_DATE								,
+/*	temp2.ALSI_Vol								,*/
+	temp2.Portfolio								,
+	temp2.SubPortFolio					,
+	sum(temp2.number_of_trades)								
+
+from
+	temp2
+
+group by temp2.InstrumentType
+
+union
+
+select
+	temp2.TradeNumber							,
+	temp2.Trader								,
+	temp2.Counterparty							,
+	temp2.DealDate								,
+/*	temp2.Expiry_Date							,*/
+	temp2.Instrument								,
+	temp2.InstrumentType							,
+/*	temp2.Underlying								,
+	temp2.UnderlyingType							,*/
+/*	temp2.Strike_Price							,*/
+/*	temp2.Contract_Size							,*/
+	temp2.Traded_Price								,
+/*	temp2.Market_Volatility							,*/
+	temp2.Buy_Sell								,
+/*	temp2.Put_Call								,*/
+	temp2.MtM_Price			                             	, 
+	temp2.MtM_Price_ZAR						, 
+	temp2.Number_of_Contracts						,
+ 	temp2.Delta				                             	,
+        sum(temp2.Net_Delta_ZAR)						,
+/*      	sum(temp2.Net_Delta_ZAR/temp2.Underlying_Price_ZAR)				'Delta_Tier2',*/
+/*	sum(temp2.VaR)								,*/
+	temp2.Premium								,
+	              	
+	temp2.DATA_DATE								,
+/*	temp2.ALSI_Vol								,*/
+	temp2.Portfolio								,
+	temp2.SubPortFolio					,
+	sum(temp2.number_of_trades)								
+
+from
+	temp2
+
+group by temp2.DATA_DATE

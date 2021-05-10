@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:profitAndLossExplainSum = select(nil == timeBucketsSetExternally, 
+  true->select(profitAndLossExplainType, 
+    "Risk Factor Change"->nil, 
+    "Risk Factor Change 2"->nil, 
+    default->switch(0 == count(profitAndLossExplainRiskFactorVectorItems), 
+      true->plZero, 
+      false->sumOf(profitAndLossExplainRiskFactorVectorItems :* "profitAndLossExplainPerRiskFactor" [displayCurrency, profitAndLossExplainType, riskFactorTypeName, includeDeltaAttribution, includeGammaAttribution, weightMethod, rowObject := object]))), 
+  false->timeBucketsSetExternallyNilVector);

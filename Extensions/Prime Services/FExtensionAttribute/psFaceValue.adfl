@@ -1,0 +1,16 @@
+[Prime Services]FInstrumentAndTrades:psFaceValue = 
+# Sum of face values of trades in position
+# Author: Heinrich Cronje (deployed by Lukas Paluzga), 2012-11-08, ABITFA-1503
+sumOf(children :* "psFaceValue");
+[Prime Services]FSingleInstrumentAndTrades:psFaceValue = 
+# Sum of face values of trades in position
+# Author: Heinrich Cronje (deployed by Lukas Paluzga), 2012-11-08, ABITFA-1503
+switch(instrument.IsExpiredAt(profitAndLossEndDate), 
+  false->sumOf(tradesInPosition :* "psFaceValue"), 
+  true->0);
+[Prime Services]FTrade:psFaceValue = 
+# Face value of the trade
+# Author: Heinrich Cronje (deployed by Lukas Paluzga), 2012-11-08, ABITFA-1503
+switch(withinDateRange and activeTrade, 
+  true->object.FaceValue, 
+  false->0);

@@ -1,0 +1,8 @@
+[Core Pricing]FCashFlowInstrument:discountCurves = legs :* "discountCurve";
+[Core Pricing]FCombination:discountCurves = select(needsLegInformation, 
+  true->(instrumentMapsWithLegInformation :* "instrument:discountCurves").Flatten, 
+  false->nil);
+[Core Pricing]FDerivative:discountCurves = select(needsLegInformation, 
+  true->underlying:discountCurves, 
+  false->nil);
+[Core Pricing]FInstrument:discountCurves = discountCurve;

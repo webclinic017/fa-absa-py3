@@ -1,0 +1,427 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','front_Bonds') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'front_Bonds' and p.type = 'SQL Query' 
+/*
+	Updated By : Aaeda Salejee 05/05/2005  Added Issuer as the last column
+*/
+
+
+
+/* Name of query = For Settled */
+/*----------SET UP------------------*/
+select
+s.srdnbr,
+date_add_banking_day('2003-04-01',,0)'YE',
+date_add_banking_day(Today,,3)'vdate'
+
+into
+temp
+
+from
+serverdata s
+
+/*-------------------build nop as at 31 mar  ------------*/
+
+/*select
+
+p.prfid,
+c.entry	'TradeArea',
+i.insid	'insid',
+'Cutoff'	'ptyid',
+t.trdnbr 'DealReference',
+t.optional_key 'STT_Num',
+time_to_day(t.time) 'DealDate',
+t.value_day	'SettlementDate',	
+used_price(i,date_add_banking_day(Today,,-1)) 'YTM',
+mtm_price(i) 'MTM_YTM',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(t.quantity*1000000)'Nominal',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))'Capital_Value',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))'Acc_Int_MtM',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)'Dirty_MtM',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(t.premium)'Consideration',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Cap_PL',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*((((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))+((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Int_PL',
+(t.trdnbr=174337 ? 449333/39907230 : t.trdnbr=174542 ? 194367/28679000 : t.trdnbr=174961 ? 221900/28484633 : t.trdnbr=174335 ? 192000000/232499997 : t.trdnbr=174589 ? 408/1000 : t.trdnbr=174168 ? 10/45 : t.trdnbr=173397 ? 470809/489455 : t.trdnbr=170819 ? 790/790 : t.trdnbr=136909 ? 42/42 : t.trdnbr=171431 ? 50281/11000000 : t.trdnbr=173038 ? 20000/1000000 : t.trdnbr=174313 ? 300/10000 : t.trdnbr=172056 ? 44466/500000 : t.trdnbr=173457 ? 250/3000 : t.trdnbr=173623 ? 180/8000 : t.trdnbr=174407 ? 247/5000 : t.trdnbr=173639 ? 263015/600000 : t.trdnbr=174287 ? 12985/500000 : t.trdnbr=172057 ? 436700/600000 : t.trdnbr=165995 ? 40485/1000000 : t.trdnbr=174161 ? 63000/1000000 : t.trdnbr=174610 ? 500/11000 : t.trdnbr=157334 ? 3/3.2 : t.trdnbr=157336 ? 2000000/2200000 : 1) 
+*(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+(t.premium))'PL',
+display_id(i,'issuer_ptynbr')		'Issuer'
+
+into settled
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt,
+choicelist c
+
+where
+i.insaddr=t.insaddr
+and i.instype='Bond'
+and t.prfnbr=p.prfnbr
+and t.optkey1_chlnbr=c.seqnbr
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and t.trdnbr in (136909,157334,157336,165995,170819,171431,
+172056,172057,173038,173397,173457,173623,173639,174161,
+174168,174287,174313,174335,174337,174407,174542,174589,
+174610,174961)*/
+
+
+
+
+/*----------------------------current settled bonds - Excl Decimax--------------*/
+
+select
+
+p.prfid'prfid',
+c.entry'TradeArea',
+i.insid	'insid',
+pty.ptyid,
+t.trdnbr 'DealReference',
+t.optional_key 'STT_Num',
+t.value_day	'DealDate',
+t.value_day	'SettlementDate',	
+avg(used_price(i,date_add_banking_day(Today,,-1))) 'YTM',
+mtm_price(i) 'MTM_YTM',
+sum(nominal_amount(t))'Nominal',
+
+
+sum((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))'Capital_Value',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))'Acc_Int_MtM',
+sum(Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)'Dirty_MtM',
+
+
+sum((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+sum((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+sum(t.premium)'Consideration',
+
+sum(((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Cap_PL',
+sum((((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))+((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Int_PL',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+(t.premium))'PL',
+display_id(i,'issuer_ptynbr')		'Issuer',
+display_id(i,'curr')            'Currency',
+i.quote_type                'Quote_Type',
+l.daycount_method            'DayCount'
+
+
+into
+settled
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party pty,
+temp tt,
+choicelist c,
+leg l
+
+
+where
+i.insaddr=t.insaddr
+and i.insaddr = l.insaddr
+and i.instype in ('Bond')
+/*and t.value_day>=tt.YE*/
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and t.value_day <= Today
+and i.exp_day => Today
+and t.optkey1_chlnbr*=c.seqnbr
+and pty.ptynbr=t.counterparty_ptynbr
+and c.entry not in('ABS002')
+and display_id(t, 'prfnbr') not in ('Equity Script Lending','Capital Market Script Lending','Series_2','Series_3')
+
+Group by 1,3 /*i.externid1 and then by c.entry*/
+
+/*-----------------Do Inflation Linked Seperately - MR--------------*/
+
+select
+
+p.prfid'prfid',
+c.entry'TradeArea',
+i.insid	'insid',
+pty.ptyid,
+0 'DealReference',
+t.optional_key 'STT_Num',
+t.value_day	'DealDate',
+t.value_day	'SettlementDate',	
+avg(used_price(i,date_add_banking_day(Today,,-1))) 'YTM',
+mtm_price(i) 'MTM_YTM',
+sum(nominal_amount(t))'Nominal',
+
+
+sum((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))'Capital_Value',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))'Acc_Int_MtM',
+sum(Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)'Dirty_MtM',
+
+
+sum((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+sum((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+sum(t.premium)'Consideration',
+
+sum(((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Cap_PL',
+sum((((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000)))+((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Int_PL',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i))*t.quantity*10000))+(t.premium))'PL',
+display_id(i,'issuer_ptynbr')		'Issuer',
+display_id(i,'curr')            'Currency',
+i.quote_type                'Quote_Type',
+l.daycount_method            'DayCount'
+
+into
+settled2
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party pty,
+temp tt,
+choicelist c,
+leg l
+
+
+where
+i.insaddr=t.insaddr
+and i.insaddr = l.insaddr
+and i.instype in ('IndexLinkedBond')
+/*and t.value_day>=tt.YE*/
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Terminated','Reserved','Simulated')
+/*and t.value_day <= Today*/
+and i.exp_day => Today
+and t.optkey1_chlnbr*=c.seqnbr
+and pty.ptynbr=t.counterparty_ptynbr
+and c.entry not in('ABS002')
+and display_id(t, 'prfnbr') not in ('Equity Script Lending','Capital Market Script Lending','Series_2','Series_3')
+
+Group by 1,3 /*i.externid1 and then by c.entry*/
+
+
+/*-----------------resultant query1--------------*/
+
+select
+
+t2.DealReference		'Deal Reference',
+t2.DealDate		 	'Deal Date',
+'N/A'	 			'STT Code Client', 
+'N/A'	 			'Dealer Code',
+t2.prfid			'Portfolio',
+t2.TradeArea			'Trade Area',
+t2.Nominal	 		'Nominal',
+t2.MTM_YTM	 		'Reval Rate Cls Yield',
+'N/A' 				'Matched Nominals',
+t2.insid	 		'Stock Name',
+(t2.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+t2.SettlementDate		'Settlement Date',	
+t2.YTM	 			'YTM',
+today 				'Data Date',
+t2.Capital_Amount 		'Original Consideration Excl Interest',
+t2.Consideration		'Original Consideration Incl interest',
+t2.Capital_Value		'Reval Capital Excl Interest',
+t2.Dirty_MTM			'Reval Capital Incl Interest',
+'N/A'	 			'Counter Party Short Name',
+'N/A' 				'Counter Party Long Name',
+t2.Acc_Int_Trade		'Accrued Interest',
+t2.Dirty_MtM			'MtM',
+t2.Capital_Value		'CleanMtM',
+t2.Cap_PL			'Clean_PL',
+t2.STT_Num			'STT_Num',
+'S'				'Sett_UnSett',
+t2.Issuer			'Issuer',
+t2.Currency            'Currency',
+t2.Quote_Type                'Quote Type',
+t2.DayCount            'DayCount'
+
+from
+settled t2
+
+UNION
+
+/*-----------------resultant query2--------------*/
+
+select
+
+t3.DealReference		'Deal Reference',
+t3.DealDate		 	'Deal Date',
+'N/A'	 			'STT Code Client', 
+'N/A'	 			'Dealer Code',
+t3.prfid			'Portfolio',
+t3.TradeArea			'Trade Area',
+t3.Nominal	 		'Nominal',
+t3.MTM_YTM	 		'Reval Rate Cls Yield',
+'N/A' 				'Matched Nominals',
+t3.insid	 		'Stock Name',
+(t3.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+t3.SettlementDate		'Settlement Date',	
+t3.YTM	 			'YTM',
+today 				'Data Date',
+t3.Capital_Amount 		'Original Consideration Excl Interest',
+t3.Consideration		'Original Consideration Incl interest',
+t3.Capital_Value		'Reval Capital Excl Interest',
+t3.Dirty_MTM			'Reval Capital Incl Interest',
+'N/A'	 			'Counter Party Short Name',
+'N/A' 				'Counter Party Long Name',
+t3.Acc_Int_Trade		'Accrued Interest',
+t3.Dirty_MtM			'MtM',
+t3.Capital_Value		'CleanMtM',
+t3.Cap_PL			'Clean_PL',
+t3.STT_Num			'STT_Num',
+'S'				'Sett_UnSett',
+t3.Issuer			'Issuer',
+t3.Currency            'Currency',
+t3.Quote_Type                'Quote Type',
+t3.DayCount            'DayCount'
+
+from
+settled2 t3
+
+UNION
+
+/* Name of query = Dart_Bonds */
+
+select 
+	/*i.insaddr,  */
+	t.trdnbr 'Deal Reference',
+	/*t.optional_key 'STT Deal No',*/
+	time_to_day(t.time) 'Deal Date',
+	p.ptyid 'STT Code Client', 
+	u.userid 'Dealer Code',
+	display_id(t, 'prfnbr')	 'Portfolio',
+	display_id(t, 'optkey1_chlnbr')	'Trade Area',
+	nominal_amount(t) 'Nominal',
+	mtm_price(i) 'Reval Rate Cls Yield',
+	'' 'Matched Nominals',
+	i.insid 'Stock Name',
+	nominal_amount(t) > 0 ? 'B' : 'S' 'Buy/Sell',
+	date_add_banking_day(t.value_day,,i.pay_day_offset)'Settlement Date',	
+	t.price 'YTM',
+	today 'Data Date',
+	t.premium 'Original Consideration Excl Interest',
+/*	dirty_from_yield(i,t.value_day,,,t.price)*abs(t.quantity)*10000 'Original Consideration Excl Interest Old',*/
+/*	clean_from_yield(i,t.value_day,,,t.price)*abs(t.quantity)*10000 'Original Consideration Incl interest Old',*/
+	t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1 'Original Consideration Incl interest',
+	t.value_day=i.exp_day ? abs(t.quantity)*1000000 : (dirty_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=(date_add_banking_day(Today,,3))? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*abs(t.quantity)) 'Reval Capital Excl Interest',
+	t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=(date_add_banking_day(Today,,3))? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity) 'Reval Capital Incl Interest',
+	p.ptyid 'Counter Party Short Name',
+	p.fullname 'Counter Party Long Name',
+/*	(dirty_from_yield(i,t.value_day,,,t.price)*abs(t.quantity)*10000) - (clean_from_yield(i,t.value_day,,,t.price)*abs(t.quantity)*10000)'Accrued Interest Old',*/
+	(t.premium)-(t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1) 'Accrued Interest',
+	mtm_value_bo(t)'MtM',
+
+t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=date_add_banking_day(Today,,3) ? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity) 'CleanMtM',
+
+(t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=date_add_banking_day(Today,,3) ? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity))+
+(t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1)'Clean_PL',
+t.optional_key			'STT_Num',
+'U'				'Sett_UnSett',
+display_id(i,'issuer_ptynbr')	'Issuer',
+display_id(i,'curr')            'Currency',
+i.quote_type                'Quote_Type',
+l.daycount_method            'DayCount'
+
+from instrument i,
+	trade t,
+	party p,
+	user u,
+	choicelist c,
+	leg l
+
+where
+
+	i.insaddr=t.insaddr
+and i.insaddr = l.insaddr	
+/*and	u.usrnbr  = i.owner_usrnbr*/
+and	u.usrnbr  = t.trader_usrnbr
+and 	t.optkey1_chlnbr*=c.seqnbr
+and 	i.instype in ('Bond')
+and	p.ptynbr=t.counterparty_ptynbr
+and	t.value_day > Today
+
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+
+and c.entry not in ('ABS002')
+and display_id(t, 'prfnbr') not in ('Equity Script Lending','Capital Market Script Lending','Series_2','Series_3')
+
+
+union
+
+select
+
+t.trdnbr 'Deal Reference',
+t.value_day	'Deal Date',
+pty.ptyid 'STT Code Client',
+u.userid 'Dealer Code',
+p.prfid 'Portfolio',
+c.entry  'Trade Area',
+nominal_amount(t)   'Nominal',
+mtm_price(und) 'Reval Rate Cls Yield',
+'' 'Matched Nominals',
+i.insid 'Stock Name',
+nominal_amount(t) > 0 ? 'B' : 'S' 'Buy/Sell',
+i.exp_day	'Settlement Date',
+t.price 'YTM',
+today 'Data Date',
+t.premium 'Original Consideration Excl Interest',
+t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1 'Original Consideration Incl interest',
+t.value_day=i.exp_day ? abs(t.quantity)*1000000 : (dirty_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=(date_add_banking_day(Today,,3))? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*abs(t.quantity)) 'Reval Capital Excl Interest',
+t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=(date_add_banking_day(Today,,3))? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity) 'Reval Capital Incl Interest',
+pty.ptyid 'Counter Party Short Name',
+pty.fullname 'Counter Party Long Name',
+(t.premium)-(t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1) 'Accrued Interest',
+mtm_value_bo(und)'MtM',
+t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=date_add_banking_day(Today,,3) ? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity) 'CleanMtM',
+(t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,t.value_day,,,(i.instype='Bond' ? (t.value_day<=date_add_banking_day(Today,,3) ? mtm_price(i,Today) : forward_ytm(i,t.value_day)) : mtm_price(i,Today)))*10000*t.quantity))+
+(t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1)'Clean_PL',
+t.optional_key			'STT_Num',
+'U'				'Sett_UnSett',
+display_id(und,'issuer_ptynbr')		'Issuer',
+display_id(i,'curr')            'Currency',
+i.quote_type                'Quote_Type',
+l.daycount_method            'DayCount'
+
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party pty,
+temp tt,
+choicelist c,
+instrument und,
+leg l,
+user u
+
+where
+    i.insaddr=t.insaddr
+and i.instype = 'Future/Forward'
+and i.und_instype = 'Bond'
+and und.insaddr = i.und_insaddr
+and und.insaddr = l.insaddr
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and t.optkey1_chlnbr*=c.seqnbr
+and pty.ptynbr=t.counterparty_ptynbr
+and i.exp_day => Today
+and t.optkey1_chlnbr*=c.seqnbr
+and pty.ptynbr=t.counterparty_ptynbr
+and c.entry not in('ABS002')
+and p.prfid not in ('Equity Script Lending','Capital Market Script Lending','Series_2','Series_3')
+and	u.usrnbr  = t.trader_usrnbr
+

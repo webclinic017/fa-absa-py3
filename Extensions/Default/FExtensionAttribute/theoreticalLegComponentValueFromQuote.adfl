@@ -1,0 +1,5 @@
+[Default]FCashFlowInstrument:theoreticalLegComponentValueFromQuote = select(valuationModelHandlesCallable, 
+  true->0.0, 
+  false->firstLeg :* "theoreticalLegComponentValueFromQuote");
+[Default]FDerivative:theoreticalLegComponentValueFromQuote = underlying:theoreticalLegComponentValueFromQuote;
+[Default]FLeg:theoreticalLegComponentValueFromQuote = instrument :* "moveValue" [moveStartValue = theoreticalLegComponentValueAtSpotFromQuote, moveToDate = valuationDate, priceSource, valuesOnSpotOverride];

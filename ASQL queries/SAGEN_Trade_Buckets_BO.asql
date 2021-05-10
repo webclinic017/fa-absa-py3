@@ -1,0 +1,269 @@
+/*
+Purpose               : Group trades into different BO-Confirmed time buckets, Include Afica Desk only for Bonds, Include Bills for the Africa Desk
+Department and Desk   : OPS Confirmations, OPS
+Requester             : Christo Davids, Richard Gwitt
+Developer             : Jaysen Naicker, Ickin Vural, Dusan Fasko, Godfrey Dire, Godfrey Dire
+CR Number             : 516894, C000000539123, CHNG0001244368, CHNG0001786708,
+
+*/
+
+/* ------------------------------------------------------------------------- */
+/* -- 1. ASQL Usage log -- */
+
+SELECT ael_i(p, 'ASQL_log', 'SAGEN_Trade_Buckets_BO')	'Name'
+INTO ASQL_LOG_TEMP
+FROM TextObject p
+WHERE
+	p.name = 'SAGEN_Trade_Buckets_BO'
+	AND p.type = 'SQL Query' 
+
+
+/* ------------------------------------------------------------------------- */
+/* -- 2. Parameters -- */
+
+SELECT @2_ShowDetails{No;'Yes','No'}	'det'
+INTO input
+FROM  serverdata s
+WHERE s.srdnbr > 0
+
+
+/* ------------------------------------------------------------------------- */
+/* -- 3. Main run -- */
+
+SELECT
+	display_id(t, 'acquirer_ptynbr')					'Acquirer',
+	u.name 												'Trader',
+	t.acquirer_ptynbr									'acqnbr',
+	t.status											'Status',
+	t.trdnbr,
+	i.insaddr,
+	po.prfid											'Portfolio',
+	ael_i(, 'FSQL_functions.BankingDaysCount', time_to_day(t.time), TODAY, t.curr) 'Days',
+	display_id(t, 'counterparty_ptynbr') 				'CP',
+	add_info(t, 'Funding Instype') ~= '' ? 
+        add_info(t, 'Funding Instype') : (add_info(t, 'MM_Instype') ~= '' ? 
+        add_info(t, 'MM_Instype') : add_info(t, 'Instype'))	'MM_Instype',
+    present_value(t) 									'HVAL',
+    add_info(t, 'Responsible Area')						'ResponsibleArea',
+    add_info(t, 'Responsible Person')					'ResponsiblePerson',
+    t.execution_time,
+    time_to_day(t.time)									'trade_date',
+    i.instype											'Instrument_Type',
+    t.your_ref											'CPRef',
+    t.trx_trdnbr,
+    t.optional_key										'External_ID',
+    add_info(t, 'Approx. load')							'Approx_load',
+    add_info(t, 'Affirmation')							'Affirmed'
+INTO temp
+FROM
+	Trade t,
+	Instrument i,
+	Party p,
+	Party cp,
+	Portfolio po,
+	User u
+WHERE
+	t.insaddr = i.insaddr
+	AND po.prfnbr = t.prfnbr
+	AND u.usrnbr = t.trader_usrnbr
+	AND t.acquirer_ptynbr = p.ptynbr
+	AND t.counterparty_ptynbr = cp.ptynbr
+	AND t.time > '2004-04-01'
+	AND t.status = 'BO Confirmed'
+	AND (
+		(
+			i.instype ~= 'Curr'
+			AND (i.exp_day >= TODAY OR i.exp_day = '0000-01-01')
+		)
+		OR (
+			i.instype ='Curr'
+			AND (t.value_day >= TODAY OR t.value_day = '0000-01-01')
+		)
+	)
+	AND (
+		'All' IN (@1_Acquirer{All;Party.ptyid*})
+		OR p.ptyid IN (@1_Acquirer{All;Party.ptyid*})
+	)
+	AND po.prfid NOT IN ('CFD', 'Equity Script Lending', '4440798', '4440806')
+	AND (
+		cp.ptyid2 NOT IN ('JSE', 'SAFEX', 'JSE SECURITIES EXCHANGE SOUTH AFRICA', 'BSE', 'FMAINTENANCE')
+		AND NOT (
+			cp.ptyid = 'BARCLAYS BANK PLC LONDON'
+			AND i.instype = 'Future/Forward'
+			AND i.paytype = 'Future'
+		)
+	)
+	AND ( (i.instype = 'Bond' and display_id(t, 'acquirer_ptynbr') = 'AFRICA DESK')
+        OR i.instype NOT IN ('Stock', 'Warrant', 'EquityIndex', 'Repo/Reverse', 'BuySellback', 'PriceIndex', 'Bond', 'IndexLinkedBond')
+		OR cp.ptyid2 ~= 'SAFEX'
+	)
+	AND (
+		i.instype = 'Combination'
+		AND i.insid LIKE 'FXCHOOSER%'
+        OR (i.instype in ('Bond','Bill') and display_id(t, 'acquirer_ptynbr') = 'AFRICA DESK')
+		OR (i.instype NOT IN ('Bill', 'CD', 'CFD', 'Combination', 'Deposit', 'ETF', 'FRN', 'SecurityLoan', 'Zero', 'Bond', 'Stock')
+        )
+	)
+	AND (cp.type ~= 'Intern Dept' OR cp.ptyid = 'ALCO DESK ISSUER')
+
+/*
+ Combination instruments get their expiry from the combined instruments.
+ These need to be loaded.
+*/
+
+
+/* Get the various instruments that are used in this dataset */
+
+SELECT DISTINCT insaddr
+INTO temp_instruments
+FROM temp
+
+
+/*
+ For all instruments load the combination links.
+ For each of the combined instruments load a value of 0 if it is expired
+ and a 1 if it is valid. Load 1 also when the instrument has no comb. links.
+*/
+
+SELECT
+	i.insaddr,
+	count(cl.seqnbr) = 0 ? 1 : (ci.exp_day < TODAY ? (ci.exp_day ~= '0000-01-01' ? 0 : 1) : 1) 'combined_not_expired'
+INTO temp_expired_combinations
+FROM
+	temp_instruments i,
+	CombinationLink cl,
+	Instrument ci
+WHERE
+	i.insaddr *= cl.owner_insaddr
+	AND cl.member_insaddr *= ci.insaddr
+
+
+/*
+ Sum the expiration temporary values for each instrument.
+ If the instrument is not a combination, the result is always 1.
+ If it's a combination and it's not expired, the result will be 1+.
+ If it's a combination and it's expired, the result is 0.
+*/
+
+SELECT
+	insaddr,
+	sum(combined_not_expired) 'not_expired'
+INTO temp_expired_combinations2
+FROM temp_expired_combinations
+GROUP BY insaddr
+
+
+/*
+    Filter the expired combination instruments out of the dataset.
+*/
+
+SELECT t.*
+INTO temp2
+FROM
+	temp t,
+	temp_expired_combinations2 e
+WHERE
+	t.insaddr = e.insaddr
+	AND e.not_expired ~= 0	/* not_expired ~= false => expired = false */
+
+
+SELECT
+	t.Acquirer,
+	t.Trader,
+	t.Status,
+	t.Days <= 2 ? 1 : 0 					'Less_eq_2',
+	t.Days >= 3 and t.Days <= 5 ? 1 : 0		'3_to_5',
+	t.Days >= 6 and t.Days <= 10 ? 1 : 0	'6_to_10',
+	t.Days >= 11 and t.Days <= 30 ? 1 : 0	'11_to_30',
+	t.Days > 30 ? 1 : 0						'Grt30',
+	t.trdnbr,
+	t.Portfolio,
+	t.CP,
+	t.Days,
+	t.MM_Instype,
+	t.HVAL,
+	t.ResponsibleArea,
+	t.ResponsiblePerson,
+	t.execution_time,
+	t.trade_date,
+	t.Instrument_Type,
+	t.CPRef,
+	t.trx_trdnbr,
+	t.External_ID,
+	t.Approx_load,
+	t.Affirmed
+INTO temp3
+FROM temp2 t
+
+/*group by t.Acquirer, t.Status, t.Days*/
+
+
+/***** main *****/
+
+SELECT
+	t.Acquirer,
+	t.Trader,
+	t.Status,
+	t.Less_eq_2	'Less_eq_2',
+	t.3_to_5	'd_3_to_5',
+	t.6_to_10	'd_6_to_10',
+	t.11_to_30	'd_11_to_30',
+	t.Grt30		'Grt30',
+	t.trdnbr	'Trdnbr',
+	t.Portfolio,
+	t.CP,
+	t.Days,
+	t.MM_Instype,
+	t.HVAL,
+	t.ResponsiblePerson,
+	t.ResponsibleArea,
+	t.execution_time,
+	t.trade_date,
+	t.Instrument_Type,
+	t.CPRef,
+	t.trx_trdnbr  'Transref',
+	t.External_ID,
+	t.Approx_load,
+	t.Affirmed
+FROM
+	temp3 t,
+	input d
+WHERE d.det in ('Yes', 'YES', 'yes', 'Y', 'y')
+ORDER BY
+    t.Acquirer,
+	t.Status
+
+
+UNION
+
+
+SELECT
+	t.Acquirer,
+	t.Trader,
+    t.Status,
+    sum(t.Less_eq_2)	'Less_eq_2',
+	sum(t.3_to_5)		'd_3_to_5',
+	sum(t.6_to_10)		'd_6_to_10',
+	sum(t.11_to_30)		'd_11_to_30',
+	sum(t.Grt30)		'Grt30',
+	0 					'Trdnbr',
+	t.Portfolio,
+	t.CP,
+	t.Days,
+	t.MM_Instype,
+	t.HVAL,
+	t.ResponsiblePerson,
+	t.ResponsibleArea,
+    t.execution_time,
+    t.trade_date,
+    t.Instrument_Type,
+    t.CPRef,
+    t.trx_trdnbr  		'Transref',
+    t.External_ID,
+    t.Approx_load,
+    t.Affirmed
+FROM temp3 t
+GROUP BY
+	t.Acquirer,
+	t.Status
+

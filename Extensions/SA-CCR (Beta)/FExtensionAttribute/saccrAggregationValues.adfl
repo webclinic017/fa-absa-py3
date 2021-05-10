@@ -1,0 +1,4 @@
+[SA-CCR (Beta)]FInstrument:saccrAggregationValues = select(isOpenPosition and saccrAssetClassDefined, 
+  true->createArray(saccrInstrumentComponents :* "saccrParametersDict" [ccrIsNetting, positionObject, riskPositionBase, tradesInPosition]), 
+  false->[]);
+[SA-CCR (Beta)]FMultiInstrumentAndTrades:saccrAggregationValues = createArray(instruments :* "saccrAggregationValues" [ccrIsNetting, positionObject]);

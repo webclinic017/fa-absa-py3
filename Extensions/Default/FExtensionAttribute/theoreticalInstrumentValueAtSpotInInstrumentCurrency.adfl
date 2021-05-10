@@ -1,0 +1,8 @@
+[Default]FCombination:theoreticalInstrumentValueAtSpotInInstrumentCurrency = select(isMultiCurrencyInstrument, 
+  false->collapse(theoreticalInstrumentValueAtSpot), 
+  true->select(sumOf(instrumentMaps :* "count(instrument:instrumentCurrencies)") > numberOfLegs, 
+    true->convertToCurrencyValidateDates(theoreticalInstrumentValueAtSpot, instrumentCurrencies :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency, priceSource], currencySymbol), 
+    false->convertToCurrencyValidateDates(theoreticalInstrumentValueAtSpot, filterDuplicateFactors(instrumentMaps :* "fxLegToInstrument"), currencySymbol)));
+[Default]FInstrument:theoreticalInstrumentValueAtSpotInInstrumentCurrency = select(isMultiCurrencyInstrument, 
+  true->convertToCurrencyValidateDates(theoreticalInstrumentValueAtSpot, instrumentCurrencies :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency], currencySymbol), 
+  false->collapse(theoreticalInstrumentValueAtSpot));

@@ -1,0 +1,11 @@
+[Default]FInstrument:theoreticalModelCallHullAndWhiteExtendedOptionality = select("European" == exerciseType, 
+  true->theoreticalModelCallHullAndWhiteAnalytic, 
+  false->select(exerciseEventCount > 1, 
+    true->theoreticalModelCallHullAndWhiteExtendedPde, 
+    false->select(exerciseEventCount > 0, 
+      true->select((exerciseEventArray[0]).Type, 
+        "CallPeriod"->theoreticalModelCallHullAndWhiteExtendedPde, 
+        "PutPeriod"->theoreticalModelCallHullAndWhiteExtendedPde, 
+        "ConversionPeriod"->theoreticalModelCallHullAndWhiteExtendedPde, 
+        default->theoreticalModelCallHullAndWhiteAnalytic), 
+      default->theoreticalModelCallHullAndWhiteAnalytic)));

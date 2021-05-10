@@ -1,0 +1,7 @@
+[Default]FCurrency:currencyPairSpotDate = shunt(currencyPair, 
+  nil->instrumentSpotDate, 
+  default->currencyPair.SpotDate(valuationDateTime));
+[Default]FFxRate:currencyPairSpotDate = instrumentSpotDate;
+[Default]FPortfolio:currencyPairSpotDate = select(nil == currencyPair, 
+  true->currency.SpotDate(valuationDate), 
+  false->currencyPair.SpotDate(valuationDateTime));

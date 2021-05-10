@@ -1,0 +1,22 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedCoupon = select((nil == uniqueCouponInTheoreticalPrice) or (nil == firstFixedLeg) or hasInvalidLegsForImply, 
+  false->firstFixedLeg :* "impliedCoupon" [impliedCouponName = parCouponNames, uniqueCouponOrSpreadInTheoreticalPriceFilter, marketPriceOrGoalValue], 
+  true->nil);
+[Fixed Income Pricing and Risk]FFra:impliedCoupon = floatLeg :* "impliedCoupon" [impliedCouponName = parCouponNames, uniqueCouponOrSpreadInTheoreticalPriceFilter, marketPriceOrGoalValue];
+[Fixed Income Pricing and Risk]FInstrument:impliedCoupon = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedCoupon = instrument :* "impliedCoupon" [priceSource];
+[Fixed Income Pricing and Risk]FLeg:impliedCoupon = select(isGenericCouponQuoted, 
+  true->dividedByHundred(marketPrice), 
+  false->select(instrument:isExpiredFullDay, 
+    true->nil, 
+    false->select(uniqueCouponsInTheoreticalPrice, 
+      nil->nil, 
+      default->select(not isFinite(marketPrice) and (instrument.Quotation == "Yield"), 
+        true->nil, 
+        false->imply(uniqueCouponsInTheoreticalPrice, instrument:theoreticalPrice, marketPriceOrGoalValue, implyPrecision, 0.0, 1.0, implyMaxIterations)))));
+[Fixed Income Pricing and Risk]FLegAndTrades:impliedCoupon = select(leg.IsFixedLeg, 
+  true->leg :* "impliedCoupon" [priceSource], 
+  false->nil);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedCoupon = nil;
+[Fixed Income Pricing and Risk]FTotalReturnSwap:impliedCoupon = select(object.TotalReturnFundingLeg, 
+  nil->nil, 
+  default->(object.TotalReturnFundingLeg) :* "impliedCoupon" [priceSource]);

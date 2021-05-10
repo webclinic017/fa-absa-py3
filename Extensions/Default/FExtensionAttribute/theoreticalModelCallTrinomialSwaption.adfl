@@ -1,0 +1,5 @@
+[Default]FCashFlowInstrument:theoreticalModelCallTrinomialSwaption = theoreticalModelCallTrinomialSwaptionOptionality;
+[Default]FCreditDefaultSwap:theoreticalModelCallTrinomialSwaption = creditTrinomialSwaptionModel(valuationDateTime, instrumentSpotDate, exerciseType, startDateAsArray, expiryDateTimeAsArrayExcludingExpiredEvents, payDateAsArray, absoluteStrikePriceLessSpreadAsArray, volatilityAsArray, exerciseEventTypeAsArray, trinomialSteps, legInformations, staticLegInformations, riskFreeDiscountCurve, creditCurve, creditIssuer, roundingInformation);
+[Default]FInstrument:theoreticalModelCallTrinomialSwaption = select(isCreditOption, 
+  true->creditTrinomialSwaptionModel(valuationDateTime, instrumentSpotDate, exerciseType, startDateAsArray, expiryDateTimeAsArrayExcludingExpiredEvents, payDateAsArray, absoluteStrikePriceAsArray, volatilityValueModelAsArray, exerciseEventTypeAsArray, trinomialSteps, legInformations, staticLegInformations, underlying:riskFreeDiscountCurve, underlying:creditCurve, underlying:creditIssuer, underlying:roundingInformation), 
+  false->theoreticalModelCallTrinomialSwaptionOptionality);

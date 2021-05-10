@@ -1,0 +1,49 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Commodity_Fut_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Commodity_Fut_Extract' and p.type = 'SQL Query' 
+select 
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	time_to_day(t.time)				'DealDate',
+	i.exp_day			'Expiry Date',
+	display_id(t,'insaddr')		'Instrument',
+	i.instype = 'Future/Forward' ? 'Future/Forward' : i.instype	'InstrumentType',
+	display_id(i,'und_insaddr')	'Underlying',
+/*	mtm_price(ii,@Date,'ZAR',0,0) 	'Underlying_MTM', */
+	i.und_instype = 'EquityIndex' ? 'EquityIndex' : i.und_instype	'Underlying_Type',
+	t.price				'Strike',
+	i.contr_size			'Contract_Size',
+	t.quantity < 0 ?'S':'B'		'Buy/Sell',
+	t.quantity < 0 ? (t.quantity * -1) : t.quantity			'Number of Contracts',
+	@Date{TODAY}			'DATA_DATE',
+	t.text1				'Principal',
+	display_id(t,'prfnbr')	'Portfolio',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	mtm_price(t,@Date,display_id(t,'curr'),0,0) 	'MTM',
+	(add_info(ii,'DividendYield') = '')? 0 : add_info(ii,'DividendYield')  'DividendYield',
+	''					'DividendAmount',
+	''					'DividendDate'				
+from 
+	instrument i,
+	instrument ii,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+	t.insaddr *= i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	and i.instype = 'Future/Forward'
+	and display_id(t,'prfnbr') ~= 'SAFEX Unallocated'
+	and time_to_day(t.time) <= @Date
+	and i.exp_day ~= '20060922'
+	and i.exp_day > @Date
+	and i.und_insaddr *= ii.insaddr
+	and t.prfnbr = pr.member_prfnbr
+    and i.und_instype in ('Commodity')
+    and display_id(t,'prfnbr') = 'Energy'
+   

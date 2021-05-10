@@ -1,0 +1,63 @@
+
+select 
+        t.trdnbr,
+		display_id(t,'curr') 'CURR',
+		p.prfid 'PORTF',
+		t.premium 'Proj Cash',
+		i.instype
+
+from Trade t,
+     Instrument i,
+     Leg l,
+     Portfolio p
+where t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.insaddr = l.insaddr
+and i.instype = 'Curr'
+and t.value_day <= TODAY
+and t.Status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+UNION
+
+select 
+        t.trdnbr,
+		display_id(l,'curr') 'CURR',
+		p.prfid 'PORTF',
+		t.quantity 'Proj Cash',
+		i.instype
+
+from Trade t,
+     Instrument i,
+     Leg l,
+     Portfolio p
+where t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.insaddr = l.insaddr
+and i.instype = 'Curr'
+and t.value_day <= TODAY
+and t.Status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+UNION
+
+select  t.trdnbr,
+		display_id(l,'curr') 'CURR',
+		p.prfid 'PORTF',
+		sum(projected_cf(cf,,,display_id(l,'curr'))*t.quantity) 'Proj Cash',
+		i.instype
+       
+ 
+from Trade t,
+     Portfolio p,
+     Instrument i,
+     Leg l,CashFlow cf
+where t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and cf.legnbr = l.legnbr
+AND match_filter(t,'BA325_All_LiveTrades')
+and cf.pay_day <= TODAY
+
+group by 1,2,3
+
+

@@ -1,0 +1,10 @@
+[GenericMandates]FInstrumentAndTrades:mandateDisplayCounterparty = 
+# Check if the parent object passes the mandates
+switch(mandateResultCounterparty, 
+  1->"Allowed", 
+  0->"Not Allowed", 
+  default->"Not Allowed");
+[GenericMandates]FTrade:mandateDisplayCounterparty = 
+# Get evaluated mandate for a specific trade using the applicable Counterparty mandates.
+py("GenericMandatesEval", context).Get_Evaluated_Mandate_Number(object, "Mandate - Counterparty");
+[GenericMandates]FTradeRow:mandateDisplayCounterparty = trade:mandateDisplayCounterparty;

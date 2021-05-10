@@ -1,0 +1,319 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SAIRD_TRI_OPTIMA_2008') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_SAIRD_TRI_OPTIMA_2008' and p.type = 'SQL Query' 
+ 
+
+/*** SWAPS ***/
+select
+ t.trdnbr      'TRADE_ID',
+ display_id(t,'counterparty_ptynbr')   'CP_ID',
+ display_id(t,'prfnbr')     'TRADE_UNIT_ID',
+ t.your_ref       'CP_TRADE_ID',
+ i.instype      'INS_TYPE',
+
+
+ i.insid       'INS_ID',
+ abs(nominal_amount(t))     'NOMINAL',
+ display_id(i,'curr')     'CURR',
+ projected_cf(l) * t.quantity < 0 ? 'Payer' : 'Receiver' 'PAY_REC',
+ l.fixed_rate      'COUPON_RATE',
+ ael_s(,'RollingPeriod.RP',l)    'COUPON_PER',
+
+ l.daycount_method     'DAYCOUNT',
+
+ ael_s(,'SAGEN_str_functions.split_string', display_id(lf,'float_rate'), '-', 1)  'FLOAT_RATE_INDEX',
+ ael_s(,'SAGEN_str_functions.split_string', display_id(lf,'float_rate'), '-', 3) ~= 'Index out of range' 
+ ? ael_s(,'SAGEN_str_functions.split_string', display_id(lf,'float_rate'), '-', 3)
+ : ael_s(,'SAGEN_str_functions.split_string', display_id(lf,'float_rate'), '-', 2)   'FLOAT_RATE_INDEX_PER',
+
+
+ ael_s(,'RollingPeriod.RP',lf)    'FLOAT_RATE_PAY_PER',
+ ael_s(,'RollingPeriod.RP',lf)    'FLOAT_RATE_FIXING_PER',
+
+ lf.spread      'FLOAT_SPREAD',
+ ael_s(,'SAGEN_Cashflows.CurrentCF',lf.legnbr, today, 5) = '0001-01-01' ? 0.0 : ael_s(,'SAGEN_Cashflows.CurrentCF',lf.legnbr, today, 5) 'FLOAT_RATE', 
+
+ time_to_day(t.time)     'TRADE_DATE',
+ l.start_day      'START_DATE',
+ i.exp_day      'END_DATE',
+
+ l.rolling_base_day     'ROLL_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', lf.legnbr, today, 1) 'NEXT_FIXING_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', lf.legnbr, today, 1) 'NEXT_FLOAT_PAY_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, today, 1) 'NEXT_FIX_PAY_DATE',
+
+ today       'MTM_DATE',
+ mtm_value_fo(t, today, display_id(i, 'curr'), 2, 0, 1) 'MTM_VALUE',
+ display_id(i,'curr')     'MTM_CURR',
+
+    ael_f(t,'Tri_Optima_utils.get_delta',42)  'Deltatot',
+    ael_f(t,'Tri_Optima_utils.get_delta',0)  'Delta1d',
+    ael_f(t,'Tri_Optima_utils.get_delta',1)  'Delta1w',
+    ael_f(t,'Tri_Optima_utils.get_delta',2)  'Delta1m',
+    ael_f(t,'Tri_Optima_utils.get_delta',3) 'Delta2m',
+    ael_f(t,'Tri_Optima_utils.get_delta',4)  'Delta3m',
+    ael_f(t,'Tri_Optima_utils.get_delta',5)  'Delta4m',
+    ael_f(t,'Tri_Optima_utils.get_delta',6)  'Delta5m',
+    ael_f(t,'Tri_Optima_utils.get_delta',7)  'Delta6m',
+    ael_f(t,'Tri_Optima_utils.get_delta',8)  'Delta7m',
+    ael_f(t,'Tri_Optima_utils.get_delta',9)  'Delta8m',
+    ael_f(t,'Tri_Optima_utils.get_delta',10) 'Delta9m',
+    ael_f(t,'Tri_Optima_utils.get_delta',11) 'Delta10m',
+    ael_f(t,'Tri_Optima_utils.get_delta',12) 'Delta11m',
+    ael_f(t,'Tri_Optima_utils.get_delta',13) 'Delta12m',
+    ael_f(t,'Tri_Optima_utils.get_delta',14) 'Delta13m', 
+    ael_f(t,'Tri_Optima_utils.get_delta',15) 'Delta14m', 
+    ael_f(t,'Tri_Optima_utils.get_delta',16) 'Delta15m',
+    ael_f(t,'Tri_Optima_utils.get_delta',17) 'Delta16m',
+    ael_f(t,'Tri_Optima_utils.get_delta',18) 'Delta17m',
+    ael_f(t,'Tri_Optima_utils.get_delta',19) 'Delta18m',
+    ael_f(t,'Tri_Optima_utils.get_delta',20) 'Delta19m',
+    ael_f(t,'Tri_Optima_utils.get_delta',21) 'Delta20m',
+    ael_f(t,'Tri_Optima_utils.get_delta',22) 'Delta21m',
+    ael_f(t,'Tri_Optima_utils.get_delta',23) 'Delta22m',
+    ael_f(t,'Tri_Optima_utils.get_delta',24) 'Delta23m',
+    ael_f(t,'Tri_Optima_utils.get_delta',25) 'Delta2y',
+    ael_f(t,'Tri_Optima_utils.get_delta',26) 'Delta3y',
+    ael_f(t,'Tri_Optima_utils.get_delta',27) 'Delta4y',
+    ael_f(t,'Tri_Optima_utils.get_delta',28) 'Delta5y',
+    ael_f(t,'Tri_Optima_utils.get_delta',29) 'Delta6y', 
+    ael_f(t,'Tri_Optima_utils.get_delta',30) 'Delta7y',
+    ael_f(t,'Tri_Optima_utils.get_delta',31) 'Delta8y',
+    ael_f(t,'Tri_Optima_utils.get_delta',32)'Delta9y',
+    ael_f(t,'Tri_Optima_utils.get_delta',33) 'Delta10y',
+    ael_f(t,'Tri_Optima_utils.get_delta',34) 'Delta11y',
+    ael_f(t,'Tri_Optima_utils.get_delta',35) 'Delta12y',
+    ael_f(t,'Tri_Optima_utils.get_delta',36) 'Delta13y',
+    ael_f(t,'Tri_Optima_utils.get_delta',37) 'Delta14y',
+    ael_f(t,'Tri_Optima_utils.get_delta',38) 'Delta15y',
+    ael_f(t,'Tri_Optima_utils.get_delta',39) 'Delta20y',
+    ael_f(t,'Tri_Optima_utils.get_delta',40) 'Delta25y',
+    ael_f(t,'Tri_Optima_utils.get_delta',41)'DeltaRest',
+ 
+
+
+
+ display_id(i, 'curr')     'DELTA_CURR'
+
+into
+ temp
+
+
+from
+ trade t,
+ instrument i,
+ calendar cal, 
+ instrument curr,
+ leg currleg,
+ leg l,
+ leg lf 
+where
+ match_filter(t,@Filter{;TradeFilter.fltid})
+and t.insaddr = i.insaddr
+and l.type = 'Fixed'
+and lf.type = 'Float'
+and i.insaddr = l.insaddr
+and i.insaddr = lf.insaddr
+and curr.insaddr = i.curr
+and curr.insaddr = currleg.insaddr
+and currleg.pay_calnbr = cal.calnbr
+
+/*** FRAs ***/
+select
+     t.trdnbr      'TRADE_ID',
+ display_id(t,'counterparty_ptynbr')   'CP_ID',
+ display_id(t,'prfnbr')     'TRADE_UNIT_ID',
+ t.your_ref       'CP_TRADE_ID',
+ i.instype      'INS_TYPE',
+
+
+ i.insid       'INS_ID',
+ abs(nominal_amount(t))     'NOMINAL',
+ display_id(i,'curr')     'CURR',
+ t.quantity > 0 ? 'Payer' : 'Receiver'   'PAY_REC',
+
+ l.fixed_rate      'COUPON_RATE',
+ ael_s(,'RollingPeriod.RP',l)    'COUPON_PER',
+
+ l.daycount_method     'DAYCOUNT',
+
+ ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 1)  'FLOAT_RATE_INDEX',
+ ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 3) ~= 'Index out of range' 
+ ? ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 3)
+ : ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 2)   'FLOAT_RATE_INDEX_PER',
+
+
+ ael_s(,'RollingPeriod.RP',l)    'FLOAT_RATE_PAY_PER',
+ ael_s(,'RollingPeriod.RP',l)    'FLOAT_RATE_FIXING_PER',
+
+ l.spread      'FLOAT_SPREAD',
+ ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr, today, 5) = '0001-01-01' ? 0.0 : ael_s(,'SAGEN_Cashflows.CurrentCF',l.legnbr, today, 5) 'FLOAT_RATE', 
+
+ time_to_day(t.time)     'TRADE_DATE',
+ l.start_day      'START_DATE',
+ i.exp_day      'END_DATE',
+
+ l.rolling_base_day     'ROLL_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, today, 1) 'NEXT_FIXING_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, today, 1) 'NEXT_FLOAT_PAY_DATE',
+ ael_s(, 'SAGEN_Cashflows.NextCF', l.legnbr, today, 1) 'NEXT_FIX_PAY_DATE',
+
+ today       'MTM_DATE',
+ mtm_value_fo(t, today, display_id(i, 'curr'), 2, 0, 1) 'MTM_VALUE',
+  display_id(i,'curr')     'MTM_CURR',
+
+    ael_f(t,'Tri_Optima_utils.get_delta',42)  'Deltatot',
+    ael_f(t,'Tri_Optima_utils.get_delta',0)  'Delta1d',
+    ael_f(t,'Tri_Optima_utils.get_delta',1)  'Delta1w',
+    ael_f(t,'Tri_Optima_utils.get_delta',2)  'Delta1m',
+    ael_f(t,'Tri_Optima_utils.get_delta',3) 'Delta2m',
+    ael_f(t,'Tri_Optima_utils.get_delta',4)  'Delta3m',
+    ael_f(t,'Tri_Optima_utils.get_delta',5)  'Delta4m',
+    ael_f(t,'Tri_Optima_utils.get_delta',6)  'Delta5m',
+    ael_f(t,'Tri_Optima_utils.get_delta',7)  'Delta6m',
+    ael_f(t,'Tri_Optima_utils.get_delta',8)  'Delta7m',
+    ael_f(t,'Tri_Optima_utils.get_delta',9)  'Delta8m',
+    ael_f(t,'Tri_Optima_utils.get_delta',10) 'Delta9m',
+    ael_f(t,'Tri_Optima_utils.get_delta',11) 'Delta10m',
+    ael_f(t,'Tri_Optima_utils.get_delta',12) 'Delta11m',
+    ael_f(t,'Tri_Optima_utils.get_delta',13) 'Delta12m',
+    ael_f(t,'Tri_Optima_utils.get_delta',14) 'Delta13m', 
+    ael_f(t,'Tri_Optima_utils.get_delta',15) 'Delta14m', 
+    ael_f(t,'Tri_Optima_utils.get_delta',16) 'Delta15m',
+    ael_f(t,'Tri_Optima_utils.get_delta',17) 'Delta16m',
+    ael_f(t,'Tri_Optima_utils.get_delta',18) 'Delta17m',
+    ael_f(t,'Tri_Optima_utils.get_delta',19) 'Delta18m',
+    ael_f(t,'Tri_Optima_utils.get_delta',20) 'Delta19m',
+    ael_f(t,'Tri_Optima_utils.get_delta',21) 'Delta20m',
+    ael_f(t,'Tri_Optima_utils.get_delta',22) 'Delta21m',
+    ael_f(t,'Tri_Optima_utils.get_delta',23) 'Delta22m',
+    ael_f(t,'Tri_Optima_utils.get_delta',24) 'Delta23m',
+    ael_f(t,'Tri_Optima_utils.get_delta',25) 'Delta2y',
+    ael_f(t,'Tri_Optima_utils.get_delta',26) 'Delta3y',
+    ael_f(t,'Tri_Optima_utils.get_delta',27) 'Delta4y',
+    ael_f(t,'Tri_Optima_utils.get_delta',28) 'Delta5y',
+    ael_f(t,'Tri_Optima_utils.get_delta',29) 'Delta6y', 
+    ael_f(t,'Tri_Optima_utils.get_delta',30) 'Delta7y',
+    ael_f(t,'Tri_Optima_utils.get_delta',31) 'Delta8y',
+    ael_f(t,'Tri_Optima_utils.get_delta',32)'Delta9y',
+    ael_f(t,'Tri_Optima_utils.get_delta',33) 'Delta10y',
+    ael_f(t,'Tri_Optima_utils.get_delta',34) 'Delta11y',
+    ael_f(t,'Tri_Optima_utils.get_delta',35) 'Delta12y',
+    ael_f(t,'Tri_Optima_utils.get_delta',36) 'Delta13y',
+    ael_f(t,'Tri_Optima_utils.get_delta',37) 'Delta14y',
+    ael_f(t,'Tri_Optima_utils.get_delta',38) 'Delta15y',
+    ael_f(t,'Tri_Optima_utils.get_delta',39) 'Delta20y',
+    ael_f(t,'Tri_Optima_utils.get_delta',40) 'Delta25y',
+    ael_f(t,'Tri_Optima_utils.get_delta',41)'DeltaRest',
+    
+     display_id(i, 'curr')     'DELTA_CURR'
+
+into
+    temp
+
+from
+ trade t,
+ instrument i,
+ calendar cal, 
+ instrument curr,
+ leg currleg ,
+ leg l /*,
+ leg lf */
+where
+ match_filter(t,@Filter{;TradeFilter.fltid})
+and t.insaddr = i.insaddr
+and i.instype = 'FRA'
+and i.insaddr = l.insaddr
+/*and i.insaddr = lf.insaddr*/
+and curr.insaddr = i.curr
+and curr.insaddr = currleg.insaddr
+and currleg.pay_calnbr = cal.calnbr
+
+
+
+
+
+
+
+
+select
+ t.TRADE_ID,
+ t.CP_ID,
+ t.TRADE_UNIT_ID,
+ t.CP_TRADE_ID,
+ t.INS_TYPE,
+ t.INS_ID, 
+ t.NOMINAL,
+ t.CURR,
+ t.PAY_REC,
+ t.COUPON_RATE,
+ t.COUPON_PER,
+ t.DAYCOUNT,
+ t.FLOAT_RATE_INDEX,
+ t.FLOAT_RATE_INDEX_PER,
+ t.FLOAT_RATE_PAY_PER,
+ t.FLOAT_RATE_FIXING_PER,
+ t.FLOAT_SPREAD,
+ t.FLOAT_RATE, 
+ t.TRADE_DATE,
+ t.START_DATE,
+ t.END_DATE,
+ t.ROLL_DATE,
+ t.NEXT_FIXING_DATE,
+ t.NEXT_FLOAT_PAY_DATE,
+ t.NEXT_FIX_PAY_DATE,
+ t.MTM_DATE,
+ t.MTM_VALUE,
+ t.MTM_CURR,
+ t.Deltatot    '_DELTA_TOTAL',
+ t.Delta1d    'DELTA_1D',
+ t.Delta1w    'DELTA_1W',
+ t.Delta1m    'DELTA_1M',
+ t.Delta2m    'DELTA_2M',
+ t.Delta3m    'DELTA_3M',
+ t.Delta4m    'DELTA_4M',
+ t.Delta5m    'DELTA_5M',
+ t.Delta6m    'DELTA_6M',
+ t.Delta7m    'DELTA_7M',
+ t.Delta8m    'DELTA_8M',
+ t.Delta9m    'DELTA_9M',
+ t.Delta10m    'DELTA_10M',
+ t.Delta11m    'DELTA_11M',
+ t.Delta12m    'DELTA_12M',
+ t.Delta13m    'DELTA_13M',
+ t.Delta14m    'DELTA_14M',
+ t.Delta15m    'DELTA_15M',
+ t.Delta16m    'DELTA_16M',
+ t.Delta17m    'DELTA_17M',
+ t.Delta18m    'DELTA_18M',
+ t.Delta19m    'DELTA_19M',
+ t.Delta20m    'DELTA_20M',
+ t.Delta21m    'DELTA_21M',
+ t.Delta22m    'DELTA_22M',
+ t.Delta23m    'DELTA_23M',
+ t.Delta2y    'DELTA_2Y',
+ t.Delta3y    'DELTA_3Y',
+ t.Delta4y    'DELTA_4Y',
+ t.Delta5y    'DELTA_5Y',
+ t.Delta6y    'DELTA_6Y',
+ t.Delta7y    'DELTA_7Y',
+ t.Delta8y    'DELTA_8Y',
+ t.Delta9y    'DELTA_9Y',
+ t.Delta10y    'DELTA_10Y',
+ t.Delta11y    'DELTA_11Y',
+ t.Delta12y    'DELTA_12Y',
+ t.Delta13y    'DELTA_13Y',
+ t.Delta14y    'DELTA_14Y',
+ t.Delta15y    'DELTA_15Y',
+ t.Delta20y    'DELTA_20Y',
+ t.Delta25y    'DELTA_25Y',
+ t.Deltarest    'DELTA_99Y',
+ t.DELTA_CURR
+
+from
+ temp t 
+where
+ t.FLOAT_RATE_INDEX ~= 'PRIME'

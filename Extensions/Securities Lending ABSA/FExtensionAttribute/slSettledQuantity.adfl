@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FInstrument:slSettledQuantity = select(slSettledTradesResult == [], 
+  true->0.0, 
+  default->sumOf(slSettledTradesResult :* "sl_open_position"));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slSettledQuantity = sumOf(instruments :* "slSettledQuantity");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slSettledQuantity = instrument :* "slSettledQuantity";

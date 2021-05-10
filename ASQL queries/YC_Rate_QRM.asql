@@ -1,0 +1,54 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','YC_Rate_QRM') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'YC_Rate_QRM' and p.type = 'SQL Query' 
+ */
+
+/*
+coded by Anil Prbhoo based on the yc periods provided by the QRM team
+*/
+
+
+
+
+select
+
+yield_curve_name'YC_name',
+c.insid'YC_currency',
+l.daycount_method'Currency daycount_method',
+Today'start_date',
+date_add_delta(Today,7,0,0)'future_date',
+bankday_adjust(date_add_delta(Today,7,0,0), c.insid, 'Mod. Following')'adjusted_future_date',
+100 * ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name, Today, bankday_adjust(date_add_delta(Today,7,0,0), c.insid, 'Mod. Following'),'Annual Comp',l.daycount_method,'Spot Rate',c.insid)'Rate'
+
+from
+yieldcurve yc, instrument c, leg l
+
+where
+yc.yield_curve_name ='GBP-SWAP'
+and yc.curr = c.insaddr
+and c.insaddr = l.insaddr
+
+union
+
+
+select
+
+yield_curve_name'YC_name',
+c.insid'YC_currency',
+l.daycount_method'Currency daycount_method',
+Today'start_date',
+date_add_delta(Today,0,1,0)'future_date',
+bankday_adjust(date_add_delta(Today,0,1,0), c.insid, 'Mod. Following')'adjusted_future_date',
+100 * ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name, Today, bankday_adjust(date_add_delta(Today,0,1,0), c.insid, 'Mod. Following'),'Annual Comp',l.daycount_method,'Spot Rate',c.insid)'Rate'
+
+from
+yieldcurve yc, instrument c, leg l
+
+where
+yc.yield_curve_name in ('PLN-SWAP-3M','SEK-SWAP','NOK-SWAP', 'MZN-GOVI-ME','MUR-GOVI-ME','JPY-OIS-SWAP','JPY-SWAP','GBP-SWAP','AUD.LIBOR.3M')
+and yc.curr = c.insaddr
+and c.insaddr = l.insaddr

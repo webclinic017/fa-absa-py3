@@ -1,0 +1,13 @@
+[Default]FCombInstrMap:priceDeltaProviderValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->weight * contractSize * timeDistributionFactor * instrument :* "priceDeltaProviderValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekProviderShiftSize, priceGreekProviderUseRelativeShift, priceGreekDifferenceForm, priceGreekShiftFilter, useCommodityRiskFactors] * fxLegToInstrumentOnLegSpotDay, 
+  false->combinationSpotZero);
+[Default]FCombination:priceDeltaProviderValuesInstrument = select(splitCombination, 
+  true->select(priceGreekRiskFactorNodeCount > 0, 
+    true->sumOf((instrumentMaps) :* "priceDeltaProviderValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekProviderShiftSize, priceGreekProviderUseRelativeShift, priceGreekDifferenceForm, priceGreekShiftFilter, useCommodityRiskFactors]) / combinationDivisionFactor, 
+    false->instrumentSpotZero), 
+  false->select(priceGreekRiskFactorNodeCount > 0, 
+    true->priceDeltaProviderValuesInstrumentImpl, 
+    false->instrumentSpotZero));
+[Default]FInstrument:priceDeltaProviderValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->priceDeltaProviderValuesInstrumentImpl, 
+  false->instrumentSpotZero);

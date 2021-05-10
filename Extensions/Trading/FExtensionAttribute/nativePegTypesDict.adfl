@@ -1,0 +1,7 @@
+[Trading]FGroupingOrder:nativePegTypesDict = nil;
+[Trading]FInternalMarketOrder:nativePegTypesDict = switch(movedPegTypesDict, 
+  nil->trading:nativePegTypesDict, 
+  default->(trading:nativePegTypesDict).AddAll(movedPegTypesDict));
+[Trading]FOrderBook:nativePegTypesDict = trading:nativePegTypesDict;
+[Trading]FOwnOrder:nativePegTypesDict = trading:nativePegTypesDict;
+[Trading]FTradingInterface:nativePegTypesDict = acm.Trading.CreatePegTypeAliases(object);

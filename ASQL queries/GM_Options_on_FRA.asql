@@ -1,0 +1,18 @@
+select
+
+i.insid,
+i.exp_day,
+i.exp_time,
+display_id(t,'prfnbr'),
+t.trdnbr
+
+
+
+from instrument i, trade t
+
+where i.insaddr = t.insaddr
+and i.instype = 'Option'
+and i.und_instype in ('Swap')
+and i.exp_day > '2009-06-03'
+and t.status not in ('Simulated','Void')
+/*and i.exp_time = 0*/

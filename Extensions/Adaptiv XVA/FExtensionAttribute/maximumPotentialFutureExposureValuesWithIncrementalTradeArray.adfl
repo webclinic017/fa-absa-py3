@@ -1,0 +1,12 @@
+[Adaptiv XVA]FCreditBalance:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = scenarioaxis(maximumPotentialFutureExposureValues, <["incrementalTrdsList"], , , incTrds>, <"includeAllTrades", , , true>);
+[Adaptiv XVA]FInstrumentAndTrades:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = maximumPotentialFutureExposureValuesWithIncrementalTradeArray = select(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:maximumPotentialFutureExposureValuesWithIncrementalTradeArray [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FSingleInstrumentAndTrades:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = select(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:maximumPotentialFutureExposureValuesWithIncrementalTradeArray [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FTrade:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = switch(nil == matchingCreditBalanceInstrument, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:maximumPotentialFutureExposureValuesWithIncrementalTradeArray [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FTradeRow:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = trade:maximumPotentialFutureExposureValuesWithIncrementalTradeArray;
+[Adaptiv XVA]FUndefinedObject:maximumPotentialFutureExposureValuesWithIncrementalTradeArray = nil;

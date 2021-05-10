@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FSingleInstrumentAndTrades:recalledAdjustedNumDaysToOneYearExpiry = select(sl_instype, 
+  "SecurityLoan"->(object.Trades.AsArray.At(0)) :* "recalledAdjustedNumDaysToOneYearExpiry", 
+  default->nil);
+[Securities Lending ABSA]FTrade:recalledAdjustedNumDaysToOneYearExpiry = select(instrument:isLoanRecalled, 
+  true->recalledNumDaysToOneYearExpiry, 
+  false->numDaysToOneYearExpiry);
+[Securities Lending ABSA]FTradeRow:recalledAdjustedNumDaysToOneYearExpiry = trade:recalledAdjustedNumDaysToOneYearExpiry;

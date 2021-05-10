@@ -1,0 +1,8 @@
+[Default]FCashFlowInstrument:yieldToMaturitySpread = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    true->marketYieldToMaturity - dividedByHundred(theoreticalYieldToMaturityRiskFreeDouble), 
+    false->nil), 
+  false->nil);
+[Default]FInstrument:yieldToMaturitySpread = 0.0;
+[Default]FInstrumentAndTrades:yieldToMaturitySpread = instrument:yieldToMaturitySpread;
+[Default]FMultiInstrumentAndTrades:yieldToMaturitySpread = nil;

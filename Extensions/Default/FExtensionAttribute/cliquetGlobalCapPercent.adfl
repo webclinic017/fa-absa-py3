@@ -1,0 +1,9 @@
+[Default]FInstrument:cliquetGlobalCapPercent = nil;
+[Default]FInstrumentAndTrades:cliquetGlobalCapPercent = instrument:cliquetGlobalCapPercent;
+[Default]FMultiInstrumentAndTrades:cliquetGlobalCapPercent = nil;
+[Default]FOption:cliquetGlobalCapPercent = select(isCliquet, 
+  true->select(cliquetType == "Reversed", 
+    true->exotic.GlobalCap, 
+    false->nil), 
+  false->nil);
+[Default]FPriceAggregate:cliquetGlobalCapPercent = instrument:cliquetGlobalCapPercent;

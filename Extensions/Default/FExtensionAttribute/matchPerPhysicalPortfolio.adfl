@@ -1,0 +1,10 @@
+[Default]FObject:matchPerPhysicalPortfolio = nilObject:matchPerPhysicalPortfolio [positionObject];
+[Default]FPosition:matchPerPhysicalPortfolio = nilObject:matchPerPhysicalPortfolio [positionObject];
+[Default]FPositionSpecification:matchPerPhysicalPortfolio = value(hasUniquePortfolioAttribute(object));
+[Default]FUndefinedObject:matchPerPhysicalPortfolio[positionObject] = select(positionSpecification, 
+  nil->select(portfolio, 
+    nil->true, 
+    default->select(portfolio:isPhysicalPortfolio, 
+      true->true, 
+      false->"Match Per Physical Portfolio" == tradeFilterMatchChoice)), 
+  default->positionSpecification:matchPerPhysicalPortfolio);

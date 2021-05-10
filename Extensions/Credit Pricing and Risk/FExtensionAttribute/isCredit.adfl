@@ -1,0 +1,11 @@
+[Credit Pricing and Risk]FCashFlow:isCredit = leg:isCredit;
+[Credit Pricing and Risk]FCashFlowInstrument:isCredit = select(isSingleLegInstrument, 
+  true->firstLeg:isCredit, 
+  false->value(object.IsCredit));
+[Credit Pricing and Risk]FCashFlowMoneyFlow:isCredit = leg:isCredit;
+[Credit Pricing and Risk]FCln:isCredit = true;
+[Credit Pricing and Risk]FCombination:isCredit = includesAny(instruments :* "isCredit", true);
+[Credit Pricing and Risk]FCreditDefaultSwap:isCredit = true;
+[Credit Pricing and Risk]FCurrency:isCredit = false;
+[Credit Pricing and Risk]FInstrument:isCredit = false;
+[Credit Pricing and Risk]FLeg:isCredit = value(object.IsCredit);

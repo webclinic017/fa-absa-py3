@@ -1,0 +1,7 @@
+[Fixed Income Market Making]FQuoteController:qisISpreadCurve = shunt((quoteParameter <> nil), 
+  false->nil, 
+  default->shunt(quoteParameter.QuoteInsSpreadFromType("Par Rate"), 
+    nil->nil, 
+    default->shunt(quoteParameter.QuoteInsSpreadFromType("Par Rate").UnderlyingYieldCurve, 
+      nil->nil, 
+      default->quoteParameter.QuoteInsSpreadFromType("Par Rate").UnderlyingYieldCurve)));

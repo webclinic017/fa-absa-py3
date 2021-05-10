@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_NewGold_Mail_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_NewGold_Mail_Extract' and p.type = 'SQL Query' 
+
+
+/*Rates extract for NewGold and mailed to ABSA website admin*/
+select 
+	p.settle,
+	display_id(p,'insaddr') 'Instrument',
+	display_id(p,'curr') 'Currency',
+	p.day
+from lastprice p
+where
+	p.day >= @DATE{YESTERDAY}
+and	display_id(p,'insaddr') in ('USD','ZAR/GLD')
+and 	display_id(p,'ptynbr') = 'SPOT' 
+and 	display_id(p,'curr') = 'ZAR'

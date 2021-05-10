@@ -1,0 +1,13 @@
+[Default]FInstrument:absoluteStrikePrice = select(storedStrikeType, 
+  Absolute->select(isForwardStart and forwardStartHasPassedInitialFixing, 
+    true->forwardStartInitialFixing, 
+    default->select(isSpreadOption, 
+      true->collapse(forwardStrikeSpread), 
+      false->storedStrike)), 
+  default->select(isSpreadOption, 
+    true->storedStrike, 
+    default->absoluteStrikePriceFromRelative(underlyingPriceForStrike, storedStrike)), 
+  None->storedStrike);
+[Default]FInstrumentAndTrades:absoluteStrikePrice = instrument:absoluteStrikePrice;
+[Default]FOrderBook:absoluteStrikePrice = instrument:absoluteStrikePrice;
+[Default]FPriceAggregate:absoluteStrikePrice = instrument:absoluteStrikePrice;

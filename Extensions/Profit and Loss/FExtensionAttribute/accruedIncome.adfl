@@ -1,0 +1,11 @@
+[Profit and Loss]FCombInstrMapAndTrades:accruedIncome = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:accruedIncome = nil;
+[Profit and Loss]FInstrumentAndTrades:accruedIncome = select(isCashGrouping, 
+  true->collapse(cashAccruedIncome), 
+  default->collapse(assetAccruedIncome));
+[Profit and Loss]FMultiInstrumentAndTrades:accruedIncome = select(isCashGrouping, 
+  true->collapse(cashAccruedIncome), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetAccruedIncome), 
+    default->collapse(cashAssetAccruedIncome)));
+[Profit and Loss]FPortfolioInstrumentAndTrades:accruedIncome = collapse(cashAssetAccruedIncome);

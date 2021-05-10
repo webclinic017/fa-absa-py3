@@ -1,0 +1,7 @@
+[FRTB Components]FCashFlowInstrument:instrumentIsJTDCashSensitive = select(0 == defaultSensitiveLegs.Size, 
+  true->false, 
+  false->select(object.IsDefaulted(instrumentSpotDate), 
+    true->false, 
+    false->true));
+[FRTB Components]FDerivative:instrumentIsJTDCashSensitive = underlying:instrumentIsJTDCashSensitive;
+[FRTB Components]FInstrument:instrumentIsJTDCashSensitive = false;

@@ -1,0 +1,9 @@
+[Default]FInstrument:monitorBarrierIsCrossedHiLo = nil;
+[Default]FOption:monitorBarrierIsCrossedHiLo = select(isKikoOption, 
+  true->nil, 
+  false->select(isDoubleBarrier, 
+    true->monitorUpperBarrierIsCrossedHiLo or monitorLowerBarrierIsCrossedHiLo, 
+    false->monitorSingleBarrierIsCrossedHiLo));
+[Default]FPriceLevelRow:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;
+[Default]FSingleInstrumentAndTrades:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;
+[Default]FTradeRow:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;

@@ -1,0 +1,82 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_Bond_Confirmation_fix') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_SACM_Bond_Confirmation_fix' and p.type = 'SQL Query' 
+ 
+/*
+Query	:	SACM_Bond_Confirmation
+Report	:	SACM_Bond_Confirmation
+Purpose	:	Provide required data for bond confirmations.
+Logic	:	Straightforward.
+History	:	
+	2003/10/28 - Created.
+*/
+
+/* Currently the query will only work for bonds with a quote type of 'Yield'. */
+
+select
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.telephone						'CPTelephone',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	t.trdnbr						'OurDealRef',
+	cp.ptyid						'CPCode',
+	display_id(t, 'trader_usrnbr')				'DealerCode',
+	ael_s(t, 'CreateBondConfoName', 
+	 i.insid, l.fixed_rate,i.exp_day)			'StockDesc',
+	convert('time', t.time, '%d/%m/%Y %H:%M:%S')		'DealDate',
+	convert('date', t.value_day, '%d/%m/%Y')		'SettleDate',
+	t.price							'YTM',
+	abs(nominal_amount(t))					'Nominal',
+	abs(clean_from_yield(i, t.value_day,,,t.price)
+	 * nominal_amount(t) / 100)				'CleanPrice',
+	abs(t.premium)						'Consideration',
+	dirty_from_yield(i, t.value_day,,,t.price)
+	 - clean_from_yield(i, t.value_day,,,t.price) > 0
+		? days_between(cf.start_day, 
+		   t.value_day, l.daycount_method)		
+		: days_between(ex_coupon_date(cf), 
+		   t.value_day, l.daycount_method)		'NoOfDays',
+	abs((dirty_from_yield(i, t.value_day,,,t.price)
+	 - clean_from_yield(i, t.value_day,,,t.price))
+ 	 / 100 * nominal_amount(t))				'AccruedInterest',
+	dirty_from_yield(i, t.value_day,,,t.price)
+	 - clean_from_yield(i, t.value_day,,,t.price) > 0
+		? 'CUM'
+		: 'EX'						'CumEx',
+	t.quantity > 0
+		? 'BOUGHT'
+		: 'SOLD'					'BoughtSold',
+	t.quantity > 0
+		? 'FROM'
+		: 'TO'						'FromTo'	
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	leg		l,
+	cashflow	cf
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	cf.pay_day >= t.value_day
+and	cf.start_day <= t.value_day
+and	cf.type in ('Fixed Amount')
+and	i.instype in ('Bond','IndexLinkedBond','Zero')
+and	i.quote_type = 'Yield'
+and	t.status in ('FO Confirmed', 'BO Confirmed','BO-BO Confirmed')
+and	(
+	time_to_day(t.time) = @Date{Today}
+and	(	
+	fit_filter(t, @TradeFilter{;tradefilter.fltid})
+or	cp.ptyid = @Counterparty{;party.ptyid where type = 'Counterparty'}
+	)
+or	t.trdnbr = @TradeNumber{0})

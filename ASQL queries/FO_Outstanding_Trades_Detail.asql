@@ -1,0 +1,60 @@
+/*------------------------------------------------------------------
+    Date                : [03/05/2010][22/02/2011][08/12/2011]
+    Purpose             : [Outputs a detailed report of all outstanding FO-confirmed trades][Modified the report to accept tradefilters]
+                          [Added column 'Portfolio Code', changed columns to strings for output]
+    Department and Desk : [Middle Office][SM PCG][IT CTB]
+    Requester           : [Front Office][Thalia Petousis][Karin Bonthuys]
+    Developer           : [Dirk Strauss][Tshepo Mabena][Bhavnisha Sarawan]
+    CR Number           : [306264][578033][851308]
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+                ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log', 'FO_Outstanding_Trades_Detail') 'Name'
+into 
+    ASQL_LOG_TEMP
+from TextObject p 
+where 
+    p.name = 'FO_Outstanding_Trades_Detail' and p.type = 'SQL Query'
+
+select
+    add_info(p, 'Parent_Portfolio')                           'Area',    
+    t.trdnbr,
+    dirk_utils.get_biz_days(time_to_day(execution_time))      'days',
+    display_id(t, 'prfnbr')                                   'Portfolio',
+    p.prfnbr                                                  'Portfolio Code',
+    to_string(i.instype)                                      'instype',            
+    i.insid, 
+    execution_time,
+    u.name                                                    'Trader', 
+    u1.name                                                   'Create User',
+    u2.name                                                   'Updat User',
+    maturity_date(t)                                          'mat_date',
+    pty.ptyid                                                 'Ctpy',
+    to_string(pty.type)                                       'ctpy_type',
+    t.aggregate ~= 0 ? 'Yes' : 'No'                           'aggregated',    
+    to_string(t.Status)                                       'status'    
+from 
+    trade t,
+    portfolio p,
+    user u,
+    user u1,
+    user u2,
+    instrument i,
+    party pty,
+    party pp         
+where    
+        t.trader_usrnbr *= u.usrnbr
+    and t.creat_usrnbr  *= u1.usrnbr
+    and t.updat_usrnbr  *= u2.usrnbr
+    and t.insaddr = i.insaddr
+    and t.prfnbr *= p.prfnbr
+    and t.execution_time >= day_to_time(@StartDate{'1970-01-02'})
+    and t.counterparty_ptynbr *= pty.ptynbr    
+    and t.acquirer_ptynbr = pp.ptynbr
+    and match_filter(t, @Filter{;tradefilter.fltid})
+    
+order by
+        1, 3 desc, 2

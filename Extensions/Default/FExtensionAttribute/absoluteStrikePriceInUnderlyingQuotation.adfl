@@ -1,0 +1,5 @@
+[Default]FInstrument:absoluteStrikePriceInUnderlyingQuotation = select(isSpreadOption and underlying:hasFloatLeg, 
+  true->collapse(forwardStrikeSpread), 
+  false->select((strikeQuotation == underlyingQuotation) or isSwaption or isSpreadOption, 
+    true->collapse(absoluteStrikePrice), 
+    false->underlying.QuoteToQuote(absoluteStrikePrice, valuationDate, legInformations, staticLegInformations, strikeQuotation, underlyingQuotation, false, roundingInformation)));

@@ -1,0 +1,70 @@
+[OperationsViewerAxlFormulas]FObject:Cash Closing Balance XD
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+
+isValueDayTodayPlusXDaysOrLess = Or(Compare.IsEqual(&'value_day', DateTime.AddWeekday($X)), Compare.IsLess(&'value_day', DateTime.AddWeekday($X)));
+
+{
+}
+
+isActive = Compare.IsEqual(&'activeCashExtAttr', True);
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+
+isActiveAndBeforeOrEqualTodayPlusXDays = And(@isActive(), @isValueDayTodayPlusXDaysOrLess($X));
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+         Label:'Number of weekdays',
+         Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'Closing Balance XD',
+    GroupLabel:'Cash',
+    Description:'Total active cash with value day less than or equal to today + given number of weekdays.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'Closing Balance {X.Label}D',
+    Description:'Total active cash with value day less than or equal to today + {X.Label} weekdays.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(If(And(Not(Compare.IsNegative($X)), @isActiveAndBeforeOrEqualTodayPlusXDays($X)), &'amount', 0.0)), AttributeDimensions = AttributeList(['curr']));
+
+
+...

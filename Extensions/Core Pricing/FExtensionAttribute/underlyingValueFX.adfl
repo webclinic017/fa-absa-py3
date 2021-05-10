@@ -1,0 +1,3 @@
+[Core Pricing]FFxRate:underlyingValueFX[fxSpotRateForValuationDateRate, discountingType] = select(moveFXSpotToValuationDate, 
+  false->fxSpotRateForValuationDateRate, 
+  true->(domesticCurrency:fxDiscountCurve [discountingType]).DiscountValue(underlyingValuationDateRate, instrumentSpotDate) * (foreignCurrency:fxDiscountCurve [discountingType]).Discount(valuationDate, instrumentSpotDate));

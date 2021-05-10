@@ -1,0 +1,6 @@
+[Default]FFxRate:marketSpotValues = select(isReciprocal, 
+  true->normalFxRate :* "marketOrFixedMarkToMarketInstrumentValue" [priceSource, doSplitAll], 
+  false->marketOrFixedMarkToMarketInstrumentValue) / (currencyPairForeignCurrency :* "fxSpotRate" [allowMarkToMarketPrice := true, fxToCurrency := currencyPairDomesticCurrency]);
+[Default]FInstrument:marketSpotValues = select(useBidAskValuation, 
+  true->marketOrFixedMarkToMarketInstrumentValueBidAsk, 
+  false->marketOrFixedMarkToMarketInstrumentValue);

@@ -1,0 +1,32 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_MO_temp') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_MO_temp' and p.type = 'SQL Query' 
+
+
+
+
+
+select 
+
+t.trdnbr,
+i.insid,
+nominal_amount(t),
+p.prfid
+
+
+from
+trade t,
+instrument i,
+portfolio p
+
+
+where
+t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.instype in ('BuySellback','Repo/Reverse','Bond')
+and i.exp_day > date_add_delta(TODAY,0,0,0)
+and i.insid LIKE '%R157%'
+and p.prfid = 'JOB12'

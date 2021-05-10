@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FCommodity:carryCost = select(useExplicitConvenienceYield, 
+  true->underlyingCurrencyDiscountRate - convenienceYield, 
+  false->select(hasMappedPriceCurve, 
+    false->repoCurve.Rate(carryStartDate, carryEndDate), 
+    true->calc_carry_cost(carryStartDate, carryEndDate, priceCurveModel(priceCurve, carryStartDate).Number, priceCurveModel(priceCurve, carryEndDate).Number)));

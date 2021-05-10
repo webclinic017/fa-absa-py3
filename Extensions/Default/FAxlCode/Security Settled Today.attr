@@ -1,0 +1,23 @@
+[Default]FObject:Security Settled Today
+{
+}
+isSettledDayToday = Compare.IsEqual(&'settled_day', DateTime.Today());
+
+{
+  DisplayInformation:
+  {
+    Label:'Settled Today',
+    GroupLabel:'Security',
+    Description:'Settled security settlements with settled day equal to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(And(&'settledSecurityExtAttr', @isSettledDayToday()), &'amount', 0.0));
+
+...

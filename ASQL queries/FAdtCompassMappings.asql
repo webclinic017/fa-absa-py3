@@ -1,0 +1,16 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FAdtCompassMappings') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FAdtCompassMappings' and p.type = 'SQL Query' 
+ 
+
+SELECT t.trdnbr, t.optional_key 
+FROM trade t,
+    portfolio p
+WHERE 
+t.prfnbr = p.prfnbr
+and p.prfid IN ( 'VOE', 'G7XF', 'XFXM', 'G7OE', 'BXFXM', 'BVOE', 'Inter_Options', 'Africa_OPT', 'Africa FXSwaps', 'PT_Options', 'RND_Swaps', 
+  'PT_Swaps', 'Prop_EA', 'Prop_JN', 'Prop_EASwaps', 'Prop_JNSwaps', 'LEHMAN BANKRUPTCY', 'Africa_Curr', 'AD_Curr', 'RND_Curr', 'PT_Curr')
+AND optional_key LIKE 'DTC%'

@@ -1,0 +1,16 @@
+#grouping: aef base/profit and loss
+
+[Default]FCombInstrMapAndTrades:uPL = nil;
+[Default]FDeliverableLinkAndTrades:uPL = nil;
+[Default]FInstrumentAndTrades:uPL = select(isCashGrouping, 
+  true->collapse(cashUPL), 
+  default->collapse(assetUPL));
+[Default]FMultiInstrumentAndTrades:uPL = select(isCashGrouping, 
+  true->collapse(cashUPL), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetUPL), 
+    default->collapse(cashAssetUPL)));
+[Default]FPortfolioInstrumentAndTrades:uPL = collapse(cashAssetUPL);
+[Default]FPriceAggregate:uPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "uPL");

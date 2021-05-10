@@ -1,0 +1,4 @@
+[Core Pricing]FCombInstrMapAndTrades:combinationAmountPercentFixFx = combinationInstrumentMap :* "marketLegComponentSpotValueDV * fixFxLegToInstrument / combinationDivisionFactor" [priceSource] / combination :* "theoreticalSpotValueFromComponentMarketValueFixFx" [priceSource, isSplitAllGrouped];
+[Core Pricing]FPriceAggregate:combinationAmountPercentFixFx = select(parentPriceFeed, 
+  nil->nil, 
+  default->instrumentMap :* "marketLegComponentSpotValueDV * fixFxLegToInstrument / combinationDivisionFactor" [priceSource] / parentPriceFeed:theoreticalSpotValueFromComponentMarketValueFixFx);

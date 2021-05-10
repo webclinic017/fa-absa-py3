@@ -1,0 +1,281 @@
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','dw_SNI_Report_190407') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'dw_SNI_Report_190407' and p.type = 'SQL Query' 
+ 
+/*per tradefilter */
+/*Changes */
+/*2007/05/15 ABMW438: i.exp_day >= today changed to i.exp_day > today */
+/*This was done to remove instances where Front ignored CLNs expiring today but didn't ignore CDSs expiring today */    
+/*2007/07/13 ABMW438: updated the trade filter */
+/*2008/01/16 abmw438 updated tradefilters and added value date <= today statement */
+/*2008/04/10 ABDE059 updated exposures to reflect only ZAR amounts  */
+/*2009/03/10 ABWB248 updated Credit derivative exposures to be calculated using mtm values expressed in USD */
+
+/*
+   Changes
+   
+   Developer           : Tshepo Mabena
+   Purpose             : Correction of mtm value for bonds.
+   Department and Desk : Credit Risk - Traded Product Exposure Management 
+   Requester           : Reshma Rampersadh 
+   CR Number           : 208731
+   
+   Developer           : Tshepo  mabena
+   Purpose             : Adding PV and Nominal columns and excluding portfolio 9803AFS
+   Department and Desk : Credit Risk - Traded Product Exposure Management 
+   Requester           : Reshma Rampersadh
+   CR Number           : 211560
+   
+   Developer           : Tshepo  mabena
+   Purpose             : Exclusion of the following portfoli's :9803,Portfolio Managers,CD_CLN_SECONDARY
+   Department and Desk : Credit Risk - Traded Product Exposure Management 
+   Requester           : Reshma Rampersadh
+   CR Number           : 230080
+   
+   Developer           : Tshepo  mabena
+   Purpose             : Exclusion of the following portfoli's :CD_FAIR VALUE NOTES,CD_HYBRID,CD_HYBRID_FIXED,CD_LEVERAGED NOTES,CD_STANDARD BANK,CDS_HTM
+   Department and Desk : Credit Risk - Traded Product Exposure Management 
+   Requester           : Reshma Rampersadh
+   CR Number           : 329487
+*/
+
+/*************************************************Credit Derivatives Only**************************************************************/
+
+select
+    t.trdnbr,
+    i.insid,
+    i.instype                                             'InsType',
+    display_id(ii, 'issuer_ptynbr')                       'Issuer',
+    display_id(t, 'prfnbr')                               'Portfolio',
+    sum(c.nominal_factor*t.quantity *1000000)             'Nominal',
+    mtm_value_fo(t,,'USD')                                'mtm',
+    (sum((c.nominal_factor*t.quantity *1000000) + mtm_value_fo(t,,'USD')))*used_price(cr2,today,'ZAR') 'Exposure',
+    l.end_day                                             'End_Day',
+    today                                                 'BusinessDate',
+    time_to_day(t.time)                                   'Trade_Date',
+    u.name                                                'Dealer',
+    ael_f(,'SAIT_LandingArea_Functions.PresentValue',t)   'PV'
+    
+into 
+    temp 
+from
+    trade      t,
+    instrument i,
+    instrument ii,
+    leg        l,
+    cashflow   c,
+    instrument cr2,
+    user       u
+    
+where
+        /*match_filter(t, 'CredDer_All') 
+    and*/ t.insaddr = i.insaddr
+    and l.insaddr = i.insaddr
+    and i.exp_day > today
+    and l.type = 'Credit Default'  
+    and l.legnbr = c.legnbr
+    and l.credit_ref = ii.insaddr
+    /*and t.trdnbr not in ('282016','472928')*/
+    and t.value_day <= today
+    and i.curr = cr2.insaddr
+    and u.userid = display_id(t,'trader_usrnbr')
+    and t.status not in ('Simulated','Terminated','Void')
+    and match_filter(t, @TradeFilter{;tradefilter.fltid})
+    
+/******************************************** Combination Instruments - CLN Booked As Combo******************************************/
+
+select
+	t.trdnbr ,
+	i.insid ,
+	i.instype                                           'InsType',
+	display_id(ii, 'issuer_ptynbr')                     'Issuer',
+	display_id(t, 'prfnbr')                             'Portfolio',
+
+	 i.instype  = 'FreeDefCF'  and c.type  = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity
+	: i.instype = 'Combination' and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity/i.index_factor
+	: i.instype = 'Combination' and c.type not in ('Fixed Amount') ? c.nominal_factor*t.quantity
+    : c.nominal_factor*t.quantity *1000000              'Nominal',
+    
+    mtm_value_fo(t)                                     'mtm',
+    present_value(t)* used_price(cr2,today,'ZAR')       'Exposure',
+    l.end_day                                           'End_Day',
+    today                                               'BusinessDate',
+    time_to_day(t.time)                                 'Trade_Date',
+    u.name                                              'Dealer',
+    ael_f(,'SAIT_LandingArea_Functions.PresentValue',t) 'PV'
+
+into 
+   temp
+from 	
+   instrument      i,
+   instrument      ii,
+   trade           t,
+   leg             l,
+   cashflow        c,
+   party           p,
+   party           cp,
+   instrument      cr,
+   instrument      cr2,
+   instrument      cur,
+   portfolio       port,
+   CombinationLink cl,
+   Instrument      und_ins,
+   user            u
+
+where
+        i.insaddr = t.insaddr
+    and l.legnbr = c.legnbr
+    and i.insaddr = cl.owner_insaddr
+    and cl.member_insaddr = und_ins.insaddr
+    and und_ins.insaddr = l.insaddr
+    and l.credit_ref = ii.insaddr
+    and i.curr = cr2.insaddr
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = port.prfnbr
+    and t.counterparty_ptynbr = cp.ptynbr
+    and l.type = 'Credit Default' 
+    and l.credit_ref *= cr.insaddr
+    and cur.insid = 'ZAR'
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.instype = 'Combination'
+    /*and match_filter(t, 'CredDer_All')*/
+    and t.value_day <= today
+    and u.userid = display_id(t,'trader_usrnbr')
+    and match_filter(t, @TradeFilter{;tradefilter.fltid})
+    
+/**************************************************** Bonds Index-Linked and Zeros***************************************************/    
+
+select
+    t.trdnbr,
+    i.insid,
+    i.instype                                           'InsType',
+    display_id(i, 'issuer_ptynbr')                      'Issuer',
+    display_id(t, 'prfnbr')                             'Portfolio',
+    sum(t.quantity*1000000)                             'Nominal',
+    mtm_value_fo(t)                                     'mtm',
+    mtm_value_fo(t)                                     'Exposure',
+    i.exp_day                                           'End_Day',
+    today                                               'BusinessDate',
+    time_to_day(t.time)                                 'Trade_Date',
+    u.name                                              'Dealer',
+    ael_f(,'SAIT_LandingArea_Functions.PresentValue',t) 'PV'
+ 
+into 
+    temp     
+from
+    trade       t,
+    instrument  i,
+    instrument  cr2,
+    user        u
+where
+        i.instype in ('Bond', 'IndexLinkedBond')
+    and t.insaddr = i.insaddr
+    and i.exp_day > today
+    and t.status not in ('Void', 'Simulated', 'Terminated')
+    and t.value_day <= today    
+    and i.curr = cr2.insaddr
+    and u.userid = display_id(t,'trader_usrnbr')
+    and match_filter(t, @TradeFilter{;tradefilter.fltid})
+
+/****************************************************************Main******************************************************************/
+
+select
+    t.trdnbr,
+    t.insid,
+    t.InsType,
+    t.Issuer,
+    t.Portfolio,
+    t.Nominal,
+    t.mtm,
+    t.Exposure,
+    t.End_Day,
+    t.BusinessDate,
+    t.Trade_Date,
+    t.Dealer,
+    t.PV,
+    t.end_day <= date_add_delta(today,0,1,0) ?   '1m' 
+    : t.end_day <= date_add_delta(today,0,3,0) ? '3m'
+    : t.end_day <= date_add_delta(today,0,6,0) ? '6m'
+    : 'Rest'                                     'Category'  
+    
+into 
+   temp2  
+from
+   temp t
+   
+where 
+   t.Exposure ~= 0
+   and t.Issuer ~= ''
+   /*and t.Portfolio not in ('9803AFS','9803CARRIES','9803HFT','Portfolio Managers','CD_CLN_SECONDARY','CD_FAIR VALUE NOTES','CD_HYBRID','CD_HYBRID_FIXED','CD_LEVERAGED NOTES','CD_STANDARD BANK','CDS_HTM')*/
+   /*and match_filter(t, @Filter{;tradefilter.fltid})*/
+select 
+   t.Issuer      'Issuer'
+into 
+   temp3
+from
+   temp2 t
+    
+group by t.Issuer
+order by t.Issuer
+
+select 
+   t.Issuer      'Issuer',
+   9999          'DG_RATING'
+into 
+   temp4
+from 
+   temp3 t
+
+select
+   t.Portfolio    'Portfolio'
+into 
+   temp33
+from 
+   temp2 t
+   
+group by t.Portfolio
+order by t.Portfolio
+
+select  
+   t.Portfolio          'Portfolio', 
+   'Use'                'Use',
+   'Known_Portfolio'    'Known_Portfolio',
+   'PrimSec'            'PrimSec',
+   'SecArea'            'SecArea'        
+        
+into 
+  temp44
+from 
+  temp33 t
+
+select
+    t.trdnbr,
+    t.insid,
+    t.InsType,
+    t.Issuer,
+    t.Portfolio,
+    t.Nominal,
+    t.Exposure,
+    t.End_Day,
+    t.Category,  
+    t44.Use,
+    t44.Known_Portfolio,
+    t44.PrimSec,
+    t44.SecArea,
+    t4.DG_Rating,
+    t.Trade_Date,
+    t.Dealer,
+    t.PV
+from
+   temp2  t,
+   temp4  t4,
+   temp44 t44
+        
+where 
+   t.Issuer = t4.Issuer
+   and t.Portfolio = t44.Portfolio

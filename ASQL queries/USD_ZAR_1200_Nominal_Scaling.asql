@@ -1,0 +1,58 @@
+
+
+/*
+Purpose:                Compare the icap usd/zar fixing rate to the usd/zar spot rate at 1200 sast saved in the time series
+Department and Desk:    FX fwds desk
+Requester:              Tafara Dakwa 
+Developer:              Anil Parbhoo
+CR Number:              CHNG0003503520
+Date                    10 March 2016             
+*/
+
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','USD_ZAR_1200_Nominal_Scaling') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'USD_ZAR_1200_Nominal_Scaling' and p.type = 'SQL Query' 
+
+
+
+
+
+
+
+select
+ts.day'USD_ZAR_Date',
+ts.value'USD_ZAR_1200',
+lp.Day'NS_Date',
+i.insid'NS_Instrument',
+c.insid'NS_Currency',
+pa.ptyid'NS_Market',
+lp.settle'NS_Settle_Value',
+lp.updat_time'NS_Update_Time',
+ts.value - lp.settle 'difference'
+
+
+
+from 
+
+timeseries ts,
+timeseriesspec tss,
+instrument i,
+instrument c,
+lastprice lp,
+party pa
+
+where
+tss.field_name = 'USD_ZAR_1200_SAST'
+and ts.ts_specnbr = tss.specnbr
+and ts.day = Today
+and i.insid = 'USD_ZAR_Scaling'
+and i.insaddr = lp.insaddr
+and lp.curr = c.insaddr
+and lp.ptynbr = pa.ptynbr
+and pa.ptyid = 'SPOT'
+

@@ -1,0 +1,7 @@
+[Default]FCashFlowMoneyFlow:discountFactor = shunt[presentValue](hasPositions, 
+  false->0.0, 
+  true->select(almostZero(double(projectedMoneyFlow), 1e-10), 
+    true->0.0, 
+    false->double(presentValue) / double(projectedMoneyFlow)));
+[Default]FMoneyFlow:discountFactor = nil;
+[Default]FMoneyFlowAndTrades:discountFactor = moneyFlow :* "discountFactor" [presentValue];

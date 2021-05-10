@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrument:portfolioMarketValuesForProfitAndLoss = select(valuesOnSpot, 
+  true->portfolioMarketValueForProfitAndLoss, 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->portfolioMarketValueForProfitAndLoss + interestFromPnLDateToAccountingDate, 
+    false->portfolioMarketValueForProfitAndLoss));

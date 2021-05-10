@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:surfaceDependentVolatilityStrikeConverter = select(volatilityInformation.BottomVolatility.VolatilityInformationType, 
+  "Point"->nil, 
+  "Parametric"->select(volatilityInformation.BottomVolatility.ParametricVolatilityType, 
+    "Malz"->collapse(malzVolatilityStrikeConverter), 
+    default->select(isForwardStart and isDeltaStrikeQuotation, 
+      true->object:volatilityStrikeConverter [fromQuotationForVolatilityStrikeConverter = perUnitQuotation, priceSource, doSplitAll], 
+      default->collapse(volatilityStrikeConverter))), 
+  default->collapse(volatilityStrikeConverter));

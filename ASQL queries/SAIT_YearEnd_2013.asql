@@ -1,0 +1,45 @@
+select 
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    display_id(p, 'curr')  'Curr',
+    'PriceDefinition', 
+    p.defnbr,
+    p.data[0]   'old_data0',
+    /*
+    ael_s(p,'as_yearend.change_times', to_string(p.data[0]), '0800', '1155') 'new_data0',
+    */
+    p.updat_time,
+    /*
+    ael_i(p,'as_yearend.mickey', to_string(p.data[0])) 'exception0',
+    */
+    p.data[1]   'old_data1',
+    /*
+    ael_s(p,'as_yearend.change_times', to_string(p.data[1]), '0800', '1155') 'new_data1',
+    ael_i(p,'as_yearend.mickey', to_string(p.data[1])) 'exception1',
+    */
+    p.data[2]   'old_data2'
+    /*
+    ael_s(p,'as_yearend.change_times', to_string(p.data[2]), '0800', '1155') 'new_data2',
+    ael_i(p,'as_yearend.mickey', to_string(p.data[2])) 'exception1'
+    */
+from
+    PriceDefinition p,
+    Instrument i
+where
+    p.insaddr = i.insaddr
+and source_ptynbr = 10
+and i.instype not in ('RateIndex')
+and i.insid not in (
+'AUD_USD_Scaling',
+'EUR_USD_Scaling',
+'GBP_USD_Scaling',
+'USD_CAD_Scaling',
+'USD_CHF_Scaling',
+'USD_JPY_Scaling',
+'USD_ZAR_Scaling')
+
+
+order by 9
+/*10, 9, 8*/

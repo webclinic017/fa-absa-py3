@@ -1,0 +1,8 @@
+#grouping: greek perimeters/price greek perimeters
+#grouping: risk factors/volatility value
+
+[IRD Pricing and Risk]FInstrument:undForeignCurrLegVolatility = select(undForeignCurrLeg:isFloatLeg, 
+  true->select(undForeignCurrLegVolatilityInformationHasGenericValueFunction, 
+    true->undForeignCurrLegVolatilityValue, 
+    false->defaultUndForeignCurrLegVolatility), 
+  false->0.0);

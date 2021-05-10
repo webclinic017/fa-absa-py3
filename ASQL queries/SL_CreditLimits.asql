@@ -1,0 +1,33 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_CreditLimits') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_CreditLimits' and p.type = 'SQL Query' 
+ 
+  select
+    t.trdnbr,
+    sum(t.quantity)                         'Position',
+    sum(t.quantity * t.price / 100)         'NominalPosition',
+    display_id(t,'counterparty_ptynbr')     'Party',
+    display_id(cp,'parent_ptynbr')          'Parent',
+    credit_external[0]                      'CreditLimit',
+    credit_external[0] - ABS(sum(t.quantity * t.price / 100))       'FreeCreditLimit',
+    ABS(sum(t.quantity * t.price / 100)) / (credit_external[0]) * 100  'CreditUtilization'
+from
+    trade t,
+    portfolio p,
+    party cp,
+    CreditLimit cl,
+    party pp
+    
+where
+    p.prfid in (@Portfolio{;Portfolio.prfid*})
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void')
+and time_to_day(t.time) <= @To{}
+and cl.ptynbr =* cp.ptynbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.parent_ptynbr *= pp.ptynbr
+/*and display_id(t,'counterparty_ptynbr') = 'HSBC 1'*/
+group by 4

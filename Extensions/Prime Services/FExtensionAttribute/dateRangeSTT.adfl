@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:dateRangeSTT = sumOf(children :* "dateRangeSTT");
+[Prime Services]FSingleInstrumentAndTrades:dateRangeSTT = switch(isFundingPortfolio, 
+  true->switch(fundingPortfolioType, 
+    "General"->py("PS_TradeFees", context).ReturnFee(tradesInPosition.AsArray, "STT", profitAndLossStartDate, profitAndLossEndDate), 
+    default->0), 
+  false->0);

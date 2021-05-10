@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:dateRangeWarehousing = sumOf(children :* "dateRangeWarehousing");
+[Prime Services]FSingleInstrumentAndTrades:dateRangeWarehousing = switch(isFundingPortfolio and isWarehousingInstrument, 
+  true->py("PS_FundingCalculations", context).CalculateWarehousing(instrument, fundingInstrument, profitAndLossStartDate, profitAndLossEndDate, ), 
+  false->0);

@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FAbstractReset:inflationScalingValueInQuotation = select(inflationScalingReference, 
+  nil->0, 
+  default->select(inflationScalingReference:isCouponQuoted, 
+    true->inflationScalingValueDenominated, 
+    false->inflationScalingReference :* "forwardPrice" [forwardValue = inflationScalingReference.UnitQuoteToUnitValueOverrideUnitDate(inflationScalingValueDenominated, 1.0, inflationScalingReference.SpotDate(object.Day)), forwardPriceDate := object.Day, quotation := leg:inflationReferenceQuotation]));

@@ -1,0 +1,5 @@
+[Default]FInstrument:marketValuesUndiscountedInstrumentPart = select(valuesOnSpot, 
+  true->collapse(marketValuesUndiscountedInstrumentPartForSpot), 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->marketPositionValues + interestFromTodayToAccountingDate, 
+    false->marketPositionValues));

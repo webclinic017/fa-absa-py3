@@ -1,0 +1,81 @@
+[Default]FObject:VirtualOrderTypeTriggerTime
+
+Properties =
+  Abstract=No
+  CreatePermission=User
+  DisplayName=Trigger Time
+  EditPermission=User
+  InheritsFrom=VirtualOrderType
+  TradingEnabled=Yes
+
+Transitions =
+
+Panel Parameters =
+  DisplayName=Parameters
+  Orientation=Vertical
+  Variables=orderQuantity, waitForDoneOrder, price, marketAccount, account, reference, expirationTime
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Target, Trigger, Parameters
+
+Panel Trigger =
+  DisplayName=Trigger
+  Orientation=Vertical
+  Variables=triggerTime, triggerTimeMs
+
+Conditions =
+  orderDone=order.IsOrderDone or (order.IsOrderActive and not waitForDoneOrder)
+
+Actions =
+
+ActionLists =
+
+Variable orderType =
+  DisplayName=Order Type
+  Domain=orderType
+  Type=ReadOnly
+  Value="Trigger Date"
+
+Variable timeEvent =
+  Type=ReadOnly
+  Value=timer().CreateTimerEventAt(usedTriggerTime, nil, nil)
+
+Variable totalQuantity =
+  DisplayName=Total Qty
+  Domain=double
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable triggerTime =
+  DisplayName=Trigger Time
+  Domain=datetime
+  Mandatory=No
+  Type=Input
+  Value=timeNow()
+
+Variable triggerTimeMs =
+  Description=Trigger time millisecond.
+  DisplayName=Ms
+  Domain=int
+  Mandatory=No
+  Type=Input
+  Value=0
+
+Variable usedTriggerTime =
+  DisplayName=Used Trigger Time
+  Domain=datetime
+  Type=ReadOnly
+  Value=triggerTime + (triggerTimeMs / 86400000)
+
+Variable waitForDoneOrder =
+  Description=Whether the agent should wait for an order to be filled or not before sending the next
+  DisplayName=Wait for Done Order
+  Domain=bool
+  Mandatory=No
+  Type=Input
+  Value=true
+
+<end>

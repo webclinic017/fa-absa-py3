@@ -1,0 +1,6 @@
+[_securities_lending_exts]FTrade:secLendAddtlCost = switch(secLendAddtlCostParams <> nil, 
+  true->switch(secLendAddtlCostParams.Result.At("Additional Cost"), 
+    nil->nil, 
+    default->secLendAddtlCostParams.Result.At("Additional Cost").DataValueVA), 
+  default->nil);
+[_securities_lending_exts]FTradeRow:secLendAddtlCost = trade:secLendAddtlCost;

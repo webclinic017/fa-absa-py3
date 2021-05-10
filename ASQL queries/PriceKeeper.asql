@@ -1,0 +1,86 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PriceKeeper') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PriceKeeper' and p.type = 'SQL Query' 
+
+
+/* Benchmarks */
+select
+    distinct
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.insaddr
+    
+into
+    temp
+    
+from
+    Instrument i,
+    Benchmark B
+    
+where
+    i.insaddr = b.instrument
+    
+    
+
+    
+select
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.insaddr
+    
+into
+    temp
+    
+from
+    Instrument i
+    
+where
+    (i.exp_day >= today
+or i.exp_day in ('0000-01-01', '9999-12-31', '2007-01-01')
+or i.generic = 'Yes')
+and not (add_info(i, 'PS_IntFut_PK_ex') = 'Yes')
+/* FABIANPE 2013-06-06: Exclude international futures from PriceKeeper because 
+their price is only valid for the date when it's uploaded */
+    
+    
+    
+    
+    
+select
+    'PriceCopy',
+    t.insid,
+    t.instype = 'Bond' ? 'Bond' : t.instype 'Type',
+    t.exp_day,
+    ael_s(,'as_CopyPrice.PriceKeeper', i)     'PriceKeeper'
+    
+from
+    temp t,
+    instrument i
+    
+where
+    i.insaddr = t.insaddr
+    
+    
+union
+
+
+select
+    'YieldCurveCopy',
+    y.yield_curve_name,
+    y.yield_curve_type = 'Attribute Spread' ? 'Attribute Spread' : y.yield_curve_type   'Type',
+    today,
+    ael_s(,'as_CopyPrice.CopyBasisCurvesToSOB', y.yield_curve_name)     'PriceKeeper'
+    
+from
+    YieldCurve y
+    
+where
+    y.yield_curve_name in ('ZAR-BASIS', 'ZAR-PRIME', 'GBP-BASIS', 'EUR-BASIS', 'JPY-BASIS', 'ZAR-MM-FundingSpr', 'ZAR-MM-FundingSpr(-50bp)','GHS-Basis','BWP-BASIS_CURVE','TZS-BASIS_CURVE','MUR-BASIS_CURVE','UGX-Basis','ZMK-BASIS_CURVE','ZMW-BASIS_CURVE','NAD-Basis')
+    
+    
+

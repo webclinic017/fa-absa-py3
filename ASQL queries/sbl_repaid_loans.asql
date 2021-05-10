@@ -1,0 +1,46 @@
+/* update_method=0 */
+select
+    t.trdnbr
+from 
+    trade t,
+    instrument i,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and t.acquirer_ptynbr = 32668
+and i.instype = 'SecurityLoan'
+and t.status = 'BO Confirmed'
+and i.open_end = 'Terminated'
+and t.connected_trdnbr = t.contract_trdnbr
+and add_info(t,'SL_G1Counterparty1') ~= ''
+and add_info(t,'SL_G1Counterparty2') ~= ''
+and p.prfnbr in 
+    (
+    '2558', /* new_SL Structured Deals */
+    '2799', /* SBL_Accrued_1 */
+    '2887', /* ACS - Script Lending */
+    '2893', /* SBL Delta One Loans ACS */
+    '2903', /* SBL SNP 44032 ACS */
+    '2971', /* SBL_Fixed Income DBR */
+    '2972', /* SBL_Fixed Income UPT */
+    '2973', /* SBL_Fixed Income Denel */
+    '3052', /* SBL_Fixed Income Denel RF */
+    '3053', /* SBL_Fixed Income National Tertiary RF */
+    '3094', /* SBL_Fixed Income_ Unisa */
+    '3095', /* SBL_Fixed Income_ University Free State */
+    '3098', /* Bond - Script Lending */
+    '3120', /* SBL - Prime Clients */
+    '3121', /* SL_LEIPS */
+    '3127', /* SBL_CFD_Old Mutual */
+    '3186', /* SBL Agency */
+    '4215', /* Prime optimize */
+    '4379', /* MM Liquidity */
+    '5708', /* Collateral optimize */
+    '5803', /* SBL_Agency_Bond */
+    '5816', /* SBL_Agency_OmsfinCFD */
+    '5817', /* SBL_Agency_Prime_Broker */
+    '5832', /* SBL ETF - Trading ACS */
+    '5843', /* SBL ETF - Trading Bonds */
+    '6348', /* ACS SBL Coll */
+    '13225')/* ACS A2X - Scrip Lending */

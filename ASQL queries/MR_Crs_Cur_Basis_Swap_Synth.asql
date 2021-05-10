@@ -1,0 +1,79 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :290307
+
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Curr_Basis_Synth.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Curr_Basis_Synth.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i,
+    leg ll, /* locked leg */
+    leg rl, /* resetting leg */
+    trade t,
+    valid_portfolios vp
+where
+    (i.exp_day = 0 or i.exp_day > Today)
+and t.insaddr = i.insaddr
+and t.status not in ('Void', 'Simulated', 'Terminated')
+and i.instype in ('CurrSwap')
+and i.insaddr = ll.insaddr
+and i.insaddr = rl.insaddr
+and ll.legnbr ~= rl.legnbr
+/*and ll.curr ~= rl.curr 
+and ll.is_locked = 'Yes'
+and ll.nominal_at_end = 'Yes'
+and ll.nominal_at_start = 'Yes'*/
+and ((ll.nominal_scaling in ('FX') or rl.nominal_scaling in ('FX'))
+or (i.non_deliverable = 'Yes'))
+and t.prfnbr = vp.prfnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

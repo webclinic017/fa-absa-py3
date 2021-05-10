@@ -1,0 +1,7 @@
+[Automated Trading]ExecutionAlgo:diffBetweenOrderAndEqPrice = switch(currentOrderActive, 
+  true->switch(algoEquilibriumPriceAvailable, 
+    true->select(algoIsBuy, 
+      true->delta(-algoPriceFeed :* "marketPriceEquilibrium", currentOrder.Price.Value.Number), 
+      false->delta(-currentOrder.Price.Value.Number, algoPriceFeed :* "marketPriceEquilibrium")), 
+    default->0.0), 
+  default->0.0);

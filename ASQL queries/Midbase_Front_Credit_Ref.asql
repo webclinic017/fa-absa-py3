@@ -1,0 +1,59 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Midbase_Front_Credit_Ref') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Midbase_Front_Credit_Ref' and p.type = 'SQL Query' 
+
+/* This extract supplies data to the Midbase scheduled job: Atlas_Balance_report
+   Step 2. This is to replace the current linked server SQL job that is not sufficient.*/
+
+SELECT DISTINCT
+	p.ptyid,
+	p.ptynbr 'CODE',
+	p.type,
+	p.fullname 'DESCRIPTION',
+	p.parent_ptynbr,
+	pa.alias 'fullname2',
+	p.attention,
+	p.address,
+	p.address2,
+	p.zipcode,
+	p.city,
+	p.country,
+	p.telephone,
+	p.fax,
+	p.contact1,
+	p.bis_status,
+	p.relation_chlnbr,
+	p.legal_form_chlnbr,
+	p.document_type_chlnbr,
+	p.document_date = 0 ? '0000-01-01' : p.document_date  'document_date' ,
+	p.rating_agency_chlnbr,
+	p.rating_chlnbr,
+	p.rating_date = 0 ? '0000-01-01' : p.rating_date  'rating_date' ,
+	p.user_rating_chlnbr,
+	p.hostid,
+	p.ptyid2,
+	p.risk_country_chlnbr,
+	p.issuer,
+	t.trdnbr,
+	i.insid
+FROM
+	portfolio pr,
+	trade t,
+	party p,
+	instrument i,
+	instrument ins,
+	partyalias pa,
+	leg l
+WHERE
+	pr.prfid LIKE 'CD%'
+AND 	pa.type = 3
+AND 	t.prfnbr = pr.prfnbr
+AND	i.insaddr = t.insaddr
+AND	( i.exp_day > '2008-12-31' OR i.exp_day = 0 OR i.insid LIKE 'USD/IMM/%' )
+AND	l.insaddr = i.insaddr
+AND	ins.insaddr = l.credit_ref
+AND	p.ptynbr = ins.issuer_ptynbr
+AND	pa.ptynbr = p.ptynbr

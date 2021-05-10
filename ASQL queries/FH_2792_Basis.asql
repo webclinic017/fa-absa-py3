@@ -1,0 +1,27 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','FH_2792_Basis') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'FH_2792_Basis' and p.type = 'SQL Query' 
+ 
+  select
+    TODAY                                   'RepDate',
+    @02_Filter{Dirk_tmp;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+    yp.date_period.count,
+    yp.date_period.unit,
+    ael_d(yp, 'dirk_utils.sprd_point_maturity')    'mat',
+    ael_f(ys, 'dirk_utils.basis_delta',
+        @02_Filter{Dirk_tmp;tradefilter.fltid},
+        yc.yield_curve_name)                'pv01'
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys
+where
+    yc.yield_curve_name  in ('ZAR-BASIS','ZAR-MM-FundingSpr','ZAR-SWAP-SPREAD(50bp)')
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr        
+    and ael_d(yp, 'dirk_utils.sprd_point_maturity') < to_date(@03_EndDate{BIGDATE;})
+order by 3, 6

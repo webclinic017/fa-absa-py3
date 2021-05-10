@@ -1,0 +1,5 @@
+[Core Pricing]FConvertible:carryStartBaseDate = underlying:carryStartBaseDate;
+[Core Pricing]FDerivative:carryStartBaseDate = select(isFXDerivative, 
+  true->object.CarryStartDateFX(underlying, valuationBaseDateTime), 
+  false->underlying:carryStartBaseDate);
+[Core Pricing]FInstrument:carryStartBaseDate = object.SpotDate(valuationBaseDateTime);

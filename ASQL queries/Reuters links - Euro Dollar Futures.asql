@@ -1,0 +1,46 @@
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','Reuters links - Euro Dollar Futures') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Reuters links - Euro Dollar Futures' and p.type = 'SQL Query' 
+ */
+
+
+/*
+
+Coded By Anil Parbhoo to check and reinstating PLS every quarter by using save table changes
+
+CHG1001128569 - 22 Nov 2018 - only reflect the SPOT market PLS 
+
+*/
+
+
+select i.insid'ins name', i.exp_day,i.mtm_from_feed,  pldpa.ptyid'pls market',  pld.idp_code, lp.day,pa.ptyid'Price Market', lp.last, lp.settle, lp.updat_time
+
+
+from
+
+instrument i,
+instrument ui,
+pricelinkdefinition pld,
+lastprice lp,
+party pa,
+party pldpa
+
+where
+
+i.instype = 'Future/Forward'
+and i.exp_day > Today
+and i.und_insaddr = ui.insaddr
+and ui.insid = 'USD-LIBOR-3M'
+and i.insid like 'USD/IMM%'
+and pld.insaddr =* i.insaddr
+and i.insaddr = lp.insaddr
+and lp.ptynbr = pa.ptynbr
+and pa.ptyid = 'SPOT'
+and pld.source_ptynbr = pldpa.ptynbr
+and  pldpa.ptyid = 'SPOT'
+
+
+order by pldpa.ptyid, i.exp_day

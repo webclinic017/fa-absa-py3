@@ -1,0 +1,9 @@
+[Core Risk]FCombInstrMap:priceGammaPercentValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->weight * contractSize * timeDistributionFactor * instrument :* "priceGammaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors, normalizeFxRisk] * fxLegToInstrumentOnLegSpotDay, 
+  false->combinationSpotZero);
+[Core Risk]FCombination:priceGammaPercentValuesInstrument = select(splitCombination and (priceGreekRiskFactorNodeCount > 0), 
+  true->sumOf((instrumentMaps) :* "priceGammaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors, normalizeFxRisk]) / combinationDivisionFactor, 
+  false->spotHandlingZero);
+[Core Risk]FInstrument:priceGammaPercentValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->differential(priceGreekRiskFactorsShiftedUpRelative + priceGreekRiskFactorsShiftedDownRelative, 2 * priceGreekRiskFactorsUnShifted, square(valuationModelSpecificRelativePriceShift * 100)), 
+  false->spotHandlingZero);

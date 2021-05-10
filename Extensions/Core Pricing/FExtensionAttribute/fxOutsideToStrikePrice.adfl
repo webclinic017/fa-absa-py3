@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:fxOutsideToStrikePrice = 1.0;
+[Core Pricing]FOption:fxOutsideToStrikePrice = select(barrierOutsideUnderlying, 
+  nil->1.0, 
+  default->select(strikeCurrency == barrierOutsideUnderlying:currency, 
+    true->1.0, 
+    false->(barrierOutsideUnderlying:currency) :* "fxForwardRate" [fxForwardDate = barrierOutsideUnderlying:instrumentSpotDate, fxToCurrency := strikeCurrency]));

@@ -1,0 +1,126 @@
+/*
+Purpose                 :Market Risk feed files, Sending Only currency instruments through for the instrument file.
+Department and Desk     :IT, Market Risk
+Requester:              :Natalie Austin, Susan Kruger
+Developer               :Douglas Finkel, Heinrich Cronje
+CR Number               :278978,434459, 755543, CHNG0000729822
+*/
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Cash_Instrument.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Cash_Instrument.csv'},@3_PositionName{'MR_Cash_Instrument_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_Cash_Instrument.Write',@1_path{'f:\'},@2_FileName{'MR_Cash_Instrument.csv'},@3_PositionName{'MR_Cash_Instrument_Position.csv'}) 'BuildConfirmation'
+Into
+    Macro
+From
+    Instrument i
+Where i.instype = 'Curr'
+
+
+
+
+Select
+   '1' 'Count',
+   i.instype,   
+    p.prfid                        'portfolio',
+    curr.insid                     'curr',
+   i.instype = 'Future/Forward' ? (accumulated_cash(t, date_add_banking_day(Today,'ZAR',-1), curr.insid, 2, 0, , 1, 'None')) : (accumulated_cash(t, to_date(today), curr.insid, 2, 0, , 1, 'None')) 'cash'
+/*    (accumulated_cash(t, to_date(today), curr.insid, 2, 0, , 1, 'None')) 'cash',
+    (accumulated_cash(t, date_add_banking_day(Today,'ZAR',-1), curr.insid, 2, 0, , 1, 'None')) 'FutFwd_cash'*/
+Into 
+    results
+From
+  trade      t,
+  instrument i,
+  instrument curr,
+  portfolio  p
+Where
+       match_filter(t,MR_Cash_Bal_Two)
+  and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated','Internal')
+  and t.insaddr     = i.insaddr
+  and curr.instype  = 'Curr'
+  and curr.insid  ~= 'ZAR'
+  and currency_included(t, curr.insid) = 1
+  and p.prfnbr      = t.prfnbr 
+
+
+
+
+/*
+Select
+    port.Count,
+    port.portfolio,
+    port.curr,
+    port.cash 'cash'
+Into 
+    Results
+From
+    PortTemp port
+Where 
+    port.instype ~= 'Future/Forward'
+
+
+Select
+    port.Count,
+    port.portfolio,
+    port.curr,
+    port.FutFwd_cash 'cash'
+Into 
+    results
+From
+    PortTemp port
+Where 
+    port.instype = 'Future/Forward'
+*/
+
+Select
+    r.Count,
+    r.portfolio,
+    r.curr,
+    sum(r.cash) 'cash'
+Into
+    final
+From 
+    results r
+Group by 1,2,3
+
+
+Select
+    'Write File' 'Process',
+    ael_s(,'PositionFile.CreatePositionCash',@1_path{'f:\'},@2_FileName{'MR_Cash_Instrument.csv'},@3_PositionName{'MR_Cash_Instrument_Position.csv'},f.portfolio,f.curr,f.cash)	'BuildConfirmation'
+Into
+    Macro
+From 
+    final f
+Where 
+    Count = '1'
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select
+    m.* 
+From
+    Macro m
+Where 
+    Process In ('Create File','Close File')

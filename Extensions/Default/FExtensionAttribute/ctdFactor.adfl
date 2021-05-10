@@ -1,0 +1,11 @@
+[Default]FDeliverableLink:ctdFactor = object.ConversionFactor;
+[Default]FDeliverableLinkAndTrades:ctdFactor = deliverableLink:ctdFactor;
+[Default]FFuture:ctdFactor = select(isFutureOnNotional, 
+  true->select(isAUDF, 
+    true->1.0, 
+    false->select(nil == deliverableLink, 
+      true->1.0, 
+      false->deliverableLink.ConversionFactor)), 
+  false->nan);
+[Default]FInstrument:ctdFactor = nan;
+[Default]FLeg:ctdFactor = nan;

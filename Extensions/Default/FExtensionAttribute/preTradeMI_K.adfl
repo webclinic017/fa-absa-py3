@@ -1,0 +1,7 @@
+[Default]FGroupingOrder:preTradeMI_K = sumOf(removeNil(prePostTradeOrders :* "preTradeMI_K * preTradeInitValue")) / preTradeInitValue;
+[Default]FOrderProgram:preTradeMI_K = switch(customerCurrency, 
+  nil->sumOf(memberOrders :* "preTradeMI_K * preTradeInitValue") / preTradeInitValue, 
+  default->sumOf(memberOrders :* "preTradeMI_K * preTradeInitValueCustomerCurrency") / preTradeInitValueCustomerCurrency);
+[Default]FOwnOrder:preTradeMI_K = nil;
+[Default]FPrePostTradeAnalysis:preTradeMI_K = preTradeMI_J - preTradeMI_I / 2;
+[Default]FSalesOrder:preTradeMI_K = prePostTradeAnalysis:preTradeMI_K;

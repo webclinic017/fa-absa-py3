@@ -1,0 +1,29 @@
+select
+    p.day                           'Date',
+    i.insid                         'Instrument',
+    i.instype                       'Instype',
+    display_id(p, 'curr')           'Currency',
+    pty.ptyid                       'Market',
+    p.bid,
+    p.ask,
+    p.last,
+    p.settle,
+    pd.data[0],
+    pd.data[1],
+    pd.data[2]
+    
+from
+    PriceDefinition pd,
+    Instrument i,
+    LastPrice p,
+    Party pty
+    
+where
+    pd.insaddr = i.insaddr
+and p.insaddr = i.insaddr
+and p.ptynbr = pty.ptynbr
+and pty.ptyid = 'SPOT'
+and pd.data[0] like 'DTS%'
+
+
+ 

@@ -1,0 +1,7 @@
+[ABSA Accounting 4.3]FInstrumentAndTrades:agritransdiff = sumOf(trades :* "agritransdiff");
+[ABSA Accounting 4.3]FTrade:agritransdiff = select(object.Status, 
+  "Simulated"->0, 
+  default->shunt(object.AdditionalInfo.AgriTransportDiff <> nil, 
+    true->object.Quantity * object.AdditionalInfo.AgriTransportDiff, 
+    default->0));
+[ABSA Accounting 4.3]FTradeRow:agritransdiff = trade:agritransdiff;

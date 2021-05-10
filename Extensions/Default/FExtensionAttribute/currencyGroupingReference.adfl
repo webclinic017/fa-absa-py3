@@ -1,0 +1,13 @@
+[Default]FInstrumentAndTrades:currencyGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:currencyGroupingReference);
+[Default]FMultiInstrumentAndTrades:currencyGroupingReference = select(groupingReference, 
+  nil->parentCurrencyGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCurrencyPair"), 
+    true->groupingReference:liquidCurrency, 
+    false->select(groupingReference.IsKindOf("FCurrency"), 
+      true->groupingReference, 
+      false->parentCurrencyGroupingReference)));
+[Default]FSingleInstrumentAndTrades:currencyGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:currencyGroupingReference);

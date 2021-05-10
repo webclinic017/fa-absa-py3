@@ -1,0 +1,4 @@
+[HistoricalValuationFix]FFxRate:adsPriceOrderBook = select(foreignEqualsDomestic, 
+  true->foreignCurrency :* "adsPriceOrderBook" [adsPriceCurrency], 
+  false->foreignCurrency :* "adsPriceOrderBook" [adsPriceCurrency := domesticCurrency]);
+[HistoricalValuationFix]FInstrument:adsPriceOrderBook = priceOrderBook(object, orderBookMarketSearchOrder, 0, priceFindingMarketSet, priceFindingIsCorrectDay, priceFindingMarketRule, priceFindingCurrencyRule, "ADS", nilObject:adsPriceDate [valuationDate], valuationDate, adsPriceCurrency, true, priceFindingIsCorrectType);

@@ -1,0 +1,55 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_bond_historical_dirty') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_bond_historical_dirty' and p.type = 'SQL Query' 
+
+
+  
+/*Generate sequence 0-9 */
+select
+	u1.usrnbr,
+	count(u2.usrnbr) -1  	'Nbr'
+into 
+	TMP
+from
+	user u1,
+	user u2
+where
+	u1.usrnbr < u2.usrnbr
+group by u1.usrnbr
+
+/* Generate sequence 1-1000 */
+select
+	100*t3.Nbr + 10*(t2.Nbr) + t1.Nbr + 1	'Nbr'
+into 
+	SCEN	
+from
+	TMP t1,
+	TMP t2,
+	TMP t3
+where
+	t1.Nbr < 10 
+and	t2.Nbr < 10
+and	t3.Nbr < 70
+
+/* Calculate result by scenario */
+select
+	date_add_banking_day(TODAY,,-1*s.Nbr)					'Date',
+	date_add_banking_day(TODAY,,(-1*s.Nbr)+3)   'Settlement',
+	i.insid 'Bond',
+	(mtm_price(i,date_add_banking_day(TODAY,,-1* s.Nbr)))   'Yield',
+	Dirty_from_yield(i,date_add_banking_day(TODAY,,(-1*s.Nbr)+3),,,(mtm_price(i,date_add_banking_day(TODAY,,-1* s.Nbr))))  'AIP'  
+	
+from
+
+	SCEN s,
+	instrument i
+where
+   	
+	i.insid = @Bond{ZAR/R153;instrument.insid where instype = 'Bond'}
+and	s.Nbr <= @Nbr_of_days_hist[252]
+
+order by 1

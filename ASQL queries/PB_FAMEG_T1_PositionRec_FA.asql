@@ -1,0 +1,90 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       PB_FAMEG_T1_PositionRec_FA
+PURPOSE                 :       The result will be used in a recon in Intellimatch with Megara on Stock 
+                                positions in Prime Broking.
+DEPARTMENT AND DESK     :       Securities Lending Operations
+REQUASTER               :       Denzil Nelson
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       353706
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2012-07-23      353706          Heinrich Cronje                 Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL has three secons:
+        1.  Retreive all trades from a specified trade filter that have vlaue day less than the input date.
+        2.  Sum all the quantities where the trades are on the same instrument and trade portoflio's addinfo
+            PS_FundingIns' trade's counterparty fullname.
+        3.  Remove 0 quantities from final result.
+*/
+
+/*----------------------------------------------------------------------------------------------------------
+                                        Initial Trade Selection
+----------------------------------------------------------------------------------------------------------*/
+select distinct
+    i.insid 'Equity',
+    i.isin  'ISIN',
+    display_id(i,'issuer_ptynbr')   'FI_Description',
+    t.quantity,
+    add_info(po,'PS_FundingIns')    'PS_FundingIns',
+    t.trdnbr
+into
+    trades
+from
+    trade t,
+    instrument i,
+    portfolio po
+where
+        match_filter(t, @1_Filter{PB_Stocks;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+    and t.prfnbr = po.prfnbr
+    and to_date(t.value_day) <= to_date(@3_ValueDate{Today})
+
+/*----------------------------------------------------------------------------------------------------------
+                                        Summation of Quantities
+----------------------------------------------------------------------------------------------------------*/
+select distinct
+    p.fullname  'Securities_Account_Name',
+    t.Equity,
+    t.ISIN,
+    t.FI_Description,
+    sum(t.quantity)  'Balance',
+    t.trdnbr
+into
+    final
+from
+    trades t,
+    instrument i,
+    trade tr,
+    party p
+where
+        t.PS_FundingIns = i.insid
+    and tr.insaddr = i.insaddr
+    and tr.counterparty_ptynbr = p.ptynbr
+
+group by p.fullname, t.Equity
+
+/*----------------------------------------------------------------------------------------------------------
+                                        Removal of Zero Balances
+----------------------------------------------------------------------------------------------------------*/
+select
+    'ASCAP' 'Client_Code',
+    f.Securities_Account_Name,
+    f.Equity,
+    f.ISIN,
+    f.FI_Description,
+    f.Balance,
+    f.trdnbr
+from
+    final f
+where
+    f.Balance ~= 0
+    
+order by f.Securities_Account_Name, f.Equity

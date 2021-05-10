@@ -1,0 +1,50 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_ERM_DECIMAX_BONDS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_ERM_DECIMAX_BONDS' and p.type = 'SQL Query' 
+
+
+/* SACM_ERM_DECIMAX_BONDS
+	Created By: Aaeda Waja 27/01/2004
+    	Call No: 73607
+  	Ammended By: Hardus Jacobs
+	Ammended By: Aaeda Salejee 05/05/2005  Added Issuer as the last column
+	
+Extract of all the Bonds Where the Counterparty id DECIMAX	
+*/
+
+select
+	t.trdnbr 				'Deal Reference',
+	i.insid					'Stock Name',
+	(t.quantity * i.contr_size)		'Nominal',
+	t.quantity >= 0 ? 'B' : 'S'		'Buy/Sell',
+	t.value_day				'Settlement Date',
+	p.fullname				'Counterparty Longname',
+	display_id(t,'counterparty_ptynbr')	'Counterparty Shortname',
+	display_id(t,'optkey1_chlnbr')		'Profit Centre',
+	TODAY					'Today',
+	t.optional_key				'Devon Reference',
+	display_id(t,'optkey1_chlnbr')		'Trade Area',
+	display_id(t,'prfnbr')			'Portfolio',
+	t.price					'YTM',
+	t.premium				'Original Consideration Incl Interest',
+	time_to_day(t.time)			'Deal Date',
+	interest_accrued(t)			'Accrued Interest',
+	display_id(t,'trader_usrnbr')		'Trader id',
+	mtm_price(i) 				'Reval Rate closing Yield',
+	display_id(i,'issuer_ptynbr')		'Issuer'
+
+from
+	trade t,
+	instrument i,
+	party p
+
+where
+	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr = p.ptynbr
+and 	i.instype = 'Bond'
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+/*and	p.ptyid in ('DECIMAX (PTY) LTD','DECAB SPV','DECIMAX SPV HEDGES')*/
+and	p.ptyid in ('DECIMAX (PTY) LTD','DECAB DERIVATIVES TRADING PTY LTD','DECIMAX SPV HEDGES')

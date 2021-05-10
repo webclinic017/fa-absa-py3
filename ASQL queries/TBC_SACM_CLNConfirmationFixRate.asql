@@ -1,0 +1,70 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_CLNConfirmationFixRate') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_SACM_CLNConfirmationFixRate' and p.type = 'SQL Query' 
+ 
+/*
+Query	:	SACM_FRN_Confirmation
+Report	:	SACM_FRN_Confirmation
+Purpose	:	Provide required data for FRN confirmations.
+Logic	:	Straightforward.
+History	:	
+	2003/10/28 - Created.
+*/
+
+/* Currently the query will only work for bonds with a quote type of 'Yield'. */
+
+select
+	cp.fullname						'CPFullname',
+	cp.attention						'CPAttention',
+	cp.telephone						'CPTelephone',
+	cp.address						'CPAddLine1',
+	cp.address2						'CPAddLine2',
+	cp.city							'CPCity',
+	cp.country						'CPCountry',
+	cp.zipcode						'CPZipCode',
+	t.trdnbr						'OurDealRef',
+	cp.ptyid						'CPCode',
+	i.insid							'StockDesc',
+	i.extern_id1                    'Instrument',
+	@ExpiryDay{09/09/2007}                     'ExpDay',
+	@FixedRate{13%}                       'Fixed Rate',
+	@CouponPayments{Semi-annual, every 28 Feb and 31 Aug}   'Coupon Payments',
+	
+	convert('time', t.time, '%d/%m/%Y %H:%M:%S')		'DealDate',
+	convert('date', t.value_day, '%d/%m/%Y')		'SettleDate',
+	t.price							'YTM',
+	abs(nominal_amount(t))					'Nominal',
+	t.premium						'Consideration',
+	t.quantity > 0
+		? 'BOUGHT'
+		: 'SOLD'					'BoughtSold',
+	t.quantity > 0
+		? 'FROM'
+		: 'TO'						'FromTo'	
+	
+from
+	party		cp,
+	trade		t,
+	instrument 	i,
+	leg		l,
+	cashflow	cf
+where
+	cp.ptynbr = t.counterparty_ptynbr
+and	t.insaddr = i.insaddr
+and	l.insaddr =* i.insaddr
+and	cf.legnbr =* l.legnbr
+/*and	cf.pay_day >= t.value_day
+and	cf.start_day <= t.value_day
+/*and	cf.type = 'Float Rate'*/
+/*and	i.instype = 'FRN'*/
+and	t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+/*and	(
+	time_to_day(t.time) = @Date{Today}
+and	(	
+	fit_filter(t, @TradeFilter{;tradefilter.fltid})
+or	cp.ptyid = @Counterparty{;party.ptyid where type = 'Counterparty'}
+	)
+or*/  and	t.trdnbr = @TradeNumber{0}

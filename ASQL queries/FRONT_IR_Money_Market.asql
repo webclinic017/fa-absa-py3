@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_IR_Money_Market') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_Money_Market' and p.type = 'SQL Query' 
+/*
+
+2003-10-01: PP
+Trades will be omitted if their status has not been updated to BO-Confirmed.
+Trades will be omitted if no  counterparty has been selected.
+Other than that, it all looks honky-dory
+
+2005-05-05: AS
+Added Issuer as the last column
+
+*/
+
+
+select
+	t.trdnbr	'Deal Reference #',
+	display_id(t,'prfnbr')	'Profit Centre',
+	display_id(t,'optkey1_chlnbr')	'Portfolio',
+	i.instype	'Instrument Code',
+	cf.type = 'Fixed Rate' ? t.quantity*i.contr_size*(1+cf.rate/36500*days_between(cf.start_day,cf.end_day,'Act/365')) : 0.0	'Cashflow_Capital_interest',
+	i.exp_day	'Maturity Date',
+	t.quantity*i.contr_size < 0 ? 'Sell' : 'Buy'	'Buy/Sell',
+	today	'LAST_UPDATE',
+	display_id(t,'trader_usrnbr')	'Trader',
+	time_to_day(t.time)	'Deal Date',
+	p.fullname	'Counterparty_Longname',
+	t.optional_key 'Devon Ref',
+	c.insid 'CCY',
+    1.0 /*c.insid='ZAR' ? present_value(t)/tt.USD : (c.insid='USD' ? present_value(t) : present_value(t))*/ ' MtM_USD',
+    1.0 /*c.insid='ZAR' ? present_value(t) :  (c.insid='USD' ? present_value(t)*tt.USD : present_value(t))*/  'MtM_ZAR',
+    1.0 /*present_value(t)*/  'MtM_CCY',
+    t.status,
+    display_id(i,'issuer_ptynbr')		'Issuer'
+
+from
+	trade	t,
+	instrument	i,
+	leg	l,
+	cashflow	cf,
+	party	p,
+	instrument c
+	
+where
+	t.insaddr = i.insaddr
+and	i.instype = 'CD'
+and	t.status not in ('Simulated','Terminated','Void')
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	p.ptynbr =* t.counterparty_ptynbr
+and	cf.type = 'Fixed Rate'
+and	i.exp_day > TODAY
+and i.curr=c.insaddr

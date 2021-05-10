@@ -1,0 +1,6 @@
+[Equity Market Making]FProposedQuoteLevelLink:qBestOrMatchAsk = select(qQuoteController:qIsPrivate, 
+  true->nil, 
+  default->switch(qProposedQuoteLevel, 
+    nil->nil, 
+    default->qProposedQuoteLevel.BestOrMatch("Ask", object.PriceFeed.AskPriceDepth)));
+[Equity Market Making]FQuoteLevelRow:qBestOrMatchAsk = qProposedQuoteLevelLink:qBestOrMatchAsk;

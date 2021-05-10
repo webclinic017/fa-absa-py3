@@ -1,0 +1,35 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candice Vol benchmark update') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candice Vol benchmark update' and p.type = 'SQL Query' 
+ 
+  select    
+    v.vol_name                     'vc',
+    ins.insid                               'bm',
+    p.updat_time                           'priceupdate',
+    bm.instrument                            'bminst',
+    p.insaddr                                  'paddr'
+
+into temp
+from
+   volatility v,
+    benchmark bm,
+    instrument ins,
+    price p
+where
+    /*yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name})*/
+   p.updat_time>'01/01/2007'
+    and bm.seqnbr = v.seqnbr
+    and bm.instrument = ins.insaddr    
+    and p.insaddr = ins.insaddr
+/*--------------------------------------------------------------------------*/
+select
+   t.vc,
+   t.bm,
+   max(t.priceupdate)
+from
+   temp t
+group by
+   t.vc,t.bm

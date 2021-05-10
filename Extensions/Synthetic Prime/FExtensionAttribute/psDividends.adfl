@@ -1,0 +1,9 @@
+[Synthetic Prime]FCombInstrMapAndTrades:psDividends = nil;
+[Synthetic Prime]FInstrument:psDividends = sumOf(psDividendsLegs :* "psTPL" [profitAndLossParameters, calculateTradeEffectInPosition, profitAndLossStartDate, profitAndLossEndDate, valuationSystemDate, profitAndLossTodayIsHistorical, psPortSwap]);
+[Synthetic Prime]FInstrumentAndTrades:psDividends = shunt(psSyntheticColumnsApplicableForRow, 
+  true->convertToCurrency(instrument:psDividends [psPortSwap], psLiveFXRates, displayCurrencySymbol, filterUnit), 
+  false->nil);
+[Synthetic Prime]FLegAndTrades:psDividends = nil;
+[Synthetic Prime]FMultiInstrumentAndTrades:psDividends = shunt(psSyntheticColumnsApplicableForRow, 
+  true->convertToCurrency(sumOf(instruments :* "psDividends" [psPortSwap]), psLiveFXRates, displayCurrencySymbol, filterUnit), 
+  false->nil);

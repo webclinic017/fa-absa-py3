@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:dividendDelta10PercentInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, dividendForecastRiskFactorNames), shiftDividendsInBucketsWithType dividendDeltaPercentShiftParameters), theoreticalInstrumentSpotValueForPrice, fixedDividendDeltaPercentScaleFactor * fixedDividendDeltaPercentShift));
+[Equity Pricing and Risk]FInstrumentAndTrades:dividendDelta10PercentInstrument = openInstrumentOrInstrument :* "collapse(dividendDelta10PercentInstrument)" [isSplitAllGrouped, priceSource, dividendShiftType] * combinationInstrumentMapFactor;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:dividendDelta10PercentInstrument = nil;

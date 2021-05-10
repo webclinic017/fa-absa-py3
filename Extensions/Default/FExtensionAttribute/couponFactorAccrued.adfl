@@ -1,0 +1,10 @@
+[Default]FCashFlowInstrument:couponFactorAccrued = select(instrumentCurrencies.Size > 1, 
+  true->sumOf(convertToCurrency(legs :* "couponFactorAccrued", instrumentCurrencies :* "fxSpotRate" [fxToCurrency := currency], currencySymbol)), 
+  false->sumOf(legs :* "couponFactorAccrued"));
+[Default]FLeg:couponFactorAccrued = select(canHaveAccruedCashFlows, 
+  false->denominatedvalue(0, currency, , ), 
+  true->select(isFinite(uniqueCoupon), 
+    true->select(staticLegInformation:isAccruingInArrear, 
+      false->denominatedvalue(staticLegInformation.AccruedCouponFactor(accountingParameters, instrument:instrumentSpotDate, legInformation, valuationDate), currency, , ), 
+      true->denominatedvalue(0, currency, , )), 
+    false->denominatedvalue(0, currency, , )));

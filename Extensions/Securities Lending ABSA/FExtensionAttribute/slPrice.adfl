@@ -1,0 +1,8 @@
+[Securities Lending ABSA]FInstrument:slPrice = (object.Trades.At(0)) :* "slPrice";
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPrice = instrument :* "slPrice";
+[Securities Lending ABSA]FTrade:slPrice = select(instrument.InsType, 
+  "SecurityLoan"->instrument.RefPrice, 
+  default->select(instrument:marketPrice.Number, 
+    NaN->0.0, 
+    default->instrument:marketPrice.Number));
+[Securities Lending ABSA]FTradeRow:slPrice = trade :* "slPrice";

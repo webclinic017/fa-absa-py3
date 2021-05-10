@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:nonCouponPriceSign = select(isValidSwaptionUnderlying, 
+  true->select(0 < nonCouponValue, 
+    true->1.0, 
+    false->-1.0), 
+  false->1.0);
+[Fixed Income Pricing and Risk]FInstrument:nonCouponPriceSign = 1.0;
+[Fixed Income Pricing and Risk]FSwap:nonCouponPriceSign = select(0 < nonCouponValue, 
+  true->1.0, 
+  false->-1.0);

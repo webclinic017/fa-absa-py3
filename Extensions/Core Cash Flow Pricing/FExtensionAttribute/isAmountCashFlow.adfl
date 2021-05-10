@@ -1,0 +1,12 @@
+[Core Cash Flow Pricing]FCashFlowInformation:isAmountCashFlow = select(object.Type, 
+  "Fixed Amount"->true, 
+  "Aggregated Fixed Amount"->true, 
+  "Aggregated Coupon"->true, 
+  "Dividend"->true, 
+  "Interest Reinvestment"->true, 
+  "Redemption Amount"->true, 
+  "Autocallable Maturity Payment"->true, 
+  default->false);
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:isAmountCashFlow = select(cashFlowInformation, 
+  nil->false, 
+  default->cashFlowInformation:isAmountCashFlow);

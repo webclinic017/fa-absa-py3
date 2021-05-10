@@ -1,0 +1,5 @@
+[Core Risk]FTimeBucket:fixingForwardValueEstimateGrouping = select(object.IsRest, 
+  false->select(isNominalScalingFixingRisk, 
+    true->fixingRiskGroupingReference :* "forwardPrice" [carryEndDate = fixingRiskGroupingReference.SpotDate(max(timeBucketDate, valuationDate)), forwardValueDate = carryEndDate], 
+    false->fixingRiskGroupingReference :* "rateIndexValue * 100" [carryEndDate = fixingRiskGroupingReference.SpotDate(max(timeBucketDate, valuationDate)), forwardValueDate = carryEndDate]), 
+  true->nil);

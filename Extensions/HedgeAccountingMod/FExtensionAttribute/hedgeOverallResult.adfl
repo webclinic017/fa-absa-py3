@@ -1,0 +1,23 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeOverallResult = switch(lowestChild.OriginalTrade.DealPackage, 
+  nil->nil, 
+  default->switch(getTimeSeriesDvValue(lowestChild.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeOverallResultId), 
+    2.0->"Warning", 
+    1.0->"Passed", 
+    0.0->"Failed", 
+    default->nil));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeOverallResult = switch(lowestChild.OriginalTrade.DealPackage, 
+  nil->nil, 
+  default->switch(getTimeSeriesDvValue(lowestChild.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeOverallResultId), 
+    2.0->"Warning", 
+    1.0->"Passed", 
+    0.0->"Failed", 
+    default->nil));
+[HedgeAccountingMod]FTradeRow:hedgeOverallResult = switch(object.OriginalTrade.DealPackage, 
+  nil->nil, 
+  default->switch(usedInHedge, 
+    default->nil, 
+    true->switch(getTimeSeriesDvValue(object.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeOverallResultId), 
+      2.0->"Warning", 
+      1.0->"Passed", 
+      0.0->"Failed", 
+      default->nil)));

@@ -1,0 +1,13 @@
+[Pegasus]FInstrument:rollingPeriod = nil;
+[Pegasus]FLegAndTrades:rollingPeriod = leg :* "rollingPeriod";
+[Pegasus]FSingleInstrumentAndTrades:rollingPeriod = instrument:rollingPeriod;
+[Pegasus]FTrade:rollingPeriod = instrument:rollingPeriod;
+[Pegasus]FTradeRow:rollingPeriod = shunt(count(trade.Instrument.Legs), 
+  1->trade.Instrument.Legs.At(0).RollingPeriod.AsString, 
+  2->shunt(trade.Instrument.Legs.At(0).RollingPeriod.AsString == trade.Instrument.Legs.At(1).RollingPeriod.AsString, 
+    true->trade.Instrument.Legs.At(0).RollingPeriod.AsString, 
+    default->nil), 
+  3->shunt((trade.Instrument.Legs.At(0).RollingPeriod.AsString == trade.Instrument.Legs.At(1).RollingPeriod.AsString) and (trade.Instrument.Legs.At(1).RollingPeriod.AsString == trade.Instrument.Legs.At(2).RollingPeriod.AsString), 
+    true->trade.Instrument.Legs.At(0).RollingPeriod.AsString, 
+    default->nil), 
+  default->nil);

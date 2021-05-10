@@ -1,0 +1,12 @@
+[Default]FCashFlowMoneyFlow:volatility2InProjectedMoneyFlowIfExists = select(count(snoop(projectedMoneyFlow, "volatility2")) == 1, 
+  true->select(cashFlowProjectedFromModelCall and not (cashFlow.CashFlowType == "Float Rate") and not (cashFlow.CashFlowType == "Fixed Amount"), 
+    true->cashFlow:volatility2, 
+    default->snoop(projectedMoneyFlow, "volatility2")), 
+  false->cashFlow:volatility2);
+[Default]FMoneyFlow:volatility2InProjectedMoneyFlowIfExists = nil;
+[Default]FMoneyFlowAndTrades:volatility2InProjectedMoneyFlowIfExists = moneyFlow:volatility2InProjectedMoneyFlowIfExists;
+[Default]FResetMoneyFlow:volatility2InProjectedMoneyFlowIfExists = select(count(snoop(projectedMoneyFlow, "volatility2")) == 1, 
+  true->select(cashFlowProjectedFromModelCall and not (cashFlow.CashFlowType == "Float Rate") and not (cashFlow.CashFlowType == "Fixed Amount"), 
+    true->reset:volatility2, 
+    default->snoop(projectedMoneyFlow, "volatility2")), 
+  false->reset:volatility2);

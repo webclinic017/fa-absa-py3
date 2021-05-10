@@ -1,0 +1,5 @@
+[Default]FCurrency:paymentsPerCurrencies = stripDateTimePart(positionProjectedPayments - tradesInPosition :* "object.PremiumDv + quantityDv");
+[Default]FInstrument:paymentsPerCurrencies = stripDateTimePart(positionProjectedPayments - tradesInPosition :* "object.PremiumDv");
+[Default]FInstrumentAndTrades:paymentsPerCurrencies = sumOf(instrument :* "paymentsPerCurrencies" [positionObject, profitAndLossEndDate]);
+[Default]FMultiInstrumentAndTrades:paymentsPerCurrencies = sumOf(instruments :* "paymentsPerCurrencies" [positionObject, profitAndLossEndDate]);
+[Default]FTradeRow:paymentsPerCurrencies = sumOf(instrument :* "paymentsPerCurrencies" [singleTradePosition, valuationBaseDateTimeInput = bigDate]);

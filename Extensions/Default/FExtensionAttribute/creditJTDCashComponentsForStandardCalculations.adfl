@@ -1,0 +1,7 @@
+[Default]FCashFlowInstrument:creditJTDCashComponentsForStandardCalculations = select(count(defaultSensitiveLegs) > 0, 
+  true->select(isCreditBasket, 
+    true->creditBasketJTDCashValues(object:staticLegInformations [legs = defaultSensitiveLegs], object:legInformations [legs = defaultSensitiveLegs], creditCurves, riskFreeDiscountCurve, creditExpiryDates, creditIssuer, valuationDate, creditIssuerForStandardCalculations, true, true, true, creditRecoveryRateForStandardCalculations, contractSize, valuationDate, roundingInformation), 
+    false->creditJTDCashValues(object:legInformations [legs = defaultSensitiveLegs], object:staticLegInformations [legs = defaultSensitiveLegs], valuationDate, defaultSensitiveLegs :* "creditRecoveryRateForStandardCalculations" [creditRecoveryRateForStandardCalculations], contractSize, roundingInformation)), 
+  false->{});
+[Default]FInstrument:creditJTDCashComponentsForStandardCalculations = {};
+[Default]FInstrumentAndTrades:creditJTDCashComponentsForStandardCalculations = instrument :* "creditJTDCashComponentsForStandardCalculations" [creditRecoveryRateForStandardCalculations, creditIssuerForStandardCalculations];

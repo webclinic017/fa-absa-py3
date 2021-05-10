@@ -1,0 +1,22 @@
+[Customer]FCombInstrMap:volatilityInPerCent = instr:volaStructure.GetVolatilityValue(optionParent:underlyingTimeToExpiry, optionParent:timeToExpiry, optionParent:strikePrice / object.Weight, optionParent:isCallOption, 0, 0.0, true) * 100;
+[Customer]FDerivative:volatilityInPerCent = select(tdValGroup, 
+  "SAEQ_CAN"->select(underlyingType, 
+    EquityIndex->ael("FC/Eq/Opt/Div_ADFL", context).SQL_ModelInputs_ADFL2(object, insDefUnderlyingForwardPrice), 
+    Stock->ael("FC/Eq/Opt/Div_ADFL", context).SQL_ModelInputs_ADFL2(object, insDefUnderlyingForwardPrice)), 
+  default->select(underlyingType, 
+    Curr->object.used_vol(1), 
+    "Future/Forward"->object.used_vol(1), 
+    default->select(volaStructure.StructureType, 
+      "Benchmark Spread"->select(volaStructure.UnderlyingStructure.Mu <> 0, 
+        true->volaStructure.GetVolatilityValue(0, timeToExpiry, strikePrice, isCallOption, 0, underlyingVolatilityForwardPrice, true), 
+        default->volaStructure.GetVolatilityValue(0, timeToExpiry, strikePrice, isCallOption, object.Oid, 0.0, true)), 
+      default->shunt[useDatabasePrice, doSplitAll](volaMu <> 0, 
+        true->volaStructure.GetVolatilityValue(0, timeToExpiry, strikePrice, isCallOption, 0, underlyingVolatilityForwardPrice, true), 
+        default->volaStructure.GetVolatilityValue(0, timeToExpiry, strikePrice, isCallOption, object.Oid, 0.0, true))) * 100));
+[Customer]FIndex:volatilityInPerCent = volaStructure.GetVolatilityValue(optionParent:underlyingTimeToExpiry, optionParent:timeToExpiry, sumOf([optionParent] :* "basketRatio" [useDatabasePrice, barrierOutside]) * price, optionParent.IsCallOption, 0, 0.0, true) * 100;
+[Customer]FInstrument:volatilityInPerCent = object.used_vol(1);
+[Customer]FOrderBook:volatilityInPerCent = instr:volatilityInPerCent;
+[Customer]FPriceAggregate:volatilityInPerCent = instr:volatilityInPerCent;
+[Customer]FSingleInstrumentAndTrades:volatilityInPerCent = instr:volatilityInPerCent;
+[Customer]FStock:volatilityInPerCent = volaStructure.GetVolatilityValue(optionParent:underlyingTimeToExpiry, optionParent:timeToExpiry, sumOf([optionParent] :* "basketRatio" [useDatabasePrice, barrierOutside]) * price, optionParent.IsCallOption, 0, 0.0, true) * 100;
+[Customer]FTrade:volatilityInPerCent = instr:volatilityInPerCent;

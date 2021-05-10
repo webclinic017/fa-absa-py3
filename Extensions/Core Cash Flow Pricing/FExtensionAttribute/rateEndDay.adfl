@@ -1,0 +1,10 @@
+[Core Cash Flow Pricing]FAbstractReset:rateEndDay = select(floatRateReference, 
+  nil->nil, 
+  default->shunt[](fixingIsFixed, 
+    false->select(cashFlowInformation, 
+      nil->nil, 
+      default->cashFlowInformation.RateEndDay(fixingIndex)), 
+    true->nil));
+[Core Cash Flow Pricing]FMoneyFlow:rateEndDay = nil;
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:rateEndDay = moneyFlow:rateEndDay;
+[Core Cash Flow Pricing]FResetMoneyFlow:rateEndDay = abstractReset:rateEndDay;

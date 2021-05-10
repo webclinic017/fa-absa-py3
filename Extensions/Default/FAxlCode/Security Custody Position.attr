@@ -1,0 +1,35 @@
+[Default]FObject:Security Custody Position
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isSecurityDvPNominalRedemptionEnd = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, 'End Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+securityNoOwnIssue = Aggregate.Sum(If(And(And(Not(@isTradePrimaryIssuance()), @isSecurityDvPNominalRedemptionEnd()), @isSettledDaySet()), &'amount', 0.0));
+
+{
+  DisplayInformation:
+  {
+    Label:'Custody Position',
+    GroupLabel:'Security',
+    Description:'Settled security settlements that are not related to a trade that has Primary Issuance = Yes.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = @securityNoOwnIssue();
+
+...

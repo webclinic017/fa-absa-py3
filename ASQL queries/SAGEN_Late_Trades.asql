@@ -1,0 +1,80 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Late_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Late_Trades' and p.type = 'SQL Query' 
+
+
+/* Returns all trades FO Confirmed btn 19:00 and 09:00 the next day */
+
+
+select
+    t.trdnbr,
+    t.execution_time,
+    convert('time', t.execution_time, '%H%M%S')     'TradeTime',
+    convert('time', t.execution_time, '%d/%m/%Y')   'DateCompare'
+into
+    TrdTime
+    
+from
+    Trade t
+    
+where
+    time_to_day(t.execution_time) >= @1_StartDate{yesterday}
+and time_to_day(t.execution_time) <= @2_EndDate{today}
+    
+    
+    
+    
+select
+    t.trdnbr                                'Trade',
+    /*trd.TradeTime,*/
+    t.execution_time                        'FO Confirmed Time',
+    display_id(t, 'trader_usrnbr')          'Trader',
+    t.creat_time                            'Create Time',
+    display_id(t, 'creat_usrnbr')           'Create User',
+    i.instype                               'Instype',
+    display_id(t, 'acquirer_ptynbr')        'Acquirer',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    t.status                                'Status'
+
+from
+    TrdTime trd,
+    Trade t,
+    Instrument i
+    
+where
+    trd.trdnbr = t.trdnbr
+and t.insaddr = i.insaddr
+and trd.DateCompare = @1_StartDate{yesterday}
+and to_int(trd.TradeTime) >= 190000
+
+
+
+union
+
+
+
+select
+    t.trdnbr                                'Trade',
+    /*trd.TradeTime,*/
+    t.execution_time                        'FO Confirmed Time',
+    display_id(t, 'trader_usrnbr')          'Trader',
+    t.creat_time                            'Create Time',
+    display_id(t, 'creat_usrnbr')           'Create User',
+    i.instype                               'Instype',
+    display_id(t, 'acquirer_ptynbr')        'Acquirer',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    t.status                                'Status'
+    
+from
+    TrdTime trd,
+    Trade t,
+    Instrument i
+    
+where
+    trd.trdnbr = t.trdnbr
+and t.insaddr = i.insaddr
+and trd.DateCompare = @2_EndDate{today}
+and to_int(trd.TradeTime) <= 090000

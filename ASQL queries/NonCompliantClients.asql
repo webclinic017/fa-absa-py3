@@ -1,0 +1,26 @@
+SELECT
+    pty.ptynbr,
+    pty.ptyid,
+    pty.type,
+    pty.not_trading,
+    add_info(pty, 'FICA_Compliant') 'FICA_Compliant',
+    add_info(pty, 'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+    add_info(pty, 'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID'
+INTO
+    TempParty
+FROM
+    Party pty
+WHERE
+    pty.type in ('Counterparty','Client')
+    and (pty.not_trading = 'Yes'
+        or add_info(pty, 'FICA_Compliant') = 'No')
+
+
+SELECT DISTINCT
+    pty.ptyid 'Name (FA short name)',
+    pty.BarCap_SMS_CP_SDSID,
+    pty.BarCap_SMS_LE_SDSID,
+    pty.not_trading = 'Yes'? 'Yes': 'No' 'Not Trading',
+    pty.FICA_Compliant
+FROM
+    TempParty pty

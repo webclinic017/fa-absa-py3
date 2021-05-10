@@ -1,0 +1,7 @@
+[Fixed Income Pricing and Risk]FLeg:useRateIndexFixingForLeg = select(floatRateReference, 
+  nil->false, 
+  default->select(floatRateReference.IsKindOf("FSwap") or floatRateReference.IsKindOf("FCurrencySwap"), 
+    true->true, 
+    false->select(ignoreFixingInRateIndex, 
+      true->false, 
+      false->floatRateReference.IsKindOf("FRateIndex"))));

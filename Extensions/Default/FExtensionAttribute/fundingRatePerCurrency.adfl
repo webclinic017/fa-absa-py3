@@ -1,0 +1,9 @@
+[Default]FInstrument:fundingRatePerCurrency = select(useLongShortFunding, 
+  true->switch(riskPosition < 0.0, 
+    true->switch(includesAny(isFinite(fundingRatePerCurrencyBid), false), 
+      false->fundingRatePerCurrencyBid, 
+      true->fundingRatePerCurrencyFallback), 
+    false->switch(includesAny(isFinite(fundingRatePerCurrencyAsk), false), 
+      false->fundingRatePerCurrencyAsk, 
+      true->fundingRatePerCurrencyFallback)), 
+  false->fundingRatePerCurrencyFallback);

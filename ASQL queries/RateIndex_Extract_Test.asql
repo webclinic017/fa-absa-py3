@@ -1,0 +1,84 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','RateIndex_Extract_Test') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'RateIndex_Extract_Test' and p.type = 'SQL Query' 
+/*
+
+2005-06-08 anil - changed query for any insid and not only for instype = 'rateindex'
+2005-06-24 anil - include a macro value for currency to acconadate the insid USD and currency ZAR
+2007-02-05 heinrich - added interpolated CPI rates
+*/
+
+select
+	u1.usrnbr,
+	count(u2.usrnbr)-1	'Nbr'
+into
+	TMP
+from
+	user	u1,
+	user	u2
+where
+	u1.usrnbr<u2.usrnbr
+	
+group by u1.usrnbr
+
+/*Generate sequence 1-1000*/
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+        t1.Nbr<10
+    and	t2.Nbr<10
+    and	t3.Nbr<70
+
+select
+	i.insid		                    'RateIndex',	 
+	p.day		                    'Fixing_Day',
+	p.settle	                    'Fixing',
+	365 - (to_date(today) - p.day)  'Counter',
+	Today		                    'DATA_DATE'
+from
+	Instrument i,
+	price p,
+	instrument c
+where 
+
+/*
+i.insid = @Instrument{ZAR-JIBAR-ON-ROD;instrument.insid where instype = 'RateIndex'}*\
+*/	
+        i.insaddr = p.insaddr
+	and i.insid = @Instrument{ZAR-JIBAR-ON-ROD;instrument.insid}
+	and i.insid ~= 'SACPI'
+	and p.day >= date_add_delta(Today,0,0,-1)
+	and display_id(p,'ptynbr') = 'SPOT'
+	and p.curr=c.insaddr
+	and c.insid=@Currency{ZAR; instrument.insid where instype='Curr'}
+		
+				
+UNION
+
+
+select
+	i.insid                                             'RateIndex',
+	date_add_delta(today,s.Nbr,,-5)                     'Fixing_Day',
+	cpi_reference(i,date_add_delta(today,s.Nbr,,-5))    'Fixing',
+	s.Nbr                                               'Counter',
+	Today		                                        'DATA_DATE'
+from
+	instrument i,
+	SCEN s
+where
+        i.insid = 'SACPI'
+	and i.insid = @Instrument{ZAR-JIBAR-ON-ROD;instrument.insid}
+    and s.Nbr <= 2200
+
+order by 2
+;

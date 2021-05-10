@@ -1,0 +1,6 @@
+[Default]FFrn:qMarketBidToYTMSpread = nil;
+[Default]FFuture:qMarketBidToYTMSpread = denominatedvalue(spreadBenchmarkYTMMarketPriceBid, currency, , valuationDate) - qMarketBidIncludingQuotes * object:ctdFactor [underlying = spreadBenchmarkYTM];
+[Default]FInstrument:qMarketBidToYTMSpread = object:marketYieldToMaturity [marketUnitValueClean = qMarketBidUnitValueClean, marketPrice = qMarketBidIncludingQuotes] - spreadBenchmarkYieldToMaturityBid;
+[Default]FQuoteController:qMarketBidToYTMSpread = shunt(isFinite(qMarketBidIncludingQuotes), 
+  false->nil, 
+  true->instrument :* "qMarketBidToYTMSpread" [qMarketBidUnitValueClean, spreadBenchmarkYieldToMaturityBid, qMarketBidIncludingQuotes, spreadBenchmarkDiscountMarginBid, spreadBenchmarkMarketPriceBid, spreadBenchmarkYTM, qMarketBidInInstrumentQuotation]);

@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:isOpenPosition = select(taxLotValuation, 
+  true->isOpenTaxLot(taxLotPositionObject, instrument, valuationBaseDateNoFuture, tradeInclusionDateTime), 
+  false->isOpenPosition(tradesInPosition, object, valuationBaseDateNoFuture, valuesOnSpot, tradeStatusInclusionMaskDefault, tradeCategoryInclusionMaskDefault, pLDividendComparisonMethod));
+[Core Pricing]FInstrumentAndTrades:isOpenPosition = isOpenPosition(tradesInPosition, instrument, valuationBaseDateNoFuture, valuesOnSpot, tradeStatusInclusionMaskDefault, tradeCategoryInclusionMaskDefault, pLDividendComparisonMethod);
+[Core Pricing]FTradeRow:isOpenPosition = select(taxLotValuation, 
+  false->isOpenTrade(trade, instrument, valuationBaseDateNoFuture, tradeInclusionDateTime), 
+  true->isOpenTaxLot(taxLot, instrument, valuationBaseDateNoFuture, tradeInclusionDateTime));

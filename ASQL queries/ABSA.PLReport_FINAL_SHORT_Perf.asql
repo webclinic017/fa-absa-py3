@@ -1,0 +1,1232 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ABSA.PLReport_FINAL_SHORT_Perf') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ABSA.PLReport_FINAL_SHORT' and p.type = 'SQL Query' 
+/*
+	ABSA.PLReport_FINAL
+
+This query calculates the economic profit and loss over an input period
+for all trades matching a trade filter or entered as single trade
+numbers.
+
+
+The query prerequisites that the mark to market procedure is run for
+the input dates unless 'today' is used as the input end date. In this case
+the prevailing market rates are used.
+
+The query splits the result over each currency included in a trade. A 
+Curr Swap will be reported in each of it's leg currencies and also in 
+all additional currencies where there might be various premiums or 
+fees.
+The mark to market procedure should hence be performed per currency for
+all instrument types containing more than one currency.
+
+The Previous Reporting date - used for Overnight P&L, is determined by the previous business
+date of the REPORTING CURRENCY.
+
+
+AN IMPORTANT NOTE ON ACCUMULATED CASH
+AS each desk migrates onto Front Arena, that desk will need to ensure that the 
+accumulated cash at the beginning of the reporting period is correct.
+This is particularily important for NON Reporting currencies.
+
+A "CASH JOURNAL" will need to be loaded per Desk per portfolio, per insturment type.
+This can be done by loading a zero qty, zero price deal with Payments attached.
+The trade can also be marked as type = "ADJUST".
+Be sure to check the payment date of the cash as well as the value date of the trade.
+Make sure that the only P&L effect that this trade has is the change in cash
+as per the payment.
+
+Date		Who		What
+2003-04-15	Debbie Osler	Excluded Deals maturing before yearend date
+				for Swaps & FXSwaps
+2003-04-15	Debbie Osler	Added Reporting Curr Equivalent for Nominal
+2003-05-16	Debbie Osler	Added Section Totaling by Cpty
+2003-05-20	Debbie Osler 	If user takes ME date as FIRSTDAYOFMONTH, then 
+				ME date will be reduced by one day
+				This has been added to make the automation of reports
+				more generic (monthend date will not need to be maintained)
+				ME date should ALWAYS be the last day of the previous month
+				if "FIRSTDAYOFMONTH" is not used.
+2003-06-24	Debbie Osler	At the request of Parin, the following changes were made:
+				1. Premium Col only shows premium if premium ccy = leg currency
+				2. HPremium Col has been added
+				2. Nominal Amount only shows nominal amount for leg
+				3. HPosition has been removed - noone uses it
+2004-02-05	Debbie Osler	Added Col Trade Area (Trade Key 2 as col in report)
+				Added Col MM_Product 
+				Added Total Section: Total by Product and Portfolio 
+
+2004-03-10	Debbie Osler	Position Col for Swaps now represents Nominal at START of Swap
+				Nominal Col Updated for Instrument Type BOND - shows true nominal POSITION 
+					and NO LONGER just the trade nominal.
+					ie If Report Date is before value_date, Nominal  = 0.00
+
+
+
+*/
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+
+
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		'ME',
+		
+
+	to_date(@5_YearEndDate{2003-03-31;})					'YE',
+	
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur',
+	
+	@7_ShowTOTALDeskPortfolio{Yes;'Yes','No'}	'TOTALDeskPortfolio',
+	@8_ShowTOTALInstype{Yes;'Yes','No'}		'TOTALInstype',
+	@9_ShowTOTALInstr{Yes;'Yes','No'}		'TOTALInstr',
+	@10_ShowDetails{Yes;'Yes','No'}		'det',
+	@11_ShowTOTALTrade{Yes;'Yes','No'}		'TOTALTrade',
+	@12_ShowTOTALCpty{Yes;'Yes','No'}		'TOTALCpty',
+	@13_ShowTOTALProdPortf{Yes;'Yes','No'}	'TOTALProdPortf',
+	@14_ShowTOTALPerCurrency{No;'Yes','No'}	'TOTALPerCurrency'
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay',
+	mtm_price(hc, m.ME, curr.insid)				'fxME',
+	mtm_price(hc, m.YE, curr.insid)				'fxYE'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+/*--------------------------------------------------------------------------
+   CURRSWAP / FXSWAP Selecting base data into the 'result' temp table
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	(l.payleg='Yes' ? -1 : 1)*(position(t,,,m.RepDay)*l.nominal_factor)  'Position',
+	nominal_amount(t,m.Repday,curr.insid)			 'Nominal',
+	t.premium,
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	mtm_value_fo(t, m.ME, curr.insid, 2, 0, 1)		'mtm_ME',
+	mtm_value_fo(t, m.YE, curr.insid, 2, 0, 1)		'mtm_YE',
+
+	
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	accumulated_cash(t, m.ME, curr.insid, 2, 0, , 1, 'None')
+								'cash_ME',
+
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')
+								'cash_YE',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product',
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)/fx.fxRepDay  'HvalCalc',
+	0.00    'HPrem',
+	display_id(i,'curr')    'icurr',
+	display_id(t,'curr')    'tcurr',
+	t.value_day 'value_day'
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	leg		l,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND l.insaddr =* i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND curr.insaddr= l.curr
+	AND i.instype in ('FXSwap','CurrSwap')
+
+/*--------------------------------------------------------------------------
+   FOR SWAP Selecting base data into the 'result' temp table 
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	
+	nominal_amount(t,m.Repday,curr.insid) 'Position',
+	
+	nominal_amount(t,m.Repday,curr.insid)	 'Nominal',
+	
+	t.premium,
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	mtm_value_fo(t, m.ME, curr.insid, 2, 0, 1)		'mtm_ME',
+	mtm_value_fo(t, m.YE, curr.insid, 2, 0, 1)		'mtm_YE',
+
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	accumulated_cash(t, m.ME, curr.insid, 2, 0, , 1, 'None')
+								'cash_ME',
+
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')
+								'cash_YE',
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product',
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)/fx.fxRepDay  'HvalCalc',
+	0.00    'HPrem',
+	display_id(i,'curr')    'icurr',
+	display_id(t,'curr')    'tcurr',
+	t.value_day 'value_day'
+
+	
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	leg 		l
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND (i.instype in ('Swap'))
+	AND l.insaddr = i.insaddr
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (excl FXSWAP/CURRSWAP/SWAP)
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 		'Position',
+	i.instype = 'Bond' ? position(t,,,m.RepDay) : nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00		'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	mtm_value_fo(t, m.ME, curr.insid, 2, 0, 1)		'mtm_ME',
+	mtm_value_fo(t, m.YE, curr.insid, 2, 0, 1)		'mtm_YE',
+
+	
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	accumulated_cash(t, m.ME, curr.insid, 2, 0, , 1, 'None')
+								'cash_ME',
+
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')
+								'cash_YE',
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product',
+	i.instype = 'Option' ? 
+        /*HVal*/
+        time_to_day(t.time) <= m.RepDay ?
+            (i.exp_day > m.RepDay ?
+                (i.und_instype = 'Bond' ?
+                    (1/fx.fxRepDay)*mtm_value_bo(t,m.RepDay) : (1/fx.fxRepDay)*mtm_value_fo(t,m.RepDay,curr.insid,2,0,1)) 
+            : (t.value_day > m.RepDay ? 
+                (curr.insid=display_id(t,'curr') ?
+                    t.premium/fx.fxRepDay : 0.00) 
+            : 0.00)) 
+        : 0.00
+        +
+        /*HPayment*/
+        (i.und_instype = 'Bond' ?
+                0.00 : ael_f(,'SAGEN_LA_Option_Calc.calc_HPayment',t.trdnbr,m.RepDay,'ZAR'))
+    : mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)/fx.fxRepDay    'HvalCalc',
+    i.instype = 'Option' ? display_id(i,'curr')~=display_id(t,'curr') ? ael_f(,'SAGEN_LA_Option_Calc.calc_HPremium',t.trdnbr,m.RepDay,'ZAR') : 0.00 : 0.00 'HPrem',
+	display_id(i,'curr')    'icurr',
+	display_id(t,'curr')    'tcurr',
+	t.value_day 'value_day'
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND not(i.instype in ('FXSwap','CurrSwap','Swap'))
+
+
+
+
+/*------------------------------------------------------------------
+	Creating Final DATA table
+------------------------------------------------------------------*/
+
+SELECT
+	r.trdnbr						,
+	r.DevonRef						,
+	r.insid						,
+	r.Desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	
+	sum(r.position) 		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+	
+	/*PLINCEP*/
+	sum(r.mtm_RepDate+r.Cash_Repdate)					'PLIncep1',
+	sum(r.mtm_RepDate)							'Val',
+	sum(r.cash_repdate)							'CashIncep',
+	
+	/*PLYTD*/
+	sum((r.mtm_RepDate-r.mtm_YE) + (r.cash_RepDate-r.cash_YE))	'PLYTD1',
+	sum((r.mtm_RepDate-r.mtm_YE))						'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))					'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum((r.mtm_RepDate-r.mtm_ME) + (r.cash_RepDate-r.cash_ME))		'PLMTD1',
+	sum((r.mtm_RepDate-r.mtm_ME)) 						'ChangeMTM_MTD',
+	sum((r.cash_RepDate-r.cash_ME))						'ChangeCash_MTD',
+
+	/*PLON*/
+	sum((r.mtm_RepDate-r.mtm_PrevRepDate) + (r.cash_RepDate-r.cash_PrevRepDate))	'PLON1',
+	sum((r.mtm_RepDate-r.mtm_PrevRepDate)) 							'ChangeMTM_ON',
+	sum((r.cash_RepDate-r.cash_PrevRepDate))							'ChangeCash_ON',
+	
+	hcurr							,
+	
+	sum(r.Premium)*r.fxRepDay		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay)	'HPLIncep',
+	r.instype = 'Option' ? sum(r.icurr = r.tcurr and r.RepDay < r.value_day ? r.HvalCalc + r.HPrem : r.HvalCalc) : sum(r.HvalCalc)	'HVal',
+	sum(r.cash_repdate*r.fxRepDay)					'HCashIncep',
+
+	
+	/*PLYTD Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE))	'HPLYTD1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE))									'HChangeMTM_YTD',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE))								'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_ME*r.fxME) + (r.cash_RepDate*r.fxRepDay-r.cash_ME*r.fxYE))	'HPLMTD1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_ME*r.fxYE)) 								'HChangeMTM_MTD',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_ME*r.fxYE))								'HChangeCash_MTD',
+
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON',
+	
+
+	
+	r.fxRepDay ,
+	r.fxPrevRepDay ,
+	r.fxME ,
+	r.fxYE ,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE
+
+INTO
+	final
+
+FROM
+	result		r
+
+
+
+/*------------------------------------------------------------------
+TOTAL by Desk, Portfolio
+------------------------------------------------------------------*/
+
+SELECT
+	count(r.trdnbr)				'TrdNbr',
+	r.DevonRef				'ExternalSystemRef',
+	'TOTAL by Desk & Portfolio'		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+ 	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	0.00		'Position',
+	0.00		'Nominal',
+	0.00		'Premium',
+
+	/*PLINCEP*/
+	0.00	'PLIncep',
+	0.00		'Val',
+	0.00	'CashIncep',
+
+	
+	0.00	'PLYTD',
+	0.00 'ChangeUnRealsd_YTD',
+	0.00 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	0.00	'PLMTD',
+	0.00 'ChangeUnRealsd_MTD',
+	0.00 'ChangeCash_MTD',
+
+	/*PLON*/
+	0.00 'PLON',
+	0.00 'ChangeUnRealsd_ON',
+	0.00 'ChangeCash_ON',
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',	
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	m.RepDay,
+	m.ME,
+	m.YE							
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALDeskPortfolio IN ('Yes','YES','yes','Y','y')
+
+group by
+r.desk,r.portfolio
+order by r.Desk, r.portfolio, r.curr
+union
+
+
+/*------------------------------------------------------------------
+TOTAL by Desk, Portfolio, MM_Product
+------------------------------------------------------------------*/
+
+SELECT
+	count(r.trdnbr)				'TrdNbr',
+	r.DevonRef				'ExternalSystemRef',
+	'TOTAL by Desk,Portfolio & MM_Product'		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	0.00		'Position',
+	0.00		'Nominal',
+	0.00		'Premium',
+
+	/*PLINCEP*/
+	0.00	'PLIncep',
+	0.00		'Val',
+	0.00	'CashIncep',
+
+	
+	0.00	'PLYTD',
+	0.00 'ChangeUnRealsd_YTD',
+	0.00 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	0.00	'PLMTD',
+	0.00 'ChangeUnRealsd_MTD',
+	0.00 'ChangeCash_MTD',
+
+	/*PLON*/
+	0.00 'PLON',
+	0.00 'ChangeUnRealsd_ON',
+	0.00 'ChangeCash_ON',
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',	
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	m.RepDay,
+	m.ME,
+	m.YE							
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALProdPortf IN ('Yes','YES','yes','Y','y')
+
+group by
+r.desk,r.portfolio,r.mm_product
+order by r.desk,r.portfolio,r.mm_product
+
+union
+
+
+
+/*------------------------------------------------------------------
+Total by Portfolio,Instype,Curr
+------------------------------------------------------------------*/
+
+SELECT
+	count(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'TOTAL by Portfolio,Instype&Curr'       'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+	
+	sum(r.PLYTD1)	'PLYTD',
+	sum(r.ChangeMTM_YTD) 'ChangeUnRealsd_YTD',
+	sum(r.ChangeCash_YTD) 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON',
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	m.RepDay,
+	m.ME,
+	m.YE											
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALInstype IN ('Yes','YES','yes','Y','y')
+
+group by
+r.desk,r.portfolio,r.instype,r.curr
+order by
+r.desk,r.portfolio,r.instype,r.curr
+
+
+union
+
+
+
+/*------------------------------------------------------------------
+Total by Portfolio,Instype,Curr,Instrument
+------------------------------------------------------------------*/
+
+SELECT
+	count(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'TOTALbyInstr'		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+	
+	sum(r.PLYTD1)	'PLYTD',
+	sum(r.ChangeMTM_YTD) 'ChangeUnRealsd_YTD',
+	sum(r.ChangeCash_YTD) 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON',
+	
+	r.hcurr							,
+	
+	sum(r.HPremium)		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD =',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD =',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON =',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	
+	m.RepDay,
+	m.ME,
+	m.YE											
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALInstr IN ('Yes','YES','yes','Y','y')
+
+group by
+r.desk,r.portfolio,r.instype,r.curr,r.insid
+order by
+r.desk,r.portfolio,r.instype,r.curr,r.exp_day,r.insid
+
+
+union
+
+/*------------------------------------------------------------------
+DETAILS
+------------------------------------------------------------------*/
+
+SELECT
+	(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'Details'	'Section',
+	r.insid						,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+	
+	sum(r.PLYTD1)	'PLYTD',
+	sum(r.ChangeMTM_YTD) 'ChangeUnRealsd_YTD',
+	sum(r.ChangeCash_YTD) 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON',
+	
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	
+	m.RepDay,
+	m.ME,
+	m.YE					
+FROM
+	final			r,
+	macros		m
+
+Where
+m.det IN ('Yes','YES','yes','Y','y')
+
+
+union
+
+/*------------------------------------------------------------------
+DETAILS
+------------------------------------------------------------------*/
+
+SELECT
+	(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'Total by Trade'	'Section',
+	r.insid						,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.cptyRef,
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	0.00			'Position',
+	avg(nominal_amount(t,m.RepDay,'ZAR'))			'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	0.00	'PLIncep',
+	0.00		'Val',
+	0.00	'CashIncep',
+
+	
+	0.00	'PLYTD',
+	0.00 'ChangeUnRealsd_YTD',
+	0.00 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	0.00	'PLMTD',
+	0.00 'ChangeUnRealsd_MTD',
+	0.00 'ChangeCash_MTD',
+
+	/*PLON*/
+	0.00		'PLON',
+	0.00 'ChangeUnRealsd_ON',
+	0.00 'ChangeCash_ON',
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD =',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD =',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON =',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	
+	
+	m.RepDay,
+	m.ME,
+	m.YE											
+
+FROM
+	final			r,
+	macros		m,
+	trade t
+
+Where
+m.TOTALTrade IN ('Yes','YES','yes','Y','y')
+and t.trdnbr = r.trdnbr
+
+Group by
+r.trdnbr
+
+union
+
+/*------------------------------------------------------------------
+Total by Portfolio,Instype,Curr,Instrument
+------------------------------------------------------------------*/
+
+SELECT
+	(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'TOTALbyCpty'	'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.cptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+	
+	sum(r.PLYTD1)	'PLYTD',
+	sum(r.ChangeMTM_YTD) 'ChangeUnRealsd_YTD',
+	sum(r.ChangeCash_YTD) 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON',
+	
+	r.hcurr							,
+	
+	sum(r.HPremium)		'HPremium',
+
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD =',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD =',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON =',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	
+	m.RepDay,
+	m.ME,
+	m.YE											
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALCpty IN ('Yes','YES','yes','Y','y')
+
+group by
+r.desk,r.portfolio,r.instype,r.curr,r.cpty
+order by
+r.desk,r.portfolio,r.instype,r.curr,r.cpty
+
+union
+/*	TOTAL BY CURRENCY AND PORTFOLIO	*/
+SELECT
+	count(r.trdnbr)						,
+	r.DevonRef 				'ExternalSystemRef',
+	'TOTAL by CurrencyPortfolio'       		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef, 
+	r.curr						,
+	r.instype						,
+	r.mm_product,
+	
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+	
+	sum(r.PLYTD1)	'PLYTD',
+	sum(r.ChangeMTM_YTD) 'ChangeUnRealsd_YTD',
+	sum(r.ChangeCash_YTD) 'ChangeCash_YTD',
+
+	/*PLMTD*/
+	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON',
+	
+	r.hcurr							,
+	sum(r.HPremium)		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	sum(r.HPLYTD1) 'HPLYTD',
+	sum(r.HChangeMTM_YTD) 'HChangeUnRealsd_YTD',
+	sum(r.HChangeCash_YTD) 'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',
+
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.fxME) 		'FXME',
+	avg(r.fxYE)  		'FXYE',		
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',
+	m.RepDay,
+	m.ME,
+	m.YE											
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.TOTALPerCurrency IN ('Yes','YES','yes','Y','y')
+
+group by r.curr, r.portfolio
+order by r.curr
+
+
+
+

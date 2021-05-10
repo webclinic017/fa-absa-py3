@@ -1,0 +1,7 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:usedInHedge = switch(object == "", 
+  true->false, 
+  false->switch(count(object.DealPackage.Trades), 
+    0->false, 
+    default->getUsedInHedge(object.DealPackage.Trades.First)));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:usedInHedge = getUsedInHedge(lowestChild.Trade);
+[HedgeAccountingMod]FTradeRow:usedInHedge = getUsedInHedge(object.Trade);

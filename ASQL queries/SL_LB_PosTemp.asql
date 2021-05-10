@@ -1,0 +1,51 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_LB_PosTemp') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_LB_PosTemp' and p.type = 'SQL Query' 
+
+
+
+select
+    i.insid 'InstrName',
+    p.prfid 'Portfolio',
+    sum(t.quantity*i.contr_size) 'Qty',
+    @Date{today}  'NetPosDate'
+    
+from
+    trade   t,
+    instrument  i,
+    portfolio   p
+    
+where t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid in (@Portfolio{;portfolio.prfid*})
+and time_to_day(t.time) <= (@Date{today})
+and t.status not in ('Simulated','Void','Terminated')
+and i.instype in ('Stock')
+
+group by 1,2
+
+union
+
+select
+    i.insid 'InstrName',
+    p.prfid 'Portfolio',
+    sum(t.quantity*i.contr_size) 'Qty',
+    @Date{today}  'NetPosDate'    
+    
+from
+    trade   t,
+    instrument  i,
+    portfolio   p
+    
+where t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid in (@Portfolio{;portfolio.prfid*})
+and time_to_day(t.time) <= (@Date{today})
+and t.status not in ('Simulated','Void','Terminated')
+and i.instype in ('Stock')
+
+group by 1
+

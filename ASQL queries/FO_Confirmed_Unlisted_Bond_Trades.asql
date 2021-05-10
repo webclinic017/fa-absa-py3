@@ -1,0 +1,62 @@
+/* update_method=0 */
+/*
+coded by Anil Parbhoo
+for Seven Khosa of PTS  
+this ASQL uses trade filter 'FO Unlisted Bond Trades' is scheduled to generate a csv file that will be used to upload trades in strate converge
+CHG0122823 deployed on 3 September 2020
+CHG0125722 deployed on 17 September 2020
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','FO_Confirmed_Unlisted_Bond_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'FO_Confirmed_Unlisted_Bond_Trades' and p.type = 'SQL Query' 
+
+
+
+
+select
+
+t.trdnbr 'RefNo',
+'' 'Member',
+'' 'Dealer',
+'' 'Portfolio',
+'ABMN' 'Principal',
+'' 'TradeTime',
+t.quantity>=0 ? 'B' : 'S' 'BuySell',
+'P' 'Capacity',
+ael_s(t, 'unlisted_bonds.trade_details', 'nom') 'Nominal',
+i.extern_id1 'Instrument',
+convert('date', time_to_day(t.execution_time), '%d/%m/%Y') 'TradeDate',
+convert('date', t.value_day, '%d/%m/%Y') 'SettleDate',
+add_info(p,'UnexCor Code') 'CounterParty',
+'' 'SubAcc',
+'' 'BDAAccNo',
+'' 'Yield',
+ael_s(t, 'unlisted_bonds.trade_details', 'prem') 'Consideration',
+(i.instype in ('Bond','IndexLinkedBond','FRN') ? 'SPOT' : '') 'TradeType',
+'' 'CompanionBond',
+'' 'Spread',
+'' 'AdditionalTradeType',
+'' 'ConvergeAction',
+'' 'ConvergeRefNo'
+
+
+
+from
+
+trade t,
+instrument i,
+party p
+
+where
+
+match_filter(t, 'FO Unlisted Bond Trades')
+and i.instype in ('Bond', 'Frn', 'IndexLinkedBond')
+and i.extern_id1 like '%U'
+and t.status in ('FO Confirmed')
+and t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+

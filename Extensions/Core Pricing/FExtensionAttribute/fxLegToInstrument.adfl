@@ -1,0 +1,4 @@
+[Core Pricing]FCombInstrMap:fxLegToInstrument = select(instrumentCurrency == combination:currency, 
+  true->1.0, 
+  false->instrumentCurrency :* "fxForwardRate" [fxForwardDate = combination:instrumentSpotDate, fxToCurrency := combination:currency]);
+[Core Pricing]FOwnOrder:fxLegToInstrument = instrumentMap:fxLegToInstrument;

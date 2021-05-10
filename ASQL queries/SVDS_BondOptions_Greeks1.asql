@@ -1,0 +1,423 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SVDS_BondOptions_Greeks1') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SVDS_BondOptions_Greeks1' and p.type = 'SQL Query' 
+
+/*S. van der Straaten 2006-02-21
+BOND OPTIONS GREEKS*/
+
+/*Amended 2006-05-19 by SVDS to include BlackScholes gamma calculation*/
+
+/*Amended 2007-05-16 by SVDS to include FRAs, Swaps, Swaptions*/
+
+
+/***BOND OPTIONS***/
+
+select
+
+	date_add_banking_day(Today,,0)				'ReportDate',
+	'YES' ? t.trdnbr : ''					'Trdnbr',
+	'YES' ? i.instype : ''					'Instype',
+	i.insid							'Insid',
+	i.call_option = 'YES' ? 'C' : 'P'			'Type',
+	i.exercise_type = 'American' ? 'American' : 'European'	'ExerciseType',
+	r.extern_id1						'UnderlyingIns',
+	display_id(t,'prfnbr')					'Portfolio',
+	display_id(t,'counterparty_ptynbr')			'Counterparty',
+	'YES' ? i.exp_day : ''					'EndDay',
+	days_between(today,i.exp_day,'Act/365')			'DaystoExp',
+	nominal_amount(t)					'Nom',
+	display_id(t,'Curr')					'Curr',
+	present_value(t) 					'PositionZAR',
+	'YES' ? ((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000) : ''				 	'RNDPPNT',
+	i.strike_price						'Price',
+	used_und_price(i)					'Spot',
+	used_rate(t)						'RepoRate',
+	'YES' ? used_vol(t) : ''				'Vol',
+	'YES' ? delta_explicit(t) : ''				'Delta',
+	nominal_amount(t)*delta_explicit(t)*((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000)*0.000001 	'DeltaPos',
+	vega(t)							'Vega',
+	theta(t)						'Theta',
+	ael_f(,'BondOpt_Gamma.Theor', i)			'Gamma',
+	nominal_amount(t)*ael_f(,'BondOpt_Gamma.Theor', i)*((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000)*0.000001		'GammaPos'
+	
+into temp
+	
+from 
+	Trade t,
+	Instrument i,
+	Instrument r
+
+where
+	i.insaddr = t.insaddr
+and	r.insaddr = i.und_insaddr
+and	i.instype = 'Option'
+and i.und_instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	i.exp_day > today
+
+
+
+/***BONDS***/
+
+select
+
+	date_add_banking_day(Today,,0)			'ReportDate',
+	'YES' ? t.trdnbr : ''				'Trdnbr',
+	'YES' ? i.instype : ''				'Instype',
+	i.insid						'Insid',
+	''						'Type',
+	''						'ExerciseType',
+	i.extern_id1					'UnderlyingIns',
+	display_id(t,'prfnbr')				'Portfolio',
+	display_id(t,'counterparty_ptynbr')		'Counterparty',
+	'YES' ? t.value_day : ''			'EndDay',
+	days_between(today,t.value_day,'Act/365')	'DaystoExp',
+	nominal_amount(t)				'Nom',
+	display_id(t,'Curr')				'Curr',
+	present_value(t) 				'PositionZAR',
+	'YES' ? ((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+0.01)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)))*-10000) : ''				 	'RNDPPNT',
+	t.price						'Price',
+	mtm_price(i)					'Spot',
+	used_rate(t)					'RepoRate',
+	'YES' ? used_vol(t) : ''			'Vol',
+	'YES' ? delta_explicit(t) : ''			'Delta',
+	nominal_amount(t)*delta_explicit(t)*((dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)+0.01)-dirty_from_yield(i,date_add_banking_day(Today,,3),,,mtm_price(i)))*-10000)*0.000001 	'DeltaPos',
+	vega(t)						'Vega',
+	theta(t)					'Theta',
+	0.0						'Gamma',
+	0.0						'GammaPos'
+
+into temp	
+
+from 
+	Trade t,
+	Instrument i
+	
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+/*and	t.value_day > today*/
+
+
+
+/***BUYSELLBACKS***/
+
+select
+
+	date_add_banking_day(Today,,0)		'ReportDate',
+	'YES' ? t.trdnbr : ''			'Trdnbr',
+	'YES' ? i.instype : ''			'Instype',
+	i.insid					'Insid',
+	''					'Type',
+	''					'ExerciseType',
+	r.extern_id1				'UnderlyingIns',
+	display_id(t,'prfnbr')			'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	'YES' ? i.exp_day : ''			'EndDay',
+	days_between(today,i.exp_day,'Act/365')	'DaystoExp',
+	i.ref_value*t.quantity > 0 ? -1*abs(nominal_amount(t)) : abs(nominal_amount(t))																'Nom',
+	display_id(t,'Curr')			'Curr',
+	projected_cf(t) 			'PositionZAR',
+	'YES' ? ((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000) : ''				 	'RNDPPNT',
+	t.price					'Price',
+	used_und_price(i)			'Spot',
+	used_rate(t)				'RepoRate',
+	'YES' ? used_vol(t) : ''		'Vol',
+	'YES' ? delta_explicit(t) : ''		'Delta',
+	i.ref_value*t.quantity > 0 ? -1*abs(nominal_amount(t))*delta_explicit(t)*((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000)*0.000001 : 
+	abs(nominal_amount(t))*delta_explicit(t)*((dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)+0.01)-dirty_from_yield(r,date_add_banking_day(Today,,3),,,mtm_price(r)))*-10000)*0.000001 	'DeltaPos',
+	vega(t)					'Vega',
+	theta(t)				'Theta',
+	0.0					'Gamma',
+	0.0					'GammaPos'
+
+into temp
+	
+from 
+	Trade t,
+	Instrument i,
+	Instrument r
+
+where
+	i.insaddr = t.insaddr
+and	r.insaddr = i.und_insaddr
+and 	i.instype = 'BuySellback'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	t.value_day =< today
+and	today < i.exp_day
+
+
+/***SWAPTIONS***/
+
+
+select
+
+	date_add_banking_day(Today,,0)				'ReportDate',
+	'YES' ? t.trdnbr : ''					'Trdnbr',
+	'YES' ? i.instype : ''					'Instype',
+	i.insid							'Insid',
+	i.call_option = 'YES' ? 'Payer' : 'Receiver'			'Type',
+	i.exercise_type = 'American' ? 'American' : 'European'	'ExerciseType',
+	'Swap'						'UnderlyingIns',
+	display_id(t,'prfnbr')					'Portfolio',
+	display_id(t,'counterparty_ptynbr')			'Counterparty',
+	'YES' ? i.exp_day : ''					'EndDay',
+	days_between(today,i.exp_day,'Act/365')			'DaystoExp',
+	nominal_amount(t)					'Nom',
+	display_id(t,'Curr')					'Curr',
+	present_value(t) 					'PositionZAR',
+	''				 	                'RNDPPNT',
+	i.strike_price						'Price',
+	used_und_price(i)					'Spot',
+	used_rate(t)						'RepoRate',
+	'YES' ? used_vol(t) : ''				'Vol',
+	'YES' ? delta_explicit(t)	: ''				'Delta',
+	delta_implicit(t)	         	'DeltaPos',
+	vega(t)							'Vega',
+	theta(t)						'Theta',
+	gamma_explicit(t)			    'Gamma',
+	gamma_implicit(t)   		    'GammaPos'
+	
+into temp
+	
+from 
+	Trade t,
+	Instrument i
+
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Option'
+and i.und_instype = 'Swap'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	i.exp_day > today
+
+
+/***SWAPS***/
+
+
+select
+
+	date_add_banking_day(Today,,0)				'ReportDate',
+	'YES' ? t.trdnbr : ''					'Trdnbr',
+	'YES' ? i.instype : ''					'Instype',
+	i.insid							'Insid',
+	''			'Type',
+	''	'ExerciseType',
+	'None'						'UnderlyingIns',
+	display_id(t,'prfnbr')					'Portfolio',
+	display_id(t,'counterparty_ptynbr')			'Counterparty',
+	'YES' ? i.exp_day : ''					'EndDay',
+	days_between(today,i.exp_day,'Act/365')			'DaystoExp',
+	nominal_amount(t)					'Nom',
+	display_id(t,'Curr')					'Curr',
+	present_value(t) 					'PositionZAR',
+	''				 	                'RNDPPNT',
+	l.fixed_rate						'Price',
+	used_und_price(i)					'Spot',
+	used_rate(t)						'RepoRate',
+	'YES' ? used_vol(t) : ''				'Vol',
+	'YES' ? delta_explicit(t)	: ''				'Delta',
+	delta_implicit(t)	         	'DeltaPos',
+	vega(t)							'Vega',
+	theta(t)						'Theta',
+	gamma_explicit(t)			    'Gamma',
+	gamma_implicit(t)   		    'GammaPos'
+	
+into temp
+	
+from 
+	Trade t,
+	Instrument i,
+	Leg l
+
+where
+	i.insaddr = t.insaddr
+and t.insaddr = l.insaddr
+and	l.type = 'Fixed'
+and	i.instype in ('Swap','FRA')
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	i.exp_day > today
+
+
+
+select
+	tt.ReportDate,
+	tt.Trdnbr,
+	tt.Instype,
+	tt.Insid,
+	tt.Type		'P/C',
+	tt.ExerciseType,
+	tt.UnderlyingIns,
+	tt.Portfolio,
+	tt.Counterparty,
+	tt.EndDay,
+	tt.DaystoExp,
+	tt.Nom,
+	tt.Curr,
+	tt.PositionZAR,
+	tt.RNDPPNT,
+	tt.Price,
+	tt.Spot,
+	tt.RepoRate,
+	tt.Vol,
+	tt.Delta,
+	tt.DeltaPos,
+	tt.Vega,
+	tt.Theta,
+	tt.Gamma,
+	tt.GammaPos
+
+
+from temp tt
+
+order by 3,7
+
+union
+
+select
+	tt.ReportDate,
+	'Total Underlying',
+	'All',
+	'',
+	'',
+	'',
+	tt.UnderlyingIns,
+	tt.Portfolio,
+	'',
+	'',
+	max(DaystoExp),
+	sum(Nom),
+	tt.Curr,
+	sum(PositionZAR),
+	tt.RNDPPNT,
+	0.00,
+	0.00,
+	0.00,
+	'',
+	'',
+	sum(DeltaPos),
+	sum(Vega),
+	sum(Theta),
+	0.00,
+	sum(GammaPos)
+
+from 	temp tt
+
+group by 7,8
+
+union
+
+select
+	tt.ReportDate,
+	'Total Sum',
+	tt.Instype,
+	'',
+	'',
+	'',
+	'All',
+	'',
+	'',
+	'',
+	max(DaystoExp),
+	sum(Nom),
+	tt.Curr,
+	sum(PositionZAR),
+	'',
+	0.00,
+	0.00,
+	0.00,
+	'',
+	'',
+	sum(DeltaPos),
+	sum(Vega),
+	sum(Theta),
+	0.00,
+	sum(GammaPos)
+
+from 	temp tt
+
+where
+tt.Instype = 'Option'
+
+group by 3
+
+union
+
+select
+	tt.ReportDate,
+	'Total Sum',
+	tt.Instype,
+	'',
+	'',
+	'',
+	'All',
+	'',
+	'Refer Bonds_Summary',
+	'',
+	max(DaystoExp),
+	sum(Nom),
+	tt.Curr,
+	0.00,
+	'',
+	0.00,
+	0.00,
+	0.00,
+	'',
+	'',
+	sum(DeltaPos),
+	sum(Vega),
+	sum(Theta),
+	0.00,
+	sum(GammaPos)
+
+
+from 	temp tt
+
+where
+tt.Instype in ('Bond','BuySellback','Swap')
+
+group by 3
+
+union
+
+select
+	tt.ReportDate,
+	'Total Sum',
+	'All',
+	'',
+	'',
+	'',
+	'All',
+	'',
+	'',
+	'',
+	max(DaystoExp),
+	sum(Nom),
+	'',
+	0.00,
+	'',
+	0.00,
+	0.00,
+	0.00,
+	'',
+	'',
+	sum(DeltaPos),
+	sum(Vega),
+	sum(Theta),
+	0.00,
+	sum(GammaPos)
+
+
+from 	temp tt
+
+group by 1
+				

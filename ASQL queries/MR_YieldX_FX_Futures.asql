@@ -1,0 +1,43 @@
+ /*-- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-03-08     CHNG0003469409   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-489
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_YieldX_FX_Futures.OpenFile',@1_path{'f:\'},@2_FileName{'MR_YieldX_FX_Futures.csv'},@3_PositionName{'MR_YieldX_FX_Futures_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_YieldX_FX_Futures.Write',@1_path{'f:\'},@2_FileName{'MR_YieldX_FX_Futures.csv'},@3_PositionName{'MR_YieldX_FX_Futures_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i
+where
+    /* Basic filtering conditions */
+        (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Future/Forward')
+    and i.und_instype in ('Curr')    /* Yield-X futures are booked with underlying Curr */     
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

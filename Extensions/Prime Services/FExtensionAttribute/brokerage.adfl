@@ -1,0 +1,6 @@
+[Prime Services]FInstrument:brokerage = sumOf(tradesInPosition :* "brokerage");
+[Prime Services]FInstrumentAndTrades:brokerage = sumOf(instrument :* "brokerage" [positionObject]);
+[Prime Services]FMultiInstrumentAndTrades:brokerage = sumOf(instruments :* "brokerage" [positionObject]);
+[Prime Services]FTrade:brokerage = switch(withinDateRange and isGeneralPortfolio, 
+  true->brokerageCalculation, 
+  false->0);

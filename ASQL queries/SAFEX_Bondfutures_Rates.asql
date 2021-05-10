@@ -1,0 +1,52 @@
+/*
+Purpose                       :  The query is built from SAFEX_BondFutures_AIP query,and have added Dealt MTM Price,Dealt AIP and Trade date.
+Department and Desk           :  PCG Rates and Options
+Requester                     :  Diana Rodrigues
+Developer                     :  Tshepo Mabena
+CR Number                     :  629018
+
+History:
+When: 		CR:		    Who:			What:	                                Requestor:
+2012-03-29  C128690	    Nidheesh Sharma Catered for Index Linked Bonds as well	Ameet Lalloo 
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+ael_i(p,'ASQL_log','SAFEX_Bondfutures_Rates ') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAFEX_Bondfutures_Rates ' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr                                                            'Trade Number',
+    i.insid                                                             'Future',
+    ui.insid                                                            'Underlying bond',
+    p.day                                                               'Valuation Date',
+    i.exp_day                                                           'Future Expiry Date',
+    date_add_banking_day(i.exp_day,,3)                                  'Future Settle Day',
+    p.settle                                                            'Future MTM Price',
+    dirty_from_yield(ui,date_add_banking_day(i.exp_day,,3),,,p.settle)  'AIP',
+    nominal_amount(t)                                                   'Nominal',
+    t.price                                                             'Dealt MTM Price',
+    dirty_from_yield(ui,date_add_banking_day(i.exp_day,,3),,,t.price)   'Dealt AIP',
+    to_date(t.time)                                                     'Trade date'    
+
+from
+    instrument i,
+    instrument ui,
+    trade t,
+    price p,
+    party party
+where
+    t.insaddr = i.insaddr
+    and i.insaddr = p.insaddr
+    and party.ptynbr = p.ptynbr
+    and party.ptyid = 'internal'
+    and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+    and (p.day between @From{Today;} and @To{Today;})
+    and ui.insaddr =* i.und_insaddr
+    and i.instype in ('Future/Forward')
+    and ui.instype in ('Bond', 'IndexLinkedBond')
+    and i.insid like '%ZAR/JFUTURE%'
+;
+

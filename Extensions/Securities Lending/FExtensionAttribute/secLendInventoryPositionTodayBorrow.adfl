@@ -1,0 +1,8 @@
+[Securities Lending]FInstrument:secLendInventoryPositionTodayBorrow = switch(secLendInventoryPositionToday > 0, 
+  true->secLendInventoryPositionToday, 
+  false->nil);
+[Securities Lending]FMultiInstrumentAndTrades:secLendInventoryPositionTodayBorrow = switch(secLendInstrumentsHasSameUnderlying and secLendSumInventoryPositionTodayBorrow, 
+  true->secLendSumInventoryPositionTodayBorrow, 
+  false->nil);
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendInventoryPositionTodayBorrow = nil;
+[Securities Lending]FSingleInstrumentAndTrades:secLendInventoryPositionTodayBorrow = instrument:secLendInventoryPositionTodayBorrow [positionObject, secLendPositionDate = dateToday];

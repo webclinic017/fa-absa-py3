@@ -1,0 +1,13 @@
+select
+    i.insid         'name',
+    p.settle        'settle',
+    p.day           'day'
+    
+from
+    Instrument i,
+    Price p
+    
+where
+    i.insaddr = p.insaddr
+and p.day = @Date_of_Price{yesterday}
+and time_to_day(p.updat_time) = today

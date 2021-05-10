@@ -1,0 +1,108 @@
+/* update_method=1 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT, Market Risk
+CR Number               :278978,434459, 755543
+
+History:
+Date          CR Number        Developer         Description
+2018/07/02    CHG1000638854    Richard Coppin    Added parameter to trade filter
+2020-09-11	  CHG0128302       Heinrich Cronje   https://absa.atlassian.net/browse/CMRI-776
+2020-10-23    CHG0134281	   Heinrich Cronje   https://absa.atlassian.net/browse/CMRI-856
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Cash_Instrument.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Cash_Instrument.csv'},@3_PositionName{'MR_Cash_Instrument_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+    serverdata s
+Where
+    s.srdnbr > 0
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_Cash_Instrument.Write',@1_path,@2_FileName,@3_PositionName) 'BuildConfirmation'
+Into
+    Macro
+From
+    Instrument i,
+    Instrument curr,
+    Trade t,
+    valid_portfolios vp
+Where i.curr = curr.insaddr
+And i.insaddr = t.insaddr
+and t.prfnbr = vp.prfnbr
+
+Select
+    '1' 'Count',
+    i.instype,   
+    vp.prfid                        'portfolio',
+    curr.insid                     'curr',
+    i.instype = 'Future/Forward' ? (accumulated_cash(t, date_add_banking_day(Today,'ZAR',-1), curr.insid, 2, 0, , 1, 'None')) : (accumulated_cash(t, to_date(today), curr.insid, 2, 0, , 1, 'None')) 'cash'
+Into 
+    results
+From
+    trade      t,
+    instrument i,
+    instrument curr,
+    valid_portfolios vp
+Where match_filter(t, @4_TradeFilter{MR_Cash_Balance;tradeFilter.fltid})
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated','Internal')
+    and t.insaddr     = i.insaddr
+    and curr.instype  = 'Curr'
+    and curr.insid  ~= 'ZAR'
+    and currency_included(t, curr.insid) = 1
+    and t.prfnbr = vp.prfnbr
+
+Select
+    r.Count,
+    r.portfolio,
+    r.curr,
+    sum(r.cash) 'cash'
+Into
+    final
+From 
+    results r
+Group by 1,2,3
+
+
+Select
+    'Write File'    'Process',
+    ael_s(,'PositionFile.CreatePositionCash',@1_path,@2_FileName,@3_PositionName,f.portfolio,f.curr,f.cash)    'BuildConfirmation'
+Into
+    Macro
+From 
+    final f
+Where 
+    Count = '1'
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'    'BuildConfirmation'
+Into
+    Macro
+From
+    serverdata s
+Where
+    s.srdnbr > 0
+
+
+Select
+    m.* 
+From
+    Macro m
+Where 
+    Process In ('Create File','Close File')

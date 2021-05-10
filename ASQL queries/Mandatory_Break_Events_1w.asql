@@ -1,0 +1,52 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Mandatory_Break_Events_1w') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Mandatory_Break_Events_1w' and p.type = 'SQL Query' 
+
+
+/*
+coded by Anil Parbhoo
+requester : Wentzel, Declercq: Absa Capital
+description : ASQL to report nearby (in this case 1 week) Mandatory Break Events 
+change request : CHNG0002356029
+*/
+
+
+
+select t.trdnbr,
+t.status,
+display_id(t, 'acquirer_ptynbr')'Acquirer',
+ display_id(t, 'prfnbr')'Portfolio',
+ display_id(t,'counterparty_ptynbr')'CounterParty',
+ 
+i.instype'InsType',
+c.insid'Currency', 
+t.execution_time'Execution_Time',
+i.exp_day'Exp_Day',
+ee.type'Type of Break',
+ee.day'Break day',
+(ee.day) - (Today)'Days to Break'
+ 
+
+
+
+
+
+from instrument i, trade t, ExerciseEvent ee, instrument c
+ 
+
+where 
+t.insaddr = i.insaddr
+and i.curr = c.insaddr
+and ee.insaddr = i.insaddr
+and i.instype = 'Swap'
+and i.exp_day > Today
+and ee.day>=Today
+and t.status not in ('Simulated', 'Void', 'Terminated')
+and (ee.day) - (Today) <= 7
+and ee.type = 'MandatoryBreak'
+
+
+order by ee.day,4

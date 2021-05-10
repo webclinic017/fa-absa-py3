@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:impliedQuantoCorrelation = shunt(implyValid and (snoop(theoreticalPrice, "quantoCorrelationForLeg") <> nil), 
+  false->nil, 
+  true->imply(snoop(theoreticalPrice, "quantoCorrelationForLeg"), theoreticalPrice, marketPrice, implyPrecision, -0.99, 1.0, implyMaxIterations));
+[IRD Pricing and Risk]FInstrumentAndTrades:impliedQuantoCorrelation = instrument :* "impliedQuantoCorrelation" [priceSource];
+[IRD Pricing and Risk]FMultiInstrumentAndTrades:impliedQuantoCorrelation = nil;

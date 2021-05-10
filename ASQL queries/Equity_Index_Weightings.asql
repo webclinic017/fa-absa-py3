@@ -1,0 +1,22 @@
+/* update_method=0 */
+Select 
+   i.insid 'Index',
+   u.insid 'ComponentName',
+   (cl.weight * q.quotation_factor * mtm_price(u,Today,'ZAR',0,0))/(i.index_factor*mtm_price(i,Today,'ZAR',0,0)*p.quotation_factor) 'ComponentWeight',
+   cl.weight 'UnderlyingFactor',
+   mtm_price(u,Today,'ZAR',0,0) 'UnderlyingPrice',
+   i.index_factor 'IndexFactor',
+   mtm_price(i,Today,'ZAR',0,0) 'IndexPrice',
+   Today 'ReportDate'
+From
+    Instrument i,
+    CombinationLink cl,
+    Instrument u,
+    Quotation q,
+    Quotation p
+Where 
+    i.instype = 'EquityIndex' 
+and cl.owner_insaddr = i.insaddr
+and cl.member_insaddr = u.insaddr
+and u.quotation_seqnbr = q.seqnbr
+and i.quotation_seqnbr = p.seqnbr

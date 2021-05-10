@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FFrn:valuationErrorEx = shunt((mappedDiscountLink.Link.YieldCurveComponent.RecordType == "InstrumentSpread") and (mappedDiscountLink.Link.YieldCurveComponent.SpreadType == "Disc Marg") and (nonFixedLegCurrentCashFlow <> nil), 
+  true->shunt(nonFixedLegCurrentCashFlow.ExCouponDate <= valuationDate, 
+    true->-1 * nonFixedLegCurrentCashFlow:projectedCashFlow, 
+    default->displayCurrencyZero), 
+  default->displayCurrencyZero) * riskPosition / nominal;
+[ABSA Specific 4.3]FInstrument:valuationErrorEx = displayCurrencyZero;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:valuationErrorEx = discountAndConvertToCurrency(sumOf(openInstruments :* "valuationErrorEx" [positionObject, displayCurrency, filterUnit]), theoreticalValueDiscountCurves, displayDate, theoreticalValueFxRates, displayCurrencySymbol, filterUnit);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:valuationErrorEx = instrument :* "valuationErrorEx" [positionObject, displayCurrency, filterUnit];

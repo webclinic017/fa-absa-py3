@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ACSUnsettledAggregatedDividends = emptyListToZero(sumOf((tradesInPosition.Filter(voidAndSimulatedFilter)) :* "ACSUnsettledAggregatedDividends"));
+[ABSA Specific 4.3]FPayment:ACSUnsettledAggregatedDividends = 
+# Only pay day = future can be included, because there might be wrong aggregated forward dividends payments due to errors in the aggregation process, but these will always have pay day in the past.
+shunt(object.Type, 
+  "Aggregated Dividends"->shunt((object.ValidFrom <= profitAndLossEndDate) and (object.PayDay > profitAndLossEndDate), 
+    true->object.Amount, 
+    default->0), 
+  default->0);
+[ABSA Specific 4.3]FTrade:ACSUnsettledAggregatedDividends = emptyListToZero(sumOf((object.Payments) :* "ACSUnsettledAggregatedDividends"));

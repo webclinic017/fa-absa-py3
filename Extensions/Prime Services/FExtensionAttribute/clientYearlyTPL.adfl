@@ -1,0 +1,8 @@
+[Prime Services]FInstrumentAndTrades:clientYearlyTPL = shunt(children.IsEmpty, 
+  false->sumOf(children :* "clientYearlyTPL"), 
+  default->denominatedvalue(0, displayCurrency, nil, nil));
+[Prime Services]FSingleInstrumentAndTrades:clientYearlyTPL = select(instrumentType, 
+  "Deposit"->plZero, 
+  default->select(isCFDPortfolio, 
+    true->psClientYearlyTPL - (object :* "brokerageCFD" [profitAndLossStartDate = firstDayOfYear]) + denominatedvalue(yearlyExecutionFee, displayCurrency, nil, nil), 
+    false->psClientYearlyTPL + psYearlyTPLAdjustmentSum));

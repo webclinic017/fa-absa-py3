@@ -1,0 +1,7 @@
+[ABSA Greeks 4.3]FInstrument:inceptionYDelta = sumOf(inceptionYDeltaValues);
+[ABSA Greeks 4.3]FInstrumentAndTrades:inceptionYDelta = openInstrument :* "stripDateTimePart(inceptionYDelta)" [isSplitAllGrouped, positionObject];
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:inceptionYDelta = sumOf(openInstruments :* "stripDateTimePart(inceptionYDelta)" [isSplitAllGrouped, positionObject]);
+[ABSA Greeks 4.3]FTrade:inceptionYDelta = select(tsInceptionYDelta <> nil, 
+  true->stripDateTimePart(tsInceptionYDelta.DenominatedValue), 
+  default->nil);
+[ABSA Greeks 4.3]FTradeRow:inceptionYDelta = openInstrument :* "inceptionYDelta" [isSplitAllGrouped, singleTradePosition, includeAllTrades];

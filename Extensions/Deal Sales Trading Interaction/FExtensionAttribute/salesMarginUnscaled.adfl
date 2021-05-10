@@ -1,0 +1,6 @@
+[Deal Sales Trading Interaction]FSalesOrder:salesMarginUnscaled = select(bool(salesMarginUnscaledFromExtendedData), 
+  false->0.0, 
+  true->salesMarginUnscaledFromExtendedData);
+[Deal Sales Trading Interaction]FSingleQuoteRequestRow:salesMarginUnscaled = select(quoteRequestInfo.BidOrAsk, 
+  "Bid"->tradingQuoteRequestPrice - salesQuoteRequestPrice, 
+  default->salesQuoteRequestPrice - tradingQuoteRequestPrice);

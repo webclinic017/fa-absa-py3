@@ -1,0 +1,12 @@
+[Core Pricing]FCashFlowInstrument:isPayer = false;
+[Core Pricing]FCreditDefaultSwap:isPayer = select(object.PayLeg, 
+  nil->nil, 
+  default->select(object.PayLeg.IsFixedLeg, 
+    true->true, 
+    false->false));
+[Core Pricing]FFra:isPayer = true;
+[Core Pricing]FSwap:isPayer = select(object.PayLeg, 
+  nil->nil, 
+  default->select(object.PayLeg.IsFixedLeg, 
+    true->true, 
+    false->false));

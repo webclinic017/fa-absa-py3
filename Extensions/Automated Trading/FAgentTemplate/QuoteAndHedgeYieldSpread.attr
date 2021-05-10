@@ -1,0 +1,64 @@
+[Automated Trading]FObject:QuoteAndHedgeYieldSpread
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=Yes
+  CreatePermission=User
+  DisplayName=Yield Spread
+  EditPermission=User
+  Granularity=10
+  InheritsFrom=QuoteAndHedge
+  StartState=Start
+  StoreTraceLog=No
+  TradingEnabled=Yes
+
+Transitions =
+
+Panel InputParams1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityToQuote, quoteAndHedgeYieldSpreadInBps
+
+Panel PriceRatio =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteAndHedgeQuantityRatio
+
+Panel QuantityRatio =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityRatioType
+
+Enums =
+  EnumYieldSpreadQuantityRatioType=Hedge ContractSize / Quote ContractSize
+
+Conditions =
+
+Actions =
+
+ActionLists =
+
+Variable quantityRatioType =
+  Domain=EnumYieldSpreadQuantityRatioType
+  Type=Private
+  Value="Hedge ContractSize / Quote ContractSize"
+
+Variable quoteAndHedgeQuantityRatio =
+  Description=Quantity scaling factor between the quote and hedge leg
+  DisplayName=Quantity Ratio
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=quoteLegHedgeLegContractSizeRatio
+
+Variable quoteAndHedgeYieldSpreadInBps =
+  Description=The yield spread is added to the YTM derived from the hedge legs market price.\
+That YTM+spread is then used to calculate the price to send on the quote leg.
+  DisplayName=YTM Spread (bps)
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+<end>

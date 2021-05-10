@@ -1,0 +1,63 @@
+/*------------------------------------------------------------------
+    CF_Trade_TakeOn
+    
+    This query supplies all historical trades in Front Arena.
+
+History:
+When: 		Who:		What:
+2009-09-16	Herman Hoon	Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','CF_Trade_TakeOn') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'CF_Trade_TakeOn' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_ReportDate{Yesterday}      'RepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Trades
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    t.trdnbr,
+    i.insaddr,
+    t.updat_time > i.updat_time ?  to_date(t.updat_time) : to_date(i.updat_time)  'UpdateDate',
+    t.status                        'Status',
+    t.prfnbr	                    'PrfNbr',
+    t.counterparty_ptynbr           'CptyNbr',
+    display_id(t, 'acquirer_ptynbr')'Desk',
+	to_date(t.time)	                'TradeDate',
+	i.exp_day                       'ExpiryDate',
+	i.insid				            'InsId',
+	i.instype                       'InsType',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+    : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+    : add_info(t, 'Instype'))	                    'MM_InsType', 
+    i.und_instype = 'None' ? '' : i.und_instype     'Und_InsType',
+	t.aggregate                                     'Aggregate'
+from
+	trade t,
+    instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and i.insaddr = t.insaddr

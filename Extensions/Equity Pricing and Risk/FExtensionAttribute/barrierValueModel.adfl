@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:barrierValueModel = select(isForwardStarting and hasUdmcDescription, 
+  true->barrierStored, 
+  false->select(isMultiUnderlyingValued and isPerformancePayoff, 
+    true->collapse(multiUnderlyingBarrierValueForwardStartPerformance), 
+    false->collapse(barrierValue)));

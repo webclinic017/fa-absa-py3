@@ -1,0 +1,15 @@
+[Default]FCashFlowInstrument:marketRealizedInstrumentValueForProfitAndLoss = select(tradePremiumPartOfInstrument, 
+  true->adjustForSpotHandling(portfolioMarketValuesForProfitAndLoss, valuesOnSpot), 
+  false->setDateTimePart(marketInstrumentPositionValuesTodayFlat, valuationDate));
+[Default]FCombInstrMap:marketRealizedInstrumentValueForProfitAndLoss = switch(instrument:isSettled [valuationBaseDateTimeInput], 
+  true->combinationSpotZero, 
+  false->valuationInstrument :* "collapse(marketRealizedInstrumentValueForProfitAndLoss)" [priceSource, doSplitAll, positionTradeQuantities, valuesOnSpotOverride, valuationBaseDateTimeInput, positionFlatAccruedAdjustment] * weight);
+[Default]FCombination:marketRealizedInstrumentValueForProfitAndLoss = select(valuesOnSpot, 
+  false->sumOf((instrumentMaps) :* "collapse(marketRealizedInstrumentValueForProfitAndLoss)" [priceSource, doSplitAll, positionTradeQuantities, valuesOnSpotOverride, valuationBaseDateTimeInput, positionFlatAccruedAdjustment = false]) / underlyingOrSelf.Factor, 
+  true->adjustForSpotHandling(marketInstrumentPositionValuesToday, valuesOnSpot));
+[Default]FIndex:marketRealizedInstrumentValueForProfitAndLoss = select(tradePremiumPartOfInstrument, 
+  true->adjustForSpotHandling(portfolioMarketValuesForProfitAndLoss, valuesOnSpot), 
+  false->stripDateTimePart(marketInstrumentPositionValuesTodayFlat));
+[Default]FInstrument:marketRealizedInstrumentValueForProfitAndLoss = select(tradePremiumPartOfInstrument, 
+  true->adjustForSpotHandling(portfolioMarketValuesForProfitAndLoss, valuesOnSpot), 
+  false->setDateTimePart(marketInstrumentPositionValuesTodayFlat, valuationDate));

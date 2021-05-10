@@ -1,0 +1,14 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCapLimit_calc = switch((isNIHHR or isCashFlowHR), 
+  true->switch((((hedgeCapLimitExternal < 0) and (hedgeCapLimitHypo < 0)) or ((hedgeCapLimitExternal > 0) and (hedgeCapLimitHypo > 0))), 
+    true->denominatedvalue(0, displayCurrencySymbol, , ), 
+    default->switch((abs(hedgeCapLimitExternal) <= abs(hedgeCapLimitHypo)), 
+      true->hedgeCapLimitExternal, 
+      false->abs(hedgeCapLimitHypo) * (hedgeCapLimitExternal / abs(hedgeCapLimitExternal)))), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCapLimit_calc = switch((isNIHHR or isCashFlowHR), 
+  true->switch((((hedgeCapLimitExternal < 0) and (hedgeCapLimitHypo < 0)) or ((hedgeCapLimitExternal > 0) and (hedgeCapLimitHypo > 0))), 
+    true->denominatedvalue(0, displayCurrencySymbol, , ), 
+    default->switch((abs(hedgeCapLimitExternal) <= abs(hedgeCapLimitHypo)), 
+      true->hedgeCapLimitExternal, 
+      false->abs(hedgeCapLimitHypo) * (hedgeCapLimitExternal / abs(hedgeCapLimitExternal)))), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));

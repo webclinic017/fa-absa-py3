@@ -1,0 +1,16 @@
+[Default]FCashFlowInstrument:markToMarketRealizedInstrumentValues = select(tradePremiumPartOfInstrument, 
+  true->object:markToMarketValuesUndiscounted [singleTradePosition, positionTradeQuantities, positionObject, groupingSpotDiscountDate, positionValues := denominatedbasket([])], 
+  false->select(mtmFromFeed, 
+    true->setDateTimePart(markToMarketInstrumentPositionValuesTodayFlat, valuationDate), 
+    false->setDateTimePart(theoreticalInstrumentPositionValuesTodayFlat, valuationDate)));
+[Default]FCombination:markToMarketRealizedInstrumentValues = shunt[priceSource, doSplitAll, valuesOnSpotOverride, singleTradePosition, positionObject, positionTradeQuantities, useBidAskValuation, filterUnit](useMarkToMarketPriceToday, 
+  0->setDateTimePart(combinationMarkToMarketRealizedValues, valuationDate), 
+  1->shunt[priceSource, doSplitAll, valuesOnSpotOverride, singleTradePosition, positionTradeQuantities, positionObject, useBidAskValuation, filterUnit](hasMarkToMarketPriceToday, 
+    true->setDateTimePart(combinationMarkToMarketValuesTodayFlat, valuationDate), 
+    false->combinationMarkToMarketRealizedValues), 
+  2->setDateTimePart(combinationMarkToMarketValuesTodayFlat, valuationDate));
+[Default]FInstrument:markToMarketRealizedInstrumentValues = select(tradePremiumPartOfInstrument, 
+  true->object:markToMarketValuesUndiscounted [singleTradePosition, positionTradeQuantities, positionObject, accountingParameters, positionValues := denominatedbasket([])], 
+  false->select(mtmFromFeed, 
+    true->setDateTimePart(markToMarketInstrumentPositionValuesTodayFlat, valuationDate), 
+    false->setDateTimePart(theoreticalInstrumentPositionValuesTodayFlat, valuationDate)));

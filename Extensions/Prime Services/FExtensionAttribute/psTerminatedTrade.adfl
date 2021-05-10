@@ -1,0 +1,8 @@
+[Prime Services]FTrade:psTerminatedTrade = 
+# Flag new terminated trades.
+switch(dateDifference(dateToday(), object.TradeTime) < 2, 
+  true->switch(object.Type, 
+    "Closing"->object.ContractTrdnbr, 
+    default->""), 
+  false->"");
+[Prime Services]FTradeRow:psTerminatedTrade = trade :* "psTerminatedTrade";

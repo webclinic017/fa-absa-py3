@@ -1,0 +1,16 @@
+[Default]FCurrency:fxForwardRate[fxToCurrency, fxForwardDate, fxPriceFindingPriceType, discountingType, discountingTypeForFXDiscountLink, priceSource, allowMarkToMarketPrice] = fxRateInstrument :* "fxForwardRate" [fxForwardDate, fxPriceFindingPriceType, discountingType, discountingTypeForFXDiscountLink, priceSource, allowMarkToMarketPrice];
+[Default]FFxRate:fxForwardRate[fxForwardDate, fxPriceFindingPriceType, discountingType, discountingTypeForFXDiscountLink, priceSource, allowMarkToMarketPrice] = select(foreignEqualsDomestic, 
+  true->1, 
+  false->select(moveFXSpotToValuationDate, 
+    false->shunt[fxForwardDate, fxPriceFindingPriceType, discountingType, discountingTypeForFXDiscountLink, priceSource, allowMarkToMarketPrice]((instrumentSpotDate == fxForwardDate), 
+      true->fxSpotRate, 
+      false->(domesticCurrency:fxDiscountCurve [discountingTypeForFXDiscountLink]).DiscountValue(fxSpotRate, fxForwardDate) * (foreignCurrency:fxDiscountCurve [discountingTypeForFXDiscountLink]).Discount(instrumentSpotDate, fxForwardDate)), 
+    true->shunt[fxForwardDate, fxPriceFindingPriceType, discountingType, allowMarkToMarketPrice]((valuationDate == fxForwardDate), 
+      true->collapse(fxValuationDateRate), 
+      false->(domesticCurrency:fxDiscountCurve [discountingTypeForFXDiscountLink]).DiscountValue(fxValuationDateRate, fxForwardDate) * (foreignCurrency:fxDiscountCurve [discountingTypeForFXDiscountLink]).Discount(valuationDate, fxForwardDate))));
+[Default]FInstrumentAndTrades:fxForwardRate = currenciesForVectorColumn :* "fxSpotRate" [fxToCurrency = displayCurrency];
+[Default]FTimeBucketAndObject:fxForwardRate = select(timeBucket, 
+  nil->currenciesForVectorColumn :* "fxSpotRate" [fxToCurrency = displayCurrency], 
+  default->select((timeBucketShiftPeakDate < valuationSystemDate) or timeBucketIsInceptionToEndBucket, 
+    true->currenciesForVectorColumnNil, 
+    false->currenciesForVectorColumn :* "fxForwardRate" [fxForwardDate := timeBucketShiftPeakDate, fxToCurrency = displayCurrency]));

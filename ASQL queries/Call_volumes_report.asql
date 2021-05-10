@@ -1,0 +1,48 @@
+SELECT cfw.cfwnbr,
+       cfw.type 'cfwtype',
+       cfw.pay_day,
+       cfw.legnbr
+  INTO cfw_on_month
+  FROM CashFlow cfw
+ WHERE cfw.pay_day BETWEEN @From_date[FIRSTDAYOFMONTH] AND @Until_date[TODAY]
+   AND cfw.type IN ('Fixed Amount')
+
+SELECT cp.ptyid    'Counterparty',
+       t.trdnbr    'Trade number',
+       i.insid     'Instrument',
+       cfw.cfwnbr  'CashFlow number',
+       cfw.cfwtype 'CashFlow type',
+       s.type      'Settlemnt type',
+       cfw.pay_day 'Pay Date',
+       pf.prfid    'Portfolio',
+       t.status    'Status',
+       ael_f(cfw_alias, 'Call_volumes_report.amount', s) 'Amount',
+       c.insid     'Currency',
+       a.ptyid     'Acquirer',
+       ai.value    'Funding instype'
+  FROM cfw_on_month cfw,
+       CashFlow cfw_alias,
+       Leg l,
+       Instrument i,
+       Trade t,
+       Party a,
+       Party cp,
+       Portfolio pf,
+       Instrument c,
+       Settlement s,
+       AdditionalInfo ai
+ WHERE cfw.legnbr = l.legnbr
+   AND cfw.cfwnbr = cfw_alias.cfwnbr
+   AND i.instype IN ('Deposit')
+   AND i.open_end = 1 /* Open end: indicates it is a call */
+   AND i.insaddr = l.insaddr
+   AND t.status NOT IN ('Simulated', 'Void')
+   AND t.insaddr = i.insaddr
+   AND t.prfnbr = pf.prfnbr
+   AND t.acquirer_ptynbr = a.ptynbr
+   AND a.ptyid NOT IN ('PRIME SERVICES DESK', 'PRIMARY MARKETS')
+   AND t.counterparty_ptynbr = cp.ptynbr
+   AND t.curr = c.insaddr
+   AND cfw.cfwnbr *= s.cfwnbr /* Settlement is not mandatory */
+   AND ai.addinf_specnbr = 493 /* Funding_Instype */
+   AND t.trdnbr = ai.recaddr

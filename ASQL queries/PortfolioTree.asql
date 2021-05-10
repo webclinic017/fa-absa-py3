@@ -1,0 +1,73 @@
+/*
+Purpose: Add prfid.
+Department: PCG
+Requester: Deon Nobrega
+Developer: Willie van der Bank
+CR Number: 203419 (21/01/2010)
+
+Purpose: Replace duplicated prfid with prfnbr.
+Department: PCG
+Requester: Deon Nobrega
+Developer: Willie van der Bank
+CR Number: 208259 (26/01/2010)
+*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PortfolioTree') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PortfolioTree' and p.type = 'SQL Query' 
+
+select distinct
+
+p.prfid		'PortfolioName',
+display_id(p, 'owner_ptynbr')       'Owner',
+pp.prfid	'PortfolioParentName',
+pp.compound	'IsParentCompound',
+ppp.prfid	'TwoLevelsDeepPortfolio',
+pppp.prfid	'ThreeLevelsDeepPortfolio',
+ppppp.prfid	'FourLevelsDeepPortfolio',
+pppppp.prfid	'FiveLevelsDeepPortfolio',
+ppppppp.prfid	'SixLevelsDeepPortfolio',
+pppppppp.prfid	'SevenLevelsDeepPortfolio',
+ppppppppp.prfid	'EightLevelsDeepPortfolio',
+Haschild.lnknbr is null ? 'Yes':'No' 'LowestLevel',
+p.prfnbr
+
+from 
+	portfolio p,
+	portfolio pp,
+	portfolio ppp,
+	portfolio pppp,
+	portfolio ppppp,
+    	portfolio pppppp,
+    	portfolio ppppppp,
+    	portfolio pppppppp,
+    	portfolio ppppppppp,
+	portfolioLink pl,
+	portfolioLink pl2,
+	portfolioLink pl3,
+	portfolioLink pl4,
+    	portfolioLink pl5,
+    	portfolioLink pl6,
+    	portfolioLink pl7,
+    	portfolioLink pl8,
+    	portfolioLink HasChild
+
+where	p.prfnbr *= pl.member_prfnbr
+and	pl.owner_prfnbr *= pp.prfnbr
+and p.prfnbr *= HasChild.owner_prfnbr
+and	pp.prfnbr *= pl2.member_prfnbr
+and	pl2.owner_prfnbr *= ppp.prfnbr
+and	ppp.prfnbr *= pl3.member_prfnbr
+and	pl3.owner_prfnbr *= pppp.prfnbr
+and	pppp.prfnbr *= pl4.member_prfnbr
+and	pl4.owner_prfnbr *= ppppp.prfnbr
+and	ppppp.prfnbr *= pl5.member_prfnbr
+and	pl5.owner_prfnbr *= pppppp.prfnbr
+and	pppppp.prfnbr *= pl6.member_prfnbr
+and	pl6.owner_prfnbr *= ppppppp.prfnbr
+and	ppppppp.prfnbr *= pl7.member_prfnbr
+and	pl7.owner_prfnbr *= pppppppp.prfnbr
+and	pppppppp.prfnbr *= pl8.member_prfnbr
+and	pl8.owner_prfnbr *= ppppppppp.prfnbr

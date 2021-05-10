@@ -1,0 +1,11 @@
+[Default]FCombInstrMapAndTrades:accountingTradeFXRateWithFallback = singleTrade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FInstrumentAndTrades:accountingTradeFXRateWithFallback = nilObject:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FLegAndTrades:accountingTradeFXRateWithFallback = singleTrade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FMoneyFlowAndTrades:accountingTradeFXRateWithFallback = trade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FSettlement:accountingTradeFXRateWithFallback = trade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FTaxLotClosing:accountingTradeFXRateWithFallback = closingTrade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FTrade:accountingTradeFXRateWithFallback = select(accountingTradeFXRate == 0, 
+  true->nilObject:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate], 
+  false->accountingTradeFXRate);
+[Default]FTradeRow:accountingTradeFXRateWithFallback = trade:accountingTradeFXRateWithFallback [accountingFXConversionBook, accountingFXConversionCurrency, accountingFXConversionDate];
+[Default]FUndefinedObject:accountingTradeFXRateWithFallback = accountingFXConversionBook:accountingFXRate [accountingFXConversionCurrency, accountingFXConversionDate];

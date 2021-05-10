@@ -1,0 +1,33 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','User_Cancel_Time') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'User_Cancel_Time' and p.type = 'SQL Query'
+
+/******************** Describtion******************/
+/* This code checks the the time when the user was cancelled and who cancelled them
+ When		Who		What
+2009/12/23 Ickin Vural	Created
+
+Purpose                       :  This code checks the the time when the user was cancelled and who cancelled them
+Department and Desk           :  PCG 
+Requester                     :  Rod Jardine
+Developer                     :  Ickin Vural
+CR Number                     :  C000000192705
+
+
+*/
+
+select
+    u.updat_time 'Cancel_Time',
+    u.userid 'UserID',
+    u.name 'User_Name',
+    display_id(u,'updat_usrnbr') 'Responsible_User'
+from 
+    User u,
+    Front.Group g
+where 
+    u.updat_time >= (@DateFrom{})
+and u.grpnbr = g.grpnbr
+and g.grpid = 'Previous User' 

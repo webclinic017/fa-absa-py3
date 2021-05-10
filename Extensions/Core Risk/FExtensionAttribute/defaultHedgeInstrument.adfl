@@ -1,0 +1,7 @@
+[Core Risk]FAutocallable:defaultHedgeInstrument = stochasticReference;
+[Core Risk]FFxRate:defaultHedgeInstrument = object;
+[Core Risk]FInstrument:defaultHedgeInstrument = select(shortestUnderlyingFuture <> nil, 
+  true->shortestUnderlyingFuture, 
+  default->select(underlying == nil, 
+    true->object, 
+    false->underlying));

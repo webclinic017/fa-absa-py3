@@ -1,0 +1,18 @@
+[Fixed Income Pricing and Risk]FCashFlow:couponToValueFactor = select(instrument:isGenericCouponOrSpreadQuoted, 
+  true->select(cashFlowResultFromModelCall, 
+    true->valueFromModelCall, 
+    false->1), 
+  false->1);
+[Fixed Income Pricing and Risk]FFuture:couponToValueFactor = select(isIMMFRA, 
+  true->immFraFactor, 
+  default->select(underlyingType, 
+    "Swap"->couponToValue, 
+    default->1.0));
+[Fixed Income Pricing and Risk]FInstrument:couponToValueFactor = select(isCouponOrSpreadQuoted, 
+  true->couponToValue, 
+  false->1.0);
+[Fixed Income Pricing and Risk]FOption:couponToValueFactor = select(isOptionOnInterestRateFuture, 
+  true->underlying:quotePeriod, 
+  default->1.0);
+[Fixed Income Pricing and Risk]FOrderBook:couponToValueFactor = instrument:couponToValueFactor;
+[Fixed Income Pricing and Risk]FPriceFeed:couponToValueFactor = instrument:couponToValueFactor;

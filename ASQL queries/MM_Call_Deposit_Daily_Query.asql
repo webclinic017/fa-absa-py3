@@ -1,0 +1,38 @@
+select
+ael_i(p,'ASQL_log','MM_Call_Deposit_Daily_Query') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MM_Call_Deposit_Daily_Query' and p.type = 'SQL Query' 
+
+/*  coded in March 2018 
+    query extracts call deposits */
+
+select
+    Today                                   'Date',
+    t.trdnbr                                'Trade_Number',
+    t.quantity                              'Quantity',
+    t.status                                'Status',
+    display_id(t, 'counterparty_ptynbr')    'Counter_Party',
+    i.insid                                 'Instrument',
+    add_info(t,'Funding Instype')           'Call_Deposit',
+    cf.type                                 'Type',
+    (-1 * projected_cf(cf)*t.quantity)      'Nominal',
+    cf.pay_day                              'Pay_Day',
+    l.Fixed_rate                            'Fixed_Rate',
+    p.prfid                                 'portfolio',
+    t.counterparty_ptynbr                   'ClientCode',
+    i.open_end                              'Open_End'
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    CashFlow cf,
+    Portfolio p
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and match_filter(t,'MM_Call_Deposit_Query_Filter')
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and cf.type = 'Redemption Amount'
+order by 11 desc, 5

@@ -1,0 +1,92 @@
+[HedgeAccountingMod]FObject:HedgeDefaultHelp
+
+Background:
+===============================================================================================
+The hedge effectiveness testing suite is a GUI interface that allows for the designation of a hedge relationship. 
+This GUI was designed specifically for hedge accounting in Treasury. Any changes to the GUI have to be requested 
+through BTB and approved by Treasury Finance.
+
+The various sections of the GUI must be completed in the order shown below in order to appropriately designate 
+the hedge relationship.
+
+
+External Properties:
+===============================================================================================
+Start date: 
+--------------------------------------------------------------------------
+The start date may not be a date in the past. The GUI allows for a hedge to be backdated by 30 days 
+to allow for timing when the process is completed, however the GUI will require a backdate reason.
+
+Status: 
+--------------------------------------------------------------------------
+Initially a hedge relationship is created in the Simulated status. Once the user has completed and saved the 
+entire GUI will be user the able to change the status. Front Office may, after saving the hedge relationship in the 
+Simulated status, either choose to Propose or Discard the hedge relationship. Once a hedge relationship has been 
+Proposed, Finance can set the hedge relationship to Active if the hedge relationship passes the prospective 
+effectiveness test. Finance can also Simulate, Propose, Discard and De-designate a hedge relationship.
+
+De-designate reason: 
+--------------------------------------------------------------------------
+When a user changes the status to De-designate the user will be required to provide the de-
+designate reason and date of de-designation.
+
+Hedge relationship trades (Parents): 
+--------------------------------------------------------------------------
+This section displays all the trades and proportion of trades in the hedge 
+relationship. The user can add a trade by selecting the Add Trade button at the top of the GUI. A hedge relationship 
+requires an External, Internal and Hypo in order to be saved and to be able to continue with the hedge relationship. 
+The internal trade and external trade may be the same if the hedge is external facing. An original trade is included 
+if the designated hedged item is booked on Front Arena, however the effective test will always reference the hypo. 
+A zero bond is included in the hedge if there are initial pull to par adjustment included in the hedge relationship.
+
+Deal package (Child): 
+--------------------------------------------------------------------------
+For each trade (except for the hypo) included in the hedge relationship a child trade is 
+created. The purpose of the child trade is to measure changes in fair value of the external, internal, original 
+and zero bond from designation date. A child is not created for the hypo because the hypo must have an 
+acquire date that is the same as the start date of the hedge relationship and the hypo must have a fair value equal 
+to zero on designation date.
+
+
+Test Settings:
+===============================================================================================
+Use Template: 
+--------------------------------------------------------------------------
+A prepopulated template may be selected when a hedge is designated.
+
+Hedge Properties: 
+--------------------------------------------------------------------------
+The user specifies the Hedge Type, Hedge Sub Type and Hedged Risk Type. The Hedge Objective 
+will automatically be populated, depending on what is selected.
+
+Prospective Test Criteria: 
+--------------------------------------------------------------------------
+The user can select from one of the following options: Dollar Offset, Regression, 
+Critical Terms and Variable Reduction Method. The user will not be able to amend the pass/fail criteria, however the 
+user can specify the warning criteria when a test is selected.
+
+Retrospective Test Criteria: 
+--------------------------------------------------------------------------
+The user can select from one of the following options: Dollar Offset and 
+Variable Reduction Method. The user will not be able to amend the pass/fail criteria, however the user can specify 
+the warning criteria when a test is selected.
+
+Testing Schedule: 
+--------------------------------------------------------------------------
+The user can specify the time periods that may be used for the regression test and variable 
+reduction test. As a default, monthly time buckets are specified.
+
+
+Test Results (Ineactive tests are greyed out):
+===============================================================================================
+The hedge effectiveness test is run by selecting the Run Test button at the top of the GUI. When the effectiveness 
+test is run the GUI will display the results for all of the tests, however only the selected prospective test and 
+retrospective test will be used to determine the overall pass/fail criteria. 
+
+The hedge relationship must pass the prospective test and retrospective test, with two exceptions. The first exception 
+is if the regression test is selected as the prospective test and dollar offset is selected as the retrospective test then 
+the hedge will have an overall pass if the regression test passes, because the change in fair value of the dollar offset 
+retrospective test is used a data point in the regression test. The second exception is if variable reduction is selected 
+for the prospective and retrospective test for the same reason as the first exception.
+
+...

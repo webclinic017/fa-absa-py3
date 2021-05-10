@@ -1,0 +1,4 @@
+[Default]FCurrency:forwardValuationCashFlows = nil;
+[Default]FInstrument:forwardValuationCashFlows = select(isMultiCurrencyInstrument, 
+  true->instrumentCurrencies :* "aggregatedForwardValuationFlows" [priceSource, doSplitAll, flowAggregationInstrument = object, legs, useBESADiscounting, useRiskFreeDiscounting, changeCleanContribution, ignoreForwardValuationCashFlows, forwardValuationPeriod, forwardValuationStartPoint], 
+  false->collapse(aggregatedForwardValuationFlows));

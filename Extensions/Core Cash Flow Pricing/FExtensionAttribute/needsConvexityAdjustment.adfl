@@ -1,0 +1,10 @@
+[Core Cash Flow Pricing]FAbstractReset:needsConvexityAdjustment = false;
+[Core Cash Flow Pricing]FCashFlowInformation:needsConvexityAdjustment = select(cashFlowType, 
+  "Zero Coupon Fixed"->false, 
+  "Return"->false, 
+  "Total Return"->false, 
+  default->needsConvexityAdjustmentRate or needsConvexityAdjustmentQuanto);
+[Core Cash Flow Pricing]FCashFlowInstrument:needsConvexityAdjustment = maxOf(staticLegInformations :* "needsConvexityAdjustment");
+[Core Cash Flow Pricing]FInstrument:needsConvexityAdjustment = false;
+[Core Cash Flow Pricing]FPersistentReset:needsConvexityAdjustment = object.NeedsConvexityAdjustment;
+[Core Cash Flow Pricing]FStaticLegInformation:needsConvexityAdjustment = needsConvexityAdjustmentRate or needsConvexityAdjustmentQuanto;

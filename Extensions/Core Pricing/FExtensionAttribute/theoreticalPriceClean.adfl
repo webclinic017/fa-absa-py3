@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:theoreticalPriceClean = select(exerciseEventsExist, 
+  true->shift(theoreticalPrice, snoop(theoreticalPrice, "quotation"), ["Clean"]), 
+  default->select(isCalculatedTheoretically, 
+    true->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = theoreticalInstrumentSpotValueForPrice, quoteConversionWrapperToQuotation = cleanQuotation, priceSource, doSplitAll], 
+    false->nil));
+[Core Pricing]FInstrumentAndTrades:theoreticalPriceClean = select(isSettled, 
+  true->valuationDateZero, 
+  false->openInstrumentOrInstrument :* "theoreticalPriceClean" [priceSource, isSplitAllGrouped, filterUnit]);

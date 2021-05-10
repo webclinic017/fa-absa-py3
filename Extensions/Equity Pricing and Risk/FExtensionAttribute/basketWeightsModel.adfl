@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FCertificate:basketWeightsModel = select(baseValuationOnUnderlyingComponents, 
+  true->basketFxAdjustedWeights, 
+  default->1.0);
+[Equity Pricing and Risk]FOption:basketWeightsModel = select(isPerformancePayoff, 
+  true->basketWeights ./ multiUnderlyingInitialFixing, 
+  false->basketFxAdjustedWeights);

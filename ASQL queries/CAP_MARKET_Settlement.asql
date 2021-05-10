@@ -1,0 +1,916 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CAP_MARKET_Settlement') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP_MARKET_Settlement' and p.type = 'SQL Query' 
+ 
+/*
+bonds and repos settlement report per portfolio per bond
+
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending')
+
+
+coded by anil 2005-05-10
+
+2005-10-10 AP inserted a B-S column to identify gross amountswhere manual payments are neccessary
+
+Remove CM Script Lending portfolio, Louw Harmse 11 Apr 08
+
+Purpose: [Exclude 'Inactive' cost_centre],[Updated TRS Swaps], [Updated filters to exlude Open Ended Repos in one and unclude them in another]
+         [Added SecurityLoan on portfolios SBL_Structured Bond Loans & SBL SNP Bond Collateral Loans, changed display of ins type to show repo or reverse repo and updated the repo cash]
+         [Set premium to 0 for start of TRS. Set Settlement date to leg start date for inception]
+         [Show second leg of Security Loan]
+         [reflect portfolio add info fields, Replace CP with Portfolio name from the PB agency trade if the trans ref, replace Host ID with the Nutron Client Code (i.e. value on “AgencyTradPrincipal” field) from the PB agency trade if the trans ref ]
+         [Changed the default filter (old:SACM_SPECFIN_excl_FRN), new filter is a copy of the old plus the restriction to only return ABCAP trades]
+         [Added Future/Forward Additional Payment section],[Added Cpty UnexCor Code],[Exclueded portfolio: PB_REPOBOND_OAKHAVEN_CR and CD_COLLATERAL]
+         [ABITFA1456 - Added Security Loan under portfolios: 'Prime optimize' and 'SBL_Complex FICC Structured Bond Loans']
+Department: [PCG Fixed income (NLD)],[PCG],[PCG],[PCG],[PCG],[PCG],[PCG],[OPS],[OPS],[OPS],[OPS]
+Requester: [Rishi Kulfath],[Sipho Ndlalane],[PCG], [Sipho Ndlalane], [Sipho Ndlalane], [Sipho Ndlalane], [Miguel da Silva],[Sipho Ndlalane],[Miguel da Silva],[Sipho Ndlalane],[Sipho Ndlalane],[Sipho Ndlalane]
+Developer: [Willie van der Bank],[Jaysen Naicker],[Jaysen Naicker],[Bhavnisha Sarawan],[Jaysen Naicker],[Jaysen Naicker], [Anil Parbhoo],[Tshepo Mabena],[Aaeda Salejee],[Heinrich Cronje],[Willie van der Bank],[Tshepo Mabena],[Aaeda Salejee]
+CR Number: [C194704 (12/01/2010)],[C487707 (09/11/2010)],[C563668 (03/02/2011)],[C576299 (17/02/2011)], [582592(24/02/2011)], [685732 (17/06/2011)], [713436 (15/07/2011)],[780642 (06/10/2011),[795118 (13/10/2011)],
+           [891864 (2012-02-13)],[128652 2012-04-12],[CHNG0000148979(2012-04-20)],[CHNG0000168798(2012-05-10)],[C407945(2012-08-23)]
+*/
+
+ 
+
+
+/*---bonds---*/
+select
+    t.value_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    i.insid,
+    t.quantity*1000000'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    t.premium'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    /*choicelist cl fill,*/
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr=t.insaddr
+/*and t.optkey1_chlnbr=cl.seqnbr*/
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+/*and t.status not in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+and t.value_day between @2_FromDate{Today;} and @3_ToDate{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+/*and party.ptyid~='DRA TRANSAKSIES'*/
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+/*and display_id(t,'acquirer_ptynbr') ~= 'IRP_FX Desk'*/
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('No')
+and i.insid not like '%FUTURE%'
+and not match_portfolio(t, '0545')
+order by 5, i.insid
+
+
+
+/*------OPTIONS------*/
+select
+    t.value_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    i.insid,
+    t.quantity*1000000'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    t.premium'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+
+into 
+    temp
+
+from
+    instrument i,
+    instrument ui,
+    trade t,
+    portfolio p,
+    party party,
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr=t.insaddr
+and i.und_insaddr = ui.insaddr
+and i.instype in ('Option')
+and ui.instype in ('Bond')
+/*and t.status not in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+and t.value_day between @2_FromDate{Today;} and @3_ToDate{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+/*check this line*/
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('Yes')
+and not match_portfolio(t, '0545')
+
+order by 5, i.insid
+
+
+
+
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+select
+    t.value_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    ui.insid,
+    i.instype='BuySellback' ? i.contr_size *t.quantity*(+1) : ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr) 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    t.premium'premium'/*t.premium applies to both Bsb and repo for cash1*/,
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(ui,t.value_day,,,t.price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui,
+    /*choicelist cl fill,*/
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+/*and t.status not in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+/*and t.optkey1_chlnbr=cl.seqnbr*/
+and t.value_day between @2_FromDate{Today;} and @3_ToDate{Today;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr *=ui.insaddr
+/*and party.ptyid~='DRA TRANSAKSIES'*/
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('No')
+and ui.instype in ('Bond','IndexLinkedBond')
+and not match_portfolio(t, '0545')
+
+order by 5, ui.insid
+
+
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+select
+    i.exp_day'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    ui.insid,
+    i.instype='BuySellback' ? i.contr_size *t.quantity*(-1): ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr)*(-1) 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    i.instype='BuySellback' ? i.ref_value*t.quantity : (projected_cf(i)*t.quantity) 'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(ui,i.exp_day,,,i.ref_price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    leg l,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui,
+    /*choicelist cl fill,*/
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr=t.insaddr
+and i.insaddr*=l.insaddr
+and (i.instype = 'BuySellback'
+    or (i.instype = 'Repo/Reverse' and i.open_end ~= 'Open End')
+    or (i.instype = 'Repo/Reverse' and i.open_end = 'Open End' and @showOpenEndRepoFarLeg{Yes;'Yes','No'} in ('Yes') ) )
+/*and t.status not in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+/*and t.optkey1_chlnbr=cl.seqnbr*/
+and i.exp_day between @2_FromDate{Today;} and @3_ToDate{Today;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr *=ui.insaddr
+/*and party.ptyid~='DRA TRANSAKSIES'*/
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('No')
+and ui.instype in ('Bond','IndexLinkedBond')
+and not match_portfolio(t, '0545')
+
+order by 5, ui.insid
+
+
+
+
+
+/*----trs where t.value day = settlement = cash1 ---------*/
+select
+    l.start_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    i.insid,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr) 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    0.00 'premium' /*nominal_amount(t,t.value_day) * l.initial_index_value / 100  'premium' t.premium applies to both Bsb and repo for cash1*/,
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    trade t,
+    leg l,
+    portfolio p,
+    party party,
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.nominal_scaling = 'Initial Price'
+and i.instype = 'TotalReturnSwap'
+and l.start_day >= @2_FromDate{Today;} 
+and l.start_day <= @3_ToDate{Today;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('No')
+and not match_portfolio(t, '0545')
+
+order by 5, i.insid
+
+
+
+/*---trs where i.exp day = settlement = cash2 -----*/
+select
+    c.pay_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype) 'instype',
+    i.insid,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr) * -1 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    t.quantity*projected_cf(l)   'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,i.exp_day,,,i.ref_price)*10000*t.quantity'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    trade t,
+    leg l,
+    cashflow c,
+    portfolio p,
+    party party,
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and i.instype = 'TotalReturnSwap'
+and l.type = 'Total Return'
+and l.legnbr = c.legnbr
+and c.pay_day >= @2_FromDate{Today;} 
+and c.pay_day <= @3_ToDate{Today;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','LIABILITIES 9830','IRD Funding Hybrid','Capital Market Script Lending','PB_REPOBOND_OAKHAVEN_CR','CD_COLLATERAL')
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and @ShowOnlyBondOptions{No;'Yes','No'} in ('No')
+and not match_portfolio(t, '0545')
+
+order by 5, i.insid
+
+
+
+
+/* Security Loan where t.value day = settlement = cash1 ------------------*/
+select
+    t.value_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    t.quantity >= 0 ? 'ReverseRepo' : 'Repo'	'instype',
+    ui.insid,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr) 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    t.premium'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity 'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    instrument ui,
+    trade t,
+    portfolio p,
+    party party,
+    /*choicelist cl fill,*/
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.insaddr=t.insaddr
+and i.und_insaddr =ui.insaddr
+and i.instype in ('SecurityLoan')
+and ui.instype not in ('FRN')
+and t.value_day between @2_FromDate{Today;} and @3_ToDate{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and p.prfid in ('SBL SNP Bond Collateral Loans','SBL_MAPPS_Bonds','DERV3','Portfolio Risk Management','MM Rates Trading','MONY 9802','Conduit Trading','Prime optimize','SBL Complex FICC SNP Bond Collateral Lo')
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and not match_portfolio(t, '0545')
+
+order by 5, ui.insid
+
+
+
+/* Security Loan where i.exp day = settlement = cash2 ------------------*/
+select
+    i.exp_day 'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    t.quantity >= 0 ? 'ReverseRepo' : 'Repo'	'instype',
+    ui.insid,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr) * -1.0 'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    /*cl.entry'tradearea',*/
+    0.0 'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',  
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity 'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into 
+    temp
+
+from
+    instrument i,
+    instrument ui,
+    trade t,
+    portfolio p,
+    party party,
+    /*choicelist cl fill,*/
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr 
+and i.insaddr=t.insaddr
+and i.und_insaddr =ui.insaddr
+and i.instype = 'SecurityLoan'
+and ui.instype not in ('FRN')
+and ((i.open_end ~= 'Open End' and i.exp_day between @2_FromDate{Today;} and @3_ToDate{Today;})
+or ( i.open_end = 'Open End' and @showOpenEndRepoFarLeg{Yes;'Yes','No'} in ('Yes') ))
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and p.prfid in ('SBL SNP Bond Collateral Loans','SBL_MAPPS_Bonds','DERV3','Portfolio Risk Management','MM Rates Trading','MONY 9802','Conduit Trading','Prime optimize','SBL Complex FICC SNP Bond Collateral Lo')
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and not match_portfolio(t, '0545')
+order by 5, ui.insid
+
+
+/*---------------- Future Forward -------------------*/
+select
+    i.exp_day   'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    to_string(i.instype)	'instype',
+    i.insid,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr)  'Nominal',
+    p.prfid,
+    pp.prfid 'cost_centre',
+    0.0 'premium',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr)'CP',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)'hostid',
+    -1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity 'Dirty',
+    add_info(t,'Confo Date Sent')  'ConfoSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText',
+    to_string(t.trx_trdnbr) 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+
+into
+    tempFF
+
+from
+    instrument i,
+    instrument ui,
+    trade t,
+    portfolio p,
+    party party,
+    portfolio pp,
+    portfolioLink pl
+
+where
+    p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr 
+and i.insaddr=t.insaddr
+and i.und_insaddr *=ui.insaddr
+and i.instype = 'Future/Forward'
+and i.exp_day >= date_add_delta(@2_FromDate{Today;},,-1)
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and match_filter(t,@filter{CAP_MARKET_Settlement;tradefilter.fltid})
+and ('None' in (@1_CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@1_CounterParty{}))
+and i.otc = 'Yes'
+and ui.instype = 'Bond'
+
+
+
+/*----------------------------Additional Payments------------------------*/
+
+Select 
+    p.trdnbr        'Addtrd',
+    p.amount        'Addpay',
+    p.payday        'Addday',
+    display_id(p,'curr')    'Addcurr'
+
+into addpmttemp
+from
+   payment p
+   
+where   
+    p.payday between @2_FromDate{Today;} and @3_ToDate{Today;}
+    
+select 
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    t.instype,
+    t.insid,
+    t.Nominal,
+    t.prfid,
+    t.cost_centre,
+    /*cl.entry'tradearea',*/
+    t.premium,
+    t.CP,
+    t.UnexCor_Code,
+    t.hostid,
+    t.Dirty,  
+    p1.Addpay            'Additional_Amount',
+    p1.Addday            'Additional_Payday',
+    t.ConfoSent,
+    t.ConfoText,
+    t.Trans_Ref,
+    t.AgencyTradPrincipal,
+    t.CapMkt_Unexcor_Code
+into temp2
+from
+    temp t,
+    addpmttemp p1
+where
+        (t.trdnbr *= p1.Addtrd
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and t.cost_centre ~= 'Inactive')
+   
+/*--------- Additional Payment FF ----------*/
+select 
+    p1.Addday   'Settlement',
+    t.trdnbr,
+    t.creat_time,
+    t.status,
+    t.instype,
+    t.insid,
+    -1*p1.Addpay   'Nominal',
+    t.prfid,
+    t.cost_centre,
+    /*cl.entry'tradearea',*/
+    p1.Addpay   'premium',
+    t.CP,
+    t.UnexCor_Code,
+    t.hostid,
+    t.Dirty,  
+    p1.Addpay            'Additional_Amount',
+    p1.Addday            'Additional_Payday',
+    t.ConfoSent,
+    t.ConfoText,
+    t.Trans_Ref,
+    t.AgencyTradPrincipal,
+    t.CapMkt_Unexcor_Code
+into
+    temp2
+from
+    tempFF t,
+    addpmttemp p1
+where
+        t.trdnbr = p1.Addtrd
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and t.cost_centre ~= 'Inactive'
+
+/*----select all from temp table ------*/
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'YES' ? t.status : '' 'status',
+    'YES' ? t.instype : '' 'instype',
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    t.Nominal,
+    t.prfid,
+    t.cost_centre,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    t.premium,
+    t.CP 'CP',
+    t.hostid,
+    t.Dirty,
+    abs(t.premium)-abs(t.Dirty)'Diff_to_premium',
+    t.Additional_Amount,
+    t.Additional_Payday,
+    t.ConfoSent 'Confo Date Sent',
+    t.ConfoText 'Confo Text',
+    t.Trans_Ref,
+    t.AgencyTradPrincipal,
+    t.CapMkt_Unexcor_Code,
+    t.UnexCor_Code
+from
+    temp2 t
+where
+    @4_DetailPerTrade{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+order by  t.CP,t.insid,5/*t.instype*/
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'Sub total by portfolio by bond'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    t.prfid,
+    t.cost_centre,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+where
+    @5_SubTotalByPortByBond{No;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by t.prfid,t.insid
+order by t.prfid,t.insid
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'Sub total by bond'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    ' ' /*t.prfid*/,
+    ' '/*t.cost_centre*/,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+where
+    @6_SubTotalByBond{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by t.insid
+order by t.insid
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'Sub Total By CP and B_S'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    ' ' /*t.prfid*/,
+    ' '/*t.cost_centre*/,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    t.CP,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    t.UnexCor_Code
+from 
+    temp2 t
+where
+    @7_SubTotalByCP{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by t.CP,7 /*B_S*/
+order by t.CP
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    ' Total By Ins Type Cost Centre'/*t.status*/,
+    /*'YES' ? t.instype : '' 'instype',*/
+    t.instype in ('Bond','IndexLinkedBond')? 'Bond/Index' : t.instype in ('Option')? 'BondOptions' : t.instype in ('FRN')? 'FRN': 'BSB' 'instype',
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    ' ' /*t.prfid*/,
+    t.cost_centre,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+where
+    @8_SubTotalByInsCostCentre{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 5,10 /*instype, cc*/
+order by 5,10
+
+union
+
+select    /*this section shows abs nom and abs prem for BESA cost allocations*/
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'Absolute values per Cost Centre for Besa cost alloc'/*t.status*/,
+    /*'YES' ? t.instype : '' 'instype',*/
+    t.instype in ('Bond','IndexLinkedBond')? 'Bond/Index' : t.instype in ('Option')? 'BondOptions': t.instype in ('FRN')? 'FRN' : 'BSB' 'instype',
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(abs(t.Nominal)),
+    ' ' /*t.prfid*/,
+    t.cost_centre,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(abs(t.premium)),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(abs(t.Dirty)),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+where
+    @9_SubTotalForBESAcostAlloc{No;'Yes','No'} in ('Yes','YES','yes','Y','y')
+    and t.CP ~= 'DRA TRANSAKSIES'
+    and t.hostid ~= ''
+    and t.instype ~= 'FRN'
+group by 10 /*cc*/
+order by 10
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    ' Total By B_S'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    ' ' /*t.prfid*/,
+    ' '/*t.cost_centre*/,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+where
+    @9__SubTotalByBuySell{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 7 /*B_S*/
+
+order by 7
+
+union
+
+select
+    t.Settlement,
+    t.trdnbr,
+    t.creat_time,
+    'Grand Total'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    t.Nominal>0 ? 'B' : 'S' 'B_S',
+    sum(t.Nominal),
+    ' ' /*t.prfid*/,
+    ' '/*t.cost_centre*/,
+    /*'Yes' ? t.tradearea : '' 'tradearea',*/
+    t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+    sum(t.premium),
+    '' /* 'CP'*/,
+    t.hostid,
+    sum(t.Dirty),
+    sum(abs(t.premium)-abs(t.Dirty))'Diff_to_premium',
+    sum(t.Additional_Amount),
+    t.Additional_Payday,
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+from 
+    temp2 t
+group by t.Settlement

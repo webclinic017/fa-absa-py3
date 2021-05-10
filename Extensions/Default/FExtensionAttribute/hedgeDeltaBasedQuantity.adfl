@@ -1,0 +1,5 @@
+[Default]QuoteAndHedgeYieldDeltaNeutral:hedgeDeltaBasedQuantity = switch(object.HedgeLegOrderBook, 
+  nil->nil, 
+  default->switch(object.QuoteLegOrderBook, 
+    nil->nil, 
+    default->hedgeLegOrderBook :* "interestRateDeltaTimesContractSize" / (hedgeQuantityMultiplier * quoteLegOrderBook :* "interestRateDeltaTimesContractSize")));

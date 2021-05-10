@@ -1,0 +1,4 @@
+[Default]FFrn:proposedQuoteYieldToMaturitySpreadBid = nil;
+[Default]FFuture:proposedQuoteYieldToMaturitySpreadBid = denominatedvalue(spreadBenchmarkYTMMarketPriceBid, currency, , valuationDate) - proposedQuoteBid * object:ctdFactor [underlying = spreadBenchmarkYTM];
+[Default]FInstrument:proposedQuoteYieldToMaturitySpreadBid = object:marketYieldToMaturity [marketUnitValueClean = proposedQuoteBidUnitValueClean, marketPrice = proposedQuoteBid] - spreadBenchmarkYieldToMaturityBid;
+[Default]FQuoteController:proposedQuoteYieldToMaturitySpreadBid = instrument :* "proposedQuoteYieldToMaturitySpreadBid" [proposedQuoteBidUnitValueClean, spreadBenchmarkYieldToMaturityBid, proposedQuoteBid, spreadBenchmarkDiscountMarginBid, spreadBenchmarkMarketPriceBid, spreadBenchmarkYTM, proposedQuoteBidInInstrumentQuotation];

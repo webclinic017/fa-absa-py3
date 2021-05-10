@@ -1,0 +1,54 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Agri_Options') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Agri_Options' and p.type = 'SQL Query' 
+select 
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	t.time					'DealDate',
+	i.exp_day				'Expiry_Date',
+	display_id(t,'insaddr')			'Instrument',
+/*	i.instype				'InstrumentType',*/
+	i.instype = 'Ins_Option' ? 'Option' : i.instype 'InstrumentType',
+	display_id(i,'und_insaddr')		'Underlying',
+	i.und_instype = 'Stock' ? 'Stock' : i.und_instype	'UnderlyingType',
+/*	i.und_instype 				'UnderlyingType',*/
+	i.strike_price				'Strike_Price',
+	i.contr_size				'Contract_Size',
+	used_vol(t)				'Market_Volatility',
+	t.quantity < 0 ?'S':'B'			'Buy/Sell',
+	i.call_option = 'No' ? 'P':'C'		'Put/Call',
+	t.quantity < 0 ? -1 * t.quantity : t.quantity				'Number_of_Contracts',
+	@Date{TODAY}				'DATA_DATE',
+	t.text1					'Principal',
+	''/*display_id(pr,'owner_prfnbr')*/		'Portfolio',
+	display_id(t,'prfnbr')		'SubPortFolio',
+	t.status
+into
+	tempeq
+from 
+	instrument i,
+	/*instrument ii,
+	instrument iii,*/
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+/*	match_filter(t,'agri_options')
+	and */
+	    t.insaddr = i.insaddr
+	and t.status not in ('Simulated','Terminated','Void')
+	/*and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr*/
+	and t.acquirer_ptynbr = p.ptynbr
+	/*and p.ptyid = 'EQ Derivatives Desk'*/
+	and p.ptyid = 'Agris Desk'
+	and i.instype = 'Option'
+	and time_to_day (t.time) <= @Date
+	and i.exp_day > @Date
+	/*and t.prfnbr = pr.member_prfnbr*/
+
+select * from tempeq

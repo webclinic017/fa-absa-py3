@@ -1,0 +1,9 @@
+[Default]FQuoteController:crouchingTigerBidHedgeReqOKPrivate = select(instrument:isCashFlowInstrument, 
+  true->crouchingTigerBidHedgeReqOKPrivateFI, 
+  false->switch(crouchingTigerDelta > 0, 
+    true->switch(crouchingTigerUnderlyingBestQuantityAsk >= crouchingTigerReqHedgeQtyBid, 
+      true->true, 
+      false->false), 
+    false->switch(crouchingTigerUnderlyingBestQuantityBid >= crouchingTigerReqHedgeQtyBid, 
+      true->true, 
+      false->false)));

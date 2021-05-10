@@ -1,0 +1,15 @@
+[Default]FAbstractReset:legInformation = leg :* "legInformation";
+[Default]FCashFlow:legInformation = leg :* "legInformation";
+[Default]FCashFlowMoneyFlow:legInformation = leg :* "legInformation";
+[Default]FLeg:legInformation = select(legInformationType, 
+  "Credit Forward"->object.CreditLegInformation(forwardCreditCurveForLeg, volatilityInformationForLeg, spreadVolatilityInformationForLeg, fxVolatilityInformationForLeg, convexityAdjustmentsCmsType, convexityAdjustmentsInArrearType, useConvexityAdjustmentsQuanto, valuationDate), 
+  "Forward"->object.LegInformation(forwardCurve, valuationDate), 
+  "Forward Rate Index Fixing"->object.LegInformation(forwardCurve, rateIndexFixing, valuationDate), 
+  "Forward Vol"->object.LegInformation(forwardCurve, volatilityInformationForLeg, convexityAdjustmentsCmsType, convexityAdjustmentsInArrearType, useConvexityAdjustmentsQuanto, valuationDate), 
+  "Forward Vol Rate Index Fixing"->object.LegInformation(forwardCurve, rateIndexFixing, volatilityInformationForLeg, convexityAdjustmentsCmsType, convexityAdjustmentsInArrearType, useConvexityAdjustmentsQuanto, valuationDate), 
+  "Forward Price Spot Driven"->object.LegInformation(nil, nil, nil, nil, nil, nil, nan, nan, nan, nan, convexityAdjustmentsCmsTypeDefault, convexityAdjustmentsInArrearTypeDefault, false, spreadFixingEstimateValues, nil, valuationDate, false, nan, nil, nil, floatRateReferenceForwardValueProvider, floatRateFxForwardValueProvider, nil, nil, nil, nil, nil, nil, nil, nil), 
+  "CTD"->object.CtdLegInformation(ctdFactor, valuationDate), 
+  "Forward Value Vol"->object.ForwardValueVolLegInformation(volatilityInformationForLeg, valuationDate, floatRateReferenceForwardValueProvider), 
+  "Rate Index Fixing"->object.LegInformation(nil, rateIndexFixingAlways, valuationDate), 
+  "Full"->object.LegInformation(forwardCurveForLeg, rateIndexFixingForLeg, rateIndexFixing2ForLeg, volatilityInformationForLeg, spreadVolatilityInformationForLeg, fxVolatilityInformationForLeg, quantoCorrelationForLeg, spreadCorrelationForLeg, ctdFactor, atmParLevelForLeg, convexityAdjustmentsCmsType, convexityAdjustmentsInArrearType, useConvexityAdjustmentsQuanto, spreadFixingEstimateValues, adjecentLiborCorrelations, valuationDate, hasVariableNominalFactor, variableNominalFactor, inflationScalingEstimateValues, taxFixingEstimateValues, floatRateReferenceForwardValueProvider, floatRateFxForwardValueProvider, nominalScalingForwardValueProvider, nominalScalingFxForwardValueProvider, settlementFxForwardValueProvider, dividendScalingForwardValueProvider, indexReferenceFxForwardValueProvider, triggerReferenceForwardValueProvider, volatilityValueProviderForLeg, volatilityStrikeConverterForLeg), 
+  default->object.LegInformation(valuationDate));

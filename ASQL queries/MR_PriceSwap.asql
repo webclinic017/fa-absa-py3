@@ -1,0 +1,53 @@
+/*
+
+Purpose                 :[Market Risk feed files],[To model a Price Swap as an asian option in order to get the correct average value (float leg) and a swap fixed leg]
+Department and Desk     :[IT],[MR]
+Requester:              :Jacqueline Calitz
+Developer               :Heinrich Cronje
+CR Number               :XXXXXX
+
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_PriceSwap') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_PriceSwap' and p.type = 'SQL Query' 
+
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_PriceSwap.OpenFile',@1_path{'f:\'},@2_FileName{'MR_PriceSwap.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_PriceSwap.Write',@1_path{'f:\'},@2_FileName{'MR_PriceSwap.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i
+Where 
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('PriceSwap') 
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

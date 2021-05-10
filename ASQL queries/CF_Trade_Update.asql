@@ -1,0 +1,77 @@
+/*------------------------------------------------------------------
+    CF_Trade_Update
+
+    This query supplies all trade or instrument information that have been updated during the ReportDate. 
+   
+    This query is used as a feed into the CashWarehouse. 
+
+History:
+When: 		Who:		What:
+2009-09-16	Herman Hoon	Created
+
+Purpose:                Added columns Portfolio and Counter_Party.
+Department and Desk:    PCG
+Requester:              Keelan Conlon
+Developer:              Willie van der Bank
+CR Number:              C323633 27/05/2010
+
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','CF_Trade_Update') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'CF_Trade_Update' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_ReportDate{Yesterday}      'RepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Trades
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    t.trdnbr,
+    i.insaddr,
+    m.RepDate                       'UpdateDate',
+    t.status                        'Status',
+    t.prfnbr	                    'PrfNbr',
+    t.counterparty_ptynbr           'CptyNbr',
+    display_id(t, 'acquirer_ptynbr')'Desk',
+	to_date(t.time)	                'TradeDate',
+	i.exp_day                       'ExpiryDate',
+	i.insid				            'InsId',
+	i.instype                       'InsType',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+    : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+    : add_info(t, 'Instype'))	    'MM_InsType', 
+	i.und_instype = 'None' ? '' : i.und_instype     'Und_InsType',
+	t.aggregate                     'Aggregate',
+	display_id(t,'prfnbr')          'Portfolio',
+	display_id(t,'counterparty_ptynbr')     'Counter_Party'
+from
+	trade t,
+    instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and i.insaddr = t.insaddr
+and (  to_date(t.updat_time) = m.RepDate
+    or to_date(i.updat_time) = m.RepDate)

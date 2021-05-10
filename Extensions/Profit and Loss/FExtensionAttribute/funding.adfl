@@ -1,0 +1,12 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:funding = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:funding = nil;
+[Profit and Loss]FInstrumentAndTrades:funding = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->fundingLive, 
+  "Inception to Historical"->fundingEnd, 
+  "Historical to Present"->fundingLive - fundingStart, 
+  "Historical to Historical"->fundingEnd - fundingStart);
+[Profit and Loss]FPriceAggregate:funding = switch(singleInstrumentAndTrades, 
+  nil->denominatedvalue(0.0, displayCurrency, , ), 
+  default->singleInstrumentAndTrades :* "funding");

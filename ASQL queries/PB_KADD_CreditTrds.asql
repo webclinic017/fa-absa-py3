@@ -1,0 +1,24 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_CORPBOND_KADD_CR','PB_CORPBOND_FF_KADD_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+i.und_instype not in ('Stock', 'EquityIndex')
+AND
+i.instype not in ('Stock', 'Deposit')
+AND
+t.status not in ('Simulated', 'Void')

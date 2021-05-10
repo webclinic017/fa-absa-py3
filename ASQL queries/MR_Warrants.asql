@@ -1,0 +1,34 @@
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Warrants.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Warrants.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})     'BuildConfirmation'
+Into
+    macro
+From
+    instrument i
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Warrant')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

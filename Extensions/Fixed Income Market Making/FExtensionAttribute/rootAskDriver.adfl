@@ -1,0 +1,8 @@
+[Fixed Income Market Making]FQuoteController:rootAskDriver = switch(proposedSpreadData, 
+  nil->nil, 
+  default->proposedSpreadData :* "rootAskDriver" [qQuoteContext, qOffsetController = qMultiQuoteController]);
+[Fixed Income Market Making]FQuoteSetting:rootAskDriver = shunt(proposedQuoteDriverAsk, 
+  "Offset"->shunt(qOffsetSettings, 
+    nil->nil, 
+    default->qOffsetSettings :* "rootAskDriver" [qQuoteContext]), 
+  default->proposedQuoteDriverAsk);

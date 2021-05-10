@@ -1,0 +1,8 @@
+[Default]FQuoteController:qUndQuoteVolumeAskSetting = switch(qPriceSourceSetting, 
+  nil->0.0, 
+  default->switch(qUnderlyingBaseQtyType, 
+    "Underlying Qty"->qPriceSourceSetting.UnderlyingQuantity, 
+    "Underlying Qty Bid/Ask"->switch(qUnderlyingPriceType, 
+      "Bid"->qPriceSourceSetting.UnderlyingQuantityBid, 
+      default->qPriceSourceSetting.UnderlyingQuantityAsk), 
+    default->0.0));

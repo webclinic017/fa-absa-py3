@@ -1,0 +1,1006 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ /*select 
+      ael_i(p,'ASQL_log','LandingArea_Options') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Options' and p.type = 'SQL Query' */
+ 
+/*
+Date                : 2010-03-17, 2010-09-10
+Purpose             :   Correct the Sale and Purchase currency columns
+                        Change notional amount calculation
+Department and Desk : Credit - TPEM , Regulatory Reporting
+Requester           : Lennox Masangane , Callie Joubert
+Developer           : Herman Hoon, Jaysen Naicker
+CR Number           : 261533, 420707
+*/
+
+/*
+Project                 : Client Valuation 
+Purpose                 : Added the following fields for the Client Val: Underlying_Expiry, SEDOL, Underlying_Fwd_Price and StartDate.   
+                           
+Department and Desk     : IT - CTB Primary Markets  
+Requester               : Phil Ledwaba
+Developer               : Tshepo Mabena
+CR Number               : 829680 
+
+CR Number               :   180375  -Kim Madeley CRE for FX
+*/
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	bankday_adjust(@3_ReportDate{today},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, 'Preceding') 	'RepDay',
+
+
+	date_add_banking_day(bankday_adjust(@3_ReportDate{today},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, 'Preceding'),
+
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+
+
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		'ME',
+		
+
+	to_date(@5_YearEndDate{2007-12-31;})					'YE',
+	
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur',
+	
+	@10_ShowDetails{Yes;'Yes','No'}		'det'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay',
+	mtm_price(hc, m.ME, curr.insid)				'fxME',
+	mtm_price(hc, m.YE, curr.insid)				'fxYE'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (Options)
+----------------------------------------------------------------------------*/
+SELECT distinct
+
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	icr.insid							'curr',
+
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	u.instype							'undinstype',
+	
+    u.quote_type = 'Per 100 Units'? 0.01 : 1       'Factor',
+    /*
+	u.und_instype = 'Stock' or u.instype = 'Stock' or t.trdnbr = 1013820 ? (display_id(t,'counterparty_ptynbr') = 'SAFEX' ? 1 : 0.01)
+			       : u.und_instype = 'EquityIndex' or u.instype = 'EquityIndex' ? 10 : 1   'Factor',
+    */
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 					'Position',
+	nominal_amount(t,m.repday,display_id(i,'curr'))			'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00		'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				'mtm_und_RepDay',
+	
+	
+	mtm_price(i, m.RepDay, curr.insid)		'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/(used_price(hc, today, add_info(t,'ExternalCCY')))							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	to_double(add_info(t,'ExternalVal'))		                'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, icr.insid, 2, 0, 1)		            'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, icr.insid, 2, 0, 1)		                    'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')        'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')    'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')            'cash_YE',
+
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	''				'MM_Product',
+	
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.curr : i.strike_curr
+            : icr.curr								        'PurchaseCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.insid : display_id(i,'strike_curr')
+            : icr.insid								        'PurchaseCurr',
+
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ?
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  
+            : abs(i.strike_price * t.quantity)/100) :
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): '' 
+            : abs(i.strike_price * t.quantity))         'PurchaseAmount',
+
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? i.strike_curr : u.curr
+            : icr.curr								        'SaleCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? display_id(i,'strike_curr') : u.insid
+            : icr.insid	                                    'SaleCurr',
+            
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ? 
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price/100): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  :
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  'SaleAmount',
+	
+	curr.curr				'Currency',
+	u.exp_day                   'Underlying_Expiry',
+	ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                      'SEDOL',*/
+	forward_price(u,m.RepDay)   'Underlying_Fwd_Price',
+	i.start_day                 'StartDate' 
+	
+	
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	instrument	icr,
+	portfolio p,
+	instrument hc
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	/*AND ((i.und_instype = 'Curr' and t.curr = curr.insaddr)
+	or  (i.und_instype ~= 'Curr' and i.curr = curr.insaddr))*/
+	AND fx.curr =* curr.insid
+	AND i.instype = 'Option'
+	and i.curr = icr.insaddr
+	and curr.insid = icr.insid
+	and currency_included(t, curr.insid) = 1 
+/*	and currency_included(t, curr.insid) = 1 */
+
+    and   p.prfnbr = t.prfnbr
+    and   hc.insid = 'ZAR'
+
+    and (add_info(t,'ExternalVal') ~= '' and add_info(t,'ExternalCCY') ~= '' and add_info(p,'MTM_From_External') = 'Yes')
+
+
+
+/* -************-*/
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (Options)
+----------------------------------------------------------------------------*/
+SELECT distinct
+
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	icr.insid							'curr',
+
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	u.instype							'undinstype',
+	
+    u.quote_type = 'Per 100 Units'? 0.01 : 1       'Factor',
+    /*
+	u.und_instype = 'Stock' or u.instype = 'Stock' or t.trdnbr = 1013820 ? (display_id(t,'counterparty_ptynbr') = 'SAFEX' ? 1 : 0.01)
+			       : u.und_instype = 'EquityIndex' or u.instype = 'EquityIndex' ? 10 : 1   'Factor',
+    */
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 					'Position',
+	nominal_amount(t,m.repday,display_id(i,'curr'))			'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00		'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				'mtm_und_RepDay',
+	
+	
+	mtm_price(i, m.RepDay, curr.insid)		'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, icr.insid, 2, 0, 1)		                'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, icr.insid, 2, 0, 1)		            'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, icr.insid, 2, 0, 1)		                    'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')        'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')    'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')            'cash_YE',
+
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	''				'MM_Product',
+	
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.curr : i.strike_curr
+            : icr.curr								        'PurchaseCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.insid : display_id(i,'strike_curr')
+            : icr.insid								        'PurchaseCurr',
+
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ?
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  
+            : abs(i.strike_price * t.quantity)/100) :
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): '' 
+            : abs(i.strike_price * t.quantity))         'PurchaseAmount',
+
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? i.strike_curr : u.curr
+            : icr.curr								        'SaleCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? display_id(i,'strike_curr') : u.insid
+            : icr.insid	                                    'SaleCurr',
+            
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ? 
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price/100): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  :
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  'SaleAmount',
+	
+	curr.curr				'Currency',
+	u.exp_day                   'Underlying_Expiry',
+	ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                      'SEDOL',*/
+	forward_price(u,m.RepDay)   'Underlying_Fwd_Price',
+	i.start_day                 'StartDate' 
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	instrument	icr,
+	portfolio p
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	/*AND ((i.und_instype = 'Curr' and t.curr = curr.insaddr)
+	or  (i.und_instype ~= 'Curr' and i.curr = curr.insaddr))*/
+	AND fx.curr =* curr.insid
+	AND i.instype = 'Option'
+	and i.curr = icr.insaddr
+	and curr.insid = icr.insid
+	and currency_included(t, curr.insid) = 1 
+/*	and currency_included(t, curr.insid) = 1 */
+
+and p.prfnbr = t.prfnbr
+and (add_info(t,'ExternalVal') = '' and add_info(t,'ExternalCCY') = '' and add_info(p,'MTM_From_External') = '')
+
+/*--**************-*/
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (Options)
+----------------------------------------------------------------------------*/
+SELECT distinct
+
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	icr.insid							'curr',
+
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	u.instype							'undinstype',
+	
+    u.quote_type = 'Per 100 Units'? 0.01 : 1       'Factor',
+    /*
+	u.und_instype = 'Stock' or u.instype = 'Stock' or t.trdnbr = 1013820 ? (display_id(t,'counterparty_ptynbr') = 'SAFEX' ? 1 : 0.01)
+			       : u.und_instype = 'EquityIndex' or u.instype = 'EquityIndex' ? 10 : 1   'Factor',
+    */
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 					'Position',
+	nominal_amount(t,m.repday,display_id(i,'curr'))			'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00		'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				'mtm_und_RepDay',
+	
+	
+	mtm_price(i, m.RepDay, curr.insid)		'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, icr.insid, 2, 0, 1)		                'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, icr.insid, 2, 0, 1)		            'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, icr.insid, 2, 0, 1)		                    'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')        'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')    'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')            'cash_YE',
+
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	''				'MM_Product',
+	
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.curr : i.strike_curr
+            : icr.curr								        'PurchaseCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.insid : display_id(i,'strike_curr')
+            : icr.insid								        'PurchaseCurr',
+
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ?
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  
+            : abs(i.strike_price * t.quantity)/100) :
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): '' 
+            : abs(i.strike_price * t.quantity))         'PurchaseAmount',
+
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? i.strike_curr : u.curr
+            : icr.curr								        'SaleCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? display_id(i,'strike_curr') : u.insid
+            : icr.insid	                                    'SaleCurr',
+            
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ? 
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price/100): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  :
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  'SaleAmount',
+	
+	curr.curr				'Currency',
+	u.exp_day                   'Underlying_Expiry',
+	ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                      'SEDOL',*/
+	forward_price(u,m.RepDay)   'Underlying_Fwd_Price',
+	i.start_day                 'StartDate' 
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	instrument	icr,
+	portfolio p
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	/*AND ((i.und_instype = 'Curr' and t.curr = curr.insaddr)
+	or  (i.und_instype ~= 'Curr' and i.curr = curr.insaddr))*/
+	AND fx.curr =* curr.insid
+	AND i.instype = 'Option'
+	and i.curr = icr.insaddr
+	and curr.insid = icr.insid
+	and currency_included(t, curr.insid) = 1 
+/*	and currency_included(t, curr.insid) = 1 */
+
+and p.prfnbr = t.prfnbr
+and (add_info(t,'ExternalVal') = '' and add_info(t,'ExternalCCY') = '' and add_info(p,'MTM_From_External') = 'Yes')
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (Options)
+----------------------------------------------------------------------------*/
+SELECT distinct
+
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	icr.insid							'curr',
+
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	u.instype							'undinstype',
+	
+    u.quote_type = 'Per 100 Units'? 0.01 : 1       'Factor',
+    /*
+	u.und_instype = 'Stock' or u.instype = 'Stock' or t.trdnbr = 1013820 ? (display_id(t,'counterparty_ptynbr') = 'SAFEX' ? 1 : 0.01)
+			       : u.und_instype = 'EquityIndex' or u.instype = 'EquityIndex' ? 10 : 1   'Factor',
+    */
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 					'Position',
+	nominal_amount(t,m.repday,display_id(i,'curr'))			'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00		'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				'mtm_und_RepDay',
+	
+	
+	mtm_price(i, m.RepDay, curr.insid)		'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			'mtmpx_YE',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	1/fx.fxME							'fxME',
+	1/fx.fxYE							'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, icr.insid, 2, 0, 1)		                'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, icr.insid, 2, 0, 1)		            'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, icr.insid, 2, 0, 1)		                    'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')        'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')    'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')            'cash_YE',
+
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	''				'MM_Product',
+	
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.curr : i.strike_curr
+            : icr.curr								        'PurchaseCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? u.insid : display_id(i,'strike_curr')
+            : icr.insid								        'PurchaseCurr',
+
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ?
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  
+            : abs(i.strike_price * t.quantity)/100) :
+        (i.call_option = 'Yes'? u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): '' 
+            : abs(i.strike_price * t.quantity))         'PurchaseAmount',
+
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? i.strike_curr : u.curr
+            : icr.curr								        'SaleCurrNbr',
+    u.instype = 'Curr'? i.call_option = 'Yes' and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2') ? display_id(i,'strike_curr') : u.insid
+            : icr.insid	                                    'SaleCurr',
+            
+    (i.und_instype in ('EquityIndex', 'Stock') and u.quote_type = 'Per 100 Units') ? 
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price/100): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  :
+        i.call_option = 'Yes'? abs(t.quantity * i.strike_price): 
+            u.instype = 'Curr'  and display_id(t, 'prfnbr')	not in ('Energy','GLD_Hedge','GOLD','Struc_Comm','Struc_Comm_2')? abs(t.quantity): ''  'SaleAmount',
+	
+	curr.curr				'Currency',
+	u.exp_day                   'Underlying_Expiry',
+	ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                      'SEDOL',*/
+	forward_price(u,m.RepDay)   'Underlying_Fwd_Price',
+	i.start_day                 'StartDate' 
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	instrument	icr,
+	portfolio p
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	/*AND ((i.und_instype = 'Curr' and t.curr = curr.insaddr)
+	or  (i.und_instype ~= 'Curr' and i.curr = curr.insaddr))*/
+	AND fx.curr =* curr.insid
+	AND i.instype = 'Option'
+	and i.curr = icr.insaddr
+	and curr.insid = icr.insid
+	and currency_included(t, curr.insid) = 1 
+/*	and currency_included(t, curr.insid) = 1 */
+
+and p.prfnbr = t.prfnbr
+and (add_info(t,'ExternalVal') ~= '' and add_info(t,'ExternalCCY') ~= '' and add_info(p,'MTM_From_External') = '')
+
+
+
+
+
+/*------------------------------------------------------------------
+	Creating Final DATA table
+------------------------------------------------------------------*/
+
+SELECT
+
+	r.trdnbr						,
+	r.DevonRef						,
+	r.insid						,
+	r.Desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.curr						,
+	r.instype						,
+	r.undinstype,
+	r.Factor,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	
+	r.position 		'Position',
+	r.nominal		'Nominal',
+	r.premium		'Premium',
+	
+	/*PLINCEP*/
+	/*sum(r.mtm_RepDate+r.Cash_Repdate)					'PLIncep1',*/
+	r.mtm_RepDate							'Val',
+	sum(r.cash_repdate)							'CashIncep',
+	
+	/*PLYTD*/
+	/*sum((r.mtm_RepDate-r.mtm_YE) + (r.cash_RepDate-r.cash_YE))	'PLYTD1',*/
+	sum((r.mtm_RepDate-r.mtm_YE))						'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))					'ChangeCash_YTD',
+
+	/*PLMTD*/
+	/*sum((r.mtm_RepDate-r.mtm_ME) + (r.cash_RepDate-r.cash_ME))		'PLMTD1',
+	sum((r.mtm_RepDate-r.mtm_ME)) 						'ChangeMTM_MTD',
+	sum((r.cash_RepDate-r.cash_ME))						'ChangeCash_MTD', */
+
+	/*PLON*/
+	/*sum((r.mtm_RepDate-r.mtm_PrevRepDate) + (r.cash_RepDate-r.cash_PrevRepDate))	'PLON1',
+	sum((r.mtm_RepDate-r.mtm_PrevRepDate)) 							'ChangeMTM_ON',
+	sum((r.cash_RepDate-r.cash_PrevRepDate))							'ChangeCash_ON',*/
+	
+	r.hcurr							,
+	
+	sum(r.Premium)*r.fxRepDay		'HPremium',
+	/*PLIncep Home Curr*/
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay	'HPLIncep',
+    
+    i.und_instype = 'Bond' ? 0.00 : ael_f(,'SAGEN_LA_Option_Calc.calc_HPayment',t.trdnbr,m.RepDay,'ZAR')  'HPayment',
+    time_to_day(t.time) <= m.RepDay ? (i.exp_day > m.RepDay ? (i.und_instype = 'Bond' ? r.fxRepDay*mtm_value_bo(t,m.RepDay) : r.fxRepDay*mtm_value_fo(t,m.RepDay,display_id(i,'curr'),2,0,1)) : (t.value_day > m.RepDay ? (r.hcurr=display_id(t,'curr') ? t.premium/r.fxRepDay : 0.00) : 0.00)) : 0 'HVal',
+	r.cash_repdate*r.fxRepDay					'HCashIncep',
+
+	
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)	'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)									'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)								'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+	/*sum((r.mtm_RepDate*r.fxRepDay-r.mtm_ME*r.fxME) + (r.cash_RepDate*r.fxRepDay-r.cash_ME*r.fxYE))	'HPLMTD1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_ME*r.fxYE)) 								'HChangeMTM_MTD',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_ME*r.fxYE))								'HChangeCash_MTD',*/
+
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON', 
+	
+
+	
+	r.fxRepDay ,
+	r.fxPrevRepDay ,
+	r.fxME ,
+	r.fxYE ,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	r.SaleAmount,
+
+	dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+	clean_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Clean_value_day',
+
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Clean_tdy',
+
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Dirty_yesterday',
+	clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Clean_yesterday',
+
+	0.0		'AccIntON',
+	0.0			'AccInt',
+/*	projected_cf(cf) * t.quantity	*/ 0.0					'Coupon',
+(nominal_amount(t,t.value_Day) + t.premium) / (days_between(t.value_day,i.exp_day,'Act/365'))			'Daily_Pull_to_Par',
+
+	m.RepDay	'R1',
+	m.PrevRepDay	'R2',
+	i.exp_day < TODAY ? 0 : i.exp_day - to_date(TODAY)  'RemainingTenure',
+	interest_accrued(i, i.start_day, m.RepDay) * t.quantity				'CouponAccrued',
+	0.0	'CouponRate',
+	t.value_day > m.YE ? days_between(t.value_day, m.RepDay, 'Act/365')
+			   : days_between(m.YE, m.RepDay, 'Act/365')			'AccIntDays',
+	''		'MM_Instype',
+	r.Currency,
+	add_info(i,'Forward Start Type') in ('Performance', 'Fixed Contract') ? ael_f(i,'SAEQ_AsianPerformance.get_asql_strike',i) : i.strike_price				'Strike',
+	r.nominal >= 0 ? 'Buy' : 'Sell'		'BuySell',
+	i.contr_size				'ContractSize',
+	r.mtm_und_RepDay,
+	
+    /*r.PurchaseAmount * r.Purchase_USD*/0.0                               'Purchase_USDEq',
+    0.0                                                             'Purchase_PV',
+    0.0                                                             'Purchase_PV_USDEq',
+    
+    /*r.SaleAmount * r.Sale_USD*/0.0                                       'Sale_USDEq',
+    0.0                                                             'Sale_PV',
+    0.0                                                             'Sale_PV_USDEq',
+    add_info(p,'MTM_From_External') = 'Yes' and  add_info(t,'ExternalDelta') ~= '' ? add_info(t,'ExternalDelta') :
+delta_explicit(i)                                               'Delta',
+    
+        add_info(p,'MTM_From_External') 'MTM_From_External',
+    add_info(t,'ExternalVal') 'ExternalVal',
+    add_info(t,'ExternalPurchaseCCY') 'ExternalPurchaseCCY',
+    add_info(t,'ExternalPurchaseAmt') 'ExternalPurchaseAmt',
+    add_info(t,'ExternalPurchasePV') 'ExternalPurchasePV',
+    add_info(t,'ExternalSaleCCY') 'ExternalSaleCCY',
+    add_info(t,'ExternalSaleAmt') 'ExternalSaleAmt',
+    add_info(t,'ExternalSalePV') 'ExternalSalePV',
+    add_info(t,'ExternalDelta') 'ExternalDelta',
+    r.Underlying_Expiry,
+    r.SEDOL,
+    r.Underlying_Fwd_Price,
+    r.StartDate
+	
+
+INTO
+	final
+
+FROM
+	result		r,
+	trade		t,
+	instrument	i,
+	macros		m,
+	portfolio p
+
+
+WHERE
+	r.trdnbr = t.trdnbr
+and	t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and	i.instype = 'Option'
+
+	
+
+SELECT
+
+	(r.trdnbr)						,
+	r.DevonRef LIKE '%FENICS%'
+        ? ''
+        : r.DevonRef				'ExternalSystemRef',
+	'Details'				'Section',
+	i.insaddr				'Insaddr',
+	r.insid					'Instrument_ID',
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea	,
+	r.cpty,
+	r.CptyRef,
+	r.curr						,
+	r.instype = 'Swap' ? 'Swap' : r.instype				'Instrument_Type',
+	/*r.mm_product,*/
+	t.acquire_day				'Acquire_Date',	
+	t.creat_time				'Create_Date_Time',
+	t.creat_usrnbr				'Created_By',
+	display_id(t,'creat_usrnbr')		'Created_By_ABno',
+	t.updat_usrnbr				'Updated_By',
+	display_id(t,'updat_usrnbr')		'Updated_By_ABno',
+	r.currency					'Currency',
+	r.curr			'Currency_Code',
+	i.exercise_type = 'American' ? 'American' : i.exercise_type	'ExerciseType',
+	t.fee					'Fee',
+	t.guarantor_ptynbr			'Gaurantor',
+	display_id(t,'guarantor_ptynbr')	'GaurantorID',
+	t.hedge_trdnbr				'Hedge_Trade_no',
+	i.extern_id1				'Instrument_Stock_Code',
+	t.bo_trdnbr				'Opening_BO_TradeNo',
+	i.call_option = 'Yes' ? 'Call' : 'Put'  'Option_Type',	
+	t.price					'Price',
+	t.quantity				'Quantity',
+	i.ref_value				'Ref_Value',
+	t.time					'Trade_Date_and_Time',
+	t.trader_usrnbr				'Trader',
+	display_id(t,'trader_usrnbr')		'TraderID',
+    /*display_id(i,'und_insaddr')		'Underlying_Instrument',*/
+    ael_s(,'SAIT_LandingArea_Functions.get_underlyingInsID', t)     'Underlying_Instrument',
+	/*i.und_instype = 'Swap' ? 'Swap' : i.und_instype		'Underlying_Instype',*/
+    ael_s(,'SAIT_LandingArea_Functions.get_underlyingInsType', t)   'Underlying_Instype',
+	t.value_day				'Value_date',
+	r.exp_day				'Expiry_Date',
+	r.status = 'BO Confirmed' ? 'BO Confirmed' : r.status	'status',
+	r.position				'Position',
+	r.nominal				'Nominal',
+	r.nominal				'ZARNominal',
+	t.premium				'Premium',
+	i.issuer_ptynbr				'IssuerPtynbr',
+	display_id(i,'issuer_ptynbr')		'Issuer',
+	
+	
+	/*PLINCEP*/
+	/*sum(r.PLIncep1)	'PLIncep',*/
+	r.MTM_From_External = 'Yes' and r.ExternalVal ~= '' ? to_double(r.ExternalVal) : r.Val	'Val',
+	r.CashIncep		'CashIncep',
+
+	
+	/*sum(r.PLYTD1)	'PLYTD',*/
+	r.ChangeMTM_YTD 'ChangeUnRealsd_YTD',
+	r.ChangeCash_YTD 'ChangeCash_YTD',
+
+/*PLMTD*/ 
+/*	sum(r.PLMTD1)	'PLMTD',
+	sum(r.ChangeMTM_MTD) 'ChangeUnRealsd_MTD',
+	sum(r.ChangeCash_MTD) 'ChangeCash_MTD',*/
+
+	/*PLON*/
+/*	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_ON',
+	sum(r.ChangeCash_ON) 'ChangeCash_ON', */
+	
+	
+	r.hcurr							,
+	/*r.HPremium*/
+    t.premium * ael_f(,'as_test.get_rate', t) 
+    /*1.0/curr_base.used_price(dt, curr.insid)
+    dirk_utils.get_fx_rate('ZAR', display_id(t, 'curr'))*/		'HPremium',
+	/*PLIncep Home Curr*/
+	r.HPLIncep	'HPLIncep',
+	
+    r.MTM_From_External = 'Yes' and r.ExternalVal ~= '' ? to_double(r.ExternalVal) * r.fxRepDay:
+    display_id(i,'curr') = display_id(t,'curr') ? r.HVal + r.HPayment : (m.RepDay < t.value_day ?  (r.HVal + r.HPayment + ael_f(,'SAGEN_LA_Option_Calc.calc_HPremium',t.trdnbr,m.RepDay,'ZAR')) : r.HVal + r.HPayment) 'HVal',
+	r.HCashIncep	'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	r.HPLYTD1 'HPLYTD',
+/*	r.HChangeMTM_YTD 'HChangeUnRealsd_YTD',
+	r.HChangeCash_YTD 'HChangeCash_YTD',*/
+
+	/*PLMTD Home Curr*/
+/*	sum(r.HPLMTD1) 'HPLMTD',
+	sum(r.HChangeMTM_MTD)'HChangeUnRealsd_MTD',
+	sum(r.HChangeCash_MTD) 'HChangeCash_MTD',*/
+
+
+	
+/*	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	*/
+	r.fxRepDay		'FXRepDay',
+/*	avg(r.fxME) 		'FXME',*/
+	avg(r.fxYE)  		'FXYE',		
+/*	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	avg(r.mtmpx_ME)  		'MTMPr_ME',
+	avg(r.mtmpx_YE)		'MTMPr_YE',*/
+	
+	m.RepDay,
+/*	m.ME,*/
+	m.YE,
+	r.MTM_From_External = 'Yes' and 
+    r.ExternalPurchaseCCY ~= '' ? r.ExternalPurchaseCCY : r.PurchaseCurr  'PurchaseCurr',
+	r.PurchaseAmount 'PurchaseAmount' ,
+	r.MTM_From_External = 'Yes' and 
+    r.ExternalSaleCCY ~= '' ? r.ExternalSaleCCY : r.SaleCurr  'SaleCurr',
+	r.SaleAmount 'SaleAmount' ,
+	0.0	'FV',
+	t.text2	'MM_DEMAT_TRADE',
+	display_id(t,'broker_ptynbr')	'BrokerID',
+	t.broker_ptynbr			'BrokerPtynbr',
+	t.prfnbr			'PortfolioNumber',
+	t.counterparty_ptynbr		'CptyNbr',
+	r.MTM_From_External = 'Yes' and 
+    r.ExternalPurchaseCCY ~= '' ? ael_s(,'SAIT_LandingArea_Functions.get_currnbr', r.ExternalPurchaseCCY) : r.PurchaseCurrNbr 'PurchaseCurrNbr',
+    r.MTM_From_External = 'Yes' and 
+    r.ExternalSaleCCY ~= '' ? ael_s(,'SAIT_LandingArea_Functions.get_currnbr', r.ExternalSaleCCY) : r.SaleCurrNbr     'SaleCurrNbr',
+	i.isin,
+	t.updat_time,
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 'HChangeCash_ON',
+
+
+	r.Dirty_value_day,
+	r.Clean_value_day,
+
+	r.Dirty_tdy,
+	r.Clean_tdy,
+
+	r.Dirty_yesterday,
+	r.Clean_yesterday,
+	/*r.AccIntON,*/
+	r.AccInt,
+	r.Coupon,
+	r.Daily_Pull_to_Par,
+	r.RemainingTenure,
+	r.CouponAccrued,
+	''		'PurchaseSaleMatch',
+	r.CouponRate,
+	r.AccIntDays,
+	r.MM_Instype,
+	'0000-01-01'	'NextCouponDate',
+	0.0		'CouponsToDate',
+
+	0.0		'HPurchaseAmount',
+	0.0		'HSaleAmount',
+	0.0		'Pull_to_Par_Balance',
+	0.0		'Accrued_Disc_Bal',
+	0.0		'CreditDefaultSpread',
+
+    /*for digital options do not use the nominal - use the trade quantity*/
+    /*for options on Bonds, Swaps and FRAs do not use the MTM price of the underlying*/
+    /*r.undinstype IN ('Bond', 'Swap', 'FRA') ? 
+        (i.digital = 'YES' ? (t.quantity * r.fxRepDay * r.factor) : (r.nominal * r.fxRepDay * r.factor))
+    : (i.digital = 'YES' ? (t.quantity * r.mtm_und_RepDay * r.fxRepDay * r.factor) : 
+        (add_info(i,'Forward Start Type') = 'Performance' ? r.nominal 
+                        : (r.nominal * r.mtm_und_RepDay * r.fxRepDay * r.factor)))	'Notional_Amount',
+    */
+    ael_f(,'SAIT_LandingArea_Functions.get_notional', t, m.RepDay, 'ZAR', r.fxRepDay)   'Notional_Amount',
+    /*
+	r.desk = 'EQ Derivatives Desk' ? (r.portfolio in ('EQ_OIP', 'EQ_OFP') ? t.premium 
+
+	/* equitys --> t.quantity 
+	: (t.quantity * r.mtm_und_RepDay * r.fxRepDay * r.factor))
+
+	/* eveything else --> r.nominal 
+	: (r.undinstype IN ('Bond', 'Swap', 'FRA') ? (r.nominal * r.fxRepDay * r.factor)
+			    : (r.nominal * r.mtm_und_RepDay * r.fxRepDay * r.factor))	'Notional_Amount',*/
+    
+	''		'InterestFrequency',
+	0.0		'NACMRate',	
+	add_info(t,'AgriStatus')		'AgriStatus',
+
+	r.Strike,
+	r.BuySell,
+	r.ContractSize,
+	r.mtm_und_RepDay	'Underlying_Price',
+	0.00 'ExchangePrice',
+	t.sales_credit  'SalesCredit',
+	display_id(t,'sales_person_usrnbr') 'SalesPerson',
+		add_info(t,'Qualifier')  'Qualifier',
+	add_info(t,'ValueAddCredits') 'ValueAddCredits',
+    add_info(t,'Sales_Credit2') 'SalesCredit2',
+    add_info(t,'Sales_Credit3') 'SalesCredit3',
+    add_info(t,'Sales_Person2') 'SalesPerson2',
+    add_info(t,'Sales_Person3') 'SalesPerson3',
+    0.0                         'Clean_PL',
+    ''     'CreditRef',
+    0 'CreditRef_Issuer_Ptynbr',
+    ''  'CreditRef_Issuer',
+    
+    r.Purchase_USDEq,
+    r.Sale_USDEq,
+    r.Purchase_PV,
+    r.Sale_PV,
+    r.Purchase_PV_USDEq,
+    r.Sale_PV_USDEq,
+
+    
+    r.Delta  'Delta',
+    
+    add_info(t, 'SND_Trade_Type')                        'SND_Trade_Type',
+    t.trx_trdnbr                                         'Trans_Ref',
+    0.0                                                  'Repo_Exposure',
+    /*(t.price - used_price(t, m.RepDay, curr.insid,,, 'SPOT')) 
+        * nominal_amount(t,m.repday,curr.insid)   'Repo_Exposure'*/
+
+    /*Additional attributes that will only be needed for vanilla & exotic instruments
+      The other Landing Area scripts WERE NOT changed for this change as the attributes are only applicable to options
+                                                    BEGIN                                                                  */
+          
+    I.pay_day_offset                                                    'Settle_Days',
+    I.Digital                                                           'Digital',
+    Ex.digital_barrier_type IS NULL
+        ? ' '
+        : to_string(Ex.digital_barrier_type)                            'Digital_Type',
+    Ex.barrier_option_type IS NULL
+        ? ' '
+        : to_string(Ex.barrier_option_type)                             'Barrier_Type',
+    I.settlement                                                        'Settle_Type',
+    Ex.double_barrier ~= ''
+        ? (ex.double_barrier = 0.00 
+                ? 'Single' 
+                : ex.double_barrier > 0 
+                    ? 'Double' 
+                    : '')
+        : to_string(' ')                                                            'Single_Double',
+    I.barrier                                                           'Barrier1',
+    (Ex.double_barrier >= 0.00 OR Ex.double_barrier < 0.00)
+        ? to_double(Ex.double_barrier) 
+        : to_double(0)                                                  'Barrier2',
+    Ex.barrier_rebate_on_expiry IS NULL
+        ? ' '
+        : to_string(Ex.barrier_rebate_on_expiry)                        'Rebate',
+    nominal_amount(t,t.value_day) * I.rebate                            'Rebate_Amount',
+    Ex.barrier_rebate_on_expiry IS NULL
+        ? ' '
+        : to_string(Ex.barrier_rebate_on_expiry)                        'Pay_At_Expiry',
+   r.Underlying_Expiry,
+   r.SEDOL,
+   r.Underlying_Fwd_Price,
+   r.StartDate     
+
+        
+    /*                                              END                                                                  */
+    
+FROM
+	final r,
+	macros m,
+	trade t,
+	instrument i,
+	party cp,
+	party aq,
+	Exotic Ex
+
+Where
+    m.det IN ('Yes','YES','yes','Y','y')
+    and	t.trdnbr = r.trdnbr
+    and	i.insaddr = t.insaddr
+    and	t.counterparty_ptynbr *= cp.ptynbr
+    and	t.acquirer_ptynbr *= aq.ptynbr
+    and I.InsAddr *= Ex.InsAddr
+
+group by r.trdnbr
+

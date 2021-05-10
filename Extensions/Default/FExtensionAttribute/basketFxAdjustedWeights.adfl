@@ -1,0 +1,6 @@
+[Default]FCertificate:basketFxAdjustedWeights = select(isQuanto, 
+  true->basketWeights .* underlyingInstrumentMaps :* "fixFXRate" [isForwardStarting := false], 
+  false->basketWeights);
+[Default]FOption:basketFxAdjustedWeights = select(isQuanto, 
+  true->basketWeights .* multiUnderlyingFixFxLegToInstrument, 
+  false->basketWeights);

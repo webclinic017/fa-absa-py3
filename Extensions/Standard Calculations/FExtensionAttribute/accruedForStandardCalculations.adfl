@@ -1,0 +1,10 @@
+[Standard Calculations]FInstrumentAndTrades:accruedForStandardCalculations = accrued;
+[Standard Calculations]FLegAndTrades:accruedForStandardCalculations = select(singleTradePosition, 
+  nil->accrued, 
+  default->scalar(select(singleTradePosition.IsSimulated and (singleTradePosition.Status == "FO Confirmed"), 
+    true->scalar(singleTradePosition.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart), 0), 
+    false->accrued), 0));
+[Standard Calculations]FMoneyFlowAndTrades:accruedForStandardCalculations = select(singleTradePosition, 
+  nil->nil, 
+  default->scalar(singleTradePosition.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart), 0));
+[Standard Calculations]FTradeRow:accruedForStandardCalculations = scalar(trade.Quantity * (instrumentAccruedInterestEnd - instrumentAccruedInterestStart), 0);

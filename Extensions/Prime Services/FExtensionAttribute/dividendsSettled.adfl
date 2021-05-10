@@ -1,0 +1,18 @@
+[Prime Services]FCashFlow:dividendsSettled = (-1.0) * denominatedvalue(shunt(object.PayDate <= valuationDate, 
+  true->object.FixedAmount, 
+  default->0.0), object.Leg.Currency, "Dividends", valuationDate);
+[Prime Services]FInstrument:dividendsSettled = nil;
+[Prime Services]FInstrumentAndTrades:dividendsSettled = shunt(instrument :* "isCFDPSwap", 
+  true->sumOf(tradesInPosition :* "object.Quantity") * instrument :* "dividendsSettled", 
+  false->dividends - dividendsUnsettled);
+[Prime Services]FLeg:dividendsSettled = shunt(isCFDPSwap, 
+  true->shunt(legDescription, 
+    "Dividend"->denominatedvalue(emptyListToZero(sumOf((object.CashFlows) :* "dividendsSettled")), displayCurrency, nil, valuationDate), 
+    default->denominatedvalue(0, displayCurrency, nil, valuationDate)), 
+  default->nil);
+[Prime Services]FLegAndTrades:dividendsSettled = shunt(isCFDPSwap, 
+  true->leg :* "dividendsSettled", 
+  default->sumOf(tradesInPosition :* "object.Quantity") * instrument :* "dividendsSettled");
+[Prime Services]FMultiInstrumentAndTrades:dividendsSettled = sumOf(children :* "dividendsSettled");
+[Prime Services]FPortfolioInstrumentAndTrades:dividendsSettled = sumOf(children :* "dividendsSettled");
+[Prime Services]FPortfolioSwap:dividendsSettled = convertToCurrency(denominatedvalue(emptyListToZero(sumOf(legs :* "dividendsSettled")), displayCurrencySymbol, nil, valuationDate), currency:immediateOrSpotFxRate [fxToCurrency = accountingCurrency], displayCurrency);

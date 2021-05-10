@@ -1,0 +1,49 @@
+Select
+    i.insid,
+    p.settle 'SAFEXONDEP',
+    p.day,
+    pa.ptyid
+Into
+    SAFEX
+From
+    instrument i,
+    price p,
+    party pa
+Where
+        i.insid = 'ZAR-JIBAR-ON-DEP'
+    and i.insaddr = p.insaddr
+    and pa.ptynbr = p.ptynbr
+    and pa.ptyid = 'SPOT'
+    and p.day = @Date{Today}
+
+Select
+    i.insid                     'instl',
+    @Date{}                     'date',
+    t.SAFEXONDEP                'rate'
+into
+    input
+From
+    instrument i,
+    SAFEX t
+Where
+        match_filter(i,@Filter{CallAccRateBackdate;tradefilter.fltid})
+
+Select
+    i.instl 'InstrumentID',
+    i.rate 'Rate',
+    ael_s(,'RateBackDate.CallAccRateBackDate',i.instl,i.date,i.rate,i.date) 
+From
+    input i
+Where
+    @Rate{Safex;'Safex'} = 'Safex'
+
+Union
+
+Select
+    i.instl 'InstrumentID',
+    to_double(@Rate{}) 'Rate',
+    ael_s(,'RateBackDate.CallAccRateBackDate',i.instl,i.date,to_double(@Rate{}),i.date) 
+From
+    input i
+Where
+    @Rate{Safex;'Safex'} ~= 'Safex'

@@ -1,0 +1,8 @@
+[PreAndPostTradeAnalysis]FMarketPlace:marketClosingTime = object.ClosingTime;
+[PreAndPostTradeAnalysis]FOrderBook:marketClosingTime = object.TradingInterface.Schedule.ClosingTime;
+[PreAndPostTradeAnalysis]FOwnOrder:marketClosingTime = marketPlace:marketClosingTime;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:marketClosingTime = switch(homeTrading, 
+  nil->nil, 
+  default->homeTrading :* "marketClosingTime");
+[PreAndPostTradeAnalysis]FSalesOrder:marketClosingTime = prePostTradeAnalysis:marketClosingTime;
+[PreAndPostTradeAnalysis]FTradingInterface:marketClosingTime = object.Schedule.ClosingTime;

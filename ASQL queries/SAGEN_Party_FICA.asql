@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select ael_i(p,'ASQL_log','SAGEN_Party_FICA') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Party_FICA' and p.type = 'SQL Query' 
+
+/*
+Date        Who                 CR Number   What
+2008-08-18  Heinrich Cronje     3916        Added column Not_Trading
+
+Get a list of all counterparties with their FICA Status */
+select
+    p.ptynbr,
+	p.ptyid				        'Name',
+    add_info(p,'FICA_Compliant')  'FICA_Status',
+    p.not_trading   'Not_Trading'
+from
+	party p
+
+order by p.ptynbr

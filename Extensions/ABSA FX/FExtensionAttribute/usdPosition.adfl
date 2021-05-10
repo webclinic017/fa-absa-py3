@@ -1,0 +1,6 @@
+[ABSA FX]FMultiInstrumentAndTrades:usdPosition = sumOf(children :* "usdPosition");
+[ABSA FX]FPortfolioInstrumentAndTrades:usdPosition = nil;
+[ABSA FX]FSingleInstrumentAndTrades:usdPosition = sumOf(trades :* "usdPosition" [debugPositionString]);
+[ABSA FX]FTrade:usdPosition = shunt(fxIncludesBaseCurrency, 
+  true->usdAmount, 
+  false->USDInSplitCurr(object, debugPositionString));

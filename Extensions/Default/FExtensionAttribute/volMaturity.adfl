@@ -1,0 +1,9 @@
+[Default]FInstrument:volMaturity = switch(object.Generic, 
+  true->object.ActualUnderlyingMaturityPeriod, 
+  false->object.ActualUnderlyingMaturityDay);
+[Default]FInstrumentAndTrades:volMaturity = instrument:volMaturity;
+[Default]FOrderBook:volMaturity = instrument:volMaturity;
+[Default]FPriceAggregate:volMaturity = instrument:volMaturity;
+[Default]FVolatilityPoint:volMaturity = switch(object.IsGenericUnderlyingMaturity, 
+  true->object.UnderlyingMaturityPeriod, 
+  false->object.UnderlyingMaturityDay);

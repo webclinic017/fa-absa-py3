@@ -1,0 +1,41 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Currency_rates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Currency_rates' and p.type = 'SQL Query' 
+
+
+
+/*
+Purpose:                Provide rates for all currencies comapred to ZAR
+Department and Desk:    Change
+Requester:              Charl Theron
+Developer:              Jaysen Naicker
+CR Number:              790085
+
+*/
+
+
+SELECT
+	to_date(@ReportDate{yesterday})						'RepDay',
+	@Currency{ZAR;instrument.insid WHERE instype = 'Curr'}		'hcur'
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+	
+SELECT
+	c.insid																							'Currency',
+	m.RepDay=today ? 
+    used_price(hc, m.RepDay, c.insid) = 0 ? 0.0 : 1/used_price(hc, m.RepDay, c.insid) :
+    mtm_price(hc, m.RepDay, c.insid) = 0 ? 0.0 : 1/mtm_price(hc, m.RepDay, c.insid)		'Rate'
+FROM
+	instrument	hc,
+	instrument	c,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND c.instype = 'Curr'

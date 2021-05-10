@@ -1,0 +1,20 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_CFD_NITROFIRE_CR','PB_SAFEX_NITROFIRE_CR','PB_YIELDX_NITROFIRE_CR','PB_CE_NITROFIRE_CR','PB_CE_FF_NITROFIRE_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+t.status not in ('Simulated', 'Void')

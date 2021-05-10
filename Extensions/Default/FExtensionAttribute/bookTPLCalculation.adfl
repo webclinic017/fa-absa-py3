@@ -1,0 +1,9 @@
+[Default]FInstrumentAndTrades:bookTPLCalculation = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->collapse(bookAssetTPL));
+[Default]FMultiInstrumentAndTrades:bookTPLCalculation = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->select(isAssetGrouping, 
+    true->collapse(bookAssetTPL), 
+    default->collapse(bookCashAssetTPL)));
+[Default]FPortfolioInstrumentAndTrades:bookTPLCalculation = collapse(bookCashAssetTPL);

@@ -1,0 +1,11 @@
+[Core Pricing]FCashFlowInstrument:timeToMaturity = select(legs <> nil, 
+  false->nil, 
+  true->maxOf(legs :* "timeToMaturity" [forwardPriceDate]));
+[Core Pricing]FInstrument:timeToMaturity = nil;
+[Core Pricing]FInstrumentAndTrades:timeToMaturity = instrument :* "timeToMaturity" [forwardPriceDate];
+[Core Pricing]FLeg:timeToMaturity = select(forwardPriceDate < endDate, 
+  false->0.0, 
+  true->yearsBetween(forwardPriceDate, endDate, daycountMethod, currency.Calendar));
+[Core Pricing]FMultiInstrumentAndTrades:timeToMaturity = nil;
+[Core Pricing]FOrderBook:timeToMaturity = instrument:timeToMaturity;
+[Core Pricing]FPriceAggregate:timeToMaturity = instrument:timeToMaturity;

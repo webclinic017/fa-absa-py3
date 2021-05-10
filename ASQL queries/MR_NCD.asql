@@ -1,0 +1,49 @@
+/*
+Purpose                 :[Market Risk feed files],[Added log section]
+Department and Desk     :[IT],[]
+Requester:              :[Natalie Austin],[]
+Developer               :[Douglas Finkel/Henk Nel],[Willie van der Bank]
+CR Number               :[264536],[883286]
+*/
+/*Log*/
+select
+    ael_i(p,'ASQL_log','MR_NCD') 'Name' 
+into  ASQL_LOG_TEMP 
+from
+    TextObject p 
+where
+    p.name = 'MR_NCD' and p.type = 'SQL Query' 
+ 
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_NCD.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_NCD.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    macro
+From Instrument i
+Where 
+	(i.exp_day = 0 or i.exp_day > Today)
+and i.instype = 'CD'
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

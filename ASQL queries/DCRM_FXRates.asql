@@ -1,0 +1,53 @@
+/*------------------------------------------------------------------
+    DCRM_FXRates
+
+    This query selects all the FX rates againts a certain currency.
+
+
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-12-07  512169       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+	ael_i(p,'ASQL_log','DCRM_FXRates') 'Name'
+into  
+	ASQL_LOG_TEMP
+from 
+	TextObject p 
+where 
+	p.name = 'DCRM_FXRates' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_Instrument{USD;instrument.insid where instype = 'Curr'}  'Instrument',
+    to_date(@2_ValueDate{Today})                                'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    m.ValueDate,
+    cur.insid						                                 'Currency',
+    baseCurr.insid                                                   'Instrument',
+	convert('float',used_price(cur, m.ValueDate,baseCurr.insid),8) 	 'Rate'
+from
+	instrument	cur,
+	macros		m,
+	instrument  baseCurr
+where
+    cur.instype = 'Curr'
+and baseCurr.insid = m.Instrument

@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:bondOnlyValue = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->select(bondFloorSupported, 
+    true->bondOnlyValueAsQuote, 
+    false->nil));
+[Default]FInstrument:bondOnlyValue = nil;
+[Default]FInstrumentAndTrades:bondOnlyValue = openInstrumentOrInstrument :* "bondOnlyValue" [priceSource, filterCurrency];
+[Default]FMultiInstrumentAndTrades:bondOnlyValue = nil;
+[Default]FOrderBook:bondOnlyValue = instrument :* "bondOnlyValue" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Default]FPriceAggregate:bondOnlyValue = priceFeed:bondOnlyValue [priceSource];
+[Default]FPriceFeed:bondOnlyValue = instrument :* "bondOnlyValue" [priceSource, quotation] * fxInstrumentToPriceFeed;

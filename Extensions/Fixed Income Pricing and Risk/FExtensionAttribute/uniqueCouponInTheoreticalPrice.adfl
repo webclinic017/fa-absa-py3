@@ -1,0 +1,10 @@
+[Fixed Income Pricing and Risk]FInstrument:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter, lotIndex);
+[Fixed Income Pricing and Risk]FLeg:uniqueCouponInTheoreticalPrice = select(isGenericCouponOrSpreadQuoted and not isFixedLeg, 
+  true->nil, 
+  false->snoop01(instrument:theoreticalPrice, instrument:uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter));
+[Fixed Income Pricing and Risk]FLegAndTrades:uniqueCouponInTheoreticalPrice = leg:uniqueCouponInTheoreticalPrice;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:uniqueCouponInTheoreticalPrice = nil;
+[Fixed Income Pricing and Risk]FOrderBook:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, "uniqueCoupon", instrument:uniqueCouponOrSpreadInTheoreticalPriceFilter);
+[Fixed Income Pricing and Risk]FPriceAggregate:uniqueCouponInTheoreticalPrice = priceFeed:uniqueCouponInTheoreticalPrice;
+[Fixed Income Pricing and Risk]FPriceFeed:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, "uniqueCoupon", instrument:uniqueCouponOrSpreadInTheoreticalPriceFilter);

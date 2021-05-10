@@ -1,0 +1,10 @@
+[Default]FCurrency:fxDiscountCurve = mappedFXDiscountLink :* "fxDiscountCurve";
+[Default]FInstrument:fxDiscountCurve = nil;
+[Default]FInstrumentAndTrades:fxDiscountCurve = instrument:fxDiscountCurve;
+[Default]FIrCurveInformation:fxDiscountCurve = object;
+[Default]FMappingLink:fxDiscountCurve = fxDiscountCurveHierarchy;
+[Default]FMoneyFlowAndTrades:fxDiscountCurve = currency:fxDiscountCurve;
+[Default]FSymbol:fxDiscountCurve = mappedFXDiscountLink :* "fxDiscountCurve";
+[Default]FYieldCurveHierarchy:fxDiscountCurve = select(hideRiskFactorNames, 
+  false->delta(discountYieldCurveComponent :* "discountIrCurveInformation" [component = underlyingComponent], discountCurveShift), 
+  true->discountYieldCurveComponent :* "underlyingIrCurveInformation" [component = underlyingComponent]);

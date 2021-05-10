@@ -1,0 +1,58 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Terminated_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Terminated_Trades' and p.type = 'SQL Query' 
+ 
+  select
+        
+    t.trdnbr 'Trade Number',
+    i.instype   'Instrument Type',
+    i.insid 'Instrument ID',
+    t.status  'Status',
+    ap.ptyid  'Acquirer',
+    p.fullname   'Counterparty',
+    nominal_amount(t,,,,) 'Nominal',
+    o.prfid 'Portfolio',
+    c.insid 'Currency',
+    present_value(t) 'Present Value',
+    m.amount 'Additional Payment',
+    m.type 'Payment Type',
+    t.updat_time 'Update Time',
+    u.userid 'User'
+    
+
+    
+from
+
+        Trade   t,
+        Instrument  i,
+        Party p,
+        Party ap,
+        Instrument c,
+        Portfolio o,
+        Payment m,
+        User u
+        
+        
+where
+t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and t.acquirer_ptynbr = ap.ptynbr
+and c.insaddr = t.curr
+and t.prfnbr = o.prfnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.status = 'Terminated'
+and t.updat_time >= to_date(@2_ReportDate{today})
+and m.trdnbr =* t.trdnbr
+and t.updat_usrnbr = u.usrnbr
+
+
+
+
+
+
+/*
+and m.trdnbr =* t.trdnbr
+and m.type = 'Termination Fee'*/

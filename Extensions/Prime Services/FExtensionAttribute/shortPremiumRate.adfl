@@ -1,0 +1,3 @@
+[Prime Services]FSingleInstrumentAndTrades:shortPremiumRate = switch(isShortPremiumInstrumentType and isFundingPortfolio and (previousBusinessDayPositionOrValue < 0), 
+  true->-1 * py("PS_TimeSeriesFunctions", context).GetShortPremiumRate(fundingInstrument, businessDayBeforePnLEndDate), 
+  false->0);

@@ -1,0 +1,12 @@
+[Default]FInstrument:marketValueForProfitAndLoss = object:discountAndConvertToBaseForProfitLoss [filterUnit, plSpotGroupingReference, valuationBaseDateTimeInput, valuesOnSpotOverride, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = marketValueForProfitAndLossUndiscounted];
+[Default]FInstrumentAndTrades:marketValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketValueForProfitAndLoss)" [valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, profitAndLossParameters, filterUnit, instrument, valuesOnSpot, openPositionInstrumentProvider]);
+[Default]FLegAndTrades:marketValueForProfitAndLoss = notANumberIsZero(select(profitAndLossTodayIsHistorical, 
+  true->shunt(valuationDate == valuationSystemDate, 
+    true->scenarioaxis(markToMarketValues, <"valuationBaseDateTime", , , valuationDateTime>, <"liveOrSnapshotParameterDate", , , valuationDate>), 
+    false->shift(markToMarketValues, snoop(markToMarketValues, "valuationBaseDateTime"), [valuationDateTime])), 
+  false->shift(markToMarketValues, snoop(markToMarketValues, "valuationBaseDateTime"), [valuationDateTime])));
+[Default]FMultiInstrumentAndTrades:marketValueForProfitAndLoss = sumOf(portfoliosForValuation :* "collapse(marketValueForProfitAndLossOpenInstruments)" [valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, profitAndLossParameters, filterUnit, valuesOnSpotOverride, openPositions, onlySpotValuedInstruments]);
+[Default]FPortfolio:marketValueForProfitAndLoss = openInstrument :* "marketValueForProfitAndLoss" [valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, profitAndLossParameters, filterUnit, accountingParameters, tradedPortfolio];
+[Default]FTradeRow:marketValueForProfitAndLoss = shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, filterUnit, profitAndLossParameters](isOpenPosition, 
+  true->instrument :* "marketValueForProfitAndLoss" [valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, plSpotGroupingReference, includeAllTrades, filterUnit, taxLotPositionObject, positionObject, taxLotValuation := taxLotPnL], 
+  false->spotHandlingZero);

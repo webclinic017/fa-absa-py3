@@ -1,0 +1,574 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CAP MARKET BSB Repo Reval') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET BSB Repo Reval' and p.type = 'SQL Query' 
+ 
+/*********(Repo/Reverse)************/
+select 
+	t.trdnbr							'TradeNumber',
+	time_to_day(t.time)						'TradeDate',
+	display_id(t, 'prfnbr')						'Portfolio',
+	pp.prfid /*display_id(t, 'acquirer_ptynbr')*/ 				'CostCentre',
+	t.quantity >= 0 ? 'ReverseRepo' : 'Repo'		  	'Repotype',
+	'R'								'Flag',
+	i.insid								'Instrument',
+	display_id(t, 'counterparty_ptynbr')				'Counterparty',
+	i.ref_value*t.quantity						'Nominal',
+	t.value_day							'StartDay',	
+	i.exp_day							'EndDay',
+
+	to_date('0001-01-01')						'start_day',
+	to_date('0001-01-01')						'end_day',
+	to_date('0001-01-01')						'ex_coupon_date',
+
+	t.premium							'Cash1',
+	to_double('0.0')						'Cash2',
+	days_between(t.value_day, i.exp_day, 'Act/365')			'Term',
+	l.fixed_rate							'RepoRate',
+
+	t.value_day > TODAY ? 0 : 
+	       (t.value_day = TODAY ? 1 
+				    : (TODAY < i.exp_day ? (days_between(t.value_day,TODAY,'Act/365') + 1)
+				    : days_between(t.value_day, i.exp_day, 'Act/365')))	'DaysSinceStart',
+		
+	present_value(t)						'Reval',
+
+	to_double('0.0')						'Coupon',
+	to_double('0.0')						'CouponReval',
+	convert('date', 0000-00-00)					'CouponDate',
+/*	0								'CouponsToDate',*/
+	
+	0 								'IncCoupon',
+
+	t.quantity							'qty',
+	clean_from_yield(und,t.value_day,,,i.ref_price)			'Price1',
+	/*clean_from_yield(und,i.exp_day,,,i.ref_price)*/ to_double('0.0')	'Price2',
+	dirty_from_yield(und,t.value_day,,,i.ref_price)			'DirtyPrice1',
+	/*dirty_from_yield(und,i.exp_day,,,i.ref_price)*/ to_double('0.0')	'DirtyPrice2',
+	i.ref_price								'Yield1',
+	to_double('0.0')							'Yield2',
+	und.insid							'Underlying',
+	t.status							'TradeStatus'
+
+into
+	temp
+
+
+from
+	trade t,
+	instrument i,
+	instrument und,
+/*	cashflow cf,
+*/	leg l,
+portfolio port,
+portfolio pp,
+portfolioLink pl
+	
+where
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and port.prfnbr = t.prfnbr
+
+and	match_filter(t, @Tradefilter{CAP MARKET - BSB REPO;'CAP MARKET - BSB REPO','CAP MARKET - BSB REPO JOB6'})
+and	i.insaddr =* t.insaddr
+and	i.und_insaddr *= und.insaddr
+and	l.insaddr = i.insaddr
+/*and	cf.legnbr = l.legnbr
+and	cf.type ~= 'Fixed Amount'
+and	(TODAY > cf.start_day and TODAY <= cf.end_day)*/
+and	i.instype = 'Repo/Reverse'
+
+/*and i.exp_day >= '2006-01-01 '*/
+
+
+
+
+/********BuySellback*********/
+select 
+
+	t.trdnbr							'TradeNumber',
+	time_to_day(t.time)						'TradeDate',
+	display_id(t, 'prfnbr')						'Portfolio',
+		pp.prfid /*display_id(t, 'acquirer_ptynbr')*/ 				'CostCentre',
+	t.quantity >= 0 ? 'BuySellback' : 'SellBuyback'			'RepoType',
+	'B'								'Flag',	
+	i.insid								'Instrument',
+	display_id(t, 'counterparty_ptynbr')				'Counterparty',
+	nominal_amount(t)						'Nominal',
+	t.value_day							'StartDay',	
+	i.exp_day							'EndDay',
+
+	cf.start_day							'start_day',
+	cf.end_day							'end_day',
+	ex_coupon_date(cf)						'ex_coupon_date',
+	t.premium							'Cash1',
+	i.ref_value*t.quantity						'Cash2',
+	days_between(t.value_day, i.exp_day, 'Act/365')			'Term',
+	i.rate								'RepoRate',
+	t.value_day > TODAY ? 0 : 
+	       (t.value_day = TODAY ? 1 
+				    : (TODAY < i.exp_day ? (days_between(t.value_day,TODAY,'Act/365') + 1)
+				    : days_between(t.value_day, i.exp_day, 'Act/365')))	'DaysSinceStart',
+	
+	present_value(t)						'Reval',
+
+	projected_cf(cf) * t.quantity					'Coupon', 
+	present_value(cf) * t.quantity					'CouponReval',
+	convert('date', cf.pay_day)					'CouponDate',
+
+	t.value_day < ex_coupon_date(cf) AND i.exp_day >= ex_coupon_date(cf) ? 1 : 0 'IncCoupon',
+	/* IncCoupon 1 = Yes, 0 = No */
+
+	t.quantity							'qty',
+	clean_from_yield(und,i.start_day,,,t.price)			'Price1',
+	clean_from_yield(und,i.exp_day,,,i.ref_price)			'Price2',
+	dirty_from_yield(und,i.start_day,,,t.price)			'DirtyPrice1',
+	dirty_from_yield(und,i.exp_day,,,i.ref_price)			'DirtyPrice2',
+	t.price								'Yield1',
+	i.ref_price							'Yield2',
+	und.insid							'Underlying',
+	t.status							'TradeStatus'
+
+/*	add_info(und, 'ExCoup1')					'y_ExC1',
+	add_info(und, 'ExCoup2')					'y_ExC2'
+*/
+
+into
+	temp
+
+
+from
+	trade t,
+	instrument i,
+	instrument und,
+	Leg l,
+	Cashflow cf,
+	portfolio port,
+portfolio pp,
+portfolioLink pl
+	
+where
+
+port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and port.prfnbr = t.prfnbr
+
+and	match_filter(t, @Tradefilter{})
+and	i.insaddr =* t.insaddr
+and	i.und_insaddr *= und.insaddr
+and	l.insaddr = und.insaddr
+and	l.legnbr = cf.legnbr
+and	cf.type ~= 'Fixed Amount'
+and	t.value_day < cf.end_day
+and	cf.start_day < i.exp_day
+and	i.instype = 'BuySellback'
+
+/*and i.exp_day >= '2006-01-01 '*/
+
+
+
+
+
+/************ temp2 ************/
+/* coupons & groups by trdnbr */
+select
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Flag,
+	t.Instrument,
+	t.Counterparty,
+	t.Nominal,
+	t.StartDay,
+	t.EndDay,
+	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+	t.Cash1,
+	t.Cash2,
+	t.Term,
+	t.RepoRate,
+	t.DaysSinceStart,
+	t.Reval,
+
+	sum(t.IncCoupon = 1 ? t.Coupon : to_double('0.0'))		'Coupon',
+	sum(t.IncCoupon = 1 ? t.CouponReval : to_double('0.0'))		'CouponReval',
+	t.IncCoupon = 1 ? t.CouponDate : to_string('')			'CouponDate',
+
+	sum(t.CouponDate = '' ? 0 : (t.CouponDate > TODAY ? 0 : (t.IncCoupon = 1 ? t.Coupon : to_double('0.0')))) 'CouponsToDate',
+
+	t.IncCoupon,
+
+	t.qty,
+	t.Price1,
+	t.Price2,
+	t.DirtyPrice1,
+	t.DirtyPrice2,
+	t.Yield1,
+	t.Yield2,
+	t.Underlying,
+	t.TradeStatus
+
+into
+	temp2
+
+from
+	temp t
+
+group by
+	t.TradeNumber
+
+
+
+
+
+
+/*********** temp3 ************/
+/* Interest and previous CFs */
+select
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Flag,
+	t.Instrument,
+	t.Counterparty,
+	t.Nominal,
+	t.StartDay,
+	t.EndDay,
+	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+	t.Cash1,
+	t.Cash2,
+	t.Term,
+	t.RepoRate,
+	t.Flag = 'R' ? (t.Cash1 * t.RepoRate * t.Term/36500 * -1) : (t.Cash1 + t.Cash2 + t.Coupon)	'Interest',
+
+	t.DaysSinceStart,
+
+	t.Reval,
+
+	t.Coupon,
+	t.CouponReval,
+	t.CouponDate,
+	t.CouponsToDate,
+
+	t.StartDay > TODAY ? 0 : t.Cash1 + t.CouponsToDate + (t.EndDay > TODAY ? 0 : Cash2) 'PreviousCFs_BSB',
+	TODAY >= t.EndDay ? 0 : (t.Cash1 + t.CouponsToDate)			'PreviousCFs_BSB_SCash',
+	t.StartDay > TODAY ? 0 : t.Cash1 + (t.EndDay > TODAY ? 0 : ((t.Cash1 * -1 + (t.Cash1 * t.RepoRate * t.Term/36500 * -1))))	'PreviousCFs_Repos',
+	/*(t.EndDay < TODAY ? 0 : Cash2*/
+	/*Cash2 = (t.Cash1 + t.Interest) * -1*/
+
+
+	TODAY >= t.EndDay ? 0 : t.Cash1						'PreviousCFs_Repos_SCash',
+
+	t.qty,
+	t.qty < 0 ? (TODAY < t.StartDay ? t.Cash1 : 0) : 0		'DepositsDueForSettlements',
+	t.qty >= 0 ? (TODAY < t.StartDay ? t.Cash1 : 0) : 0		'LoansDueForSettlements',
+
+	t.Price1,
+	t.Price2,
+	t.DirtyPrice1,
+	t.DirtyPrice2,
+	t.Yield1,
+	t.Yield2,
+	t.Underlying,
+	t.TradeStatus
+
+into
+	temp3
+
+from
+	temp2 t
+
+
+
+
+/********* temp4 *********/
+/* Int_Paid/Received, DailyInt, AccInt, NetReval, TOD, TOL, Cash2 for Repos */
+select
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Flag,
+	t.Instrument,
+	t.Counterparty,
+	t.Nominal,
+	t.StartDay,
+	t.EndDay,
+/*	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+*/	t.Cash1,
+	t.Flag = 'R' ? (t.Cash1 * -1) + t.Interest : t.Cash2				'Cash2',
+	t.Term,
+	t.RepoRate,
+	t.Interest,
+
+	t.Interest < 0 ? 0 : (t.StartDay > TODAY ? 0 : (TODAY >= t.EndDay ? t.Interest : (t.Interest / t.Term * t.DaysSinceStart)))	'Int_Received',
+	t.Interest > 0 ? 0 : (t.StartDay > TODAY ? 0 : (TODAY >= t.EndDay ? t.Interest : (t.Interest / t.Term * t.DaysSinceStart)))	'Int_Paid',
+
+	t.DaysSinceStart,
+	t.StartDay > TODAY ? 0 : (TODAY >= t.EndDay ? 0 : (t.Interest / t.Term))	'DailyInterest',
+
+	t.Interest / t.Term * t.DaysSinceStart						'AccruedInterest',
+
+	t.Reval,
+	t.Flag = 'R' ? (t.Reval + t.PreviousCFs_Repos)  : (t.Reval + t.PreviousCFs_BSB)	'NetReval',
+
+	t.Coupon,
+	t.CouponReval,
+	t.CouponDate,
+	t.CouponsToDate,
+
+	t.PreviousCFs_BSB,
+	t.PreviousCFs_BSB_SCash,
+	t.PreviousCFs_Repos,
+	t.PreviousCFs_Repos_SCash,
+
+	t.qty < 0 ? (t.Flag = 'R' ? t.PreviousCFs_Repos_SCash : t.PreviousCFs_BSB_SCash) : 0	'TotalOpenDeposits',
+	t.qty >= 0 ? (t.Flag = 'R' ? t.PreviousCFs_Repos_SCash : t.PreviousCFs_BSB_SCash) : 0	'TotalOpenLoans',
+
+	t.DepositsDueForSettlements,
+	t.LoansDueForSettlements,
+
+	t.Price1,
+	t.Price2,
+	t.DirtyPrice1,
+	t.DirtyPrice2,
+	t.Yield1,
+	t.Yield2,
+	t.Underlying,
+	t.TradeStatus
+
+into
+	temp4
+
+from
+	temp3 t
+
+
+
+
+
+
+
+/********* main select *********/
+/* B_S_AccruInt_Asset/Liab, RevalLessAccrued */
+select
+	'Details'			'Section',
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Instrument,
+	t.Counterparty,
+	t.Nominal,
+	t.StartDay,
+	t.EndDay,
+/*	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+*/	t.Cash1,
+	t.Cash2,
+	t.Term,
+	t.RepoRate,
+	t.Interest,
+	t.Int_Received,
+	t.Int_Paid,
+	t.DaysSinceStart,
+	t.DailyInterest,
+	t.AccruedInterest,
+
+	t.AccruedInterest < 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest)		'B_S_AccruInt_Asset',
+	t.AccruedInterest > 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest)		'B_S_AccruInt_Liab',
+
+	t.Reval,
+	t.NetReval,
+	t.NetReval - t.AccruedInterest					'RevalLessAccrued',
+
+	t.RepoType IN ('BuySellback', 'ReverseRepo') ? t.NetReval - t.AccruedInterest : 0	'RevLessAccr_Asset',
+	t.RepoType IN ('SellBuyback', 'Repo') ? t.NetReval - t.AccruedInterest : 0		'RevLessAccr_Liab',
+/*	
+"RevLessAccr_Asset": If RepoType = BuySellBack or Reverse Repo then "RevalLessAccrued", else 0.
+"RevLessAccr_Liab": If RepoType = SellBuyBack or Repo then "RevalLessAccrued", else 0.
+
+*/
+	t.Coupon,
+	t.CouponReval,
+	t.CouponDate,
+	t.CouponsToDate,
+
+	t.Flag = 'R' ? 0 : t.PreviousCFs_BSB				'PreviousCFs_BSB',
+/*	t.PreviousCFs_BSB_SCash,*/
+	t.Flag = 'R' ? t.PreviousCFs_Repos : 0				'PreviousCFs_Repos',
+/*	t.PreviousCFs_Repos_SCash,*/
+
+	t.TotalOpenDeposits,
+	t.TotalOpenLoans,
+	t.DepositsDueForSettlements,
+	t.LoansDueForSettlements,
+
+	t.Price1,
+	t.Price2,
+	t.DirtyPrice1,
+	t.DirtyPrice2,
+	t.Yield1,
+	t.Yield2,
+	t.Underlying,
+	t.TradeStatus
+
+from
+	temp4 t
+
+
+
+union
+
+
+
+select
+	'Total by Portfolio',
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Instrument,
+	t.Counterparty,
+	sum(t.Nominal),
+	t.StartDay,
+	t.EndDay,
+
+/*	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+*/	sum(t.Cash1),
+	sum(t.Cash2),
+	sum(t.Term),
+	sum(t.RepoRate),
+
+	sum(t.Interest),
+	sum(t.Int_Received),
+	sum(t.Int_Paid),
+	sum(t.DaysSinceStart),
+	sum(t.DailyInterest),
+	sum(t.AccruedInterest),
+
+	sum(t.AccruedInterest < 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest))	'B_S_AccruInt_Asset',
+	sum(t.AccruedInterest > 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest))	'B_S_AccruInt_Liab',
+
+	sum(t.Reval),
+	sum(t.NetReval),
+	sum(t.NetReval - t.AccruedInterest)				'RevalLessAccrued',
+	sum(t.RepoType IN ('BuySellback', 'ReverseRepo') ? t.NetReval - t.AccruedInterest : 0)	'RevLessAccr_Asset',
+	sum(t.RepoType IN ('SellBuyback', 'Repo') ? t.NetReval - t.AccruedInterest : 0)		'RevLessAccr_Liab',
+	
+	sum(t.Coupon),
+	sum(t.CouponReval),
+	t.CouponDate,
+	t.CouponsToDate,
+
+	sum(t.PreviousCFs_BSB),
+	sum(t.PreviousCFs_Repos),
+
+	sum(t.TotalOpenDeposits),
+	sum(t.TotalOpenLoans),
+	sum(t.DepositsDueForSettlements),
+	sum(t.LoansDueForSettlements),
+
+	sum(t.Price1),
+	sum(t.Price2),
+	sum(t.DirtyPrice1),
+	sum(t.DirtyPrice2),
+	sum(t.Yield1),
+	sum(t.Yield2),
+	t.Underlying,
+	t.TradeStatus
+
+from
+	temp4 t
+
+group by 
+	t.Portfolio
+
+
+
+union
+
+
+
+select
+	'Total by CostCentre',
+	t.TradeNumber,
+	t.TradeDate,
+	t.Portfolio,
+	t.CostCentre,
+	t.Repotype,
+	t.Instrument,
+	t.Counterparty,
+	sum(t.Nominal),
+	t.StartDay,
+	t.EndDay,
+
+/*	t.start_day,
+	t.end_day,
+	t.ex_coupon_date,
+*/	sum(t.Cash1),
+	sum(t.Cash2),
+	sum(t.Term),
+	sum(t.RepoRate),
+
+	sum(t.Interest),
+	sum(t.Int_Received),
+	sum(t.Int_Paid),
+	sum(t.DaysSinceStart),
+	sum(t.DailyInterest),
+	sum(t.AccruedInterest),
+
+	sum(t.AccruedInterest < 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest))	'B_S_AccruInt_Asset',
+	sum(t.AccruedInterest > 0 ? 0 : (TODAY >= t.EndDay ? 0 : t.AccruedInterest))	'B_S_AccruInt_Liab',
+
+	sum(t.Reval),
+	sum(t.NetReval),
+	sum(t.NetReval - t.AccruedInterest)				'RevalLessAccrued',
+	sum(t.RepoType IN ('BuySellback', 'ReverseRepo') ? t.NetReval - t.AccruedInterest : 0)	'RevLessAccr_Asset',
+	sum(t.RepoType IN ('SellBuyback', 'Repo') ? t.NetReval - t.AccruedInterest : 0)		'RevLessAccr_Liab',
+	
+	sum(t.Coupon),
+	sum(t.CouponReval),
+	t.CouponDate,
+	t.CouponsToDate,
+
+	sum(t.PreviousCFs_BSB),
+	sum(t.PreviousCFs_Repos),
+
+	sum(t.TotalOpenDeposits),
+	sum(t.TotalOpenLoans),
+	sum(t.DepositsDueForSettlements),
+	sum(t.LoansDueForSettlements),
+
+	sum(t.Price1),
+	sum(t.Price2),
+	sum(t.DirtyPrice1),
+	sum(t.DirtyPrice2),
+	sum(t.Yield1),
+	sum(t.Yield2),
+	t.Underlying,
+	t.TradeStatus
+
+from
+	temp4 t
+
+group by 
+	t.CostCentre
+

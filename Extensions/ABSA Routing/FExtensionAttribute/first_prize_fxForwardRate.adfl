@@ -1,0 +1,12 @@
+[ABSA Routing]FCurrency:first_prize_fxForwardRate = fxRateInstrument :* "first_prize_fxForwardRate" [*];
+[ABSA Routing]FFxRate:first_prize_fxForwardRate = select(foreignEqualsDomestic, 
+  true->1, 
+  false->shunt[current_trade, fxPriceFindingPriceType, discountingType](fxRateDate(object.Currency1, object.Currency2, valuationDate) == current_trade.AcquireDay, 
+    true->fxSpotRate, 
+    false->(domesticCurrency:fxDiscountCurve [discountingType]).DiscountValue(fxSpotRate, current_trade.AcquireDay) * (foreignCurrency:fxDiscountCurve [discountingType]).Discount(instrumentSpotDate, current_trade.AcquireDay)));
+[ABSA Routing]FInstrumentAndTrades:first_prize_fxForwardRate = currenciesForVectorColumn :* "fxSpotRate" [fxToCurrency = displayCurrency];
+[ABSA Routing]FTimeBucketAndObject:first_prize_fxForwardRate = select(timeBucket, 
+  nil->currenciesForVectorColumn :* "first_prize_fxSpotRate" [fxToCurrency = displayCurrency], 
+  default->select((timeBucketShiftPeakDate < valuationSystemDate) or timeBucketIsInceptionToEndBucket, 
+    true->currenciesForVectorColumnNil, 
+    false->currenciesForVectorColumn :* "first_prize_fxForwardRate" [fxForwardDate := timeBucketShiftPeakDate, fxToCurrency = displayCurrency]));

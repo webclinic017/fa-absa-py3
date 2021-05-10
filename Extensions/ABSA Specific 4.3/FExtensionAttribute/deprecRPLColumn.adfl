@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:deprecRPLColumn = sumOf(children :* "deprecRPLColumn");
+[ABSA Specific 4.3]FTradeRow:deprecRPLColumn = select(instrument.InsType, 
+  "Bill"->object:deprecAmount [select(object.Parent, 
+    nil->tradeSetUsedInProfitandLoss, 
+    default->tradeSetUsedInProfitandLoss = object.Parent.Position.TradesIn(instrument, trade.Portfolio)), displayCurrency, calculateTradeEffectInPosition := true], 
+  "IndexLinkedBond"->denominatedvalue(((cleanPricePLDate * nominal / 100) - currentNominal), instrument.Currency, , ) - deprecTotalRPLColumn, 
+  default->object:deprecAmount [displayCurrency, calculateTradeEffectInPosition := true]);

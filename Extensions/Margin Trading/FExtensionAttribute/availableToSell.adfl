@@ -1,0 +1,7 @@
+[Margin Trading]FCompoundPortfolio:availableToSell = switch(isShortSellLimitPortfolio, 
+  true->shortSellOffset + sumOf(min(0, subPortfolios :* "availableToSellInPortfolio" [instrument])), 
+  false->sumOf(subPortfolios :* "availableToSellInPortfolio" [instrument]));
+[Margin Trading]FInstrument:availableToSell = nil;
+[Margin Trading]FMultiInstrumentAndTrades:availableToSell = nil;
+[Margin Trading]FPhysicalPortfolio:availableToSell = object:availablePosition [instrument, positionObject] + instrument:activeOrdersSellQuantity [portfolio = object];
+[Margin Trading]FSingleInstrumentAndTrades:availableToSell = portfolio:availableToSell [instrument, positionObject];

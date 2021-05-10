@@ -1,0 +1,7 @@
+[Default]FInstrument:intrinsicOptionForwardValuePercent = select(optionCallOrPutFactor, 
+  nil->nil, 
+  default->select(isFinite(intrinsicOptionForwardFactor), 
+    false->nil, 
+    default->(intrinsicOptionForwardFactor - 1) * optionCallOrPutFactor));
+[Default]FInstrumentAndTrades:intrinsicOptionForwardValuePercent = openInstrumentOrInstrument:intrinsicOptionForwardValuePercent [theoreticalPrice, optionCallOrPutFactor];
+[Default]FMultiInstrumentAndTrades:intrinsicOptionForwardValuePercent = nil;

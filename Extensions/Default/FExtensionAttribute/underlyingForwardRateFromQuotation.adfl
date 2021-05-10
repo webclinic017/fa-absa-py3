@@ -1,0 +1,5 @@
+[Default]FInstrument:underlyingForwardRateFromQuotation = select(underlyingForwardPriceIsParRate or underlyingForwardValueFromInterestComponent, 
+  true->couponDecimalQuotation, 
+  false->select(isOptionOnInterestRateFuture, 
+    true->yieldDecimalQuotation, 
+    false->nil));

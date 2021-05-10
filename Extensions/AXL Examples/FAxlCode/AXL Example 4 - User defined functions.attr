@@ -1,0 +1,60 @@
+[AXL Examples]FObject:AXL Example 4 - User defined functions
+//---------------------------------------------------------------------
+//AXL Example 4 - User defined functions
+//---------------------------------------------------------------------
+
+//This example shows how to declare and use user defined functions.
+//The beginning {} defines a dictionary where any parameters and 
+//other metadata can be declared for the formula. 
+//In this dictionary the parameters should be declared
+//at the "Parameters" key. The "Parameters" key should have a list value
+//containing one dictionary for each parameter. A list is declared by using the '[' and ']'.
+//Each parameter must have a "Name" and a "Type" key.
+//The "Name" key value should be a one word identifier without white spaces.
+//The "Type" key value can be one of the following types:
+//Number,Int32,Int64,Double,String,Bool,DateTime or DatePeriod.
+//If the "Type" key value is of Number type the formula needs to compile for
+//all numerical types(Int32,Int64,and Double).
+//The Input key for the arguments is ignored for all functions except the main function.
+
+//User defined functions are referenced by using the @ sign.
+
+//In this example a user defined function called MyFunction is declared and later
+//referenced from the main function.
+
+//main is the name of the main function and main is required for the formula
+//to compile. It is this function that is available to the Data Disposition UI
+//and in this UI the user can assign attributes, values or formulas to the X and Y arguments.
+
+//The actual formula is written after the = sign. In this case a call to MyFunction passing X
+//as an argument to the function.
+//The result of MyFunction is then added to a Sum call for Y. Arguments are referenced by using the $ sign.
+//The function is terminated by the ; sign.
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Number}
+  ]
+}
+MyFunction = Aggregate.Sum($X);
+
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Number},
+    {Name:Y,Type:Number}
+  ],
+  
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+}
+main = @MyFunction($X) + Aggregate.Sum($Y);
+
+
+
+
+...

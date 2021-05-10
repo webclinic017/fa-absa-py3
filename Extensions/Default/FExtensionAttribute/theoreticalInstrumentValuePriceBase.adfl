@@ -1,0 +1,10 @@
+[Default]FInstrument:theoreticalInstrumentValuePriceBase = shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor, includeEmbeddedOption](refPriceBase, 
+  "Theoretical Equals Market"->theoreticalInstrumentValueOrTheoreticalInstrumentValueEqualsMarket, 
+  "Theoretical"->theoreticalInstrumentValue, 
+  "Market"->shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor, includeEmbeddedOption](doSplitAll, 
+    true->theoreticalInstrumentValue, 
+    false->marketSpotValue), 
+  "MtM From Feed Flag"->select(mtmFromFeed, 
+    false->theoreticalInstrumentValue, 
+    true->theoreticalInstrumentValueOrTheoreticalInstrumentValueEqualsMarket), 
+  default->theoreticalInstrumentValue);

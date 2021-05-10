@@ -1,0 +1,99 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Fees_New') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Fees_New' and p.type = 'SQL Query' 
+
+
+/* Get current VAT rate */
+select 
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'VAT_RATE'))      'VAT'
+into constant
+from serverdata s
+where s.srdnbr > 0
+
+
+select 
+    t.trdnbr,
+    t.time,
+    t.acquire_day,
+    i.insid,
+    pt.ptyid                                                                                            'CP',
+    time_to_day(t.time) <= date_add_banking_day(@EndDate{},'ZAR',-1) ? t.quantity : 0                   'PositionT',
+    display_id(t,'prfnbr')                                                                              'Portfolio',
+    ((add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '') ? (t.fee/c.VAT) : t.fee) / 100                'FeePercXVat',
+    i.quote_type = 'Per 100 Units' ? t.price / 100 : t.price                                            'price',
+    t.price * t.quantity                                                                                'Value',
+    t.fee / 100                                                                                         'FeePerc',
+    (add_info(t,'VAT')= 'FULL' or add_info(t,'VAT') = '') ? (t.fee/c.VAT * t.price) : t.fee * t.price   'LendingFactor',
+    (time_to_day(t.time) <= date_add_banking_day(@StartDate{},'ZAR',-1)) ? (days_between(@StartDate{},@EndDate{},'Act/365') + 1) : (t.quantity < 0 ? (days_between(date_add_banking_day(t.acquire_day,'ZAR',1),@EndDate{},'Act/365') + 1) : (days_between(date_add_banking_day(t.acquire_day,'ZAR',1),@EndDate{},'Act/365') + 1))   'Days',
+    days_between(date_add_banking_day(t.acquire_day,'ZAR',1),@EndDate{},'Act/365')                  'InceptDays',
+    date_add_delta(date_add_banking_day(t.acquire_day,'ZAR',1),t.quantity < 0 ? -1 : 0)                 'ACQday',
+    to_int((add_info(p,'Daycount') = '' OR add_info(p,'Daycount') IS NULL) ? 365 : add_info(p,'Daycount')) 'Daycount',
+    to_double(add_info(t,'MINFEE') = 'Yes' ? add_info(t,'SL_MIN_FEE') : 0)                              'MINFEE'
+   
+into
+    temp
+from
+    trade t,
+    instrument i,
+    portfolio p,
+    party pt,
+    constant c
+where
+    i.instype = 'Stock'
+and i.insaddr = t.insaddr
+and p.prfid in (@Portfolio{;Portfolio.prfid*})
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = pt.ptynbr
+and pt.ptyid in (@Counterparty{'HSBC 1','HSBC 2','HSBC 3','ABSTRA','ABSTREM','ABSEC','CAPITAL 360','ABSASB','ABM21','ABM22','ABSAB','ABCAP','ABDER','ABGOLD','ABSAS21';Party.ptyid;*})
+and time_to_day(t.time) <= @EndDate{}
+and t.status not in ('Void','Simulated')
+and t.category ~= 'Collateral'
+and date_add_banking_day(t.acquire_day,'ZAR',1) <= @EndDate{}
+
+
+select
+    insid,
+    CP,
+    sum(PositionT)                                                          'Position',
+    price                                                                   'LoanPrice',
+    FeePerc                                                                 'FeeRate',
+    sum(FeePerc - FeePercXVat)                                              'VatFee',
+    FeePercXVat                                                             'FeeRateExVAT',    
+    Portfolio,
+    Days,
+    InceptDays,
+    ACQday                                                                  'Settledate',
+    sum(PositionT * price * FeePerc * Days / Daycount)                      'PeriodFee',
+    sum(PositionT * price * (FeePerc - FeePercXVat) * Days / Daycount)      'PeriodVatFee',
+    sum(PositionT * price * FeePerc * Days / Daycount) - sum(PositionT * price * (FeePerc - FeePercXVat) * Days / Daycount) 'PeriodFeeExclVAT',
+    sum(PositionT * price * FeePerc * InceptDays / Daycount)                'InceptionFee'
+from 
+    temp
+where
+    @Detail{Yes;'Yes','No'} = 'Yes'
+group by 1,4,5,7
+having round(sum(PositionT * price * FeePerc * Days / Daycount),2) ~= 0.0
+UNION
+
+select
+    'TOTAL BY CP',
+    CP,
+    sum(PositionT)                                                          'Position',
+    price                                                                   'LoanPrice',
+    FeePerc                                                                 'FeeRate',
+    sum(FeePerc - FeePercXVat)                                              'VatFee',
+    FeePercXVat                                                             'FeeRateExVAT',    
+    Portfolio,
+    Days,
+    InceptDays,
+    ACQday                                                                  'Settledate',
+    sum(PositionT * price * FeePerc * Days / Daycount)                      'PeriodFee',
+    sum(PositionT * price * (FeePerc - FeePercXVat) * Days / Daycount)      'PeriodVatFee',
+    sum(PositionT * price * FeePerc * Days / Daycount) - sum(PositionT * price * (FeePerc - FeePercXVat) * Days / Daycount) 'PeriodFeeExclVAT',
+    sum(PositionT * price * FeePerc * InceptDays / Daycount)                'InceptionFee'
+from 
+    temp
+group by 2

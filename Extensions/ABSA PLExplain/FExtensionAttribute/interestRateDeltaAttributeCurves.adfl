@@ -1,0 +1,6 @@
+[ABSA PLExplain]FHedgeTotalRiskRow:interestRateDeltaAttributeCurves = instrumentsToHedge :* "interestRateDeltaAttributeCurves" [displayCurrency, timeBucketsSetExternally, yieldCurveRiskFactorNames, globalDiscountingType] + hedgeInstruments :* "interestRateDeltaAttributeCurves" [displayCurrency, timeBucketsSetExternally, yieldCurveRiskFactorNames, globalDiscountingType];
+[ABSA PLExplain]FInstrumentAndTrades:interestRateDeltaAttributeCurves = differential(interestRateTheoreticalValueUpAttributeCurves, theoreticalValueForInterestRateDelta, abs(fixedYieldShift) / 0.0001);
+[ABSA PLExplain]FPriceAggregate:interestRateDeltaAttributeCurves = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "interestRateDeltaAttributeCurves");
+[ABSA PLExplain]FTimeBucketAndObject:interestRateDeltaAttributeCurves = differential(interestRateDeltaShifted, rowObjectTheoreticalValueForInterestRateDelta, abs(fixedYieldShift) / 0.0001);

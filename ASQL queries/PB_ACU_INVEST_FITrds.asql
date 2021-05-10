@@ -1,0 +1,24 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_Acumen_Invest_FI_CR','PB_RISK_Acumen_Invest_FI_CR','PB_FRA_Acumen_Invest_FI_CR','PB_IRS_Acumen_Invest_FI_CR','PB_OPTION_FI_Acumen_Invest_FI _CR','PB_AGENCY_Acumen_Invest_FI_CR','PB_FINANCED_Acumen_Invest_FI_CR','PB_NAKEDBOND_Acumen_Invest_FI_CR','PB_YIELDX_Acumen_Invest_FI_CR','PB_REPOBOND_Acumen_Invest_FI_CR','PB_FULLYFUNDED_Acumen_Invest_FI_CR','PB_MONEYMARKET_FF_Acumen_Invest_FI_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+i.und_instype not in ('Stock', 'EquityIndex')
+AND
+i.instype not in ('Stock', 'Deposit')
+AND
+t.status not in ('Simulated', 'Void')

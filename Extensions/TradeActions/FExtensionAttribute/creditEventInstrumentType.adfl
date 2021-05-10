@@ -1,0 +1,18 @@
+[TradeActions]FCln:creditEventInstrumentType = select(isCreditBasket, 
+  true->select(acm.EnumToString("ExoticType", object.CreditBasketExoticType), 
+    "None"->"Index CLN", 
+    "Nth-To-Default"->"Nth-To-Default CLN", 
+    "Loss Protection"->"Tranche CLN"), 
+  false->"CLN");
+[TradeActions]FCreditDefaultSwap:creditEventInstrumentType = select(isCreditBasket, 
+  true->select(acm.EnumToString("ExoticType", object.CreditBasketExoticType), 
+    "None"->"Index CDS", 
+    "Nth-To-Default"->"Nth-To-Default CDS", 
+    "Loss Protection"->"Tranche CDS"), 
+  false->select(creditReference.InsType, 
+    "Bond"->"Singlename CDS", 
+    "ABS"->"ABCDS", 
+    "MBS"->"MBCDS", 
+    default->"Other CDS"));
+[TradeActions]FInstrument:creditEventInstrumentType = object.InsType;
+[TradeActions]FInstrumentAndTrades:creditEventInstrumentType = instrument:creditEventInstrumentType;

@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FDeposit:liabilityRate = select(balance > 0, 
+  true->instrument.CouponRate, 
+  false->0);
+[ABSA Specific 4.3]FInstrument:liabilityRate = 0;
+[ABSA Specific 4.3]FInstrumentAndTrades:liabilityRate = instrument :* "liabilityRate" [positionObject, priceSource, valuesOnSpotOverride];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:liabilityRate = select(sumOf(instruments :* "liabilityCounter" [positionObject, priceSource, valuesOnSpotOverride]) > 0, 
+  true->sumOf(instruments :* "liabilityRate" [positionObject, priceSource, valuesOnSpotOverride]) / sumOf(instruments :* "liabilityCounter" [positionObject, priceSource, valuesOnSpotOverride]), 
+  false->0);

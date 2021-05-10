@@ -1,0 +1,7 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:currentFactor = select(isSingleLegInstrument, 
+  true->firstLeg :* "currentFactor", 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:currentFactor = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:currentFactor = instrument:currentFactor;
+[Fixed Income Pricing and Risk]FLeg:currentFactor = currentFactor(legInformation, staticLegInformation, valuationSystemDate);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:currentFactor = nil;

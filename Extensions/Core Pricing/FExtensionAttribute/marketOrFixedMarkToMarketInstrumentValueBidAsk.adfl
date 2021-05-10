@@ -1,0 +1,9 @@
+[Core Pricing]FCurrency:marketOrFixedMarkToMarketInstrumentValueBidAsk = instrumentSpotZero;
+[Core Pricing]FInstrument:marketOrFixedMarkToMarketInstrumentValueBidAsk = switch(useMarketPrice, 
+  true->shunt[priceSource, positionTradeQuantities, isBook](useMarkToMarketPriceToday, 
+    0->instrumentMarketSpotBidAskValues, 
+    1->shunt[priceSource, positionTradeQuantities, isBook](hasMarkToMarketPriceToday, 
+      true->collapse(markToMarketSpotValueBidAskCalculation), 
+      false->instrumentMarketSpotBidAskValues), 
+    2->collapse(markToMarketSpotValueBidAskCalculation)), 
+  default->instrumentSpotZero);

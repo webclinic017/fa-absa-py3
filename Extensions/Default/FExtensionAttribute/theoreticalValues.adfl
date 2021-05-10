@@ -1,0 +1,25 @@
+[Default]FCombInstrMapAndTrades:theoreticalValues = switch(isSettled, 
+  true->baseDateZero, 
+  false->combination:discountAndConvertToBase [filterUnit, combination:discountAndConvertToBaseDate [groupingSpotDiscountDate, valuesOnSpotOverride], discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = combinationContributionTheoreticalValues] / ((combination:underlyingOrSelf).Factor));
+[Default]FDeliverableLinkAndTrades:theoreticalValues = shunt[priceSource, isSplitAllGrouped, valuesOnSpotOverride, tradesInPosition, contractSize, filterUnit, groupingSpotDiscountDate](isOpenPosition and (0 <> timeDistributionFactor), 
+  true->instrument :* "theoreticalValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, tradesInPosition, contractSize, filterUnit, groupingSpotDiscountDate], 
+  false->baseDateZero);
+[Default]FInstrument:theoreticalValues = select(forwardFxRateConversion, 
+  true->discountAndConvertToCurrency(theoreticalValuesUndiscounted, discountAndConvertToBaseForwardFXConversionMoneyMarketCurve, discountAndConvertToBaseDate, 1.0, forwardFXConversionCurrencySymbol, filterUnit, discountAndConvertToBaseForwardFXConversionCurves, discountAndConvertToBaseForwardFXConversionFXRates, forwardFXConversionCurrencySymbol), 
+  false->discountAndFilterCurrency(theoreticalValuesUndiscounted, discountAndConvertToBaseDiscountCurves, discountAndConvertToBaseDate, filterUnit));
+[Default]FInstrumentAndTrades:theoreticalValues = openInstrument :* "collapse(theoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate];
+[Default]FLegAndTrades:theoreticalValues = select(instrument:isGenericCouponOrSpreadQuoted, 
+  true->baseDateZero, 
+  false->select(isSettled, 
+    true->baseDateZero, 
+    false->instrument :* "theoreticalLegValues" [priceSource, isSplitAllGrouped, includeAllTrades, valuesOnSpotOverride, positionObject, tradesInPosition, legs, filterUnit, groupingSpotDiscountDate]));
+[Default]FMoneyFlow:theoreticalValues = shunt[valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate](isValidProjectedMoneyFlowDate, 
+  true->instrument:discountAndConvertToBase [filterUnit, tradedInstrument:discountAndConvertToBaseDate [groupingSpotDiscountDate, valuesOnSpotOverride], discountAndConvertToBaseDiscountingUnits := [discountingUnit], discountAndConvertToBaseValues = theoreticalInstrumentValue], 
+  false->baseDateZero);
+[Default]FMoneyFlowAndTrades:theoreticalValues = moneyFlow :* "collapse(theoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, displayDate, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:theoreticalValues = sumOf(openInstruments :* "collapse(theoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate]);
+[Default]FMultiMoneyFlowAndTrades:theoreticalValues = sumOf(moneyFlows :* "collapse(theoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, displayDate, filterUnit, groupingSpotDiscountDate]);
+[Default]FPriceMoneyFlow:theoreticalValues = spotHandlingZero;
+[Default]FTradeRow:theoreticalValues = select(taxLotValuation, 
+  true->openInstrumentOrTaxLotInstrument :* "theoreticalValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, taxLotPositionObject, taxLotValuation], 
+  false->openInstrument :* "theoreticalValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, positionObject]);

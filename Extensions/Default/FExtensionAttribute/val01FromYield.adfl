@@ -1,0 +1,6 @@
+[Default]FCashFlowInstrument:val01FromYield = select(isSecurity, 
+  true->object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) - ytmShift] - object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) + ytmShift], 
+  false->nil);
+[Default]FInstrument:val01FromYield = object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) - ytmShift, instrumentSpotDate] - object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) + ytmShift, instrumentSpotDate];
+[Default]FInstrumentAndTrades:val01FromYield = instrument:val01FromYield;
+[Default]FMultiInstrumentAndTrades:val01FromYield = nil;

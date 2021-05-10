@@ -1,0 +1,8 @@
+[Adaptiv FVA]FCombInstrMapAndTrades:theoreticalPeriodValueWithFunding = nil;
+[Adaptiv FVA]FInstrumentAndTrades:theoreticalPeriodValueWithFunding = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->theoreticalValueEndWithFunding, 
+  "Inception to Historical"->marketValueEndValues, 
+  "Historical to Present"->theoreticalValueEndWithFunding - marketValueStart, 
+  "Historical to Historical"->marketValueEndValues - marketValueStart);
+[Adaptiv FVA]FLegAndTrades:theoreticalPeriodValueWithFunding = nil;
+[Adaptiv FVA]FTimeBucketAndObject:theoreticalPeriodValueWithFunding = scenarioaxisarray(rowInstrumentAndTrades:theoreticalPeriodValueWithFunding [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

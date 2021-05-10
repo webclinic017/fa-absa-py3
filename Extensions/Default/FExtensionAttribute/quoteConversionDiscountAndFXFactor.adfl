@@ -1,0 +1,7 @@
+[Default]FInstrument:quoteConversionDiscountAndFXFactor = select((not isCashFlowInstrument) and (theoreticalModelCallResult > 0), 
+  false->1.0, 
+  default->select(isFxAdjusted, 
+    true->double(fxStrikeToInstrument), 
+    default->1.0) * select(payTypeForward, 
+    false->1 / repoCurve.Discount(valuationDate, theoreticalInstrumentValueDate), 
+    default->1.0));

@@ -1,0 +1,63 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Tracy_Rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAIRD_Tracy_Rates' and p.type = 'SQL Query' 
+ 
+/*
+
+query = Daily_DFs_non_buss_days_for_AttributeSpreadCurves
+*/
+
+/*Generate sequence 0-9*/
+
+select
+	p1.ptynbr,
+	count(p2.ptynbr)-1	'Nbr'
+into
+	TMP
+from
+	party p1,
+	party p2
+where
+	p1.ptynbr<p2.ptynbr
+and	p1.ptynbr < 500
+and	p2.ptynbr < 500
+group by p1.ptynbr
+
+/*Generate sequence 1-1000*/
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+	t1.Nbr<10
+and	t2.Nbr<10
+and	t3.Nbr<150
+
+/*Calculate result by scenario*/
+
+select
+	date_add_delta(TODAY,s.Nbr-1,0,0)		'Date',
+	date_add_delta(TODAY,s.Nbr-1,@Maturity[3],0)	'Maturity',
+	yc_rate(yc,date_add_delta(TODAY,s.Nbr-1,0,0),date_add_delta(TODAY,s.Nbr-1,@Maturity[3],0),'Monthly',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Forward Rate',,i.insid)*100	'NACQ_Rate',
+	s.Nbr,
+	@Daycount{} 'DayCount',
+	today	'Data_Date',
+	@YieldCurve{}	'Yield_Curve'
+from
+	SCEN		s,
+	yieldcurve	yc,
+	instrument	i
+where
+	yc.yield_curve_name=@YieldCurve{;yieldcurve.yield_curve_name}
+and	s.Nbr<=@Nbr_7000_is_29years[8000]
+and 	i.insid=@Instrument{;instrument.insid}
+
+order by s.Nbr

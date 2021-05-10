@@ -1,0 +1,36 @@
+[AXL Examples]FObject:AXL Example 10 - Aggregation Basics 3
+//---------------------------------------------------------------------
+//AXL Example 10 - Aggregation Basics 3
+//---------------------------------------------------------------------
+
+// When using aggregations numbers can be aggregated in two ways, row first or column first
+// Trade  Quantity  Price
+// T1     10.0      100.0
+// T2     15.0      200.0
+// T3     20.0      300.0
+// T4     25.0      400.0
+// If trades [T1, T2, T3, T4] is active on a certain projection row and X = Quantity and Y = Price, 
+// the formula below will evaluate to 1000 + 3000 + 6000 + 10000 = 20000
+// i.e. when an arithemetic expression is placed within the parentheses of an aggregation function, 
+// that expression will be evaluated first (row first), and the result will then be aggregated
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Number},
+    {Name:Y,Type:Number}
+  ],
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+}
+main = Aggregate.Sum($X * $Y);
+
+
+
+
+
+
+
+...

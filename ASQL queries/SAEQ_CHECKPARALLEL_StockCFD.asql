@@ -1,0 +1,128 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_CHECKPARALLEL_StockCFD') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_CHECKPARALLEL_StockCFD' and p.type = 'SQL Query' 
+
+
+select
+    i.insid,
+    sum(t.quantity)                             'quantity',
+    t.quantity < 0 ? 'S' : 'B'                  'BS',
+    sum(t.quantity * t.price) / sum(t.quantity)    'price',
+    time_to_day(t.time)            'Date',
+    p.prfid,
+    t.trdnbr
+into 
+    Normal
+from
+    trade t,
+    portfolio p,
+    instrument i
+ 
+where
+    p.prfid = @1_Stock_Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and t.status not in ('Void','Simulated')
+and time_to_day(t.time) >= @3_StartDate{}
+and time_to_day(t.time) <=  to_date(@4_EndDate{today})
+ 
+group by 
+    1,5,3,6
+order by
+    1,5,3
+    
+select
+    u.insid,
+    sum(t.quantity) 'quantity',
+    t.quantity > 0 ? 'S' : 'B'              'BS',
+    sum(t.price) 'price',
+    time_to_day(t.time)                    'Date',
+    p.prfid,
+    t.trdnbr
+into 
+    Zero
+from
+    trade t,
+    portfolio p,
+    instrument i,
+    instrument u
+where
+    p.prfid = @2_CFD_Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and t.status not in ('Void','Simulated')
+and i.und_insaddr = u.insaddr
+/*and t.quantity > 0*/
+and time_to_day(t.time) >= @3_StartDate{}
+and time_to_day(t.time) <=  to_date(@4_EndDate{today})
+and i.insid ~= 'ZAR/MARGINCFD'
+ 
+group by 
+    1,5,3,6
+order by
+    1,5,3
+ 
+select 
+    z.insid 'cfd_und_ins',
+    z.quantity 'cfd_quantity',
+    z.price 'cfdprice',
+    z.bs 'cfd_B/S',
+    z.date 'cfd_date',
+    n.insid,
+    n.quantity,
+    n.price,
+    n.bs,
+    n.date,
+    n.quantity + z.quantity             'QTYDIFF',
+    n.price - z.price                   'PRICEDIFF'
+    
+into result
+from
+    Zero z,
+    normal n
+where
+    n.date *= z.date
+and n.insid *= z.insid
+and n.bs *= z.bs
+and n.quantity ~= 0
+order by  10
+
+select 
+    z.insid 'cfd_und_ins',
+    z.quantity 'cfd_quantity',
+    z.price 'cfdprice',
+    z.bs 'cfd_B/S',
+    z.date 'cfd_date',
+    n.insid,
+    n.quantity,
+    n.price,
+    n.bs,
+    n.date,
+    n.quantity + z.quantity             'QTYDIFF',
+    n.price - z.price                   'PRICEDIFF'
+    
+into result1
+from
+    Zero z,
+    normal n
+where
+    z.date *= n.date
+and z.insid *= n.insid
+and z.bs *= n.bs
+and z.quantity ~= 0
+order by 5
+
+select 'QTY OR PRICE DIFFERENCE',r.* from result r
+where (round(abs(r.QTYDIFF),2) >  0.00 or round(abs(r.PRICEDIFF),2) > 0.00)
+union
+ 
+select 'NO CFDS FOR STOCKS',r.* from result r
+where r.cfd_und_ins =  ''
+union
+select 'NO STOCKS FOR CFDS',r.* from result1 r
+where r.insid =  ''
+ 
+ 

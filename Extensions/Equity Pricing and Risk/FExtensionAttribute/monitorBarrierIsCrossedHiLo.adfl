@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:monitorBarrierIsCrossedHiLo = nil;
+[Equity Pricing and Risk]FOption:monitorBarrierIsCrossedHiLo = select(isKikoOption, 
+  true->nil, 
+  false->select(isDoubleBarrier, 
+    true->monitorUpperBarrierIsCrossedHiLo or monitorLowerBarrierIsCrossedHiLo, 
+    false->monitorSingleBarrierIsCrossedHiLo));
+[Equity Pricing and Risk]FPriceLevelRow:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;
+[Equity Pricing and Risk]FSingleInstrumentAndTrades:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;
+[Equity Pricing and Risk]FTradeRow:monitorBarrierIsCrossedHiLo = instrument:monitorBarrierIsCrossedHiLo;

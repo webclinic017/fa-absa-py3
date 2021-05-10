@@ -1,0 +1,128 @@
+/* update_method=1 */
+/*
+Purpose:    Added field Transref. Added instype CDS and FRN.
+Department: PCG
+Requester:  Ameet Lalloo
+Developer:  Willie van der Bank
+CR Number:  C316419 (20/05/2010)
+*/
+
+/* Usage code for this ASQL */
+select distinct
+ael_i(p,'ASQL_log','CLN Register') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CLN Register' and p.type = 'SQL Query' 
+
+/*Combinations*/
+select distinct 
+    (t.trdnbr),
+    p.prfid                     'portfolio',
+    i.extern_id1,    
+    (t.quantity)                'Nominal',
+    t.premium,    
+    i.insid,
+    t.value_day                 'Settlement',
+    ins.exp_day,
+    display_id(l,'credit_ref')	'CreditReference',
+    party.ptyid                 'CP',
+    t.trx_trdnbr                'Transref'
+
+from
+    instrument i,
+    instrument ins,
+    combinationlink cl,
+    trade t,
+    portfolio p,
+    party party,
+    user u,
+    leg l
+
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @4_TrdNbrs{})
+    and i.instype in ('Combination')
+    and cl.owner_insaddr = i.insaddr
+    and ins.insaddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and i.insaddr = t.insaddr
+    and t.status not in ('Void','Terminated','Reserved','Simulated')
+    and p.prfnbr=t.prfnbr
+    and u.usrnbr=t.creat_usrnbr
+    /*and display_id(l,'credit_ref') ~= ''*/
+    and l.credit_ref ~= ''
+    and t.counterparty_ptynbr = party.ptynbr
+
+order by t.trdnbr
+
+union
+
+/*'FRN'*/
+select distinct 
+    (t.trdnbr),
+    p.prfid                     'portfolio',
+    i.extern_id1,    
+    (t.quantity)                'Nominal',
+    t.premium,    
+    i.insid,
+    t.value_day                 'Settlement',
+    i.exp_day,
+    ''                          'CreditReference',
+    party.ptyid                 'CP',
+    t.trx_trdnbr                'Transref'
+
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    user u
+
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @4_TrdNbrs{})
+    and i.instype in ('FRN')
+    and i.insaddr = t.insaddr
+    and t.status not in ('Void','Terminated','Reserved','Simulated')
+    and p.prfnbr=t.prfnbr
+    and u.usrnbr=t.creat_usrnbr
+    /*and display_id(l,'credit_ref') ~= ''*/
+    and t.counterparty_ptynbr = party.ptynbr
+
+order by t.trdnbr
+
+union
+
+/*'CreditDefaultSwap'*/
+select distinct 
+    (t.trdnbr),
+    p.prfid                     'portfolio',
+    i.extern_id1,    
+    (t.quantity)                'Nominal',
+    t.premium,    
+    i.insid,
+    t.value_day                 'Settlement',
+    i.exp_day,
+    display_id(l,'credit_ref')	'CreditReference',
+    party.ptyid                 'CP',
+    t.trx_trdnbr                'Transref'
+
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    user u,
+    leg l
+
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @4_TrdNbrs{})
+    and i.instype in ('CreditDefaultSwap')
+    and i.insaddr = l.insaddr
+    and i.insaddr = t.insaddr 
+    and t.status not in ('Void','Terminated','Reserved','Simulated')
+    and p.prfnbr=t.prfnbr
+    and u.usrnbr=t.creat_usrnbr
+    /*and display_id(l,'credit_ref') ~= ''*/
+    and l.credit_ref ~= ''
+    and t.counterparty_ptynbr = party.ptynbr
+
+order by t.trdnbr

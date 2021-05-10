@@ -1,0 +1,53 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       Call_Commitment_Fee_Backdates
+PURPOSE                 :       This ASQL will provide all back dated fixed amounts for a specified date.
+DEPARTMENT AND DESK     :       Money Market Desk
+REQUASTER               :       Mentis - Commitment Fee Project
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       380668
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2012-07-31      380668          Heinrich Cronje                 Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL takes a trade filter as input and filters out not trading and non FICA Complient parties.
+    It will then return all Fixed Amount cashflows that have a start date filled in (represents a backdate)
+    where the update time is greater or equal to the specified date.
+    
+    This will be used in Mentis to recalculate the commitment fees when an update occurs on a backdated cashflow.
+*/
+select
+    t.trdnbr,
+    display_id(t,'insaddr') 'insid',
+    add_info(p,'BarCap_SMS_CP_SDSID')  'CP_SDS_ID',
+    p.ptynbr,
+    t.quantity * projected_cf(c) 'Amount',
+    c.start_day,
+    c.pay_day,
+    display_id(t,'prfnbr')  'Portfolio'
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow c,
+    party p
+where
+        match_filter(t, @1_Filter{Commitment_Fee_Call_Loans;tradefilter.fltid}, @2_TrdNos{})
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and p.not_trading = 'No'
+    and add_info(p,'FICA_Compliant') = 'Yes'
+    and c.type = 'Fixed Amount'
+    and to_date(c.updat_time) >= to_date(@3_Date{Yesterday})
+    and ((c.start_day < c.pay_day
+    and c.start_day ~= '0000-01-01')
+    or c.pay_day < c.updat_time)

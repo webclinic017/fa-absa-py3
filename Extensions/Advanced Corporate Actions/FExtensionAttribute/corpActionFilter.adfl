@@ -1,0 +1,6 @@
+[Advanced Corporate Actions]FObject:corpActionFilter = switch(corpActionShouldUseRecordDay, 
+  true->simpleAndQuery("FTrade", ["AcquireDay", "Status"], ["LESS_EQUAL", "GREATER_EQUAL"], [nextCorpAction.RecordDate, recordDateTradeStatus]), 
+  false->simpleAndQuery("FTrade", ["TradeTime"], ["LESS"], [corpActionSetExternally.ExDate]));
+[Advanced Corporate Actions]FTradeRow:corpActionFilter = switch(corpActionShouldUseRecordDay, 
+  true->simpleAndQuery("FTrade", ["AcquireDay", "Status"], ["LESS_EQUAL", "GREATER_EQUAL"], [nextCorpAction.RecordDate, recordDateTradeStatus]), 
+  false->simpleAndQuery("FTrade", ["TradeTime"], ["LESS"], [nextCorpAction.ExDate]));

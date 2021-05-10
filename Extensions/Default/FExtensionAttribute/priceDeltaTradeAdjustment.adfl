@@ -1,0 +1,7 @@
+[Default]FInstrument:priceDeltaTradeAdjustment = (priceDeltaTradeAdjustmentCurrency:fxDiscountCurve).DiscountValuesStartFromBreakDate(priceDeltaTradeAdjustmentUndiscounted, underlyingFXSpotDate, valuationDate);
+[Default]FInstrumentAndTrades:priceDeltaTradeAdjustment = shunt(priceGreekRiskFactorNodeCount, 
+  0->priceDeltaTradeAdjustmentValue, 
+  1->shunt(priceDeltaFXRateRiskFactor == nil, 
+    true->0, 
+    false->priceDeltaTradeAdjustmentValue), 
+  default->0);

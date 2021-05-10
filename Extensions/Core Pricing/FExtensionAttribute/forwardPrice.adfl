@@ -1,0 +1,7 @@
+[Core Pricing]FExerciseEvent:forwardPrice = instrument :* "forwardPrice" [forwardPriceDate = expiryDateTime];
+[Core Pricing]FInstrument:forwardPrice = select(isGenericCouponOrSpreadQuoted, 
+  true->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = unitGoalValueForParOnParRateDate, priceSource, quoteConversionWrapperToQuotation = quotation, doSplitAll], 
+  false->select(isPerUnitQuoted, 
+    true->object.UnitValueToUnitQuote(forwardValue, forwardPriceDateCalculated, nominalFactor), 
+    false->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = forwardValue, priceSource, quoteConversionWrapperToQuotation = quotation, doSplitAll]));
+[Core Pricing]FInstrumentAndTrades:forwardPrice = instrument :* "forwardPrice" [priceSource, forwardPriceDate = forwardPriceDateCalculated];

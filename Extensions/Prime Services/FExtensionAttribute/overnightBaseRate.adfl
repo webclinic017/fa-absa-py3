@@ -1,0 +1,8 @@
+[Prime Services]FMultiInstrumentAndTrades:overnightBaseRate = select(isExpiredOrClosedOut, 
+  true->select(firstChildInstrument:isOvernightSpreadInstrument, 
+    true->firstChild:overnightBaseRate, 
+    false->nil), 
+  false->nil);
+[Prime Services]FSingleInstrumentAndTrades:overnightBaseRate = switch(isFundingPortfolio, 
+  true->py("PS_Functions", context).OvernightBaseRate(fundingInstrument, businessDayBeforePnLEndDate), 
+  false->0);

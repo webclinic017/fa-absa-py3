@@ -1,0 +1,94 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRAOptions_BO') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRAOptions_BO' and p.type = 'SQL Query' 
+
+/*
+Purpose               : Report any exercised trades on option with underlying trades where the payout premium it not correct.
+Department and Desk   : Ops & PCG - Equity & Comm 
+Requester             : Leanie Olivier
+Developer             : Jaysen Naicker
+CR Number             : 211456
+*/
+
+
+/* Select all Option with underlying FRA and caculate what the payout premium should be */
+select 
+    t2.trx_trdnbr, 
+    i.insid, 
+    i.instype, 
+    i.und_instype, 
+    i.exp_day, 
+    t2.value_day, 
+    i.strike_price, 
+    r.value ,  
+    t.trdnbr 'EqualOppositeTrade', 
+    t.contract_trdnbr 'OriginalTrade', 
+    t.premium 'EqualOppositePremium',  
+    Round( abs(r.value/100 - i.strike_price/100) * days_in_period(r,r.start_day,r.end_day)/365 * nominal_amount(t) * -1 /(1 + r.value/100 * days_in_period(r,r.start_day,r.end_day)/365),2) 'CalculatedPremium'
+into 
+    temp
+from
+    trade t,
+    trade t2,
+    instrument i,
+    instrument ui,
+    leg l,
+    reset r
+where  
+    t.insaddr = i.insaddr
+    and i.instype = 'Option'
+    and i.und_instype = 'FRA'
+    and t2.trdnbr = t.trx_trdnbr
+    and t.trdnbr ~= t.contract_trdnbr
+    and i.und_insaddr = ui.insaddr
+    and l.insaddr = ui.insaddr
+    and r.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{BO&IRO_9807;tradefilter.fltid}) 
+    and i.exp_day = to_date(@2_Expiry_date{Today})	
+    and t.premium ~= 0
+    
+
+
+Select 
+    tmp.OriginalTrade,
+    tmp.EqualOppositeTrade,
+    tmp.insid, 
+    tmp.instype,
+    tmp.und_instype,
+    tmp.exp_day,
+    tmp.value_day,
+    tmp.strike_price,
+    tmp.value   'ZAR-Jibar-3mth',
+    tmp.EqualOppositePremium,
+    tmp.CalculatedPremium,
+    tmp.CalculatedPremium - tmp.EqualOppositePremium 'Difference'
+    
+from
+    temp tmp
+where 
+    tmp.EqualOppositePremium ~= tmp.CalculatedPremium
+    and @3_Show_Differences_Only{Yes;'Yes','No'} IN ('Yes','YES','yes','Y','y')
+
+UNION
+
+Select 
+    tmp.OriginalTrade,
+    tmp.EqualOppositeTrade,
+    tmp.insid, 
+    tmp.instype,
+    tmp.und_instype,
+    tmp.exp_day,
+    tmp.value_day,
+    tmp.strike_price,
+    tmp.value   'ZAR-Jibar-3mth',
+    tmp.EqualOppositePremium,
+    tmp.CalculatedPremium,
+    tmp.CalculatedPremium - tmp.EqualOppositePremium 'Difference'
+    
+from
+    temp tmp
+where 
+    @3_Show_Differences_Only{Yes;'Yes','No'} IN ('No','NO','no','N','n')

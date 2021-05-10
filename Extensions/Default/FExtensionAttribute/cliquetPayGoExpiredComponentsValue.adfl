@@ -1,0 +1,5 @@
+[Default]FInstrument:cliquetPayGoExpiredComponentsValue = select(isExpired, 
+  false->0.0, 
+  true->select(isCall, 
+    true->1.0, 
+    false->(-1.0)) * cliquetReturn(double(cliquetFixingsForHistoricalExpiryInfo.Last), double(cliquetHistoricalExpiryInfo.Last), forwardStartStrikeFactor, (not isCall), 0.0, isCall, 0.0, isPerformancePayoff));

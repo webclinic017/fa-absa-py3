@@ -1,0 +1,219 @@
+/*
+
+
+    Purpose             : group the redeption amounts of call deposits based on the legal entity to validate the top20 rates
+    Department and Desk : Money market
+    Requester           : Michael David
+    Developer           : Anil Parbhoo
+    CR Number           : CHNG0003023266, CHNG0003355622 to adjust for remgro, CHNG0003377815 Incorporate DTI trade with SARB PA K O D 
+
+
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Top20_Legal_Entity_Today') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Top20_Legal_Entity_Today' and p.type = 'SQL Query' 
+
+
+
+
+select
+Today 'Date',
+t.trdnbr'Trade_Number',
+t.quantity,
+t.status,
+cp.ptyid'CounterParty',
+add_info(cp,'BarCap_SMS_LE_SDSID') = '40369816'? @LE_40369816_will_be_replaced_with{'40204914'} : add_info(cp,'BarCap_SMS_LE_SDSID') = '40311156'? @LE_40311156_will_be_replaced_with{'40319865'} : (add_info(cp,'BarCap_SMS_LE_SDSID')='40190505' ? @LE_40190505_will_be_replaced_with{'40312333'} : (add_info(cp,'BarCap_SMS_LE_SDSID') = '40605589' ? @LE_40605589_will_be_replaced_with{'40135957'} : add_info(cp,'BarCap_SMS_LE_SDSID')  ) ) 'BarCap_SMS_LE_SDSID',
+i.insid'Instrument',
+add_info(t,'Funding Instype')'Call_Deposit',
+cf.type'Type',
+(-1 * projected_cf(cf)*t.quantity)'projected_cf',
+cf.pay_day,
+l.Fixed_rate,
+p.prfid'portfolio'
+
+into temp
+
+
+from
+trade t,
+instrument i,
+leg l,
+cashflow cf,
+portfolio p,
+party cp
+
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype = 'Deposit'
+and t.prfnbr=p.prfnbr
+and match_filter(t,@filter{SARB_BS;})
+
+and t.counterparty_ptynbr = cp.ptynbr
+and add_info(t,'Funding Instype') in ('Call Deposit NonDTI')
+and i.insaddr=l.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and l.legnbr=cf.legnbr
+and cf.type='Redemption Amount'
+
+/* trade 1581589 */
+
+
+select
+Today 'Date',
+t.trdnbr'Trade_Number',
+t.quantity,
+t.status,
+cp.ptyid'CounterParty',
+add_info(cp,'BarCap_SMS_LE_SDSID')'BarCap_SMS_LE_SDSID',
+i.insid'Instrument',
+add_info(t,'Funding Instype')'Call_Deposit',
+cf.type'Type',
+(-1 * projected_cf(cf)*t.quantity)'projected_cf',
+cf.pay_day,
+l.Fixed_rate,
+p.prfid'portfolio'
+
+into temp
+
+
+from
+trade t,
+instrument i,
+leg l,
+cashflow cf,
+portfolio p,
+party cp
+
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype = 'Deposit'
+and t.prfnbr=p.prfnbr
+and t.trdnbr = 1581589
+
+and t.counterparty_ptynbr = cp.ptynbr
+/*
+and add_info(t,'Funding Instype') in ('Call Deposit NonDTI')
+*/
+and i.insaddr=l.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and l.legnbr=cf.legnbr
+and cf.type='Redemption Amount'
+
+
+
+/*----call accounts with a min of 1 Mill balance into temp1 -----*/
+
+select
+
+tt.Date,
+tt.Trade_Number,
+tt.quantity,
+tt.status ,
+tt.CounterParty,
+tt.BarCap_SMS_LE_SDSID,
+tt.Instrument,
+tt.Call_Deposit,
+tt.Type ,
+tt.projected_cf,
+tt.pay_day,
+tt.Fixed_rate,
+tt.portfolio
+
+into temp1
+
+from temp tt
+
+
+
+where
+
+tt.projected_cf >= 1000000
+
+/*----group trades into temp 2------*/
+select
+
+tt.Date,
+tt.Trade_Number,
+tt.status ,
+tt.CounterParty,
+tt.BarCap_SMS_LE_SDSID,
+tt.Instrument,
+tt.Call_Deposit,
+tt.Type ,
+sum(tt.projected_cf)'projected_cf',
+tt.pay_day,
+avg(tt.Fixed_rate)'Fixed_rate',
+tt.portfolio
+
+into temp2
+
+from temp1 tt
+
+group by tt.BarCap_SMS_LE_SDSID
+
+
+/*--------*/
+
+
+select
+'''Grouping',
+tt.Date,
+'YES' ? tt.Trade_Number : '' 'Trade_Number ',
+'YES' ? tt.status : '' 'status' ,
+'YES' ? tt.CounterParty : '' 'CounterParty',
+tt.BarCap_SMS_LE_SDSID,
+'YES' ? tt.Instrument : '' 'Instrument',
+'YES' ? tt.Call_Deposit : 'Call_Deposit',
+'YES' ? tt.Type : 'Type' ,
+tt.projected_cf'Nominal',
+'YES' ? tt.pay_day : '' 'pay_day',
+tt.Fixed_rate,
+'YES' ? tt.portfolio : '' 'portfolio'
+
+
+
+from temp1 tt
+
+order by tt.Fixed_rate desc, tt.BarCap_SMS_LE_SDSID
+
+union
+
+select
+'Group by BarCap_SMS_LE_SDSID',
+tt.Date,
+'',
+
+'',
+'',
+tt.BarCap_SMS_LE_SDSID,
+'',
+'',
+'',
+tt.projected_cf,
+'',
+tt.Fixed_rate,
+''
+
+
+
+from temp2 tt
+
+where
+tt.projected_cf >= 50000000
+
+order by tt.Fixed_rate desc,tt.projected_cf desc
+
+

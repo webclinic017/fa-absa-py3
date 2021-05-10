@@ -1,0 +1,6 @@
+[_brokerage_risk_exts]FInstrument:netExposurePosition = switch(collateralPosition == 0, 
+  true->switch(totalPosition >= 0, 
+    true->max(0, min(stdPosition, totalPosition)), 
+    default->totalPosition), 
+  default->0.0);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:netExposurePosition = instrument:netExposurePosition [portfolio, positionObject];

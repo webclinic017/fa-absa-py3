@@ -1,0 +1,5 @@
+[Core Pricing]FCombInstrMap:marketLegComponentSpotValue = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->shunt[priceSource](combinationLegsUnadjusted, 
+    true->setDateTimePart(valuationInstrument :* "marketSpotValue" [priceSource], (combination:instrumentSpotDate)), 
+    false->valuationInstrument :* "moveValue" [moveStartValue = (valuationInstrument :* "marketSpotValue" [priceSource]), moveToDate = (combination:instrumentSpotDate), priceSource]) * timeDistributionFactor * weight * contractSize);

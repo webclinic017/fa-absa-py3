@@ -1,0 +1,375 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP_MARKET_FRN_Bills_Positions') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP_MARKET_FRN_Bills_Positions' and p.type = 'SQL Query' 
+ 
+  
+/*
+bonds and repos settlement positions per portfolio per bond
+
+Purpose:                User needed an Instrument id to default to a specific grouping. 
+                        Created a temp table with all the trades and another temp table
+                        containing all the trades that should have a specific grouping.
+                        These trades are specified by the user using a trade filter.
+Department and Desk:    PCG FI
+Requester:              Mthetho Mhlafu
+Developer:              Heinrich Cronje
+CR Number:              237072
+
+Purpose:                Extended the query to include results for Treasury Bills.
+                        These trades are specified by the user using a trade filter.
+Department and Desk:    OPS DERIVATIVES
+Requester:              Sipho Ndlalane
+Developer:              Bhavnisha Sarawan
+CR Number:              C424566
+
+Purpose:                Add repo/reverse with underlying Bill to selection. Nominal taken from Face Value
+Department and Desk:    OPS DERIVATIVES
+Requester:              Sipho Ndlalane
+Developer:              Ickin Vural
+CR Number:              C000000548269,C000000551608
+
+Purpose:                Add match filter
+Department and Desk:    OPS DERIVATIVES
+Requester:              Sipho Ndlalane
+Developer:              Ickin Vural
+CR Number:              C000000587788
+
+Purpose:                Added BuySellbacks and Repo/Reverse
+Department and Desk:    OPS DERIVATIVES
+Requester:              Sipho Ndlalane
+Developer:              Willie van der Bank
+CR Number:              2012-07-19, C332310
+
+*/
+
+
+
+/*     All Trades Select    */
+select
+    'All other Portfolios'	'Grouping',
+    @Day{Today} 'Day',
+    t.trdnbr,
+    t.status,
+    i.instype 'Type',
+	i.instype in ('BuySellback','Repo/Reverse')
+        ? display_id(i,'und_insaddr')
+        : i.insid					            'insid',
+    /*i.insid,*/
+    i.start_day,
+    i.exp_day,
+    i.instype = 'Bill'? nominal_amount(t): i.instype = 'Repo/Reverse' ? ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr): t.quantity*1000000    'Nominal',
+    p.prfid,
+    party.ptyid'CP',
+    display_id(i,'und_insaddr') 'Collateral'
+into 
+    allTrades
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party
+where
+        i.insaddr=t.insaddr
+    and t.prfnbr=p.prfnbr
+    /* Remove CM Script Lending portfolio, Louw Harmse 11 Apr 08*/
+    and p.prfid ~= 'Capital Market Script Lending'
+    and t.counterparty_ptynbr=party.ptynbr
+    and ((i.instype = 'FRN') or (i.instype = 'Bill') or (i.und_instype = 'FRN' and i.instype = 'BuySellback') or (i.instype = 'Repo/Reverse' and i.und_instype in ('FRN','Bill')))
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day>=@Day{Today}
+    and t.value_day<=@Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and match_filter(t, @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'})
+
+/*    User specific trades for different Grouping     */
+select
+    'All other Portfolios'	'Grouping',
+    t.trdnbr,
+    display_id(i,'und_insaddr') 'Collateral'
+into 
+    groupingTrades
+from
+    instrument i,
+    trade t,
+    portfolio p
+where
+        i.insaddr=t.insaddr
+    and t.prfnbr=p.prfnbr
+    /* Remove CM Script Lending portfolio, Louw Harmse 11 Apr 08*/
+    and p.prfid ~= 'Capital Market Script Lending'
+    and ((i.instype = 'FRN') or (i.und_instype = 'FRN' and i.instype = 'BuySellback') or (i.instype = 'Repo/Reverse' and i.und_instype in ('FRN','Bill')))
+    /*and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+    and i.exp_day>=@Day{Today}
+    and t.value_day<=@Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and match_filter(t, @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'})
+
+/* User specific trades for different Grouping for Treasury Bills */
+/*select
+    '9803CARRIES'	'Grouping',
+    t.trdnbr,
+    display_id(i,'und_insaddr') 'Collateral'
+into
+    groupingTrades
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party
+where
+    i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and p.prfid = '9803CARRIES'
+    and match_filter(t, @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'})
+
+*/
+/* User specific trades for different Grouping for Treasury Bills */
+/*
+select
+    'JOB12'	'Grouping',
+    t.trdnbr,
+    display_id(i,'und_insaddr') 'Collateral'
+into
+    groupingTrades
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party
+where
+    i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and p.prfid = 'JOB12'
+    and match_filter(t, @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'})*/
+
+
+/*     Trade selection based on user Grouping and all the rest. First select statement for Treasury Bills and second for FRN only*/
+
+select
+    gt.Grouping   'Grouping',
+    at.Day,
+    at.trdnbr,
+    at.status,
+    at.Type,
+    at.insid,
+    at.start_day,
+    at.exp_day,
+    at.Nominal,
+    at.prfid,
+    at.CP,
+    at.Collateral
+into
+    temp
+from
+    allTrades at,
+    groupingTrades gt
+where
+    at.trdnbr *= gt.trdnbr
+    and at.prfid in ('9803CARRIES','JOB12')
+    and @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'} = 'CAP MARKET TreasuryBillPos'
+   
+select
+    gt.trdnbr is Null ? at.Grouping : gt.Grouping  'Grouping',
+    at.Day,
+    at.trdnbr,
+    at.status,
+    at.Type,
+    at.insid,
+    at.start_day,
+    at.exp_day,
+    at.Nominal,
+    at.prfid,
+    at.CP,
+    at.Collateral
+into
+    temp
+from
+    allTrades at,
+    groupingTrades gt
+where
+    at.trdnbr *= gt.trdnbr
+and at.Type ~='Bill'
+and @Filter{CAP MARKET FRN Pos Grouping;'CAP MARKET TreasuryBillPos','CAP MARKET FRN Pos Grouping'} = 'CAP MARKET FRN Pos Grouping'
+    
+/* -------------- all trades ---------------*/
+select
+    t.Grouping 	'Grouping',
+    @Day{Today} 'Day',
+    t.type  'Type',
+    t.insid,
+    to_string(t.start_day) 'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid,
+    t.status,
+    t.trdnbr,
+    t.Collateral
+into 
+    trades
+from 
+    temp t
+order by 
+    t.insid,t.prfid
+
+
+/*----place bonds per type per portfolio into bondport---------*/
+
+
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    t.type 'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid,
+    t.status,
+    t.trdnbr,
+    t.Collateral
+into 
+    bondtypeport
+from 
+    temp t
+
+group by 
+    t.type,t.prfid,t.insid
+order by 
+    t.insid,t.prfid
+
+
+/*----place bonds per portfolio into bondport---------*/
+
+
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    ''  'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid,
+    t.status,
+    t.trdnbr,
+    t.Collateral
+into 
+    bondport
+from 
+    temp t
+
+group by 
+    t.prfid,t.insid
+order by 
+    t.insid,t.prfid
+
+
+/*----place bonds into  bonds---------*/
+
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    ''  'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid,
+    t.status,
+    t.trdnbr,
+    t.Collateral
+into 
+    bonds
+from 
+    temp t
+
+group by 
+    t.Grouping,t.insid 
+order by 
+    t.Grouping,t.insid,t.prfid
+
+
+
+/*--select from trades,bondtypeport bondport and bonds-----------*/
+
+select
+    @Day{Today} 'Position as at',
+    t.trdnbr 'Trade num',
+    t.Grouping	'Grouping',
+    'Per Trade' 'Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    to_string(t.Type)   'Type',
+    t.Nominal,
+    t.prfid 'Portfolio',
+    to_string(t.status) 'Status',
+    t.Collateral
+from 
+    trades t
+where
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+and @ShowDetailPerTrade{No;'Yes','No'} = 'Yes'
+
+order by 
+    t.Grouping,t.insid ,t.prfid,7
+
+union
+
+select
+    @Day{Today} 'Position as at',
+    t.trdnbr 'Trade num',
+    t.Grouping	'Grouping',
+    'Per Portfolio''Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    '' 'Type',
+    t.Nominal,
+    t.prfid 'Portfolio',
+    '' 'Status',
+    t.Collateral
+from 
+    bondport t
+
+where
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+and @IncludeDetailPerPortfolio{No;'Yes','No'} = 'Yes'
+
+group by 
+    t.Grouping,t.insid ,t.prfid
+
+
+union
+
+select
+    @Day{Today} 'Position as at',
+    t.trdnbr 'Trade num',
+    t.Grouping	'Grouping',
+    'Total' 'Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    '' 'Type',
+    t.Nominal,
+    '' 'Portfolio',
+    '' 'Status',
+    t.Collateral
+from 
+    bonds t
+
+where 
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+group by 
+    t.Grouping, t.insid 

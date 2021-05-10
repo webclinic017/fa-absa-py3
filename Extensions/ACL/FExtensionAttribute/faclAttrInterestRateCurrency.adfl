@@ -1,0 +1,7 @@
+[ACL]FInstrument:faclAttrInterestRateCurrency = nil;
+[ACL]FTotalReturnSwap:faclAttrInterestRateCurrency = select(faclInterestLeg, 
+  nil->nil, 
+  default->select(faclInterestLeg:currency, 
+    nil->nil, 
+    default->faclInterestLeg:currency.Name));
+[ACL]FTradeRow:faclAttrInterestRateCurrency = instrument:faclAttrInterestRateCurrency;

@@ -1,0 +1,100 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_ERM_Rate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_ERM_Rate' and p.type = 'SQL Query' 
+
+select
+    i.insid  'Code',
+    i.insaddr   'Addr',
+    m.ptyid 'Market',
+    m.ptyid 'Market2'
+    
+into 
+    temp1
+from 
+	instrument i,
+	price p,
+	party m
+
+where
+        i.instype in ('Bond','IndexLinkedBond')
+and 	i.exp_day >= @Date{Today}
+and 	i.insaddr = p.insaddr
+and 	p.day = @Date{Today}	
+and 	p.ptynbr = m.ptynbr
+and 	m.ptyid = 'SPOT'
+
+
+select
+	i.insid  'Code',
+	i.insaddr   'Addr',
+	m.ptyid 'Market',
+	temp1.Market ~= '' ? temp1.Market : m.ptyid 'Market2'
+	
+into 
+    temp2
+    
+from 
+	instrument i,
+	price p,
+	party m,
+	temp1
+
+where
+        i.insaddr *= temp1.Addr
+and     i.instype in ('Bond','IndexLinkedBond')
+and 	i.exp_day >= @Date{Today}
+and 	i.insaddr = p.insaddr
+and 	p.day = @Date{Today}	
+and 	p.ptynbr = m.ptynbr
+and 	m.ptyid = 'internal'
+
+select
+    t.Code  'StockCode',
+    t.Addr,
+    t.Market2 = '' ? t.Market : t.Market2   'Market'
+into
+    temp3
+from
+    temp2 t
+
+select
+	t.StockCode,
+	p.settle		'Rate',
+	@Date{Today}			'DATE_LAST_UPDATED',
+	display_id(i,'curr')	'Currency',
+	maturity_date(i)		'Maturity_Date',
+	ael_s(i,'SACM_CASHFLOW_F_S.firstcf') 'FirstCouponDate',
+	ael_s(i,'SACM_CASHFLOW_F_S.secondcf') 'SecondCouponDate',
+	l.fixed_rate		'Coupon_Rate',
+	l.rolling_period.count	'Frequency',
+	l.rolling_period.unit	'Unit',
+	l.daycount_method	'Day_Count',
+	i.instype = 'Bond' ? 'Bond' : i.instype	'Instype',
+	l.start_day         'Issue Date',
+	l.rolling_base_day  'Rolling Base Day',
+    l.fixed_coupon      'Fixed Coupon',
+    l.long_stub         'Long Stub',
+	i.ex_coup_period.count      'CUM-EX Count',
+	i.ex_coup_period.unit      'CUM-EX Unit',
+	i.quote_type                'Quote Type',
+    i.ex_coup_method            'CUM-EX Method',
+    convert('date',add_info(i,'ExCoup1'),'%Y-%m-%d')       'EX Coup 1',
+    convert('date',add_info(i,'ExCoup2'),'%Y-%m-%d')        'EX Coup 2'
+
+from 
+    temp3 t,
+	instrument i,
+	price p,
+	party m,
+	leg l
+
+where
+        t.StockCode = i.insid
+and 	i.insaddr = p.insaddr
+and 	p.day = @Date{Today}	
+and 	p.ptynbr = m.ptynbr
+and 	m.ptyid = t.Market
+and	    i.insaddr = l.insaddr

@@ -1,0 +1,81 @@
+/*------------------------------------------------------------------
+This query supplies all Non ZAR trades where the Funding instype or MM_Instype are in
+('CL', 'CD', 'CL Non Zar', 'CD Non Zar', 'CD Roll-up', 'CD Pre Payable', 'CL Pre Payable', 'CL Roll-up').
+    
+Purpose                 :[Initial deployment]
+Department and Desk     :[PCG]
+Requester:              :[Garth Saunders]
+Developer               :[TCU/Fancy Dire]
+CR Number               :[2015-10-20]
+------------------------------------------------------------------*/
+
+select
+    ael_i(p,'ASQL_log','Funding_MisMatch_NonZAR') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'Funding_MisMatch_NonZAR' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_ReportDate{today}        'RepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Trade selection
+------------------------------------------------------------------*/
+
+Select t.trdnbr, 
+       ael_i(,'get_mirror_trade', t.trdnbr) 'Mirror_Trade_Nbr',        
+       t.trx_trdnbr 'TransRef',
+       display_id(t, 'prfnbr') 'portfolio',
+       i.exp_day,
+       t.value_day,
+       i.insid,
+       i.instype,
+       add_info(t, 'Funding Instype') 'Funding Instype',
+       add_info(t, 'MM_Instype') 'MM_Instype',
+       add_info(port, 'MoPL_AmortCost') 'MOPL_AmortCost',
+       display_id(t,'counterparty_ptynbr') 'Ctypty',
+       t.status,
+       display_id(t,'curr') 'Curr',
+       t.execution_time,    
+       display_id(m,'prfnbr') 'Mirror_Portfolio',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Portfolio Profit Loss Period Position') 'PLPOS',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Total Val End') 'Val end',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Accrued Discount Balance') 'Acc Disc Bal',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Trade Nominal') 'Nominal',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'FV_Mismatch') 'FVMismatch',       
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Portfolio Cash End') 'Cash End',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Trade Premium') 'Premium',
+       ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column',t.Trdnbr,FIRSTDAYOFYEAR,,,'Daily Interest') 'Daily Interest'
+       
+From    Trade t,      
+        Instrument i,
+        Party p,
+        Portfolio port,
+        Trade m,
+        Macros mc
+        
+where t.insaddr = i.insaddr
+and match_portfolio(t, 'ABSA BANK LTD')      
+and  i.instype in ( 'Deposit', 'FRN', 'CD')
+and i.exp_day > mc.RepDate
+and  t.status not in ('Simulated', 'Void')
+and (add_info(t, 'Funding Instype') in ('CL', 'CD', 'CL Non Zar', 'CD Non Zar', 'CD Roll-up', 'CD Pre Payable', 'CL Pre Payable', 'CL Roll-up')
+     or
+    add_info(t, 'MM_Instype') in ('CL', 'CD', 'CL Non Zar', 'CD Non Zar', 'CD Roll-up', 'CL Roll-up', 'CD Pre Payable', 'CL Pre Payable'))
+and t.counterparty_ptynbr = p.ptynbr
+and p.type = 'Intern Dept'
+and port.prfnbr = t.prfnbr
+and  display_id(t,'curr') ~= 'ZAR'
+and t.mirror_trdnbr *= m.trdnbr

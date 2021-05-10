@@ -1,0 +1,34 @@
+[UDMC Templates]FObject:udmcMultiplicativeDollarIndexPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Multiplicative Dollar Index Payoff
+#
+# INTERPRETATION
+# An index futures with non-linear payoff
+#
+# DEFINITION
+# w: Weights (with sign), 'Weight' field;
+# C: Underlying currency prices (in USD)
+# prefactor: Stored in the strike field
+#--------------------------------------------
+
+#PARAMETERS
+param matrix(double) w;
+param matrix(double) C;
+param double prefactor;
+
+#LOCAL VARIABLES
+double optionValue = prefactor;
+int wlength = length(w);
+int i = 0;
+
+#MAIN LOOP
+for i=0 to wlength
+{
+        optionValue = optionValue*pow(C[i],w[i]);
+};
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

@@ -1,0 +1,31 @@
+select distinct
+    g.grpid         'Group',
+    up.profid       'Profile',
+    c.type          'Type',
+    c.compname      'Component',
+    pc.allow_write,
+    pc.allow_create,
+    pc.allow_delete,
+    pc.allow_authorize
+from
+    groupProfileLink gl,
+    userProfile      up,
+    front.group      g,
+    component        c,
+    profilecomponent pc
+where
+    g.grpnbr = gl.grpnbr
+and gl.profnbr = up.profnbr
+and up.profnbr = pc.profnbr
+and pc.compnbr = c.compnbr
+
+
+
+
+and g.grpid = @GroupId{;group.grpid}
+
+/*and (g.grpid like 'FO %')*/
+
+/*and (g.grpid like 'OPS%'*/
+
+/*or g.grpid like 'PCG Mkt%')*/

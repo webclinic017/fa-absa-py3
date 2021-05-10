@@ -1,0 +1,5 @@
+[Core Pricing]FCashFlowInstrument:theoreticalOrInvertedTheoreticalInstrumentValue = theoreticalInstrumentSpotValueForPrice;
+[Core Pricing]FFxRate:theoreticalOrInvertedTheoreticalInstrumentValue = select(isReciprocal, 
+  true->normalFxRate :* "theoreticalOrMarketInstrumentValue" [priceSource, doSplitAll], 
+  false->theoreticalOrMarketInstrumentValue) / currencyPairFXSpotRate;
+[Core Pricing]FInstrument:theoreticalOrInvertedTheoreticalInstrumentValue = collapse(theoreticalOrMarketInstrumentValue);

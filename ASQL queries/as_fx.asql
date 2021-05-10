@@ -1,0 +1,49 @@
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.call_option,
+    i.exotic_type,
+    i.barrier,
+    i.digital,
+    i.rebate,
+    ee.type,
+    ee.value,
+    ee.end_date,
+    e.barrier_option_type,
+    e.barrier_monitoring,
+    e.barrier_rebate_on_expiry,
+    e.digital_barrier_type
+        
+from
+    Trade t,
+    Instrument i,
+    ExoticEvent ee,
+    Exotic e
+    
+where
+    t.insaddr = i.insaddr
+and ee.insaddr = i.insaddr
+and e.insaddr = i.insaddr
+and t.trdnbr in (3710825,
+4009233,
+4604714,
+4992174,
+4990597,
+4990586,
+4990543,
+4990519,
+4990295,
+4981348,
+4981128,
+4974549,
+4974548,
+4974547,
+4974546,
+4974545,
+4974544,
+4788127,
+4915677,
+4288257,
+4555709)

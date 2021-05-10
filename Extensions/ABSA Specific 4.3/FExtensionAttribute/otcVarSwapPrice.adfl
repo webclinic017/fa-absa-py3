@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:otcVarSwapPrice = select(object.Instrument.InsType, 
+  "VarianceSwap"->select(object.Instrument.Otc, 
+    true->snoop01(theoreticalPrice, "theoreticalInstrumentSpotValueFiltered"), 
+    false->nil), 
+  default->nil);
+[ABSA Specific 4.3]FTradeRow:otcVarSwapPrice = select(object.Instrument.InsType, 
+  "VarianceSwap"->select(object.Instrument.Otc, 
+    true->snoop01(theoreticalPrice, "theoreticalInstrumentSpotValueFiltered"), 
+    false->nil), 
+  default->nil);

@@ -1,0 +1,6 @@
+#grouping: risk factors/valuation add on
+
+[Default]FInstrument:theoreticalValuationAddOnModelValue = switch(valuationAddOnModelNameValue, 
+  default->shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor, legs](isExpired, 
+    false->object :* theoreticalAddOnModelCall [priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor, legs], 
+    true->denominatedvalue(0.0, strikeCurrency, , theoreticalInstrumentValueDate)));

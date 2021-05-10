@@ -1,0 +1,8 @@
+[Brokerage Risk]FInstrument:maintenanceMarginSimpleModel = switch(isZeroMargin, 
+  true->currencyZero, 
+  default->switch(maintenanceMarginCondition <> nil, 
+    true->switch(maintenanceMarginCurve.CurveType, 
+      "Percentage"->maintenanceMarginCurve.MinValue / 100.0 * object:initialMargins [priceSource, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault], 
+      "Per unit"->denominatedvalue(maintenanceMarginCurve.MinValue, maintenanceMarginCurve.Currency, , ) * abs(object:riskPositionDisplay [portfolio, priceSource, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault]), 
+      default->nil), 
+    default->object:initialMargins [priceSource, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault]));

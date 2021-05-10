@@ -1,0 +1,6 @@
+[ABSA Columns]FMultiInstrumentAndTrades:aamPriceDelta = sumOf(children :* "aamPriceDelta.Number");
+[ABSA Columns]FSingleInstrumentAndTrades:aamPriceDelta = select(instrumentType == "Option", 
+  true->select(instrument:underlyingType == "Bond", 
+    true->py("AAM_Delta", context).insPriceDelta(instrument, profitAndLossDisplayDateEnd) * sumOf(trades :* "object.Nominal"), 
+    default->notANumberIsZero(priceDelta)), 
+  default->notANumberIsZero(priceDelta));

@@ -1,0 +1,20 @@
+[Default]FCombination:priceForwardDeltaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(priceGreekIncludeQuoteScaling, 
+    true->select(isSupportingQuoteScaling and singlePriceGreekRiskFactorIsSupportingQuoteScaling and not almostZero(singlePriceGreekRiskFactorValueToQuoteFactor, 1e-10), 
+      true->spotValueToQuoteFactor * priceForwardDeltaInstrumentCombination / singlePriceGreekRiskFactorValueToQuoteFactor, 
+      false->denominatedValueZero), 
+    false->collapse(priceForwardDeltaInstrumentCombination)));
+[Default]FInstrument:priceForwardDeltaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(priceGreekIncludeQuoteScaling, 
+    true->select(isSupportingQuoteScaling and singlePriceGreekRiskFactorIsSupportingQuoteScaling and not almostZero(singlePriceGreekRiskFactorValueToQuoteFactor, 1e-10), 
+      true->spotValueToQuoteFactor * priceForwardDeltaInstrumentCore / singlePriceGreekRiskFactorValueToQuoteFactor, 
+      false->denominatedValueZero), 
+    false->collapse(priceForwardDeltaInstrumentCore)));
+[Default]FInstrumentAndTrades:priceForwardDeltaInstrument = select(forwardValueProviderTargetInTheoreticalPrice, 
+  nil->denominatedValueZero, 
+  default->select(underlyingForwardValueInCalculationCurrency, 
+    nil->denominatedValueZero, 
+    default->(openInstrumentOrInstrument :* "priceForwardDeltaInstrument" [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekIncludeQuoteScaling, underlyingForwardValueInCalculationCurrency]) * combinationInstrumentMapFactorForPriceGreeks));
+[Default]FTradeRow:priceForwardDeltaInstrument = instrument:priceForwardDeltaInstrument [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, currency = tradeRowCurrency, priceGreekIncludeQuoteScaling, underlyingForwardValueInCalculationCurrency] * combinationInstrumentMapFactorForPriceGreeks;

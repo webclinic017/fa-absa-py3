@@ -1,0 +1,10 @@
+[Core Risk]FCurrency:priceDeltaCurrencyVector = rowObject :* "priceDeltaPerCurrency" [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment, priceDeltaCurrency := object, displayCurrency := object, priceGreekOnSpot := true];
+[Core Risk]FInstrumentAndTrades:priceDeltaCurrencyVector = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->currenciesForVectorColumn :* "priceDeltaCurrencyVector" [rowObject := object, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment], 
+  false->currenciesForVectorColumnNil);
+[Core Risk]FTimeBucketAndObject:priceDeltaCurrencyVector = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->select(timeBucketCollection.Size > 1, 
+    true->scenarioaxisarray(rowInstrumentAndTrades:priceDeltaCurrencyVector [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment], timeDistributionPriceGreekPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex], 
+    false->rowInstrumentAndTrades:priceDeltaCurrencyVector [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment, timeApportionmentTypeSelected]));

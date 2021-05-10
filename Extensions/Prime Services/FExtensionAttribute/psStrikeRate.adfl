@@ -1,0 +1,20 @@
+[Prime Services]FBond:psStrikeRate = nil;
+[Prime Services]FBuySellBack:psStrikeRate = object.Rate;
+[Prime Services]FCap:psStrikeRate = object.StrikePrice;
+[Prime Services]FFloor:psStrikeRate = object.StrikePrice;
+[Prime Services]FFra:psStrikeRate = object.Legs.At(0).FixedRate;
+[Prime Services]FInstrument:psStrikeRate = nil;
+[Prime Services]FOption:psStrikeRate = object.StrikePrice;
+[Prime Services]FRepo:psStrikeRate = switch(firstLeg.LegType, 
+  "Fixed Adjustable"->firstLeg.FixedRate, 
+  "Fixed"->firstLeg.FixedRate, 
+  "Float"->firstLeg.Spread);
+[Prime Services]FSwap:psStrikeRate = object.FirstFixedLeg.FixedRate;
+[Prime Services]FTrade:psStrikeRate = select(instrument.InsType, 
+  "Bond"->object.Price, 
+  "CD"->object.Price, 
+  "Deposit"->object.Price, 
+  "Future/Forward"->object.Price, 
+  "IndexLinkedBond"->object.Price, 
+  default->instrument :* "psStrikeRate");
+[Prime Services]FTradeRow:psStrikeRate = trade :* "psStrikeRate";

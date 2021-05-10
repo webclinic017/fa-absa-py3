@@ -1,0 +1,25 @@
+/*
+Purpose              	: Generates Excel Report for trades CashFlows
+Department and Desk	    : PCG - Money Market
+Requester            	: Haroon Mansoor
+Developer            	: Bhavnisha Sarawan
+CR Number            	: C649904
+*/
+
+
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','CashFlow_Excel_Report_Generator') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'CashFlow_Excel_Report_Generator' and p.type = 'SQL Query'
+
+
+select
+	ael_s(,'CashFlow_Excel_Report_Generator.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

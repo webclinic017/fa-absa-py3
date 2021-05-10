@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:optionCallOrPutFactor = select(isCallable, 
+  true->1.0, 
+  false->select(isPutable, 
+    true->-1.0, 
+    false->nil));
+[Default]FInstrument:optionCallOrPutFactor = nil;
+[Default]FInstrumentAndTrades:optionCallOrPutFactor = instrument:optionCallOrPutFactor;
+[Default]FMultiInstrumentAndTrades:optionCallOrPutFactor = nil;
+[Default]FOption:optionCallOrPutFactor = select(isCall, 
+  true->1.0, 
+  false->-1.0);

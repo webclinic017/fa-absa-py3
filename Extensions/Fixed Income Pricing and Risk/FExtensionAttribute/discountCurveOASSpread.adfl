@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FInstrument:discountCurveOASSpread = select(discountCurveInstrumentSpread, 
+  nil->throwError("Bdt Trinominal only supported for instrument spread curve with spread type OAS"), 
+  default->select(discountCurveInstrumentSpread.SpreadType == "OAS", 
+    false->throwError("Bdt Trinominal only supported for instrument spread curve with spread type OAS"), 
+    true->discountCurveInstrumentSpread.Spread));

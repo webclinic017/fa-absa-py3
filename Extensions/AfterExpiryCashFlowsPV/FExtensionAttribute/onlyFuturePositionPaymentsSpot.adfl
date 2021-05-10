@@ -1,0 +1,5 @@
+[AfterExpiryCashFlowsPV]FInstrument:onlyFuturePositionPaymentsSpot = adjustForSpotHandling(futurePositionPaymentsSpot, valuesOnSpot);
+[AfterExpiryCashFlowsPV]FLegAndTrades:onlyFuturePositionPaymentsSpot = instrument :* "onlyFuturePositionPaymentsSpot" [positionObject, singleTradePosition, priceSource, valuesOnSpotOverride];
+[AfterExpiryCashFlowsPV]FMultiInstrumentAndTrades:onlyFuturePositionPaymentsSpot = sumOf(instruments :* "onlyFuturePositionPaymentsSpot" [positionObject, priceSource, valuesOnSpotOverride]);
+[AfterExpiryCashFlowsPV]FSingleInstrumentAndTrades:onlyFuturePositionPaymentsSpot = instrument :* "onlyFuturePositionPaymentsSpot" [positionObject, priceSource, valuesOnSpotOverride];
+[AfterExpiryCashFlowsPV]FTradeRow:onlyFuturePositionPaymentsSpot = instrument :* "onlyFuturePositionPaymentsSpot" [positionObject, singleTradePosition, includeAllTrades, priceSource, valuesOnSpotOverride];

@@ -1,0 +1,7 @@
+[Default]FInstrument:volgaInstrument = select(isSettled or noVolatilityGreekRiskFactorsExist, 
+  true->instrumentSpotDateZero, 
+  false->volgaValuesInstrument);
+[Default]FInstrumentAndTrades:volgaInstrument = openInstrumentOrInstrument :* "collapse(volgaInstrument)" [isSplitAllGrouped, priceSource] * combinationInstrumentMapFactor;
+[Default]FMultiInstrumentAndTrades:volgaInstrument = nil;
+[Default]FPriceAggregate:volgaInstrument = instrument :* "adjustForSpotHandling(volgaInstrument, true)" [priceSource];
+[Default]FTradeRow:volgaInstrument = instrument:volgaInstrument [isSplitAllGrouped, priceSource, currency = tradeRowCurrency] * combinationInstrumentMapFactor;

@@ -1,0 +1,172 @@
+/* 
+    Name      : SAGEN_Trade_Buckets_Barclays
+    Purpose   : Optimized code to run in the back end. Production issue.
+    Developer : Tshepo Mabena
+    Date      : 02/04/12
+    CR Number : CHNG0000122201 
+*/
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Trade_Buckets_Barclays') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_Trade_Buckets_Barclays' and p.type = 'SQL Query' 
+ 
+select
+	@3_ShowDetails{No;'Yes','No'}		'det'
+
+into
+	input
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+	display_id(t, 'acquirer_ptynbr')			'Acquirer',
+	t.acquirer_ptynbr					'acqnbr',
+	t.status = 'BO Confirmed' 
+	and (i.instype in ('Bond', 'Stock','Future/Forward','Warrant','EquityIndex','Repo/Reverse','BuySellback','PriceIndex','IndexLinkedBond')
+	or cp.ptyid2 = 'SAFEX'
+	or t.your_ref ~= '') 
+	? 'BO-BO Confirmed' : t.status				'Status',
+	t.trdnbr,
+	days_between(time_to_day(t.time), TODAY, 'Act/365')	'Days',
+	time_to_day(t.time)					'TradeDate',
+	display_id(t, 'counterparty_ptynbr')			'CounterParty'
+
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Party p,
+	Party cp,
+    portfolio po	
+
+where
+	t.insaddr = i.insaddr
+	and t.counterparty_ptynbr = cp.ptynbr
+and po.prfnbr = t.prfnbr
+and	t.acquirer_ptynbr = p.ptynbr
+and	t.time > '2004-04-01'
+and	t.time <= TODAY
+and	(i.exp_day >= TODAY or i.exp_day = '0000-01-01')
+and	t.status NOT IN ('Simulated', 'Terminated', 'Void')
+and	i.instype NOT IN ( 'FRN', 'Curr')
+
+and	('All' IN (@2_Status{All;Trade.status*})
+or	t.status IN (@2_Status{All;Trade.status*}))
+
+and	('All' IN (@1_Acquirer{All;Party.ptyid*}) 
+or 	p.ptyid IN (@1_Acquirer{All;Party.ptyid*}))
+and po.prfid not in ('CFD','Equity Script Lending','4440798','4440806')
+
+select
+	display_id(t, 'acquirer_ptynbr')			'Acquirer',
+	t.acquirer_ptynbr					'acqnbr',
+	t.status = 'BO Confirmed' 
+	and (i.instype in ('Bond', 'Stock','Future/Forward','Warrant','EquityIndex','Repo/Reverse','BuySellback','PriceIndex','IndexLinkedBond')
+	or cp.ptyid2 = 'SAFEX'
+	or t.your_ref ~= '') 
+	? 'BO-BO Confirmed' : t.status				'Status',
+	t.trdnbr,
+	days_between(time_to_day(t.time), TODAY, 'Act/365')	'Days',
+	time_to_day(t.time)					'TradeDate',
+	display_id(t, 'counterparty_ptynbr')			'CounterParty'
+
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Party p,
+	Party cp,
+    portfolio po	
+
+where
+	t.insaddr = i.insaddr
+	and t.counterparty_ptynbr = cp.ptynbr
+and po.prfnbr = t.prfnbr
+and	t.acquirer_ptynbr = p.ptynbr
+and	t.time > '2004-04-01'
+and	t.time <= TODAY
+and	t.value_day >= TODAY
+and	t.status NOT IN ('Simulated', 'Terminated', 'Void')
+and	i.instype = 'Curr'
+
+and	('All' IN (@2_Status{All;Trade.status*})
+or	t.status IN (@2_Status{All;Trade.status*}))
+
+and	('All' IN (@1_Acquirer{All;Party.ptyid*}) 
+or 	p.ptyid IN (@1_Acquirer{All;Party.ptyid*}))
+and po.prfid not in ('CFD','Equity Script Lending','4440798','4440806')
+
+
+select
+	t.Acquirer,
+	t.Status,
+	t.Days <= 2 ? 1 : 0 			'Less_eq_2',
+	t.Days >= 3 and t.Days <= 5 ? 1 : 0	'3_to_5',
+	t.Days >= 6 and t.Days <= 10 ? 1 : 0	'6_to_10',
+	t.Days >= 11 and t.Days <= 30 ? 1 : 0	'11_to_30',
+	t.Days > 30 ? 1 : 0			'Grt30',
+	t.trdnbr,
+	t.TradeDate,
+	t.CounterParty
+into
+	temp2
+
+from
+	temp t
+
+where
+	t.Status ~= 'BO-BO Confirmed'
+
+/*group by t.Acquirer, t.Status, t.Days*/
+
+/*****main*****/
+select
+	t.Acquirer,
+	t.Status,
+	t.Less_eq_2	'Less_eq_2',
+	t.3_to_5	'd_3_to_5',
+	t.6_to_10	'd_6_to_10',
+	t.11_to_30	'd_11_to_30',
+	t.Grt30		'Grt30',
+	t.trdnbr	'Trdnbr',
+	to_string('Yes' ? t.TradeDate : '')	'TradeDate',
+	t.CounterParty
+from
+	temp2 t,	
+	input d
+where
+	d.det in ('Yes','YES','yes','Y','y')
+
+order by t.Acquirer, t.Status
+
+
+union	
+
+
+select
+	tt.Acquirer,
+	tt.Status,
+	sum(tt.Less_eq_2)	'Less_eq_2',
+	sum(tt.3_to_5)		'd_3_to_5',
+	sum(tt.6_to_10)		'd_6_to_10',
+	sum(tt.11_to_30)		'd_11_to_30',
+	sum(tt.Grt30)		'Grt30',
+	0 			'Trdnbr',
+	to_string('Yes' ? '0000-01-01' : '')		'TradeDate',
+	tt.CounterParty
+from
+	temp2 tt
+
+group by tt.Acquirer, tt.Status
+
+

@@ -1,0 +1,110 @@
+/* update_method=0 */
+/*
+DESCRIPTION
+    Date                : 2020-04-20
+    Purpose             : ASQL to get all open SBL loan positions
+    Department and Desk : SBL and Collateral
+    Requester           : Gasant Thulsie, James Stevens
+    Developer           : Sihle Gaxa
+    JIRA                : PCGDEV-15
+*/
+select
+    t
+into
+    open_loans
+from 
+    trade t,
+    instrument i,
+    leg l,
+    portfolio p,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and s.trdnbr = t.trdnbr
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+and t.acquirer_ptynbr = 32668
+and i.instype = 'SecurityLoan'
+and add_info(t,'SL_G1Counterparty1') ~= ''
+and add_info(t,'SL_G1Counterparty2') ~= ''
+and s.type in ('End Security', 'Security Nominal')
+and ((i.open_end = 'Open End' and l.start_day <= Today and t.text1 = '' and s.status = 'Settled')
+    or (i.open_end = 'Open End' and l.start_day <= Today and t.text1 in ('PARTIAL_RETURN', 'FULL_RETURN'))
+    or (i.open_end = 'Terminated' and l.start_day <= Today and l.end_day > Today and t.text1 = '' and s.status = 'Settled')
+    or (i.open_end = 'Terminated' and l.start_day <= Today and l.end_day > Today and t.text1 in ('PARTIAL_RETURN', 'FULL_RETURN')))
+
+/*-----------------------------ALL SECURITY LOANS---------------------------------------------------------------*/
+
+select
+    ael_f(t,'sbl_reporting_utils.get_open_trade') 'trdnbr'
+into
+    loans_today
+from
+    trade t,
+    open_loans tl,
+    instrument i,
+    leg l,
+    settlement s
+where
+    tl.trdnbr = t.trdnbr
+and tl.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and s.trdnbr = t.trdnbr
+and l.start_day = Today
+and s.status ~= 'Settled'
+and s.type in ('End Security', 'Security Nominal')
+and tl.text1 in ('FULL_RETURN', 'PARTIAL_RETURN')
+and ael_f(t,'sbl_reporting_utils.get_open_trade') ~= 0
+
+/*--------------------------------------LOANS STARTING TODAY-------------------------------------------------------*/
+
+select
+    distinct(o.trdnbr)
+from
+    open_loans o,
+    instrument i,
+    leg l,
+    settlement s
+where
+    o.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and s.trdnbr = o.trdnbr
+and ((i.open_end = 'Open End' and l.start_day <= Today and o.text1 = '')
+    or (i.open_end = 'Open End' and l.start_day < Today and o.text1 in ('PARTIAL_RETURN', 'FULL_RETURN'))
+    or (i.open_end = 'Terminated' and l.start_day <= Today and l.end_day > Today and o.text1 = '')
+    or (i.open_end = 'Terminated' and l.start_day < Today and l.end_day > Today and o.text1 in ('PARTIAL_RETURN', 'FULL_RETURN'))
+    or (l.start_day = Today and l.end_day > Today and o.text1 = 'PARTIAL_RETURN' and s.status = 'Settled'))
+
+/*--------------------------------------OPEN LOANS WITH A START DATE BEFORE TODAY---------------------------------*/
+
+union
+
+select 
+    distinct(t.trdnbr)
+from
+    trade t,
+    loans_today lt
+where t.trdnbr = lt.trdnbr
+
+/*--------------------------------------CORRECT OPEN POSITION STARTING TODAY--------------------------------------*/
+
+union
+
+select
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+and t.text1 = ''
+and ((i.instype in ('Stock', 'Bond', 'IndexLinkedBond', 'CD', 'Bill') and 
+    t.category = 'Collateral' and match_portfolio(t,'SBL_NONCASH_COLLATERAL'))
+    or (i.instype = 'Deposit' and p.prfnbr = 7159 and /*---Call_SBL_Agency_Collateral---*/
+        i.insid like 'SBL/%' and t.trdnbr ~= 117338945))
+
+/*-----------------------------------------------COLLATERAL TRADES------------------------------------------------*/

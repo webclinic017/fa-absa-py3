@@ -1,0 +1,4 @@
+[Default]FCashFlowInstrument:impliedForwardParRateDirty = select(isMultiExercise, 
+  true->exerciseEvents :* "impliedForwardParRateDirty", 
+  default->imply(uniqueCouponInforwardValueCalculated, forwardValueCalculated, dividedByHundred(unitGoalValueForPar), implyPrecision, lowerBoundForImpliedCoupon, upperBoundForImpliedCoupon, implyMaxIterations));
+[Default]FExerciseEvent:impliedForwardParRateDirty = imply(instrument:uniqueCouponInforwardValueCalculated, instrument :* "forwardValueCalculated" [forwardValueDate := date(expiryDateTime)], dividedByHundred(instrument:unitGoalValueForPar), implyPrecision, lowerBoundForImpliedCoupon, upperBoundForImpliedCoupon, implyMaxIterations);

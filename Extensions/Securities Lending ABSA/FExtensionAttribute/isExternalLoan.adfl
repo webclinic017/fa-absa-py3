@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:isExternalLoan = false;
+[Securities Lending ABSA]FSecurityLoan:isExternalLoan = select(object.AdditionalInfo.SL_ExternalInternal, 
+  "External"->select(isSweepingLoan, 
+    true->false, 
+    default->true), 
+  default->false);
+[Securities Lending ABSA]FTrade:isExternalLoan = instrument:isExternalLoan;

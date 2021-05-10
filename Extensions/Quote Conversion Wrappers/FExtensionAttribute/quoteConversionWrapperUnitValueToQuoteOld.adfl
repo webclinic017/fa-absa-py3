@@ -1,0 +1,9 @@
+#grouping: extension attribute classification
+
+[Quote Conversion Wrappers]FInstrument:quoteConversionWrapperUnitValueToQuoteOld[quoteConversionWrapperQuotation, quoteConversionUnitValue, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll] = select(needsLegInformation, 
+  false->object.UnitValueToQuote(quoteConversionUnitValue, quoteConversionToQuoteDate, quoteConversionToQuoteDate, true, nil, nil, quoteConversionWrapperQuotation, 1.0, 0.0, nil, quoteConversionWrapperAccruedInQuoteCurrency, quoteConversionWrapperRoundingInformation, nil), 
+  true->select(quoteConversionWrapperQuotationType, 
+    "Yield"->object.UnitValueToQuote(quoteConversionUnitValue, quoteConversionToQuoteDate, quoteConversionToQuoteDate, true, legInformations, staticLegInformations, quoteConversionWrapperQuotation, couponToValueFactor, 0.0, nil, quoteConversionWrapperAccruedInQuoteCurrency, quoteConversionWrapperRoundingInformation, roundingInformationsPerLeg), 
+    default->shunt[quoteConversionWrapperQuotation, quoteConversionUnitValue, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll](valuationSystemDate <= quoteConversionToQuoteDate, 
+      true->object.UnitValueToQuote(quoteConversionUnitValue, quoteConversionToQuoteDate, quoteConversionToQuoteDate, true, legInformations, staticLegInformations, quoteConversionWrapperQuotation, couponToValueFactor, couponPriceAdjustment, nil, quoteConversionWrapperAccruedInQuoteCurrency, quoteConversionWrapperRoundingInformation, roundingInformationsPerLeg), 
+      false->object.UnitValueToQuote(quoteConversionUnitValue, quoteConversionToQuoteDate, quoteConversionToQuoteDate, true, quoteConversionLegInformationsAtToQuoteDate, staticLegInformations, quoteConversionWrapperQuotation, couponToValueFactor, couponPriceAdjustment, nil, quoteConversionWrapperAccruedInQuoteCurrency, quoteConversionWrapperRoundingInformation, roundingInformationsPerLeg))));

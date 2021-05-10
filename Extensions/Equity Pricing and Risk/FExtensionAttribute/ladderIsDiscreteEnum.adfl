@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:ladderIsDiscreteEnum = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:ladderIsDiscreteEnum = instrument:ladderIsDiscreteEnum;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:ladderIsDiscreteEnum = nil;
+[Equity Pricing and Risk]FOption:ladderIsDiscreteEnum = select(object.IsLadder, 
+  true->select(exotic.LadderDiscreteMonitoring, 
+    true->1, 
+    default->0), 
+  false->nil);
+[Equity Pricing and Risk]FPriceAggregate:ladderIsDiscreteEnum = instrument:ladderIsDiscreteEnum;

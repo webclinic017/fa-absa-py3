@@ -1,0 +1,11 @@
+[Credit Pricing and Risk]FCreditDefaultSwap:creditDeltaHedgeAlternatives = addArrays(arrayAny(instrument), creditReference:creditDeltaHedgeAlternatives);
+[Credit Pricing and Risk]FDerivative:creditDeltaHedgeAlternatives = addArrays(arrayAny(instrument), underlying:creditDeltaHedgeAlternatives);
+[Credit Pricing and Risk]FInstrument:creditDeltaHedgeAlternatives = addArrays(arrayAny(instrument), creditHedgePageInstruments);
+[Credit Pricing and Risk]FInstrumentAndTrades:creditDeltaHedgeAlternatives = select(count(creditCurvesInTheoreticalValue), 
+  0->[], 
+  default->instrument:creditDeltaHedgeAlternatives);
+[Credit Pricing and Risk]FMultiInstrumentAndTrades:creditDeltaHedgeAlternatives = select(count(creditCurvesInTheoreticalValue), 
+  0->[], 
+  default->select(instrumentGroupingReference, 
+    nil->creditHedgePageInstruments, 
+    default->instrumentGroupingReference:creditDeltaHedgeAlternatives));

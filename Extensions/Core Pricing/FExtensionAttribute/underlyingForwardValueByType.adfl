@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:underlyingForwardValueByType = select(underlyingValueType, 
+  "IRF Option"->irfOptionUnderlyingValue, 
+  "Zero Coupon Fix"->collapse(stepUpSwaptionUnderlyingValue), 
+  "Credit Future"->unitValueDirtyToClean(legInformations, staticLegInformations, creditFutureUnderlyingSpotValue, underlying:contractSize, valuationDate), 
+  "Notional Future"->underlyingSpotOrForwardValue / ctdFactor, 
+  "Compound Option"->underlying:underlyingValue [priceSource, doSplitAll], 
+  "Swaption"->collapse(swaptionUnderlyingValue), 
+  "Spread Option"->collapse(spreadOptionUnderlyingValue), 
+  default->collapse(underlyingForwardValueModelCore));

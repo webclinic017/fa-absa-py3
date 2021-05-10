@@ -1,0 +1,26 @@
+[ABSA Specific 4.3]FInstrument:accruedDiscBalance = nil;
+[ABSA Specific 4.3]FLegAndTrades:accruedDiscBalance = trade:accruedDiscBalance;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:accruedDiscBalance = doubleSumOf(children :* "accruedDiscBalance");
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:accruedDiscBalance = select(((instrument.InsType == "CD") or (instrument.InsType == "FRN") or (instrument.InsType == "Deposit")) and not instrument.IsExpired, 
+  true->select((instrument.OpenEnd == "Open End") or (instrument.OpenEnd == "Terminated"), 
+    false->select((fundingInsType == "CD SNR") or (fundingInsType == "CL SNR") or (fundingInsType == "SNR"), 
+      true->select(round(settled, 2) <> 0.0, 
+        true->-1 * discPremium + accrued + deprecAmount + tradedInterest, 
+        false->-1 * discPremium + accrued + deprecAmount), 
+      false->select(round(settled, 2) <> 0.0, 
+        true->accrued + deprecAmount, 
+        false->accrued + deprecAmount - tradedInterest)), 
+    true->displayCurrencyZero), 
+  false->displayCurrencyZero);
+[ABSA Specific 4.3]FTrade:accruedDiscBalance = nil;
+[ABSA Specific 4.3]FTradeRow:accruedDiscBalance = select(((instrument.InsType == "CD") or (instrument.InsType == "FRN") or (instrument.InsType == "Deposit")) and not instrument.IsExpired, 
+  true->select((instrument.OpenEnd == "Open End") or (instrument.OpenEnd == "Terminated"), 
+    false->select((fundingInsType == "CD SNR") or (fundingInsType == "CL SNR") or (fundingInsType == "SNR"), 
+      true->select(round(settled, 2) <> 0.0, 
+        true->-1 * discPremium + accrued + deprecAmount + tradedInterest, 
+        false->-1 * discPremium + accrued + deprecAmount), 
+      false->select(round(settled, 2) <> 0.0, 
+        true->accrued + deprecAmount, 
+        false->accrued + deprecAmount - tradedInterest)), 
+    true->displayCurrencyZero), 
+  false->displayCurrencyZero);

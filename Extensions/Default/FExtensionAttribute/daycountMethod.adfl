@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:daycountMethod = firstLeg:daycountMethod;
+[Default]FFuture:daycountMethod = select(underlyingType, 
+  "Swap"->select(underlying:firstFixedLeg, 
+    nil->staticLegInformations :* "object.DaycountMethod", 
+    default->(underlying:firstFixedLeg) :* "daycountMethod"), 
+  default->staticLegInformations :* "object.DaycountMethod");
+[Default]FLeg:daycountMethod = object.DayCountMethod;
+[Default]FOption:daycountMethod = underlying:daycountMethod;
+[Default]FStaticLegInformation:daycountMethod = object.DaycountMethod;

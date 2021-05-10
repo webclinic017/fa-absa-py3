@@ -1,0 +1,5 @@
+[Core Risk]FInstrumentAndTrades:priceDelta = priceDeltaWithTradeAdjustment(shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->convertToCurrency(object:priceDeltaPercentValues [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, filterUnit, priceGreekShiftFilter, priceGreekOnSpot := true], priceDeltaSpotFXRates, displayCurrencySymbol, filterUnit) / (singlePriceGreekRiskFactorValueInDisplayCurrency / 100), 
+  default->denominatedValueZero), priceDeltaTradeAdjustment);
+[Core Risk]FTimeBucketAndObject:priceDelta = scenarioaxisarray(rowInstrumentAndTrades:priceDelta [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment], timeDistributionPriceGreekPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

@@ -1,0 +1,5 @@
+[Default]FInstrument:priceContractGammaInstrumentIRD = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(count(priceGreekRiskFactorsIRD) == 1 and (not isLot(priceGreekRiskFactorsIRD)), 
+    true->stripDateTimePart(priceGammaPercentValuesIRD) / (singlePriceGreekRiskFactorValueInInstrumentCurrencyIRD * percentAdjustmentFactor), 
+    false->denominatedValueZero));

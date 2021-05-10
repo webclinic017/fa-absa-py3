@@ -1,0 +1,5 @@
+[Regulatory Notional]FCashFlow:nominalPositionForRegNotional = switch(cashFlowType, 
+  nil->nil, 
+  default->switch(cashFlowInformation:isFixedAmountCashFlow, 
+    true->trade.Quantity * projectedCashFlow * staticLegInformation:contractSize, 
+    false->trade.Quantity * instrument.ContractSize * cashFlowInformation.Nominal(legInformation)));

@@ -1,0 +1,51 @@
+/*
+Purpose                       :  Remove duplicate lines
+Department and Desk           :  PCG
+Requester                     :  Candice Nolan
+Developer                     :  Ickin Vural
+CR Number                     :  C000000533078
+
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Basis_rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Basis_rates' and p.type = 'SQL Query' 
+ 
+select    
+    TODAY                                   'RepDate',
+    yc.yield_curve_name                     'yc',
+    yp.date_period.count 'date_period_count',
+    yp.date_period.unit 'date_period_unit',
+    ael_d(yp, 'dirk_utils.sprd_point_maturity')    'mat',
+    ys.spread * 100                                 'spread',
+    display_id(ys,'creat_usrnbr') 'creat_usrnbr'
+
+into
+    temp
+    
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name*})
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr            
+    
+select
+        t.RepDate,
+        t.yc,
+        t.date_period_count 'date_period.count',
+        t.date_period_unit 'date_period.unit',
+        t.mat,
+        t.spread
+from
+    temp t
+
+where
+    t.creat_usrnbr ~= 'ATS'
+    
+order by 2, 5

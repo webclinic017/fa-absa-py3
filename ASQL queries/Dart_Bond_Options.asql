@@ -1,0 +1,84 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Dart_Bond_Options') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Dart_Bond_Options' and p.type = 'SQL Query' 
+/* Name of query = Dart_Bond_Options */
+
+select 
+
+	t.trdnbr 'Deal Reference',
+	display_id(t, 'prfnbr')	 'Profit Centre',
+	display_id(t, 'optkey1_chlnbr')	'Portfolio',
+	nominal_amount(t) 'Nominal',
+	time_to_day(t.time) 'Deal Date',
+	i.strike_price 'Strike Price',
+	i.exp_day 'Expiry Date',
+	i.call_option = 'Yes' ? 'C' : 'P' 'Call/Put',
+	date_add_banking_day(i.exp_day,,i.pay_day_offset) 'Settlement Date',
+	t.premium 'Premium',	
+	mtm_value_bo(t)'MtM',
+	nominal_amount(t) > 0 ? 'B' : 'W' 'Written/Bought',
+
+	und.insid 'Stock Code',
+	/*und.insid 'Underlying Stock2',*/
+	time_to_day(t.updat_time) 'Last Update',
+	u.userid 'Dealer Code',
+	p.ptyid 'STT Code Client', 
+	'YES' ? mtm_price(und) : '' 'Present Yield',
+	p.ptyid 'Counter Party Short Name',
+	p.fullname 'Counter Party Long Name',
+	cp.ptyid 'issuer',
+	/*add_info(t,'BO Cert No') 'Issuer',*/
+	used_vol(i) 'used Vol',
+	used_rate(i) 'used rate',
+	mtm_price(i) 'MTM Rate',
+	today 'Data Date',
+        t.optional_key'STT Reference'	
+
+	
+
+	
+
+	/*t.optional_key ,
+	
+	
+	i.free_text   'Contract',
+	i.insid ,	
+	t.price,
+	
+	i.paytype,
+	
+	t.acquire_day,
+	
+	t.value_day,
+
+	mtm_value_bo(t) 'YTD MtM Today',
+	
+
+	used_und_frw_price(i),
+	theor_price(i)'theor price'*/
+
+	
+from instrument i,
+	trade t,
+	instrument und,
+	party p,
+	user u,
+	party cp
+
+
+where
+
+	i.insaddr=t.insaddr
+and	i.und_insaddr = und.insaddr
+and	u.usrnbr  = i.owner_usrnbr
+and 	i.instype='Option'
+and 	und.instype = 'Bond'
+and	p.ptynbr=t.counterparty_ptynbr
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+and	t.guarantor_ptynbr*= cp.ptynbr
+and i.exp_day > TODAY
+
+

@@ -1,0 +1,5 @@
+[FRTB Components]FCombInstrMap:grossJumpToDefaultValuesUndiscounted = instrument :* "grossJumpToDefaultValuesUndiscounted" [isSplitAllGrouped, priceSource, filterUnit, positionObject, tradesInPosition, groupingSpotDiscountDate, instrumentInclusionCriteria, frtbDRCRecoveryRate, frtbDRCIssuer, useScalingFactor] * weight;
+[FRTB Components]FCombination:grossJumpToDefaultValuesUndiscounted = sumOf(instrumentMaps :* "grossJumpToDefaultValuesUndiscounted" [isSplitAllGrouped, priceSource, filterUnit, positionObject, tradesInPosition, groupingSpotDiscountDate, instrumentInclusionCriteria, frtbDRCRecoveryRate, frtbDRCIssuer, useScalingFactor]);
+[FRTB Components]FInstrument:grossJumpToDefaultValuesUndiscounted = -grossJumpToDefaultValuesUndiscountedValue * select(useScalingFactor, 
+  true->grossJumpToDefaultScalingFactor, 
+  false->1.0);

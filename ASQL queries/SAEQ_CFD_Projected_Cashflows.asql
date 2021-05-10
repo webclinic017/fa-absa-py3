@@ -1,0 +1,103 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Projected_Cashflows') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_CFD_Projected_Cashflows' and p.type = 'SQL Query' 
+
+
+/*
+This report gives all cash movements on the EQ Derivatives Desk
+and equity deposits on Funding Desk.
+
+
+Purpose              : This report gives all cash movements on the EQ Derivatives Desk
+                       for CFDs in the 49262_DL_Arbitrage Portfolio
+Department and Desk  : PCG -  Front office
+Requester            : Christo Davids
+Developer            : Bhavnisha Sarawan
+CR Number            : C394472
+*/
+
+
+/* -------------------------------------------------------------------
+  Generates the banking days within user input range. Used in 
+  calculating the Daily Cash Movement and Position.
+------------------------------------------------------------------- */
+SELECT
+    @FromDate{yesterday}  'From',
+    @ToDate{today} 'To',
+    days_between(@FromDate{yesterday}, @ToDate{today}, 'ACT/365') 'Rows'
+INTO
+    temp
+FROM
+    serverdata s
+WHERE
+    s.srdnbr > 0                                                
+
+select
+    p1.ptynbr,
+    count(p2.ptynbr)-1         'Nbr'
+into
+    TMP
+from
+    party p1,
+    party p2
+where
+    p1.ptynbr<p2.ptynbr
+and p1.ptynbr < 500
+and p2.ptynbr < 500
+group by 
+    p1.ptynbr 
+
+select
+    date_add_banking_day(@FromDate{yesterday},'ZAR', 10*(t2.Nbr)+t1.Nbr)   'PaymentDate'
+into
+    DateRange
+from 
+    TMP     t1,
+    TMP     t2,
+    temp t
+where
+    t1.Nbr<10
+and t2.Nbr<t.rows/10
+and (10*(t2.Nbr)+t1.Nbr+1) <= t.rows + 1
+and date_add_banking_day(@FromDate{yesterday},'ZAR', 10*(t2.Nbr)+t1.Nbr) =< t.to
+
+/* -------------------------------------------------------------------
+ Selection of relevant columns and Calculates the Daily Cash Movement 
+  and Position.
+------------------------------------------------------------------- */
+select
+    PaymentDate,
+    t.trdnbr                                                                'Trade Number',
+    t.value_day                                                             'Value Day',    
+    i.insid                                                                 'Instrument ID',
+    i.instype                                                               'Ins Type',
+    i.und_instype                                                           'Underlying InsType',
+    p.ptyid                                                                 'Counterparty',
+    t.your_ref                                                              'Counterparty Ref',
+    po.prfid                                                                'Portfolio',
+    t.status                                                                'Status',    
+    curr.insid                                                              'Currency',
+    ael_f(,'SAIT_LandingArea_Functions.CashDaily', t,date_add_banking_day(PaymentDate,curr.insid, -1),'ZAR')     'Cash',
+    t.price                                                                 'Trade Price',
+    t.creat_time                                                            'Create Time',
+    t.updat_time                                                            'Update Time',
+    t.quantity                                                              'Quantity',
+    position(t,,,PaymentDate)	                                            'Position'
+from
+    trade t,
+    instrument i,
+    party p,
+    party a,
+    portfolio po,
+    instrument curr,
+    DateRange
+where
+        t.insaddr = i.insaddr
+    and i.curr = curr.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.acquirer_ptynbr = a.ptynbr
+    and t.prfnbr = po.prfnbr
+    and match_filter(t, @2_Filter{SAEQ_CFD;tradefilter.fltid})

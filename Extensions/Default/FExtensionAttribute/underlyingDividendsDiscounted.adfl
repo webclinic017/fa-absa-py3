@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingDividendsDiscounted = select(dividendForecast, 
+  nil->collapse(instrumentCarryStartDateZero), 
+  default->select(mappedModelIsBasketAsSingleUnderlying and basketMomentMatchingUseDividendYield, 
+    true->collapse(instrumentCarryStartDateZero), 
+    false->select(underlyingDividendsNeedFxConversion, 
+      true->dividendsDiscounted(dividendForecast, dividendSensitivityStartDate, dividendSensitivityEndDate, useExDivDateForUnderlyingDividendsDiscounted, dividendFactor, includeTaxFactor, carryStartDate, dividendForecastForwardValueProviderIfPropDiv, underlyingRepoCurve, calculationCurrency, filterUnitForDividendForecastDividends, underlyingDividendsFxSpotRates, underlyingDividendsFxCurves), 
+      false->dividendsDiscounted(dividendForecast, dividendSensitivityStartDate, dividendSensitivityEndDate, useExDivDateForUnderlyingDividendsDiscounted, dividendFactor, includeTaxFactor, carryStartDate, dividendForecastForwardValueProviderIfPropDiv, underlyingRepoCurve, calculationCurrency, filterUnitForDividendForecastDividends))));

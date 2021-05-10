@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:isForwardStarting = false;
+[Equity Pricing and Risk]FOption:isForwardStarting = select(isExotic, 
+  true->select(isCliquet, 
+    true->true, 
+    false->select(isForwardStart, 
+      true->not (hasPassedForwardStartDTAndIsInitialized), 
+      false->false)), 
+  false->false);
+[Equity Pricing and Risk]FVolatilityFuture:isForwardStarting = isForwardStartingVariationSwap;

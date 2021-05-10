@@ -1,0 +1,93 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* Usage code for this ASQL */
+SELECT
+    ael_i(p,'ASQL_log','YieldX_Live Trades Detail') 'Name'
+INTO  
+    ASQL_LOG_TEMP
+FROM 
+    TextObject p 
+WHERE 
+    p.name = 'YieldX_Live Trades Detail' and p.type = 'SQL Query' 
+
+/* coded by Anil Parbhoo for Maddalena Facci*/
+
+
+
+
+
+select
+
+t.trdnbr,
+t.status,
+
+i.instype,
+ic.insid'Curr_1',
+tc.insid'Curr_2',
+t.value_day'Value_Exp_Day',
+(t.quantity)'Curr1_Amount'
+
+
+
+from
+trade t,
+instrument i,
+instrument tc,
+instrument ic
+
+
+where
+
+match_filter(t, @Filter{YieldX_Live Trades FXY;tradefilter.fltid}) 
+
+and t.insaddr = i.insaddr
+
+and i.instype = 'Curr'
+
+and t.curr = tc.insaddr
+and i.curr = ic.insaddr
+and t.status not in ('Simulated','Void')
+
+
+
+order by ic.insid, tc.insid
+
+
+union
+
+select
+
+t.trdnbr,
+t.status,
+
+i.instype,
+ic.insid'Curr_1',
+tc.insid'Curr_2',
+i.exp_day 'Value_Exp_Day',
+(t.quantity*i.contr_size)'Curr1_Amount'
+
+
+
+from
+trade t,
+instrument i,
+instrument tc,
+instrument ic
+
+
+where
+
+match_filter(t, @Filter{YieldX_Live Trades FXY;tradefilter.fltid}) 
+
+and t.insaddr = i.insaddr
+
+and i.instype = 'Future/Forward'
+
+and i.und_insaddr = tc.insaddr
+and i.curr = ic.insaddr
+and t.status not in ('Simulated','Void')
+
+
+
+order by ic.insid, tc.insid
+
+

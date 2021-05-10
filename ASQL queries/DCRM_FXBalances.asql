@@ -1,0 +1,76 @@
+/*------------------------------------------------------------------
+    DCRM_FXBalances
+
+    This query selects the distinct PV balance, per currency 
+    per portfolio, per instrument, excluding FX Options.
+    The result is used in the DCRM Hedge Feeds.
+
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+	ael_i(p,'ASQL_log','DCRM_FXBalances') 'Name'
+into  
+	ASQL_LOG_TEMP
+from 
+	TextObject p 
+where 
+	p.name = 'DCRM_FXBalances' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+	convert('time', @3_ValueDate{Today} ,'%Y%m%d')	            'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	Select the distinct currencies per portfolio per instrument, excluding FX Options
+------------------------------------------------------------------*/
+select distinct
+    display_id(t,'prfnbr') 'Portfolio',
+    i.insaddr   'ProductID',
+    i.insid     'Instrument',
+    curr.insid  'Curr'
+into
+    currPerPort
+from
+    trade       t,
+    instrument	curr,
+    instrument  i
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid} , @2_TrdNbrs{})
+and not(i.instype = 'Option' and i.und_instype = 'Curr' and date_add_banking_day(i.exp_day, 'ZAR', i.pay_day_offset)>Today)
+and i.insaddr = t.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+/*------------------------------------------------------------------
+	Select the distinct balance per currency per portfolio per instrument
+------------------------------------------------------------------*/
+select distinct
+    cpp.Curr                                                                        'Currency',
+    ael_f(,'DCRM_FXBalances.getBalance',cpp.Curr,cpp.Portfolio,cpp.Instrument)      'Amount',
+    cpp.Portfolio                                                                   'BusinessLine',
+    cpp.ProductID                                                                   'ProductID',
+    m.ValueDate                                                                     'BussinessDate'
+from
+    currPerPort cpp,
+    macros      m

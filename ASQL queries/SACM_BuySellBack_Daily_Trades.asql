@@ -1,0 +1,112 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_BuySellBack_Daily_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_BuySellBack_Daily_Trades' and p.type = 'SQL Query' 
+/* SACM_BuySellBack_Daily_Trades: last updated on Wed May 12 08:41:45 2004. Extracted by Stowaway on 2004-06-04.*/
+
+/*
+purpose:
+    
+- Aaeda Salejee CR795118 - 
+
+Department and Desk: OPS, OPS, OPS
+Requester: Miguel da Silva, Miguel da Silva, Sipho Ndlalane
+Developer: Anil Parbhoo, Aaeda Salejee, Willie van der Bank
+Change: 713436
+        - Report to exclude trades pertaining to PB portfolios (i.e. Portfolio = PB_*) and reflect portfolio add info fields
+        - Replace CP with Portfolio name from the PB agency trade if the trans ref points to a prime services trade
+        - Replace Host ID with the Nutron Client Code (i.e. value on “AgencyTradPrincipal” field) from the PB agency trade if the trans ref points to a prime services trade
+        - in the case of a transref for a non PB portfolio reflect the Unexcor code of the portfolio add info field of the PB agency trade
+      : 795118
+        - Added a default filter (SACM_BuySellBack_Daily_Trades), only returns ABCAP trades.
+      : 128652, 2012-04-12
+        - Added Cpty UnexCor Code
+*/
+
+select
+	t.trdnbr							'Trade',
+	time_to_day(t.time)						'DealDate',
+	i.instype = 'BuySellback' ? nominal_amount(t) : (i.ref_value * t.quantity)	'Nominal',
+	i.insid								'Instrument',
+	i.instype							'RepoType',
+	t.quantity							'qty',
+	t.value_day							'Start_date',
+	i.exp_day							'End_date',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr) 'Counterparty',
+	t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)	'HOST_ID',
+	i.instype = 'BuySellback' ? i.rate : l.fixed_rate		'REPO_RATE',
+	i.instype = 'BuySellback' ? t.price : i.ref_price		'Start_rate',
+	i.instype = 'BuySellback' ? i.ref_price : to_double('0.0')	'End_rate',
+	clean_from_yield(und,t.value_day,,,t.price)			'CleanLeg1_B',
+	dirty_from_yield(und,t.value_day,,,t.price)			'AllinLeg1_B',
+	clean_from_yield(und,i.exp_day,,,i.ref_price)			'CleanLeg2_B',
+	dirty_from_yield(und,i.exp_day,,,i.ref_price)			'AllinLeg2_B',
+	clean_from_yield(und,t.value_day,,,i.ref_price)			'CleanLeg1_R',
+	dirty_from_yield(und,t.value_day,,,i.ref_price)			'AllinLeg1_R',
+	to_double('0.0')						'CleanLeg2_R',
+	to_double('0.0')						'AllinLeg2_R',
+	t.premium							'Start_cash',
+	i.instype = 'BuySellback' ? (i.ref_value*t.quantity) : to_double('0.0')	'End_cash',
+	(((i.instype = 'BuySellback' ? i.rate : l.fixed_rate) * t.premium * days_between(t.value_day, i.exp_day, 'Act/365')/36500)* -1)	'Interest',
+	t.status							'Status',
+	p.prfid						'Portfolio',
+    add_info(t,'Confo Date Sent') 'ConfoDateSent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'ConfoText'	,
+    t.trx_trdnbr 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+into
+	temp
+from
+	trade		t,
+	instrument	i,
+	leg		    l,
+	party		party,
+	instrument	und,
+	portfolio   p
+where
+        match_filter(t, @Tradefilter{SACM_BuySellBack_Daily_Trades;tradefilter.fltid})
+    and	i.insaddr=t.insaddr
+    and	i.insaddr*=l.insaddr
+    and t.counterparty_ptynbr=party.ptynbr
+    and i.und_insaddr=und.insaddr
+    and @CaptureDate{Today;}=time_to_day(t.time)
+    and und.instype in ('Bond','IndexLinkedBond')
+    and p.prfnbr=t.prfnbr
+
+select
+	t.Trade,
+	t.DealDate,
+	t.Nominal,
+	t.Instrument,
+	t.RepoType = 'BuySellback' ? (t.qty >= 0 ? 'BuySellback' : 'SellBuyback') : (t.qty >= 0 ? 'ReverseRepo' : 'Repo')	'RepoType',
+	t.Start_date,
+	t.End_date,
+	t.Counterparty,
+	t.HOST_ID,
+	t.REPO_RATE,
+	convert('double', t.Start_rate)						'Start_rate',
+	convert('double', t.RepoType = 'BuySellback' ? t.End_rate : '')		'End_rate',
+	convert('double', t.RepoType = 'BuySellback' ? t.CleanLeg1_B : t.CleanLeg1_R)		'CleanLeg1',
+	convert('double', t.RepoType = 'BuySellback' ? t.AllinLeg1_B : t.AllinLeg1_R)		'AllinLeg1',
+	convert('double', t.RepoType = 'BuySellback' ? t.CleanLeg2_B : '')		'CleanLeg2',
+	convert('double', t.RepoType = 'BuySellback' ? t.AllinLeg2_B : '')		'AllinLeg2',
+	t.Start_cash,
+	t.RepoType = 'BuySellback' ? t.End_cash : (t.Start_cash * -1) + t.Interest	'End_cash',
+	t.RepoType = 'BuySellback' ? ((t.AllinLeg1_B * t.Nominal/100) + t.Start_cash) + ((t.AllinLeg2_B * t.Nominal/100) - t.End_cash)
+				   : (t.Interest + (t.Start_cash * -1) - ((t.Start_cash * -1) + t.Interest))		'Diff_in_Premium',
+    /*((t.AllinLeg1 * t.Nominal / 100) + t.Start_Cash) + ((t.AllinLeg2 * -1 * t.Nominal / 100) + (i.instype = 'BuySellback' ? t.End_cash : (t.Start_cash * -1) + t.Interest))	'Diff_in_Premium',*/
+	t.Status,
+    /*t.Interest,*/
+	t.Portfolio,
+    t.ConfoDateSent    'Confo Date Sent',    
+    t.ConfoText   'Confo Text',
+    t.Trans_Ref,
+    t.AgencyTradPrincipal,
+    t.CapMkt_Unexcor_Code,
+    t.UnexCor_Code
+from
+	temp t

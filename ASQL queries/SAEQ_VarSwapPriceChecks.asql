@@ -1,0 +1,55 @@
+/*
+Purpose: 		to collate price entries on ZAR 9606 varswaps with respective reuters closing index values as a valuation validation 
+Department and Desk: 	FO trading and EQD MO
+Requester:		Andrey Chechin
+Developer:		Marko Milutinovic
+CR Number:		C000000221703
+
+Date:			04/02/2010
+
+*/
+
+
+select distinct
+
+ee.date 'Dates',
+ee.value 'IndexValues',
+i.insid 'Instrument',
+p.settle 'Index Spot Price Entry',
+abs(ee.value - p.settle)<0.01?'TRUE':'FALSE' 'Value CHECK'
+
+from
+
+ExoticEvent ee,
+Instrument i,
+Trade t,
+Price p,
+Party pp,
+instrument u,
+instrument c
+
+where
+
+i.insaddr = ee.insaddr
+and
+t.insaddr = i.insaddr
+and
+i.instype = 'VarianceSwap'
+and
+match_portfolio(t,@Portfolio{;Portfolio.prfid})
+and
+time_to_day(i.exp_time) >= @VarSwapExpiry{2010-02-04}
+and
+u.insaddr = p.insaddr
+and
+u.insaddr = i.und_insaddr
+and
+pp.ptynbr = p.ptynbr
+and
+pp.ptyid = 'SPOT'
+and
+p.day = ee.date
+and
+c.insid = 'ZAR'
+and
+i.curr = c.insaddr

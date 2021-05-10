@@ -1,0 +1,14 @@
+[ACL]FBond:counterPartyRiskEndDate = nil;
+[ACL]FCashFlowInstrument:counterPartyRiskEndDate = faclAttrMaturityDateUnformatted;
+[ACL]FCurrency:counterPartyRiskEndDate = nil;
+[ACL]FFra:counterPartyRiskEndDate = nil;
+[ACL]FFrn:counterPartyRiskEndDate = nil;
+[ACL]FInstrument:counterPartyRiskEndDate = nil;
+[ACL]FOption:counterPartyRiskEndDate = select(isSwaption, 
+  false->nil, 
+  true->faclAttrSwapMaturityDateUnformatted);
+[ACL]FTrade:counterPartyRiskEndDate = select(instrument:counterPartyRiskEndDate, 
+  nil->select(object.IsFxSwap, 
+    false->faclAttrSettlementDateUnformatted, 
+    default->faclAttrFarSettlementDateUnformatted), 
+  default->instrument:counterPartyRiskEndDate);

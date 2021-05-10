@@ -1,0 +1,75 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 627760
+----------------------------------------------------------------------------------------------------------------
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------------------------------
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+2021-03-11     CHG0158547       Thando Mpalala     Andile Biyana      https://absa.atlassian.net/browse/FAFO-41
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_CFD') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_CFD' and p.type = 'SQL Query'
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+    
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_CFD.OpenFile',@1_path{'f:\'},@2_FileName{'MR_CFD.csv'},@3_PositionName{'MR_CFD_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(t,'MR_CFD.Write',@1_path{'f:\'},@2_FileName{'MR_CFD.csv'},@3_PositionName{'MR_CFD_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+    Instrument i,
+    Trade t,
+    portfolio p,
+    valid_portfolios vp
+Where
+    /* Basic filtering conditions */
+    i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and t.prfnbr = vp.prfnbr
+And t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+And (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('CFD')
+And ael_i(p,'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GRAVEYARD') = 0
+/*And t.execution_time < to_string(Today,' ','19:00:00')*/
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select     * 
+From     Macro
+Where Process In ('Create File','Close File')

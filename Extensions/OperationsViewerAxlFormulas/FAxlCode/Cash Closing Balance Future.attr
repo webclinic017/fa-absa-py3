@@ -1,0 +1,20 @@
+[OperationsViewerAxlFormulas]FObject:Cash Closing Balance Future
+{
+  DisplayInformation:
+  {
+    Label:'Closing Balance Future',
+    GroupLabel:'Cash',
+    Description:'Total active cash.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(If(Compare.IsEqual(&'activeCashExtAttr', True), &'amount', 0.0)), AttributeDimensions = AttributeList(['curr']));
+
+...

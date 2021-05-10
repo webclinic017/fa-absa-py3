@@ -1,0 +1,248 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAAGRI_Cashflow_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAAGRI_Cashflow_Report' and p.type = 'SQL Query' 
+
+/*Description
+Date        Issue#      CR#         Who             What
+2009-09-04  1904                    Heinrich Cronje Created
+
+This is the cash flow report for Agris Desk.
+A trade filter will be given and all premiums
+and additional payments needs to pull through
+with pay day within the specified dated.
+*/
+
+/*********** Macro ***********/
+select
+    @1_StartDay{Yesterday}  'StartDay',
+    @2_EndDay{Today}    'EndDay'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*********** List of Trades ***********/
+select
+	t.trdnbr,
+	i.insid,
+	i.instype,
+	t.premium,
+	t.price,
+	nominal_amount(t)   'nominal',
+	t.quantity,
+	t.time,
+	i.exp_day,
+	display_id(t,'prfnbr')  'portfolio',
+    t.status,
+	display_id(t, 'acquirer_ptynbr')	'acquirer',
+	display_id(t, 'counterparty_ptynbr')    'counterparty',
+    display_id(t,'trader_usrnbr') 'trader',
+    add_info(t,'AgriSiloLocation')  'agri_Silo_Location',
+    add_info(t,'AgriStatus') 'agri_Status',
+    add_info(t,'AgriTransportDiff') 'agri_Transport_Diff'
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i
+where
+        match_filter(t, @7_Filter{;tradefilter.fltid*})
+    and	i.insaddr = t.insaddr
+    and	('All' in (@8_Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@8_Instype{}))
+    and	t.status not in ('Simulated','Terminated','Void')
+
+/*********** Premiums ***********/
+select
+    trd.trdnbr,
+	trd.insid,
+    trd.instype,
+	trd.premium	'amount',
+	'Premium'	'CFType',
+	trd.price,
+	trd.nominal,
+	trd.quantity,
+    trd.time,
+	t.value_day   'value_day',
+	trd.exp_day,
+	trd.portfolio,
+	trd.status,
+	trd.acquirer,
+	trd.counterparty,
+    trd.trader,
+    trd.agri_Silo_Location,
+    trd.agri_Status,
+    trd.agri_Transport_Diff
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd
+where
+        t.trdnbr = trd.trdnbr
+    and	t.premium ~= 0.0
+    and	t.insaddr = i.insaddr
+
+/*********** Additional Payments ***********/
+select
+    trd.trdnbr,
+	trd.insid,
+    trd.instype,
+	p.amount,
+	'Additional_Payment'  'CFType',
+	trd.price,
+	trd.nominal,
+	trd.quantity,
+    trd.time,
+	p.payday   'value_day',
+	trd.exp_day,
+	trd.portfolio,
+	trd.status,
+	trd.acquirer,
+	trd.counterparty,
+    trd.trader,
+    trd.agri_Silo_Location,
+    trd.agri_Status,
+    trd.agri_Transport_Diff
+into 
+	CF
+from
+	payment p,
+	TRD trd
+where
+    p.trdnbr = trd.trdnbr
+
+/*********** Final Selection ***********/
+select
+	'Total by Instype'		'Section',	
+	c.trdnbr,
+	c.insid,
+	c.instype,
+	sum(c.amount)   'amount',
+	c.CFType    'type',
+    c.price,
+	c.nominal,
+	c.quantity,
+    c.time,
+    c.value_day,
+    c.exp_day,
+	c.portfolio,
+	c.status,
+    c.acquirer,
+	c.counterparty,
+    c.trader,
+    c.agri_Silo_Location,
+    c.agri_Status,
+    c.agri_Transport_Diff
+from
+	CF c,
+	macros m
+where
+    	c.value_day <= m.EndDay
+    and	c.value_day >= m.StartDay
+    and	@3_Show_TOTALInstype{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+group by 1,2,3,4
+
+union
+
+select
+	'Details'		'Section',
+	c.trdnbr,
+	c.insid,
+	c.instype,
+	c.amount,
+	c.CFType    'type',
+    c.price,
+	c.nominal,
+	c.quantity,
+    c.time,
+    c.value_day,
+    c.exp_day,
+	c.portfolio,
+	c.status,
+    c.acquirer,
+	c.counterparty,
+    c.trader,
+    c.agri_Silo_Location,
+    c.agri_Status,
+    c.agri_Transport_Diff
+from
+	CF c,
+	macros m
+where 	
+        c.value_day <= m.EndDay
+    and	c.value_day >= m.StartDay
+    and	@4_Show_TradeDetail{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+union
+
+select
+	'Total by Curr' 	'Section',
+	c.trdnbr,
+	c.insid,
+	c.instype,
+	sum(c.amount)   'amount',
+	c.CFType    'type',
+    c.price,
+	c.nominal,
+	c.quantity,
+    c.time,
+    c.value_day,
+    c.exp_day,
+	c.portfolio,
+	c.status,
+    c.acquirer,
+	c.counterparty,
+    c.trader,
+    c.agri_Silo_Location,
+    c.agri_Status,
+    c.agri_Transport_Diff
+from
+	CF c,
+	macros m
+where
+        c.value_day <= m.EndDay
+    and	c.value_day >= m.StartDay
+    and	@5_Show_TotalCurr{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+group by 3
+
+union
+
+select
+	'Total by Trade' 	'Section',
+	c.trdnbr,
+	c.insid,
+	c.instype,
+	sum(c.amount)   'amount',
+	c.CFType    'type',
+    c.price,
+	c.nominal,
+	c.quantity,
+    c.time,
+    c.value_day,
+    c.exp_day,
+	c.portfolio,
+	c.status,
+    c.acquirer,
+	c.counterparty,
+    c.trader,
+    c.agri_Silo_Location,
+    c.agri_Status,
+    c.agri_Transport_Diff
+from
+	CF c,
+	macros m
+where
+        c.value_day <= m.EndDay
+    and	c.value_day >= m.StartDay
+    and	@6_Show_TotalTrade{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+group by c.trdnbr

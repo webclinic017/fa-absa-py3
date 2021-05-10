@@ -1,0 +1,4 @@
+[CVA]FCreditBalance:theoreticalModelCallCVAWithIncrementalTrades = scenarioaxis(theoreticalModelCallCVA, <["incrementalTrdsList"], , , incTrds>);
+[CVA]FTrade:theoreticalModelCallCVAWithIncrementalTrades = switch(nil == matchingCreditBalanceInstrument, 
+  true->throwError("No matching Credit Balance instrument found."), 
+  false->matchingCreditBalanceInstrument:theoreticalModelCallCVAWithIncrementalTrades [incTrds := incrementalTrdsList]);

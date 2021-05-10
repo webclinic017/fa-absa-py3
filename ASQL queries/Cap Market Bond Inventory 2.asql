@@ -1,0 +1,405 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Cap Market Bond Inventory 2') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Cap Market Bond Inventory 2' and p.type = 'SQL Query' 
+ 
+  select
+
+    /*@DisplayCumulativeOverall{yes;'Yes','No'}     'DCO',*/
+    'Yes'                                            'DCO',
+    @DisplayCumulativePortfolio{Yes;'Yes','No'}     'DCP',
+    @DisplayperTrade{No;'Yes','No'}     'DPT'
+
+into macros 
+
+from serverdata s
+
+where s.srdnbr > 0
+    
+
+/* DATES */
+select
+        i.insid,
+        date_add_banking_day(today,i.insid,-6)  'dm6',
+        date_add_banking_day(today,i.insid,-5)  'dm5',
+        date_add_banking_day(today,i.insid,-4)  'dm4',
+        date_add_banking_day(today,i.insid,-3)  'dm3',
+        date_add_banking_day(today,i.insid,-2)  'dm2',
+        date_add_banking_day(today,i.insid,-1)  'dm1',
+        date_add_banking_day(today,i.insid,0)   'd0',
+        date_add_banking_day(today,i.insid,1)   'd1',
+        date_add_banking_day(today,i.insid,2)   'd2',
+        date_add_banking_day(today,i.insid,3)   'd3',
+        date_add_banking_day(today,i.insid,4)   'd4',
+        date_add_banking_day(today,i.insid,5)   'd5',
+        date_add_delta(TODAY,14,0,0)            'd2w',
+        date_add_delta(TODAY,21,0,0)            'd3w',
+        date_add_delta(TODAY,0,1,0)             'd1m',
+        date_add_delta(TODAY,0,2,0)             'd2m',
+        date_add_delta(TODAY,0,3,0)             'd3m',
+        date_add_delta(TODAY,0,6,0)             'd6m'
+
+into 	Dates
+from    instrument i
+where   i.insid = 'ZAR'
+
+ 
+
+
+/* OVERALL CUMULATIVE */
+select
+	@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802','CredDer_All','Portfolio Risk Management','JOB12'}
+					'Portfolio',
+					
+	'Cumulative' 'TradeNumber',
+i.instype in ('Collateral','Repo/Reverse','SecurityLoan','BuySellback') ? ui.insid : i.insid 	'Security',
+        sum(position(t,,,,,1))            						'Total',
+        sum(position(t,,,,d.dm5,/*@OpenDays[]*/))    				'dm5',
+        sum(position(t,,,,d.dm4,/*@OpenDays[]*/))    				'dm4',
+        sum(position(t,,,,d.dm3,/*@OpenDays[]*/))     				'dm3',
+        sum(position(t,,,,d.dm2,/*@OpenDays[]*/))     				'dm2',
+        sum(position(t,,,,d.dm1,/*@OpenDays[]*/))     				'dm1',
+        sum(position(t,,,,d.d0,/*@OpenDays[]*/))     				'Current',
+        sum(position(t,,,,d.d1,/*@OpenDays[]*/))     				'd1',
+        sum(position(t,,,,d.d2,/*@OpenDays[]*/))     				'd2',
+        sum(position(t,,,,d.d3,/*@OpenDays[]*/))     				'd3',
+        sum(position(t,,,,d.d4,/*@OpenDays[]*/))     				'd4',
+        sum(position(t,,,,d.d5,/*@OpenDays[]*/))     				'd5',
+        sum(position(t,,,,d.d2w,/*@OpenDays[]*/))    				'w2',
+        sum(position(t,,,,d.d3w,/*@OpenDays[]*/))   				'w3',
+        sum(position(t,,,,d.d1m,/*@OpenDays[]*/))   				'm1',
+        sum(position(t,,,,d.d2m,/*@OpenDays[]*/))    				'm2',
+        sum(position(t,,,,d.d3m,/*@OpenDays[]*/))    				'm3',
+        sum(position(t,,,,d.d6m,/*@OpenDays[]*/))    				'm6'
+INTO	OVERALLCUMULATIVE
+from    
+	trade t,
+	instrument i,
+	instrument ui,
+        Dates d
+where
+         match_filter(t,@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802','CredDer_All','Portfolio Risk Management','JOB12'})
+and	t.insaddr = i.insaddr
+and	ui.insaddr =* i.und_insaddr
+and 	(i.instype in (/*'Collateral',*/'Repo/Reverse'/*,'SecurityLoan'*/,'BuySellback','Bond','IndexLinkedBond'/*,'FRN'*/)
+         /*or (i.instype in ('Zero','IndexLinkedBond') and i.isin ~= '')*/)
+
+
+
+
+GROUP BY 3
+ORDER BY 3
+
+
+
+
+
+/* PER PORTFOLIO CUMULATIVE */
+
+
+select
+	display_id(t,'prfnbr')							'Portfolio',
+	'Cumulative' 'TradeNumber',
+    i.instype in ('Collateral','Repo/Reverse','SecurityLoan','BuySellback') ? ui.insid : i.insid 	'Security',
+        sum(position(t,,,,,1))            						'Total',
+        sum(position(t,,,,d.dm5,/*@OpenDays[]*/))     				'dm5',
+        sum(position(t,,,,d.dm4,/*@OpenDays[]*/))     				'dm4',
+        sum(position(t,,,,d.dm3,/*@OpenDays[]*/))     				'dm3',
+        sum(position(t,,,,d.dm2,/*@OpenDays[]*/))     				'dm2',
+        sum(position(t,,,,d.dm1,/*@OpenDays[]*/))     				'dm1',
+        sum(position(t,,,,d.d0,/*@OpenDays[]*/))     				'Current',
+        sum(position(t,,,,d.d1,/*@OpenDays[]*/))     				'd1',
+        sum(position(t,,,,d.d2,/*@OpenDays[]*/))     				'd2',
+        sum(position(t,,,,d.d3,/*@OpenDays[]*/))     				'd3',
+        sum(position(t,,,,d.d4,/*@OpenDays[]*/))     				'd4',
+        sum(position(t,,,,d.d5,/*@OpenDays[]*/))     				'd5',
+        sum(position(t,,,,d.d2w,/*@OpenDays[]*/))    				'w2',
+        sum(position(t,,,,d.d3w,/*@OpenDays[]*/))    				'w3',
+        sum(position(t,,,,d.d1m,/*@OpenDays[]*/))   				'm1',
+        sum(position(t,,,,d.d2m,/*@OpenDays[]*/))    				'm2',
+        sum(position(t,,,,d.d3m,/*@OpenDays[]*/))    				'm3',
+        sum(position(t,,,,d.d6m,/*@OpenDays[]*/))    				'm6'
+INTO	PERPORTFOLIOCUMULATIVE
+from    
+	trade t,
+	instrument i,
+	instrument ui,
+        Dates d
+where
+         match_filter(t,@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802','CredDer_All','Portfolio Risk Management','JOB12'})
+and	t.insaddr = i.insaddr
+and	ui.insaddr =* i.und_insaddr
+and 	(i.instype in (/*'Collateral',*/'Repo/Reverse'/*,'SecurityLoan'*/,'BuySellback','Bond','IndexLinkedBond'/*,'FRN'*/)
+         /*or (i.instype in ('Zero','IndexLinkedBond') and i.isin ~= '')*/)
+
+
+
+
+
+GROUP BY 1,3
+ORDER BY 1,3
+
+
+/* PER TRADE */
+
+
+select
+	display_id(t,'prfnbr')							'Portfolio',
+	t.trdnbr 'TradeNumber',
+    i.instype in ('Collateral','Repo/Reverse','SecurityLoan','BuySellback') ? ui.insid : i.insid 	'Security',
+        sum(position(t,,,,,1))            						'Total',
+        sum(position(t,,,,d.dm5,/*@OpenDays[]*/))     				'dm5',
+        sum(position(t,,,,d.dm4,/*@OpenDays[]*/))     				'dm4',
+        sum(position(t,,,,d.dm3,/*@OpenDays[]*/))     				'dm3',
+        sum(position(t,,,,d.dm2,/*@OpenDays[]*/))     				'dm2',
+        sum(position(t,,,,d.dm1,/*@OpenDays[]*/))     				'dm1',
+        sum(position(t,,,,d.d0,/*@OpenDays[]*/))     				'Current',
+        sum(position(t,,,,d.d1,/*@OpenDays[]*/))     				'd1',
+        sum(position(t,,,,d.d2,/*@OpenDays[]*/))     				'd2',
+        sum(position(t,,,,d.d3,/*@OpenDays[]*/))     				'd3',
+        sum(position(t,,,,d.d4,/*@OpenDays[]*/))     				'd4',
+        sum(position(t,,,,d.d5,/*@OpenDays[]*/))     				'd5',
+        sum(position(t,,,,d.d2w,/*@OpenDays[]*/))    				'w2',
+        sum(position(t,,,,d.d3w,/*@OpenDays[]*/))    				'w3',
+        sum(position(t,,,,d.d1m,/*@OpenDays[]*/))   				'm1',
+        sum(position(t,,,,d.d2m,/*@OpenDays[]*/))    				'm2',
+        sum(position(t,,,,d.d3m,/*@OpenDays[]*/))    				'm3',
+        sum(position(t,,,,d.d6m,/*@OpenDays[]*/))    				'm6'
+INTO	PERTRADECUMULATIVE
+from    
+	trade t,
+	instrument i,
+	instrument ui,
+        Dates d
+where
+         match_filter(t,@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802','CredDer_All','Portfolio Risk Management','JOB12'})
+and	t.insaddr = i.insaddr
+and	ui.insaddr =* i.und_insaddr
+and 	(i.instype in (/*'Collateral',*/'Repo/Reverse'/*,'SecurityLoan'*/,'BuySellback','Bond','IndexLinkedBond'/*,'FRN'*/)
+         /*or (i.instype in ('Zero','IndexLinkedBond') and i.isin ~= '')*/)
+
+
+
+
+
+/******************************************************************Output********************************/
+/********************************Overall**********************/
+
+
+select 	'CUMULATIVE'		'Portfolio',
+'TradeNumber'    'Trade Number',
+	'OVERALL'		'Instrument',
+	''		'Total',
+	/*convert('date',dm5)	'-5d',
+	convert('date',dm4)	'-4d',
+	convert('date',dm3)	'-3d',
+	convert('date',dm2)	'-2d',
+	convert('date',dm1)	'-1d',*/
+	convert('date',d0)	'Today',
+	convert('date',d1)	'+1d',
+	convert('date',d2)	'+2d',
+	convert('date',d3)	'+3d',
+	convert('date',d4)	'+4d',
+	convert('date',d5)	'+5d',
+	convert('date',d2w)	'+2w',
+	convert('date',d3w)	'+3w',
+	convert('date',d1m)	'+1m',
+	convert('date',d2m)	'+2m',
+	convert('date',d3m)	'+3m',
+	convert('date',d6m)	'+6m'
+from
+	dates, macros m
+where m.DCO in ('Yes','y','yes','YES','Y')
+and '' ~= 0
+
+	
+
+union
+select
+	        @Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802','CredDer_All','Portfolio Risk Management','JOB12'}
+		'Portfolio',
+		'Cumulative'    'Trade Number',
+	Security		 	'Security',
+        (convert('double',round(total)))   	'Total',
+        /*convert('double',dm5)		'dm5',
+        convert('double',dm4)		'dm4',
+        convert('double',dm3)		'dm3',
+        convert('double',dm2) 		'dm2',
+        convert('double',dm1)		'dm1',*/
+        convert('double',round(current)) 	'Current',
+        convert('double',round(d1)) 		'd1',
+        convert('double',round(d2)) 		'd2',
+        convert('double',round(d3))		'd3',
+        convert('double',round(d4)) 	'd4',
+        convert('double',round(d5))		'd5',
+        convert('double',round(w2))		'2w',
+        convert('double',round(w3))		'3w',
+        convert('double',round(m1))		'1m',
+        convert('double',round(m2))		'2m',
+        convert('double',round(m3))		'3m',
+        convert('double',round(m6))		'6m'
+from    
+	OVERALLCUMULATIVE, macros m ,Instrument
+where m.DCO in ('Yes','y','yes','YES','Y')
+     and OVERALLCUMULATIVE.Security = Instrument.insid
+     and Instrument.exp_day > today
+     and (
+       convert('double',round(total)) ~= 0
+    or convert('double',round(current)) ~= 0
+    or convert('double',round(d1)) ~= 0
+    or convert('double',round(d2)) ~= 0
+    or convert('double',round(d3)) ~= 0
+    or convert('double',round(d4)) ~= 0  
+    or convert('double',round(d5)) ~= 0
+    or convert('double',round(w2)) ~= 0
+    or convert('double',round(w3)) ~= 0
+    or convert('double',round(m1)) ~= 0 )
+ 
+
+union
+
+/********************************************************Per Portfolio***************/
+    
+ select 	'CUMULATIVE'		'Portfolio',
+ 'TradeNumber'    'Trade Number',
+	'PER PORTFOLIO'		'Instrument',
+	''		'Total',
+	/*convert('date',dm5)	'-5d',
+	convert('date',dm4)	'-4d',
+	convert('date',dm3)	'-3d',
+	convert('date',dm2)	'-2d',
+	convert('date',dm1)	'-1d',*/
+	convert('date',d0)	'Today',
+	convert('date',d1)	'+1d',
+	convert('date',d2)	'+2d',
+	convert('date',d3)	'+3d',
+	convert('date',d4)	'+4d',
+	convert('date',d5)	'+5d',
+	convert('date',d2w)	'+2w',
+	convert('date',d3w)	'+3w',
+	convert('date',d1m)	'+1m',
+	convert('date',d2m)	'+2m',
+	convert('date',d3m)	'+3m',
+	convert('date',d6m)	'+6m'
+
+from
+	dates, macros m
+where m.DCP in ('Yes','y','yes','YES','Y')
+
+
+
+union
+select
+	PORTFOLIO		'Portfolio',
+	'Cumulative'    'Trade Number',
+	Security		 	'Security',
+        (convert('double',round(total)))   	'Total',
+        /*convert('double',dm5)		'dm5',
+        convert('double',dm4)		'dm4',
+        convert('double',dm3)		'dm3',
+        convert('double',dm2) 		'dm2',
+        convert('double',dm1)		'dm1',*/
+        convert('double',round(current)) 	'Current',
+        convert('double',round(d1)) 		'd1',
+        convert('double',round(d2)) 		'd2',
+        convert('double',round(d3))		'd3',
+        convert('double',round(d4)) 	'd4',
+        convert('double',round(d5))		'd5',
+        convert('double',round(w2))		'2w',
+        convert('double',round(w3))		'3w',
+        convert('double',round(m1))		'1m',
+        convert('double',round(m2))		'2m',
+        convert('double',round(m3))		'3m',
+        convert('double',round(m6))		'6m'
+
+from    
+	PERPORTFOLIOCUMULATIVE, macros m , Instrument
+where m.DCP in ('Yes','y','yes','YES','Y')
+    and  PERPORTFOLIOCUMULATIVE.Security = Instrument.insid
+    and Instrument.exp_day > today
+    and (
+       convert('double',round(total)) ~= 0
+    or convert('double',round(current)) ~= 0
+    or convert('double',round(d1)) ~= 0
+    or convert('double',round(d2)) ~= 0
+    or convert('double',round(d3)) ~= 0
+    or convert('double',round(d4)) ~= 0  
+    or convert('double',round(d5)) ~= 0
+    or convert('double',round(w2)) ~= 0
+    or convert('double',round(w3)) ~= 0
+    or convert('double',round(m1)) ~= 0 )    
+    
+    union
+    
+/*********************************************************Per Trade**************************/
+ 
+
+select 	'Portfolio'		'Portfolio',
+ 'TradeNumber'    'Trade Number',
+	'Instrument'		'Instrument',
+	''		'Total',
+	/*convert('date',dm5)	'-5d',
+	convert('date',dm4)	'-4d',
+	convert('date',dm3)	'-3d',
+	convert('date',dm2)	'-2d',
+	convert('date',dm1)	'-1d',*/
+	convert('date',d0)	'Today',
+	convert('date',d1)	'+1d',
+	convert('date',d2)	'+2d',
+	convert('date',d3)	'+3d',
+	convert('date',d4)	'+4d',
+	convert('date',d5)	'+5d',
+	convert('date',d2w)	'+2w',
+	convert('date',d3w)	'+3w',
+	convert('date',d1m)	'+1m',
+	convert('date',d2m)	'+2m',
+	convert('date',d3m)	'+3m',
+	convert('date',d6m)	'+6m'
+
+from
+	dates, macros m
+where m.DPT in ('Yes','y','yes','YES','Y')
+
+    
+union
+select
+	PORTFOLIO		'Portfolio',
+	convert('double',TradeNumber),
+	Security		 	'Security',
+        (convert('double',round(total)))   	'Total',
+        /*convert('double',dm5)		'dm5',
+        convert('double',dm4)		'dm4',
+        convert('double',dm3)		'dm3',
+        convert('double',dm2) 		'dm2',
+        convert('double',dm1)		'dm1',*/
+        convert('double',round(current)) 	'Current',
+        convert('double',round(d1)) 		'd1',
+        convert('double',round(d2)) 		'd2',
+        convert('double',round(d3))		'd3',
+        convert('double',round(d4)) 	'd4',
+        convert('double',round(d5))		'd5',
+        convert('double',round(w2))		'2w',
+        convert('double',round(w3))		'3w',
+        convert('double',round(m1))		'1m',
+        convert('double',round(m2))		'2m',
+        convert('double',round(m3))		'3m',
+        convert('double',round(m6))		'6m'
+
+from    
+	PERTRADECUMULATIVE, macros m , Instrument
+where m.DPT in ('Yes','y','yes','YES','Y')
+    and  PERTRADECUMULATIVE.Security = Instrument.insid
+    and Instrument.exp_day > today
+    and (
+       convert('double',round(total)) ~= 0
+    or convert('double',round(current)) ~= 0
+    or convert('double',round(d1)) ~= 0
+    or convert('double',round(d2)) ~= 0
+    or convert('double',round(d3)) ~= 0
+    or convert('double',round(d4)) ~= 0  
+    or convert('double',round(d5)) ~= 0
+    or convert('double',round(w2)) ~= 0
+    or convert('double',round(w3)) ~= 0
+    or convert('double',round(m1)) ~= 0 )    

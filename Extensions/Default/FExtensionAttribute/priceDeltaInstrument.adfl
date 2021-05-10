@@ -1,0 +1,22 @@
+[Default]FCombination:priceDeltaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(priceGreekIncludeQuoteScaling, 
+    true->select(isSupportingQuoteScaling and singlePriceGreekRiskFactorIsSupportingQuoteScaling and not almostZero(singlePriceGreekRiskFactorValueToQuoteFactor, 1e-10), 
+      true->spotValueToQuoteFactor * priceDeltaInstrumentCombination / singlePriceGreekRiskFactorValueToQuoteFactor, 
+      false->denominatedValueZero), 
+    false->collapse(priceDeltaInstrumentCombination)));
+[Default]FInstrument:priceDeltaInstrument = select(isSettled or isCashSettledAndExpired, 
+  true->denominatedValueZero, 
+  false->select(priceGreekIncludeQuoteScaling, 
+    true->select(isSupportingQuoteScaling and singlePriceGreekRiskFactorIsSupportingQuoteScaling and not almostZero(singlePriceGreekRiskFactorValueToQuoteFactor, 1e-10), 
+      true->spotValueToQuoteFactor * priceDeltaInstrumentCore / singlePriceGreekRiskFactorValueToQuoteFactor, 
+      false->denominatedValueZero), 
+    false->collapse(priceDeltaInstrumentCore)));
+[Default]FInstrumentAndTrades:priceDeltaInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceDeltaInstrumentIRD [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling], 
+  false->openInstrumentOrInstrument :* "priceDeltaInstrument" [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekIncludeQuoteScaling]) * combinationInstrumentMapFactorForPriceGreeks;
+[Default]FMultiInstrumentAndTrades:priceDeltaInstrument = denominatedValueZero;
+[Default]FPriceAggregate:priceDeltaInstrument = instrument :* "priceDeltaInstrument" [priceSource, priceGreekIncludeQuoteScaling];
+[Default]FTradeRow:priceDeltaInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceDeltaInstrumentIRD [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling], 
+  false->instrument:priceDeltaInstrument [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, currency = tradeRowCurrency, priceGreekIncludeQuoteScaling]) * combinationInstrumentMapFactorForPriceGreeks;

@@ -1,0 +1,211 @@
+/* Agris_OTC_Options: last updated on Tue Jan 22 09:34:05 2008. Extracted by Stowaway on 18/08/2009.*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Agris_OTC_Options') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Agris_OTC_Options' and p.type = 'SQL Query' 
+
+select
+Today'today',
+i.insid,
+i.mtm_from_feed,
+i.contr_size,
+i.quote_type,
+i.pay_day_offset,
+i.instype,
+cp.ptyid,
+ui.insid 'Underlying',
+t.trdnbr,
+t.status,
+t.value_day'Trade Date',
+t.trader_usrnbr,
+t.quantity'Contracts',
+(t.premium)'Premium',
+p.prfid,
+i.exp_day,
+used_rate(i),
+used_vol(i),
+mtm_price(ui,@todate{TODAY})'Und MtM',
+i.strike_price,
+i.call_option='Yes' ? 'C' : 'P'  'C/P',
+mtm_price(i,@todate{TODAY})'MtM Price Curr',
+
+mtm_value_bo(t,@todate{TODAY})'MtM Curr',
+(mtm_value_bo(t,@todate{TODAY})+t.premium)'P/L Curr',
+
+
+((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY}) : 0 ))'MtM Prev',
+(time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0) 'P/L Prev',
+
+
+
+
+
+
+
+((((mtm_value_bo(t,@todate{TODAY})+t.premium ))-((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0))))'P/L Move'
+
+
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+instrument  ui,
+party cp
+
+where
+
+i.instype = 'Option'
+and i.und_insaddr=ui.insaddr
+and t.type~='Exercise'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+
+and p.prfid='Agris Options OTC' 
+and cp.ptynbr=t.counterparty_ptynbr
+and t.status not in ('Void','Terminated')
+and i.exp_day>=@todate{TODAY}
+order by i.insid,i.exp_day,p.prfid
+
+
+union
+
+
+select
+Today,
+'Sub Total - Underlying',
+i.mtm_from_feed,
+i.contr_size,
+i.quote_type,
+i.pay_day_offset,
+i.instype,
+'',
+ui.insid 'Underlying',
+t.trdnbr,
+t.status,
+t.value_day'Trade Date',
+t.trader_usrnbr,
+t.quantity'Contracts',
+sum(t.premium)'Premium',
+p.prfid,
+i.exp_day,
+used_rate(i),
+used_vol(i),
+mtm_price(ui,@todate{TODAY})'Underlying',
+i.strike_price,
+i.call_option='Yes' ? 'C' : 'P'  'C/P',
+mtm_price(i,@todate{TODAY})'MtM Price Curr',
+
+sum(mtm_value_bo(t,@todate{TODAY}))'MtM Curr',
+sum(mtm_value_bo(t,@todate{TODAY})+t.premium)'P/L Curr',
+
+
+sum((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY}) : 0 ))'MtM Prev',
+sum(time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0) 'P/L Prev',
+
+
+
+
+
+
+
+sum((((mtm_value_bo(t,@todate{TODAY})+t.premium ))-((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0))))'P/L Move'
+
+
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+instrument  ui,
+party cp
+
+where
+
+i.instype = 'Option'
+and i.und_insaddr=ui.insaddr
+and t.type~='Exercise'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.exp_day>=@todate{TODAY}
+and p.prfid='Agris Options OTC' 
+and cp.ptynbr=t.counterparty_ptynbr
+and t.status not in ('Void','Terminated')
+
+group by ui.insid
+
+
+union
+
+
+select
+Today,
+'Total for OTC',
+i.mtm_from_feed,
+i.contr_size,
+i.quote_type,
+i.pay_day_offset,
+i.instype,
+'',
+ui.insid 'Underlying',
+t.trdnbr,
+t.status,
+t.value_day'Trade Date',
+t.trader_usrnbr,
+t.quantity'Contracts',
+sum(t.premium)'Premium',
+p.prfid,
+i.exp_day,
+used_rate(i),
+used_vol(i),
+mtm_price(ui,@todate{TODAY})'Underlying',
+i.strike_price,
+i.call_option='Yes' ? 'C' : 'P'  'C/P',
+mtm_price(i,@todate{TODAY}) 'MtM Price Curr',
+
+sum(mtm_value_bo(t,@todate{TODAY}))'MtM Curr',
+sum(mtm_value_bo(t,@todate{TODAY})+t.premium)'P/L Curr',
+
+
+sum((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY}) : 0 ))'MtM Prev',
+sum(time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0) 'P/L Prev',
+
+
+
+
+
+
+
+sum((((mtm_value_bo(t,@todate{TODAY})+t.premium ))-((time_to_day(t.creat_time)<=@fromdate{YESTERDAY} ? mtm_value_bo(t,@fromdate{YESTERDAY})+t.premium : 0))))'P/L Move'
+
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+instrument  ui,
+party cp
+
+where
+
+i.instype = 'Option'
+and i.und_insaddr=ui.insaddr
+and t.type~='Exercise'
+and i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.exp_day>=@todate{TODAY}
+and p.prfid='Agris Options OTC' 
+and cp.ptynbr=t.counterparty_ptynbr
+and t.status not in ('Void','Terminated')
+
+group by 1
+
+

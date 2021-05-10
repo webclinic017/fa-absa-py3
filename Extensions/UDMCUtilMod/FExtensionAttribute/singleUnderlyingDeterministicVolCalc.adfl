@@ -1,0 +1,7 @@
+[UDMCUtilMod]FInstrument:singleUnderlyingDeterministicVolCalc = select(udmcProcessType, 
+  "LogNorm"->udmcFlatVolatilityCalc, 
+  "LocalVolatility"->select(isApplicableForLocalVolatility, 
+    false->throwError("Volatility surface not supported for Monte Carlo local volatility"), 
+    default->select(udmcSimpleLocalVol, 
+      true->udmcSimpleLocalVolatilityCalc, 
+      default->udmcLocalVolatilityCalc)));

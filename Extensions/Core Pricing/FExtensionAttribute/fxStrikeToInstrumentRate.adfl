@@ -1,0 +1,9 @@
+[Core Pricing]FDerivative:fxStrikeToInstrumentRate = select(strikeCurrency == currency, 
+  true->1.0, 
+  default->select(isPerformancePayoff, 
+    true->object.FxStrikeToInstrumentPerformanceOption(theoreticalInstrumentValueDate), 
+    default->select(useFixFxStrikeToInstrument, 
+      true->object.FixFxRateDV(theoreticalInstrumentValueDate), 
+      default->select(isFXDerivative and underlyingIncludesInstrumentCurrency, 
+        true->fxStrikeToInstrumentFxDerivative, 
+        default->strikeCurrency :* "fxForwardRate" [fxForwardDate = theoreticalInstrumentValueDate, fxToCurrency := currency, priceSource]))));

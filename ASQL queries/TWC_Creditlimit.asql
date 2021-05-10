@@ -1,0 +1,146 @@
+/* update_method=0 */
+/*
+Purpose: [Credit Limit report to be used for checking limit utilisation for TWC]
+Department: [FO MM; Credit Risk - Exposure Management], [FO MM; Credit Risk - Exposure Management]
+Requester: [Marilize Knoetze; Marlin Moodley], [Sipho Sibanyoni]
+Developer: [Bhavnisha Sarawan], [Bhavnisha Sarawan]
+CR Number: [CHNG0002992086 (23/07/2015)], [CHNG000 (//2015)]
+
+
+13/06/2016  Evgeniya Baskaeva   ABITFA-4306: Trade Loans - FA Credit Report
+23/06/2016  Evgeniya Baskaeva   ABITFA-4306: Trade Loans - FA Credit Report: calculate ZAR Limit Utilized as sum of ZAR equivalents
+*/
+
+SELECT
+    ael_i(p,'ASQL_log', 'TWC_CreditLimit') 'Name'
+INTO
+    ASQL_LOG_TEMP
+FROM
+    TextObject p
+WHERE 
+        p.name = 'SAMM_CreditLimit_TWC' 
+    AND p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+                           FX Rates
+------------------------------------------------------------------*/
+
+SELECT
+    hc.insid                            'hcurr',
+    curr.insid                          'curr',
+    used_price(hc, today, curr.insid)   'fxRepDay'
+
+INTO
+    fxrates
+FROM
+    instrument  hc,
+    instrument  curr
+WHERE
+        hc.insid = 'ZAR'
+    AND curr.instype = 'Curr'
+
+
+/*------------------------------------------------------------------
+                       Credit Limit Trades
+------------------------------------------------------------------*/
+
+SELECT
+    t.trdnbr,
+    display_id(t, 'counterparty_ptynbr')                'counterparty',
+    display_id(t, 'acquirer_ptynbr')                    'acquirer',
+    curr.insid                                          'currency',
+    nominal_amount(t)                                   'nominal_amount',
+    nominal_amount(t)/fx.fxRepDay                       'nominal_amount_zar',
+    to_string(projected_cf(t) + nominal_amount(t))      'end_cash',
+    1/fx.fxRepDay                                       'exchange_rate',
+    (nominal_amount(t))/fx.fxRepDay   'zar_equivalent',
+    l.start_day,
+    i.exp_day,
+    t.status,
+    cl.limit[0]                                         'cl_limit',
+    t.optional_key,
+    ai.value,
+    add_info(t,'PM_ACMFacilityID')                      'PM_ACMFacilityID'
+
+INTO
+    trade_details
+FROM
+    Trade t,
+    Instrument i,
+    Leg l,
+    CreditLimit cl,
+    Instrument  curr,
+    Party cp,
+    fxrates fx,
+    AdditionalInfo ai,
+	AdditionalInfoSpec aispec
+WHERE
+        match_filter(t, @1_Filter{SAMM_CreditLimit_TWC;tradefilter.fltid})
+    AND t.counterparty_ptynbr = cp.ptynbr
+    AND t.acquirer_ptynbr *= cl.depnbr
+    AND t.counterparty_ptynbr *= cl.ptynbr
+    AND cp.type NOT IN ('Intern Dept')
+    AND t.insaddr = i.insaddr
+    AND l.insaddr = i.insaddr
+    AND curr.instype = 'Curr'
+    AND currency_included(t, curr.insid) = 1
+    AND fx.curr = curr.insid
+    AND t.counterparty_ptynbr = ai.recaddr
+    AND ai.addinf_specnbr = aispec.specnbr
+    AND aispec.field_name = 'BarCap_SMS_CP_SDSID'
+
+
+/*------------------------------------------------------------------
+                            Final Report
+------------------------------------------------------------------*/
+
+SELECT
+    'Details'                           'Section',
+    to_string(trdnbr)                   'Trade Number',
+    counterparty                        'Counterparty',
+    acquirer                            'Acquirer',
+    currency                            'Currency',
+    to_string(nominal_amount)           'Nominal Amount',
+    end_cash                            'End Cash',
+    to_string(exchange_rate)            'Exchange Rate',
+    to_string(round(zar_equivalent, 2)) 'ZAR Equivalent',
+    to_string(start_day)                'Start Day',
+    to_string(exp_day)                  'Expiry',
+    to_string(status)                   'Status',
+    ''                                  'ZAR Limit Loaded',
+    ''                                  'ZAR Limit Utilised',
+    ''                                  '% Utilisation',
+    ''                                  'ZAR Limit Available',
+    ''                                  'Limit Status',
+    optional_key                        'optional_key',
+    to_string(value)                   'SDSID',
+    PM_ACMFacilityID
+FROM
+    trade_details
+
+UNION
+
+SELECT
+    'Sum'                                       'Section',
+    ''                                          'Trade Number',
+    counterparty                                'Counterparty',
+    acquirer                                    'Acquirer',
+    ''                                          'Currency',
+    ''                                          'Nominal Amount',
+    ''                                          'End Cash',
+    ''                                          'Exchange Rate',
+    to_string(round(sum(zar_equivalent), 2))    'ZAR Equivalent',
+    ''                                          'Start Day',
+    ''                                          'Expiry',
+    ''                                          'Status',
+    to_string(round(cl_limit, 2))               'ZAR Limit Loaded',
+    to_string(round(sum(zar_equivalent), 2))                                        'ZAR Limit Utilised',
+    to_string(round(sum(nominal_amount_zar) / cl_limit * 100, 2), '%')              '% Utilisation',
+    to_string(cl_limit - sum(nominal_amount_zar))                                   'ZAR Limit Available',
+    to_string(cl_limit - sum(nominal_amount_zar) > 0 ? 'Not Breached':'Breached')   'Limit Status',
+    '' 'optional_key',
+    '' 'SDSID',
+    '' 'PM_ACMFacilityID'
+FROM
+    trade_details t
+GROUP BY Counterparty, Acquirer

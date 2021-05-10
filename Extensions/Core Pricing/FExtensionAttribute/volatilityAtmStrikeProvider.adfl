@@ -1,0 +1,6 @@
+[Core Pricing]FVolatilityStructure:volatilityAtmStrikeProvider = select(volatilityBaseData.VolatilityInformationType, 
+  "Point"->nil, 
+  "Parametric"->select(volatilityBaseData.ParametricVolatilityType, 
+    "Malz"->object:atmStrikeProvider [instrumentForDeltaConverter = volatilitySurfaceUnderlyingInstrument], 
+    default->nil), 
+  default->nil);

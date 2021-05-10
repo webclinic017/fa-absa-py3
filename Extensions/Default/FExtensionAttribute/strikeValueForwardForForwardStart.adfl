@@ -1,0 +1,6 @@
+[Default]FInstrument:strikeValueForwardForForwardStart = select(isDeltaStrikeQuotation, 
+  true->select(isReciprocal, 
+    false->object:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = absoluteStrikePriceInUnderlyingQuotationForVolatilityStrike, quoteConversionWrapperFromQuotation = strikeQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll], 
+    true->1.0 / object:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = absoluteStrikePriceInUnderlyingQuotationForVolatilityStrike, quoteConversionWrapperFromQuotation = strikeQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll]), 
+  false->underlying:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = strikePriceForForwardStart, quoteConversionWrapperFromQuotation = strikeQuotation, priceSource, doSplitAll]);
+[Default]FVolatilityFuture:strikeValueForwardForForwardStart = underlyingValueModel;

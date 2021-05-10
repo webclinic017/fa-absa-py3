@@ -1,0 +1,11 @@
+[Default]FCombInstrMapAndTrades:settledIncome = nil;
+[Default]FDeliverableLinkAndTrades:settledIncome = nil;
+[Default]FInstrumentAndTrades:settledIncome = select(isCashGrouping, 
+  true->collapse(cashSettledIncome), 
+  default->collapse(assetSettledIncome));
+[Default]FMultiInstrumentAndTrades:settledIncome = select(isCashGrouping, 
+  true->collapse(cashSettledIncome), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetSettledIncome), 
+    default->collapse(cashAssetSettledIncome)));
+[Default]FPortfolioInstrumentAndTrades:settledIncome = collapse(cashAssetSettledIncome);

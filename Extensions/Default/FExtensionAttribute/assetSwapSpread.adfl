@@ -1,0 +1,10 @@
+[Default]FCashFlowInstrument:assetSwapSpread = select(assetSwapSpreadCalculationValid, 
+  true->firstStaticLegInformation.AssetSwapSpread(marketUnitValue, firstStartDayLeg :* "riskFreeSpotValue" [riskFreeDiscountCurve = topRiskFreeDiscountCurve], firstStartDayLeg :* "forwardAssetSwapCouponFactor" [riskFreeDiscountCurve = topRiskFreeDiscountCurve], valuationDate), 
+  false->nil);
+[Default]FInstrument:assetSwapSpread = 0.0;
+[Default]FInstrumentAndTrades:assetSwapSpread = select(instrument:isSwap, 
+  true->instrument :* "parSpread" [priceSource, isSplitAllGrouped, parSpreadTargetValue = presentValue], 
+  false->instrument :* "assetSwapSpread" [priceSource]);
+[Default]FLeg:assetSwapSpread = instrument:assetSwapSpread;
+[Default]FMultiInstrumentAndTrades:assetSwapSpread = nil;
+[Default]FSwap:assetSwapSpread = nil;

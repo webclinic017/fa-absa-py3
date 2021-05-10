@@ -1,0 +1,5 @@
+[Core Pricing]FCombInstrMap:forwardValueFromConstituents = switch(instrument:isSettled, 
+  true->combinationForwardZero, 
+  false->valuationInstrument :* "forwardValueFromConstituents" [priceSource, doSplitAll, forwardPriceDate = forwardPriceDateCalculated, forwardValueDate] * timeDistributionFactor * weight * contractSize);
+[Core Pricing]FCombination:forwardValueFromConstituents = sumOf(instrumentMapsForForwardValueCalculations :* "forwardValueFromConstituents" [priceSource, doSplitAll, forwardValueDate]) / combinationDivisionFactor;
+[Core Pricing]FInstrument:forwardValueFromConstituents = collapse(forwardValueNoDividends);

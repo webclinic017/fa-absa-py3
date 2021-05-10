@@ -1,0 +1,5 @@
+[Equity Market Making]FQuoteController:automaticHedgerDelta = shunt(automaticHedgerInstrument, 
+  nil->nil, 
+  default->shunt(((automaticHedgerInstrument.InsType == "Combination") and (automaticHedgerMarket == nil)), 
+    true->automaticHedgerWeightedDelta, 
+    default->double(automaticHedgerInstrument :* "automaticHedgerLocalDelta" [automaticHedgerQuoteInstrument = instrument, priceSource])));

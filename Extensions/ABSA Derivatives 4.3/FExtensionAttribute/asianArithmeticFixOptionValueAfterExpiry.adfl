@@ -1,0 +1,5 @@
+[ABSA Derivatives 4.3]FInstrument:asianArithmeticFixOptionValueAfterExpiry = select(isEquity, 
+  true->shunt((today <> valuationDate) and (valuationDate <> object.ExpiryDateOnly) and (ThetaShift <> 0), 
+    true->theorZeroOption(valuationDate, currency, underlyingSpotPrice), 
+    false->europeanIntrinsicValueModel(asianArithmeticAveragePriceSoFarAdjusted, strikeValue, isCall, isDigital, isCashSettled, expiryDateTime, valuationDateTime, payDate)), 
+  false->europeanIntrinsicValueModel(asianArithmeticAveragePriceSoFarAdjusted, strikeValue, isCall, isDigital, isCashSettled, expiryDateTime, valuationDateTime, payDate));

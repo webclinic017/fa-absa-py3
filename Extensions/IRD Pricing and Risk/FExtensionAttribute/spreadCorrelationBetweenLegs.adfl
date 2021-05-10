@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:spreadCorrelationBetweenLegs = select(undDomesticCurrLeg:isFloatLeg and undForeignCurrLeg:isFloatLeg, 
+  true->select(correlationInformationForSpreadBetweenLegs <> nil, 
+    true->correlationInformationForSpreadBetweenLegs.Correlation, 
+    default->0.0), 
+  false->0.0);

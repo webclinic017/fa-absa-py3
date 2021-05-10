@@ -1,0 +1,20 @@
+[Default]FBuySellBack:pLLegInformations = underlying:legInformations [priceSource];
+[Default]FCashFlowInstrument:pLLegInformations = select(excludePlLegInformations, 
+  true->nil, 
+  false->collapse(pLLegInformationsAtValuationDate));
+[Default]FCfd:pLLegInformations = select(needsLegInformation, 
+  true->underlying:pLLegInformations [priceSource, useForwardCurveForAggregatingResets], 
+  false->nil);
+[Default]FCombInstrMap:pLLegInformations = instrument:pLLegInformations [priceSource, includeLegInformationsFromCustomValuedInstrument, useForwardCurveForAggregatingResets];
+[Default]FCombination:pLLegInformations = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "pLLegInformations" [priceSource, includeLegInformationsFromCustomValuedInstrument, useForwardCurveForAggregatingResets]), 
+  false->nil);
+[Default]FDerivative:pLLegInformations = select(needsLegInformation, 
+  true->underlying:pLLegInformations [priceSource, useForwardCurveForAggregatingResets], 
+  false->nil);
+[Default]FFuture:pLLegInformations = select(needsLegInformation, 
+  true->underlying:pLLegInformations [priceSource, ctdFactor, useForwardCurveForAggregatingResets], 
+  false->nil);
+[Default]FInstrument:pLLegInformations = nil;
+[Default]FInstrumentAndTrades:pLLegInformations = instrument:pLLegInformations;
+[Default]FLegAndTrades:pLLegInformations = leg:pLLegInformation [instrument:priceSource, instrument:ctdFactor];

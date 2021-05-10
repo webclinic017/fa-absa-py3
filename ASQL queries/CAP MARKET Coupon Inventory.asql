@@ -1,0 +1,291 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET Coupon Inventory') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET Coupon Inventory' and p.type = 'SQL Query' 
+ 
+  select
+
+    /*@DisplayCumulativeOverall{yes;'Yes','No'}     'DCO',*/
+    'Yes'                                            'DCO',
+    @DisplayCumulativePortfolio{Yes;'Yes','No'}     'DCP',
+    @Day{today}                                     'day'
+
+into macros 
+
+from serverdata s
+
+where s.srdnbr > 0
+    
+
+/* DATES */
+select
+       
+        @Day{today}                                   'd0',
+        date_add_delta(@Day{today},1,0,0)             'd1',
+        date_add_delta(@Day{today},2,0,0)             'd2',
+        date_add_delta(@Day{today},3,0,0)             'd3',
+        date_add_delta(@Day{today},4,0,0)             'd4',
+        date_add_delta(@Day{today},5,0,0)             'd5',
+        date_add_delta(@Day{today},6,0,0)             'd6',
+        date_add_delta(@Day{today},7,0,0)             'd7',
+        date_add_delta(@Day{today},8,0,0)             'd8',
+        date_add_delta(@Day{today},9,0,0)             'd9',
+        date_add_delta(@Day{today},10,0,0)            'd10',
+        date_add_delta(@Day{today},11,0,0)            'd11',
+        date_add_delta(@Day{today},12,0,0)            'd12'
+        
+
+into 	Dates
+from    instrument i
+where   i.insid = 'ZAR'
+
+/*bond data*/
+select 
+i.insid,
+ael_d(i,'Last_Date_Register.bcd_ldr',add_info(i,'ExCoup1')) 'ldr1',
+ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup1')) 'bc1',
+date_add_delta(ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup1')),10) 'coup1',
+
+ael_d(i,'Last_Date_Register.bcd_ldr',add_info(i,'ExCoup2')) 'ldr2',
+ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup2')) 'bc2',
+date_add_delta(ael_d(i,'Last_Date_Register.bcd',add_info(i,'ExCoup2')),10) 'coup2',
+l.fixed_rate 'crate'
+
+into bonddata
+from instrument i,
+leg l
+
+where
+l.insaddr =i.insaddr
+and instype in  ('Bond','IndexLinkedBond')
+and add_info(i,'ExCoup1') ~=''
+
+
+ 
+
+/* POSITIONS */
+select
+	@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB12','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'}
+					'Portfolio',
+					
+	i.instype in ('Repo/Reverse','BuySellback') ? ui.insid : i.insid 	'Security',
+	bd.crate 'CoupRate',
+ 
+        d.d0 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d0,-11) ,)) :  0     		'Current',
+        d.d1 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d1,-11),)) :  0            'd1',
+        d.d2 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d2,-11),)) :  0      		'd2',
+        d.d3 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d3,-11),)) :  0      		'd3',
+        d.d4 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d4,-11),)) :  0       		'd4',
+        d.d5 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d5,-11),)) :  0       		'd5',
+        d.d6 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d6,-11),)) :  0     		'd6',
+        d.d7 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d7,-11),)) :  0   			'd7',
+        d.d8 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d8,-11),)) :  0   			'd8',
+        d.d9 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d9,-11),)) :  0     		'd9',
+        d.d10 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d10,-11),)) :  0       	'd10',
+        d.d11 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d11,-11),)) :  0     		'd11',
+        d.d12 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d12,-11),)) :  0     		'd12'
+
+INTO	Positions
+from    
+	trade t,
+	instrument i,
+	instrument ui,
+    Dates d,
+    bonddata bd
+
+where
+         match_filter(t,@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'})
+and	t.insaddr = i.insaddr
+and	ui.insaddr =* i.und_insaddr
+
+and (bd.insid = i.insid or bd.insid = ui.insid)
+
+and i.instype in ('Repo/Reverse','BuySellback','Bond','IndexLinkedBond')
+
+GROUP BY 2
+ORDER BY 2
+
+
+/* COUPON */
+select
+	@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB12','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'}
+					'Portfolio',
+					
+	i.instype in ('Repo/Reverse','BuySellback') ? ui.insid : i.insid 	'Security',
+	bd.crate 'CoupRate',
+ 
+        d.d0 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d0,-11) ,)) * bd.crate/200 :  0     		
+   /*projected_cf(t,d.d0,date_add_delta(d.d0,25)) */ 'Current',
+        d.d1 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d1,-11),))  * bd.crate/200 :  0            'd1',
+        d.d2 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d2,-11),))  * bd.crate/200 :  0      		'd2',
+        d.d3 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d3,-11),))  * bd.crate/200 :  0      		'd3',
+        d.d4 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d4,-11),))  * bd.crate/200 :  0       		'd4',
+        d.d5 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d5,-11),))  * bd.crate/200 :  0       		'd5',
+        d.d6 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d6,-11),))  * bd.crate/200 :  0     		'd6',
+        d.d7 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d7,-11),))  * bd.crate/200 :  0   			'd7',
+        d.d8 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d8,-11),))  * bd.crate/200 :  0   			'd8',
+        d.d9 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d9,-11),))  * bd.crate/200 :  0     		'd9',
+        d.d10 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d10,-11),))* bd.crate/200 :  0         	'd10',
+        d.d11 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d11,-11),))* bd.crate/200 :  0     		'd11',
+        d.d12 in (bd.coup1,bd.coup2) ? sum(position(t,,,,date_add_delta(d.d12,-11),))* bd.crate/200 :  0     		'd12'
+        
+INTO	coupon
+from    
+	trade t,
+	instrument i,
+	instrument ui,
+    Dates d,
+    bonddata bd
+
+where
+         match_filter(t,@Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'})
+and	t.insaddr = i.insaddr
+and	ui.insaddr =* i.und_insaddr
+
+and (bd.insid = i.insid or bd.insid = ui.insid)
+
+and i.instype in ('Repo/Reverse','BuySellback','Bond','IndexLinkedBond')
+
+GROUP BY 2
+ORDER BY 2
+
+
+/*display headings*/
+select 	'Position 10d Ago'		'Portfolio',
+	'Coup Pay on->'		'Instrument',
+0.0 'CoupRate',
+
+	convert('date',d0)	'Today',
+	convert('date',d1)	'+1d',
+	convert('date',d2)	'+2d',
+	convert('date',d3)	'+3d',
+	convert('date',d4)	'+4d',
+	convert('date',d5)	'+5d',
+	convert('date',d6)	'+6d',
+	convert('date',d7)	'+7d',
+	convert('date',d8)	'+8d',
+	convert('date',d9)	'+9d',
+	convert('date',d10)	'+10d',
+	convert('date',d11)	'+11d',
+	convert('date',d12)	'+12d'
+from
+	dates, macros m
+where m.DCO in ('Yes','y','yes','YES','Y')
+and '' ~= 0
+
+	
+/*display data*/
+union
+select
+	        @Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'}
+		'Portfolio',
+	Security		 	'Security',
+       CoupRate 'CoupRate',
+        convert('double',round(current)) 	'Current',
+        convert('double',round(d1)) 		'd1',
+        convert('double',round(d2)) 		'd2',
+        convert('double',round(d3))		'd3',
+        convert('double',round(d4)) 	'd4',
+        convert('double',round(d5))		'd5',
+        convert('double',round(d6))		'd6',
+        convert('double',round(d7))		'd7',
+        convert('double',round(d8))		'd8',
+        convert('double',round(d9))		'd9',
+        convert('double',round(d10))	'd10',
+        convert('double',round(d11))	'd11',
+        convert('double',round(d12))    'd12'
+from    
+	Positions, macros m ,Instrument
+where m.DCO in ('Yes','y','yes','YES','Y')
+     and Positions.Security = Instrument.insid
+     and Instrument.exp_day > today
+     and (
+      
+       convert('double',round(current)) ~= 0
+    or convert('double',round(d1)) ~= 0
+    or convert('double',round(d2)) ~= 0
+    or convert('double',round(d3)) ~= 0
+    or convert('double',round(d4)) ~= 0  
+    or convert('double',round(d5)) ~= 0
+    or convert('double',round(d6)) ~= 0
+    or convert('double',round(d7)) ~= 0
+    or convert('double',round(d8)) ~= 0 
+    or convert('double',round(d9)) ~= 0 
+    or convert('double',round(d10)) ~= 0 
+    or convert('double',round(d11)) ~= 0 
+    or convert('double',round(d12)) ~= 0 
+
+)
+     
+  
+union
+/*display headings*/
+select 	'Coupon Due'		'Portfolio',
+	'Coup Pay on->'		'Instrument',
+0.0 'CoupRate',
+
+	convert('date',d0)	'Today',
+	convert('date',d1)	'+1d',
+	convert('date',d2)	'+2d',
+	convert('date',d3)	'+3d',
+	convert('date',d4)	'+4d',
+	convert('date',d5)	'+5d',
+	convert('date',d6)	'+6d',
+	convert('date',d7)	'+7d',
+	convert('date',d8)	'+8d',
+	convert('date',d9)	'+9d',
+	convert('date',d10)	'+10d',
+	convert('date',d11)	'+11d',
+	convert('date',d12)	'+12d'
+from
+	dates, macros m
+where m.DCO in ('Yes','y','yes','YES','Y')
+and '' ~= 0
+
+	
+/*display data*/
+union
+select
+	        @Filter{All_Bond_Portf_excl_Job6/7/12 ;'All_Bond_Pfs_incl_Job6/12_Sim','All_Bond_Portfs_excl_all_Sim','All_Bond_Portf_excl_Job6/7/12','Bonds Spot','JOB1','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB10','JOB11','JOBX1','DERV','DERV2','DERV3','DERV4','MAN_BOND','MAN_Bond_2','MONY 9802'}
+		'Portfolio',
+	Security		 	'Security',
+       CoupRate 'CoupRate',
+        convert('double',round(current)) 	'Current',
+        convert('double',round(d1)) 		'd1',
+        convert('double',round(d2)) 		'd2',
+        convert('double',round(d3))		'd3',
+        convert('double',round(d4)) 	'd4',
+        convert('double',round(d5))		'd5',
+        convert('double',round(d6))		'd6',
+        convert('double',round(d7))		'd7',
+        convert('double',round(d8))		'd8',
+        convert('double',round(d9))		'd9',
+        convert('double',round(d10))	'd10',
+        convert('double',round(d11))	'd11',
+        convert('double',round(d12))	'd12'
+from    
+	coupon, macros m ,Instrument
+where m.DCO in ('Yes','y','yes','YES','Y')
+     and coupon.Security = Instrument.insid
+     and Instrument.exp_day > today
+     and (
+      
+       convert('double',round(current)) ~= 0
+    or convert('double',round(d1)) ~= 0
+    or convert('double',round(d2)) ~= 0
+    or convert('double',round(d3)) ~= 0
+    or convert('double',round(d4)) ~= 0  
+    or convert('double',round(d5)) ~= 0
+    or convert('double',round(d6)) ~= 0
+    or convert('double',round(d7)) ~= 0
+    or convert('double',round(d8)) ~= 0 
+    or convert('double',round(d9)) ~= 0 
+    or convert('double',round(d10)) ~= 0 
+    or convert('double',round(d11)) ~= 0 
+    or convert('double',round(d12)) ~= 0 
+
+
+)   
+ 

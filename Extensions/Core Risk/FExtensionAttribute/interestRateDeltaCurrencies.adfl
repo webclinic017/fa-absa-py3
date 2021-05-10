@@ -1,0 +1,7 @@
+[Core Risk]FCurrency:interestRateDeltaCurrencies = convertToCurrency(rowObject:interestRateDelta [filterCurveCurrency := object], displayCurrency :* "fxForwardRate" [fxForwardDate := displayDate, fxToCurrency := object], object);
+[Core Risk]FInstrumentAndTrades:interestRateDeltaCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->currenciesForVectorColumn :* "interestRateDeltaCurrencies" [displayDate, displayCurrency, rowObject := object]);
+[Core Risk]FTimeBucketAndObject:interestRateDeltaCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->currenciesForVectorColumn :* "interestRateDeltaCurrencies" [displayDate, displayCurrency, rowObject := object]);

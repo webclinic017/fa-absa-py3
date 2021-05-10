@@ -1,0 +1,48 @@
+/*
+Purpose                       :  Recon 
+Department and Desk           :  Intellimatch
+Requester                     :  Anesh Polly
+Developer                     :  Ickin Vural
+CR Number                     :  C000000525817,C000000536378
+
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+  ael_i(p,'ASQL_log','DM_TradesView_CFD_V2') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'DM_TradesView_CFD_V2' and p.type = 'SQL Query' 
+
+select
+    
+    t.trdnbr 'Trd No',
+    t.trdnbr 'Trd No',
+    i.insid 'Instrument',
+    t.price 'Price',
+    ael_s(,'ABSAPortfolioSwapCollateral.YMtM',i.insid,to_date(@1_Previous_Buss_Day{Yesterday;}))  'YMtM',
+    t.quantity 'Quantity',
+    t.acquire_day 'Acquire Day',
+    p.prfnbr 'Portfolio',
+    display_id(t,'curr') 'Currency',
+    t.fee 'Fee',
+    t.status 'Status',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'trader_usrnbr') 'Trader',
+    t.quantity >= 0 ? 'B' : 'S' 'B/S', 
+    t.execution_time 'Execution Time',
+    i.isin 'Isin',
+    t.time 'Date and time',
+    t.creat_time 'Create Time',
+    t.updat_time 'Update Time'
+    
+    
+from
+    Trade t,
+    Instrument i,
+    Portfolio p
+where
+    match_filter(t,'DM_CFD_TRADES_acqu')
+and t.insaddr = i.insaddr
+and t.prfnbr  = p.prfnbr
+and t.status not in ('Simulated')

@@ -1,0 +1,61 @@
+/* update_method=0 */
+select distinct
+    t.trdnbr
+into
+    temp_2625
+from
+    trade t,
+    portfolio p
+where
+    t.prfnbr = p.prfnbr
+and t.status not in ('Simulated', 'Void')
+and p.prfid not like 'Simulate%'
+and ael_i(t, 'midasSettlement.is_midas_settled') = 1
+and match_portfolio(t, '2625')
+
+select distinct
+    t.trdnbr
+into
+    temp_8188
+from
+    trade t,
+    portfolio p
+where
+    t.prfnbr = p.prfnbr
+and t.status not in ('Simulated', 'Void')
+and p.prfid not like 'Simulate%'
+and ael_i(t, 'midasSettlement.is_midas_settled') = 1
+and match_portfolio(t, '8188')
+
+select distinct
+    t.trdnbr
+into
+    Collateral
+from
+    trade t,
+    portfolio p
+where
+    t.prfnbr = p.prfnbr
+and t.status not in ('Simulated', 'Void')
+and p.prfid not like 'Simulate%'
+and ael_i(t, 'midasSettlement.is_midas_settled') = 1
+and match_portfolio(t, 'Collateral')
+
+select
+    trdnbr
+from
+    temp_2625
+
+union
+
+select
+    trdnbr
+from
+    temp_8188
+
+union
+
+select
+    trdnbr
+from
+    Collateral

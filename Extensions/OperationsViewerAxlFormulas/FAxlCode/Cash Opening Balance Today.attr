@@ -1,0 +1,30 @@
+[OperationsViewerAxlFormulas]FObject:Cash Opening Balance Today
+{
+}
+
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+}
+
+cashBalanceToday = If(And(&'settledCashExtAttr', @isValueDayBeforeToday()), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Opening Balance Today',
+    GroupLabel:'Cash',
+    Description:'Total settled cash with value day before today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@cashBalanceToday()),  AttributeDimensions = AttributeList(['curr']));
+
+...

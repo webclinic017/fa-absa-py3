@@ -1,0 +1,115 @@
+/* update_method=0 */
+/* ******************  ASQL USAGE LOG  ***************** */ 
+ select 
+ ael_i(p,'ASQL_log','UNEXCOR_CODE_Validation') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'UNEXCOR_CODE_Validation' and p.type = 'SQL Query' 
+
+/*
+Developer   : Tshepo Mabena, [Jaysen Naicker]
+Date        : 08 September 2009, [11/05/2011]
+Description : Searches and validates UNEXCOR CODE known as Hostid in Front for counterparties 
+		  [Add in functionality to show Unexcor code (moved to add_info) and Nutron code in Host ID field]
+Change No. 	: [652258]
+User		:Moeketsi Makhalemele
+Area		:Ops - Change
+
+
+    History:
+         When: 	  CR Number:                  Who:	  					                        What:	     Requestor:
+    2012-03-09       C128862       Nidheesh Sharma	Added Columns - BESA_Member_Agree, FICA_Compliant  	Sylvia Ackerman
+    2018-02-06    CHG1000085340    Anil Parbhoo - added new column for BarCap_Eagle_SDSID
+    
+*/
+
+
+select 
+    p.fullname                  'Counterparty_Fullname',
+    p.ptyid                     'Counterparty_ID',
+    add_info(p,'UnexCor Code')  'UNEXCOR_CODE',
+    p.hostid                    'Nutron_CODE',
+    add_info(p,'BESA_Member_Agree') 'BESA_Member_Agree',
+    add_info(p,'FICA_Compliant') 'FICA_Compliant',
+    add_info(p,'BarCap_Eagle_SDSID') 'BarCap_Eagle_SDSID',
+    count(p.ptynbr)             'count'
+into
+    temp
+from 
+    party p
+where
+   p.hostid ~= ''
+   or add_info(p,'UnexCor Code') ~= ''
+
+
+
+select
+    t.Counterparty_Fullname 'fullname',
+    t.Counterparty_ID 'ptyid',
+    t.UNEXCOR_CODE,
+    t.Nutron_CODE,
+    t.BESA_Member_Agree,
+    t.FICA_Compliant,
+                t.BarCap_Eagle_SDSID ,
+    ael_s(,'Validate_HostID.ValidateUnexcor',t.Counterparty_ID) 'Host_ID_Validation'
+into 
+    tempz    
+from
+    temp t
+where
+        t.count >= 1
+    and t.Nutron_CODE ~= ''
+    and t.Nutron_CODE = @Nutron_CODE{}
+    
+
+select
+    t.Counterparty_Fullname 'fullname',
+    t.Counterparty_ID 'ptyid',
+    t.UNEXCOR_CODE,
+    t.Nutron_CODE,
+    t.BESA_Member_Agree,
+    t.FICA_Compliant,
+                t.BarCap_Eagle_SDSID ,
+    ael_s(,'Validate_HostID.ValidateUnexcor',t.Counterparty_ID) 'Host_ID_Validation'
+into 
+    tempz    
+from
+    temp t
+
+where
+        t.count >= 1
+    and t.UNEXCOR_CODE ~= ''
+    and t.UNEXCOR_CODE = @UNEXCOR_CODE{}
+
+    
+select
+    t.Counterparty_Fullname 'fullname',
+    t.Counterparty_ID 'ptyid',
+    t.UNEXCOR_CODE,
+    t.Nutron_CODE,
+    t.BESA_Member_Agree,
+    t.FICA_Compliant,
+                t.BarCap_Eagle_SDSID ,
+    ael_s(,'Validate_HostID.ValidateUnexcor',t.Counterparty_ID) 'Host_ID_Validation'
+into 
+    tempz    
+from
+    temp t
+where
+        t.count >= 1
+    and @UNEXCOR_CODE{}= ''  
+    and @Nutron_CODE{} = ''
+  
+select distinct
+    tt.fullname,
+    tt.ptyid,
+    tt.UNEXCOR_CODE,
+    tt.Nutron_CODE,
+                tt.BarCap_Eagle_SDSID,
+    tt.BESA_Member_Agree,
+    tt.FICA_Compliant,
+    tt.Host_ID_Validation
+from    
+    tempz tt    
+     
+order by tt.Host_ID_Validation

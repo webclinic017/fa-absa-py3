@@ -1,0 +1,7 @@
+[GenericMandates]FInstrumentAndTrades:mandateResultTraderGroup = 
+# Check if the parent passes the mandate
+switch(minOf(children :* "mandateResultTraderGroup"), 
+  1->1, 
+  default->0);
+[GenericMandates]FTrade:mandateResultTraderGroup = mandateAllowedMap.At(mandateDisplayTraderGroup.AsString);
+[GenericMandates]FTradeRow:mandateResultTraderGroup = trade:mandateResultTraderGroup;

@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','DW_SACD_ERM_Rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'DW_SACD_ERM_Rates' and p.type = 'SQL Query' 
+ 
+
+
+
+
+
+
+select
+    display_id(a, 'issuer_ptynbr')      'Party',
+    
+    date_period.unit = 'Years' ?  to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, date_period.count), 'Act/365'))
+    : date_period.unit = 'Months' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, date_period.count,0), 'Act/365'))
+    : date_period.unit = 'Days' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  date_period.count, 0,0), 'Act/365'))
+    : date_period.unit = 'Weeks' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  date_period.count*7, 0,0), 'Act/365'))
+    : to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, date_period.count), 'Act/365')) 'Days In Period',
+    date_period.unit = 'Years' ? date_add_delta(@Date{today}, 0, 0, date_period.count)
+    : date_period.unit = 'Months' ? date_add_delta(@Date{today}, 0, date_period.count,0)
+    : date_period.unit = 'Days' ? date_add_delta(@Date{today}, date_period.count, 0, 0)
+    : date_period.unit = 'Weeks' ? date_add_delta(@Date{today}, date_period.count * 7, 0, 0)
+    : date_add_delta(@Date{today}, 0, 0, date_period.count) 'End Date',    
+    s.spread * 100                      'Rate',
+    today                               'DATADATE'
+
+
+
+from
+    YieldCurve y,
+    YCAttribute a,
+    YCSpread s,
+    YieldCurvePoint p
+    
+where
+    y.seqnbr = a.yield_curve_seqnbr
+and a.seqnbr = s.attribute_seqnbr
+and y.seqnbr = p.yield_curve_seqnbr
+and point_seqnbr = p.seqnbr
+and y.yield_curve_name = @YieldCurveName{CDIssuerCurve_HR;yieldcurve.yield_curve_name}
+order by 1 , 2    

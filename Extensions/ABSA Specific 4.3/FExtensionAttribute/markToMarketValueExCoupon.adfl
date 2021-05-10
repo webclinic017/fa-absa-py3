@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrument:markToMarketValueExCoupon = select((instrument.InsType == "Bond") or (instrument.InsType == "IndexLinkedBond"), 
+  true->stripDateTimePart(repoCurve.DiscountValues(riskPosition * marketSpotValues, valuationDate)), 
+  default->currencyZero);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:markToMarketValueExCoupon = sumOf(instruments :* "markToMarketValueExCoupon" [positionObject, displayCurrency, filterUnit]);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:markToMarketValueExCoupon = instrument :* "markToMarketValueExCoupon" [positionObject, displayCurrency, filterUnit];
+[ABSA Specific 4.3]FTradeRow:markToMarketValueExCoupon = instrument :* "markToMarketValueExCoupon" [tradesInPosition = [trade], displayCurrency, filterUnit];

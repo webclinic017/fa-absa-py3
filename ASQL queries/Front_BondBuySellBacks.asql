@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+/* This query was created by Shreelin Naicker*/
+select
+ael_i(p,'ASQL_log','SAFUND_ERM_AS_NEW') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Front_BondBuySellBacks' and p.type = 'SQL Query' 
+ 
+
+/* BuysellBack */
+
+select 
+distinct
+	t.trdnbr								'Trade',
+	nominal_amount(t)					 	'Nominal',	
+	@Date{TODAY}							'BusinessDay',	
+	display_id(t, 'prfnbr')					'Portfolio',
+	t.time                                  'DealDate',
+	'B'                           'BuySell',  
+	t.value_day								'StartMaturity',
+	i.exp_day								'EndMaturity',	
+	t.premium                                'StartCash',
+    i.ref_value*t.quantity	                 'EndCash',      
+    i.instype 	                            'InstrumentType',
+    ael_s(t,'get_discountcurve',i,'Pay')=' ' ? 'No Discount Curve Allocated' : ael_s(t,'get_discountcurve',i,'Pay')      'DiscountCurve',
+    curr.insid                                    'Currency',
+    und.insid                                   'Underlying',   
+	display_id(t, 'counterparty_ptynbr')	'Counterparty'
+
+	
+from
+	Instrument i,
+	Trade t,
+	Leg l,
+	User u,
+	party p,
+	party cp,
+	instrument und,
+	Instrument curr
+  
+where
+    t.insaddr = i.insaddr 
+and    i.curr = curr.insaddr
+and i.instype = 'BuySellback'
+and	t.counterparty_ptynbr=cp.ptynbr
+and	i.und_insaddr *= und.insaddr
+and	t.acquirer_ptynbr = p.ptynbr
+and	t.trader_usrnbr = u.usrnbr
+and	i.exp_day > today
+and	time_to_day(t.time) <= today
+and	t.status NOT IN ('Simulated','Terminated','Void')
+
+
+
+
+
+

@@ -1,0 +1,1088 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_YC_Rates_IRA') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_YC_Rates_IRA' and p.type = 'SQL Query' 
+/*
+
+coded by ap 2005-04-19
+
+reflect points for IRA risk attribution
+
+plus on 2008-08-07 additional points between 21 to 30 years were introduced becuase the R209 bond
+
+*/
+
+
+/*----define spot day offset ----*/
+select
+s.srdnbr,
+to_int(@spot_days_offset{0;})'spot_day_offset'
+
+into temp
+
+from 
+
+serverdata s
+
+/*----use spot day offset to define buckets --------------*/
+
+
+select 
+c.insid,
+date_add_banking_day(Today,c.insid,tt.spot_day_offset)'from_date',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),1,0,0),c.insid,'Following')'1d',
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,1,0),c.insid,'Following')'1m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,2,0),c.insid,'Following')'2m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,3,0),c.insid,'Following')'3m',
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,4,0),c.insid,'Following')'4m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,5,0),c.insid,'Following')'5m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,6,0),c.insid,'Following')'6m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,7,0),c.insid,'Following')'7m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,8,0),c.insid,'Following')'8m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,9,0),c.insid,'Following')'9m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,10,0),c.insid,'Following')'10m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,11,0),c.insid,'Following')'11m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,12,0),c.insid,'Following')'12m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,13,0),c.insid,'Following')'13m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,14,0),c.insid,'Following')'14m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,15,0),c.insid,'Following')'15m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,16,0),c.insid,'Following')'16m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,17,0),c.insid,'Following')'17m',
+
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,18,0),c.insid,'Following')'18m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,19,0),c.insid,'Following')'19m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,20,0),c.insid,'Following')'20m',
+
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,21,0),c.insid,'Following')'21m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,22,0),c.insid,'Following')'22m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,23,0),c.insid,'Following')'23m',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,24,0),c.insid,'Following')'24m',
+
+
+
+
+
+
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,3),c.insid,'Following')'3y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,4),c.insid,'Following')'4y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,5),c.insid,'Following')'5y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,6),c.insid,'Following')'6y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,7),c.insid,'Following')'7y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,8),c.insid,'Following')'8y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,9),c.insid,'Following')'9y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,10),c.insid,'Following')'10y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,11),c.insid,'Following')'11y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,12),c.insid,'Following')'12y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,13),c.insid,'Following')'13y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,14),c.insid,'Following')'14y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,15),c.insid,'Following')'15y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,16),c.insid,'Following')'16y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,17),c.insid,'Following')'17y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,18),c.insid,'Following')'18y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,19),c.insid,'Following')'19y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,20),c.insid,'Following')'20y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,21),c.insid,'Following')'21y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,22),c.insid,'Following')'22y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,23),c.insid,'Following')'23y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,24),c.insid,'Following')'24y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,25),c.insid,'Following')'25y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,26),c.insid,'Following')'26y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,27),c.insid,'Following')'27y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,28),c.insid,'Following')'28y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,29),c.insid,'Following')'29y',
+bankday_adjust(date_add_delta(date_add_banking_day(Today,c.insid,tt.spot_day_offset),0,0,30),c.insid,'Following')'30y'
+
+
+
+
+
+
+
+into ycpoints
+
+from temp tt, instrument c
+
+where
+
+c.insid=@Currency{ZAR;instrument.insid where instype='Curr'}
+
+/*---union all the different buckets ----------*/
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'1d''bucket',
+s.1d'date',
+yc_rate(yc,Today,s.1d,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'1m''bucket',
+s.1m'date',
+yc_rate(yc,Today,s.1m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'2m''bucket',
+s.2m'date',
+yc_rate(yc,Today,s.2m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'3m''bucket',
+s.3m'date',
+yc_rate(yc,Today,s.3m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'4m''bucket',
+s.4m'date',
+yc_rate(yc,Today,s.4m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'5m''bucket',
+s.5m'date',
+yc_rate(yc,Today,s.5m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'6m''bucket',
+s.6m'date',
+yc_rate(yc,Today,s.6m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'7m''bucket',
+s.7m'date',
+yc_rate(yc,Today,s.7m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'8m''bucket',
+s.8m'date',
+yc_rate(yc,Today,s.8m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'9m''bucket',
+s.9m'date',
+yc_rate(yc,Today,s.9m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'10m''bucket',
+s.10m'date',
+yc_rate(yc,Today,s.10m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'11m''bucket',
+s.11m'date',
+yc_rate(yc,Today,s.11m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'12m''bucket',
+s.12m'date',
+yc_rate(yc,Today,s.12m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'13m''bucket',
+s.13m'date',
+yc_rate(yc,Today,s.13m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'14m''bucket',
+s.14m'date',
+yc_rate(yc,Today,s.14m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'15m''bucket',
+s.15m'date',
+yc_rate(yc,Today,s.15m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'16m''bucket',
+s.16m'date',
+yc_rate(yc,Today,s.16m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'17m''bucket',
+s.17m'date',
+yc_rate(yc,Today,s.17m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'18m''bucket',
+s.18m'date',
+yc_rate(yc,Today,s.18m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'19m''bucket',
+s.19m'date',
+yc_rate(yc,Today,s.19m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'20m''bucket',
+s.20m'date',
+yc_rate(yc,Today,s.20m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'21m''bucket',
+s.21m'date',
+yc_rate(yc,Today,s.21m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'22m''bucket',
+s.22m'date',
+yc_rate(yc,Today,s.22m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'23m''bucket',
+s.23m'date',
+yc_rate(yc,Today,s.23m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'24m''bucket',
+s.24m'date',
+yc_rate(yc,Today,s.24m,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'3y''bucket',
+s.3y'date',
+yc_rate(yc,Today,s.3y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'4y''bucket',
+s.4y'date',
+yc_rate(yc,Today,s.4y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'5y''bucket',
+s.5y'date',
+yc_rate(yc,Today,s.5y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'6y''bucket',
+s.6y'date',
+yc_rate(yc,Today,s.6y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'7y''bucket',
+s.7y'date',
+yc_rate(yc,Today,s.7y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'8y''bucket',
+s.8y'date',
+yc_rate(yc,Today,s.8y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'9y''bucket',
+s.9y'date',
+yc_rate(yc,Today,s.9y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'10y''bucket',
+s.10y'date',
+yc_rate(yc,Today,s.10y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'11y''bucket',
+s.11y'date',
+yc_rate(yc,Today,s.11y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'12y''bucket',
+s.12y'date',
+yc_rate(yc,Today,s.12y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'13y''bucket',
+s.13y'date',
+yc_rate(yc,Today,s.13y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'14y''bucket',
+s.14y'date',
+yc_rate(yc,Today,s.14y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'15y''bucket',
+s.15y'date',
+yc_rate(yc,Today,s.15y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'16y''bucket',
+s.16y'date',
+yc_rate(yc,Today,s.16y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'17y''bucket',
+s.17y'date',
+yc_rate(yc,Today,s.17y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'18y''bucket',
+s.18y'date',
+yc_rate(yc,Today,s.18y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'19y''bucket',
+s.19y'date',
+yc_rate(yc,Today,s.19y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'20y''bucket',
+s.20y'date',
+yc_rate(yc,Today,s.20y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'21y''bucket',
+s.21y'date',
+yc_rate(yc,Today,s.21y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'22y''bucket',
+s.22y'date',
+yc_rate(yc,Today,s.22y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'23y''bucket',
+s.23y'date',
+yc_rate(yc,Today,s.23y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'24y''bucket',
+s.24y'date',
+yc_rate(yc,Today,s.24y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'25y''bucket',
+s.25y'date',
+yc_rate(yc,Today,s.25y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'26y''bucket',
+s.26y'date',
+yc_rate(yc,Today,s.26y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'27y''bucket',
+s.27y'date',
+yc_rate(yc,Today,s.27y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'28y''bucket',
+s.28y'date',
+yc_rate(yc,Today,s.28y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'29y''bucket',
+s.29y'date',
+yc_rate(yc,Today,s.29y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+union
+
+
+select
+Today'Today',
+s.from_date'spot',
+yc.yield_curve_name,
+'30y''bucket',
+s.30y'date',
+yc_rate(yc,Today,s.30y,'Annual Comp','Act/365','Spot Rate', ,s.insid)*100'NACA_Rate'
+
+from
+ycpoints s,
+yieldcurve yc
+
+where
+yc.yield_curve_name=@Yield_curve{ZAR-SWAP; yieldcurve.yield_curve_name}
+
+
+
+
+
+
+
+
+

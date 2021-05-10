@@ -1,0 +1,66 @@
+[UDMC Templates]FObject:udmcBarrierReverseConvertiblePayOff
+# ----------------------------------------
+# PAYOFF EXPRESSION
+# ----------------------------------------
+# PARAMETERS
+param double rebatePerc;
+param int basketPositioning;
+param matrix(double) weights;
+param matrix(double) kickInPrices;
+param matrix(double) strikePrices;
+param int barrierIsCrossed;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+int t = 0; int tMax = 0;
+int barrierIsHit = 0;
+double optionValue = 0.0;
+double nominal = 0.0;
+int payOffComputed = 0;
+matrix(double) componentsAboveStrike = S;
+matrix(double) rowMinS = S;
+
+# MAIN LOOP
+optionValue = rebatePerc/100; nominal = 1.0; tMax = cols(S);
+payOffComputed = 0;
+barrierIsHit = barrierIsCrossed;
+for t = 1 to tMax
+{
+        rowMinS = S[:,t] <= kickInPrices;
+        if(sum(rowMinS) > 0)
+        {
+                barrierIsHit = 1;
+        };
+};
+componentsAboveStrike = S[:,t] >= strikePrices;
+if(not payOffComputed and sum(componentsAboveStrike) > 0)
+        {
+                payOffComputed = 1;
+                optionValue = optionValue + nominal;
+        };
+if(not payOffComputed and not barrierIsHit)
+        {
+        payOffComputed = 1;
+        optionValue = optionValue + nominal;
+        };
+if(not payOffComputed and basketPositioning == 0)
+        {
+        payOffComputed = 1;
+        optionValue = optionValue + min(S[:,-1]./S[:,0]);
+        };
+if(not payOffComputed and basketPositioning == 2)
+        {
+        payOffComputed = 1;
+        optionValue = optionValue + max(S[:,-1]./S[:,0]);
+        };
+if(not payOffComputed and basketPositioning == 1)
+        {
+        optionValue = optionValue + sum(weights.*transpose(S[:,-1]./S[:,0]));
+        };
+
+# CASHFLOW
+cashFlow(0, optionValue);
+
+...

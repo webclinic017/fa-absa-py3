@@ -1,0 +1,8 @@
+[Default]FCashFlowInstrument:fixingValueShiftParameters = select(timeBucketsSetExternally, 
+  nil->[[staticFixingLegInformations, fixingShiftValue, smallDate, bigDate]], 
+  default->timeBucketsSetExternally :* "[staticFixingLegInformations, fixingShiftValue, timeBucketShiftStartDate, timeBucketShiftPeakDate]" [staticFixingLegInformations, fixingShiftValue]);
+[Default]FInstrumentAndTrades:fixingValueShiftParameters = fixingRiskGroupingReference :* "fixingValueShiftParameters" [timeBucketsSetExternally];
+[Default]FPortfolioInstrumentAndTrades:fixingValueShiftParameters = nil;
+[Default]FPriceIndex:fixingValueShiftParameters = select(timeBucketsSetExternally, 
+  nil->[[fixingShiftValue, smallDate, bigDate]], 
+  default->timeBucketsSetExternally :* "[fixingShiftValue, timeBucketShiftStartDate, timeBucketShiftPeakDate]" [fixingShiftValue]);

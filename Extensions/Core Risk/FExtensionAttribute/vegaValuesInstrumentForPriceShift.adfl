@@ -1,0 +1,5 @@
+[Core Risk]FInstrument:vegaValuesInstrumentForPriceShift = select(volatilityGreekRiskFactorCount > 0, 
+  true->select(isCashFlowInstrumentAndPriceDeltaSensitive, 
+    true->shift(vegaValuesInstrument, theoreticalLegComponentValueInVegaValuesInstrument, [theoreticalLegComponentValueFromQuote]), 
+    false->vegaValuesInstrument), 
+  false->instrumentSpotZero);

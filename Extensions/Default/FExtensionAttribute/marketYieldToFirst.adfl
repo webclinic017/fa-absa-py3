@@ -1,0 +1,8 @@
+[Default]FCashFlowInstrument:marketYieldToFirst = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYieldToFirst, "yield"), theoreticalInstrumentSpotValueCleanFromYieldToFirst, marketUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations)), 
+  false->nil);
+[Default]FInstrument:marketYieldToFirst = nil;
+[Default]FInstrumentAndTrades:marketYieldToFirst = instrument :* "marketYieldToFirst" [priceSource];
+[Default]FMultiInstrumentAndTrades:marketYieldToFirst = nil;

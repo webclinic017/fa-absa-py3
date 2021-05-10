@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:markToMarketPriceMtmPriceDayFallback = shunt(mtmPriceDay == valuationSystemDate, 
+  true->shunt(hasMarkToMarketPriceMtmPriceDayAndCurrency, 
+    true->markToMarketPriceMtmPriceDayAndCurrency, 
+    false->shunt(hasMarkToMarketPriceMtmPriceDay and includeCurrency, 
+      true->markToMarketPriceMtmPriceDay, 
+      false->stdCalcMarketOrTheoreticalPrice)), 
+  false->markToMarketPriceMtmPriceDayAndCurrency);
+[Default]FMultiInstrumentAndTrades:markToMarketPriceMtmPriceDayFallback = nil;

@@ -1,0 +1,14 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_EQStockDivs') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMR_EQStockDivs' and p.type = 'SQL Query' 
+select
+	i.insaddr,
+	ael_s(i,'SAMR_EQStockDivs.StockDiv',@Outfile{})  
+	
+from
+	instrument i
+where
+	i.insid = 'ZAR'

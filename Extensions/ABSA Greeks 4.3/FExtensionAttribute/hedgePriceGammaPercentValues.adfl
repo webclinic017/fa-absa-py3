@@ -1,0 +1,6 @@
+[ABSA Greeks 4.3]FInstrumentAndTrades:hedgePriceGammaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->sumOf(instrument :* "hedgePriceGammaPercentValue" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter]) * riskPosition));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:hedgePriceGammaPercentValues = sumOf(openInstruments :* "hedgePriceGammaPercentValue" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter]);

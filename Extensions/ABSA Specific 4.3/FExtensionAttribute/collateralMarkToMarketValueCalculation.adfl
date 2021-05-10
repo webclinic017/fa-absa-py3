@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FBasketRepo:collateralMarkToMarketValueCalculation = switch(expiryDate <= valuationDate, 
+  true->currencyZero, 
+  false->sumOf(tradesInPosition :* "tradeCollateralMarkToMarketValue"));
+[ABSA Specific 4.3]FInstrument:collateralMarkToMarketValueCalculation = switch(expiryDate <= valuationDate, 
+  true->currencyZero, 
+  false->stripDateTimePart(underlyingRepoCurve.DiscountValues(quantityOfUnderlying * underlying:contractSize * underlying:marketSpotOrTheoreticalInstrumentValue, valuationDate)));

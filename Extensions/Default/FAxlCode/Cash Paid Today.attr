@@ -1,0 +1,35 @@
+[Default]FObject:Cash Paid Today
+{
+}
+
+isValueDayToday = Compare.IsEqual(&'value_day', DateTime.Today());
+
+{
+}
+
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+}
+
+paidToday = If(And(&'settledCashExtAttr', And(@isValueDayToday(), @isAmountNegative())), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Paid Today',
+    GroupLabel:'Cash',
+    Description:'Total settled cash with value day equal to today and negative amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@paidToday()), AttributeDimensions = AttributeList(['curr']));
+
+...

@@ -1,0 +1,32 @@
+[Default]FBond:couponToValue = select(isSpreadOption, 
+  true->fixLeg :* "forwardAssetSwapCouponFactor" [forwardValueDate], 
+  default->couponFactor);
+[Default]FCashFlowInstrument:couponToValue = select(fixLeg, 
+  nil->1.0, 
+  default->couponFactor);
+[Default]FCln:couponToValue = select(isSpreadOption, 
+  true->firstLeg :* "forwardAssetSwapCouponFactor" [forwardValueDate], 
+  default->1.0);
+[Default]FCurrencySwap:couponToValue = couponFactor;
+[Default]FDeposit:couponToValue = couponFactor;
+[Default]FFra:couponToValue = couponFactor;
+[Default]FFrn:couponToValue = select(isSpreadOption, 
+  true->floatLeg :* "forwardAssetSwapCouponFactor" [forwardValueDate], 
+  default->1.0);
+[Default]FFuture:couponToValue = select(underlyingType, 
+  "Swap"->select(isCashSettledSwaption, 
+    true->abs(object:cashSettledSwaptionUnderlyingValue [priceSource, forwardPriceDate = expiryDateForCouponToValue]), 
+    false->abs(underlying :* "couponToValue" [forwardPriceDate := expiryDateForCouponToValue])), 
+  default->select(underlyingIsRateIndex, 
+    true->underlying.RateIndexPeriod, 
+    false->1.0));
+[Default]FFxSwap:couponToValue = -couponFactor * unitQuoteScaling;
+[Default]FInstrument:couponToValue = 1.0;
+[Default]FOption:couponToValue = select(underlyingIsRateIndex, 
+  true->underlying.RateIndexPeriod, 
+  false->select((underlyingQuotation == "Coupon") or isSpreadOption, 
+    true->select(isCashSettledSwaption, 
+      true->abs(object:cashSettledSwaptionUnderlyingValue [priceSource, forwardPriceDate = expiryDateForCouponToValue]), 
+      false->underlying :* "couponToValue" [forwardPriceDate = expiryDateForCouponToValue, isSpreadOption]), 
+    false->1.0));
+[Default]FSwap:couponToValue = couponFactor;

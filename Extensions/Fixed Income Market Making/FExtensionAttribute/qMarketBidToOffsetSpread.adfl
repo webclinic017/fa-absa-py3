@@ -1,0 +1,11 @@
+[Fixed Income Market Making]FQuoteController:qMarketBidToOffsetSpread = shunt(qOffsetDriverBid, 
+  nil->0.0, 
+  default->switch(qOffsetDriverBid, 
+    "YTM"->double(qMarketBidToYTMSpread) - double(qOffsetDriverValueBid), 
+    "AswSpread"->double(qMarketBidToCurveSpread) - double(qOffsetDriverValueBid), 
+    "DM"->double(qMarketBidToCurveSpread) - double(qOffsetDriverValueBid), 
+    "Z-Spread"->double(qMarketBidToZSpread) - double(qOffsetDriverValueBid), 
+    "Price"->double(qMarketBidToPriceSpread) - double(qOffsetDriverValueBid), 
+    "Gross Basis"->double(qMarketBidToGrossBasis) - double(qOffsetDriverValueBid), 
+    "I-Spread"->double(qMarketBidToISpread) - double(qOffsetDriverValueBid), 
+    default->0.0));

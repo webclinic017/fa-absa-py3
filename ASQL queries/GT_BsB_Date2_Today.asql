@@ -1,0 +1,64 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_BsB_Date2>Today') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_BsB_Date2>Today' and p.type = 'SQL Query' 
+
+
+
+
+/*
+
+coded by Anil on 5 Mar 2008
+to reflect all BsB trades where date2 > a given input date
+the reservse nominal is reflected for date2
+
+/*
+Purpose              	: Amended code to include BuySellBacks booked on same day
+Department and Desk	    : SM PCG
+Requester            	: Kelly Chetty
+Developer            	: Bhavnisha Sarawan
+CR Number            	: C461911
+*/
+
+*/
+
+
+select
+@Date2_greater_than{Today;}'Date',
+t.trdnbr,
+i.instype,
+t.status,
+ui.insid'bond',
+i.rate'repo_rate',
+t.value_day'start',
+t.premium'cash1',
+days_between(@Date2_greater_than{Today;},i.exp_day,'Act/365')'days_remaining',
+i.exp_day'end',
+(t.premium>0 ? -1 : +1)*abs((i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity)'Reverse Nominal_date2',
+p.prfid,
+t.time,
+t.value_day
+
+
+
+
+from
+
+trade t,
+instrument i,
+portfolio p,
+instrument ui
+
+where
+
+i.insaddr=t.insaddr
+and i.und_insaddr=ui.insaddr
+and i.exp_day>@Date2_greater_than{Today;}
+and p.prfnbr=t.prfnbr
+and match_filter(t,@filter{LA_FUND_TOTAL_MONB0681;})
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+order by i.exp_day

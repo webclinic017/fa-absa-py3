@@ -1,0 +1,28 @@
+[Default]FObject:Security Failed Receipts
+{
+}
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+  DisplayInformation:
+  {
+    Label:'Failed Receipts',
+    GroupLabel:'Security',
+    Description:'UnSettled security settlements, with positive amount, and value day prior to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(And(&'unSettledSecurityExtAttr', And(@isValueDayBeforeToday(), @isAmountPositive())), &'amount', 0.0));
+
+
+...

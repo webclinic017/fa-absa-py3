@@ -1,0 +1,28 @@
+#grouping: aef base/price retrieval
+#grouping: risk factors/quoted market price
+
+[Default]FFxRate:marketPrice[marketPriceChoice, priceSource, priceFindingCurrencyRule, adsPriceCurrency, adsPriceDate, priceFindingIsCorrectDay] = fxSpotRate;
+[Default]FInstrument:marketPrice[marketPriceChoice, priceSource, priceFindingCurrencyRule, adsPriceCurrency, adsPriceDate, priceFindingIsCorrectDay] = select(marketPriceChoice, 
+  "Price Find"->marketPriceFind, 
+  "Bid"->marketPriceBid, 
+  "Ask"->marketPriceAsk, 
+  "Last"->marketPriceLast, 
+  "Settle"->marketPriceClose);
+[Default]FInstrumentAndTrades:marketPrice = instrument:marketPrice [marketPriceChoice, priceSource];
+[Default]FLeg:marketPrice = instrument:marketPrice [marketPriceChoice, priceSource];
+[Default]FMultiInstrumentAndTrades:marketPrice = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "marketPrice" [marketPriceChoice, priceSource]);
+[Default]FOrderBook:marketPrice[marketPriceChoice] = priceFeed:marketPrice [marketPriceChoice];
+[Default]FPriceAggregate:marketPrice = priceFeed:marketPrice [marketPriceChoice];
+[Default]FPriceFeed:marketPrice[marketPriceChoice] = select(marketPriceChoice, 
+  "Price Find"->marketPriceFind, 
+  "Bid"->collapse(pricingPriceFeedMarketPriceBid), 
+  "Ask"->collapse(pricingPriceFeedMarketPriceAsk), 
+  "Last"->(pricingPriceFeedMarketOrADS :* "marketPriceLast"), 
+  "Settle"->(pricingPriceFeedMarketOrADS :* "marketPriceClose"));
+[Default]FQuoteController:marketPrice = trading:marketPrice;
+[Default]FTradingInterface:marketPrice = priceFeed:marketPrice;
+[Default]FVolatilityPoint:marketPrice = select(volPointObject, 
+  nil->nil, 
+  default->volPointObject:marketPrice [marketPriceChoice]);

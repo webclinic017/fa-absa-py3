@@ -1,0 +1,12 @@
+[Absa_2010]FCashFlowInstrument:creditJTDCashValues = select(0 == defaultSensitiveLegs.Size, 
+  true->currencyZero, 
+  false->select(object.IsDefaulted(instrumentSpotDate), 
+    true->currencyZero, 
+    false->creditJTDCash));
+[Absa_2010]FInstrument:creditJTDCashValues = currencyZero;
+[Absa_2010]FInstrumentAndTrades:creditJTDCashValues = select(isSettled, 
+  true->currencyZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->currencyZero, 
+    false->instrument :* "creditJTDCashValues" [creditIssuerGroupingReference] * riskPosition));
+[Absa_2010]FMultiInstrumentAndTrades:creditJTDCashValues = openPositions :* "creditJTDCashValues" [creditIssuerGroupingReference] * riskPositionsNonZero;

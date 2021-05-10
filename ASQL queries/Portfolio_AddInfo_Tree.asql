@@ -1,0 +1,82 @@
+/*
+Developer   : Nidheesh Sharma
+Date        : 21 February 2012, [21/02/2012]
+Description : A report that takes a compound portfolio as an input
+              and then shows the addinfos for all the portfolios below it.
+Change No.  : 133698
+User        : Prime Services Client
+Area        : Prime Services
+
+HISTORY
+===============================================================================
+Date        CR number   Developer       Description
+-------------------------------------------------------------------------------
+2013-05-09  999072      Peter Basista   Added a few new additional info fields
+                                        and changed the logic so that the query
+                                        now selects all the descendent
+                                        portfolios, regardless of their depth.
+-------------------------------------------------------------------------------
+*/
+
+/* Logging table */
+
+select
+    ael_i(p, 'ASQL_log', 'Portfolio_AddInfo_Tree') 'Name'
+into
+    ASQL_LOG_TEMP
+from
+    TextObject p
+where
+    p.name = 'Portfolio_AddInfo_Tree' and
+    p.type = 'SQL Query'
+
+/* Temporary table of descendent portfolios */
+
+select
+    p.prfnbr
+into
+    DescendentPortfolios
+from
+    Portfolio p
+where
+    ael_i(p, 'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port',
+        p.prfnbr, @Portfolio{PB_BLUEINK_FF_CR;Portfolio.prfid}) = 1
+
+/* Final results */
+
+select
+        p.prfid                             'Portfolio',
+        p.compound = 'Yes'  ?   'Compound'
+                            :   'Physical'  'Portfolio_Type',
+        display_id(pl,'owner_prfnbr')       'Parent_Compound_Portfolio',
+        add_info(p,'MoPL_Population')       'MoPL_Population',
+        add_info(p,'Parent_Portfolio')      'Parent_Portfolio',
+        add_info(p,'prt_BDA AccountName')   'prt_BDA AccountName',
+        add_info(p,'prt_BDA AccountNum')    'prt_BDA AccountNum',
+        add_info(p,'PS_ClientFundName')     'PS_ClientFundName',
+        add_info(p,'PS_CollCategory')       'PS_CollCategory',
+        add_info(p,'PS_CollHaircut')        'PS_CollHaircut',
+        add_info(p,'PS_FixedFee')           'PS_FixedFee',
+        add_info(p,'PS_FullyFunded')        'PS_FullyFunded',
+        add_info(p,'PS_FundingIns')         'PS_FundingIns',
+        add_info(p,'PS_PortfolioType')      'PS_PortfolioType',
+        add_info(p,'PS_StrategyName')       'PS_StrategyName',
+        add_info(p,'PS_Warehousing')        'PS_Warehousing',
+        add_info(p,'PSClientCallAcc')       'PSClientCallAcc',
+        add_info(p,'PSClientName')          'PSClientName',
+        add_info(p,'PSExtExecPremNonDMA')   'PSExtExecPremNonDMA',
+        add_info(p,'PSExtExecPremRate')     'PSExtExecPremRate',
+        add_info(p,'PSExtExecPremVoice')    'PSExtExecPremVoice',
+        add_info(p,'PSMarginFactor')        'PSMarginFactor',
+        add_info(p,'SL_AllocatedDesk')      'SL_AllocatedDesk',
+        add_info(p,'SL_Portfolio_Type')     'SL_Portfolio_Type',
+        add_info(p,'SL_ReservedStock')      'SL_ReservedStock',
+        add_info(p,'SL_Sweeping')           'SL_Sweeping'
+from
+        Portfolio p,
+        PortfolioLink pl,
+        DescendentPortfolios dp
+where
+        p.prfnbr = dp.prfnbr and
+        p.prfnbr = pl.member_prfnbr
+order by 3

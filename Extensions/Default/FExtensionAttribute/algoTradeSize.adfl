@@ -1,0 +1,4 @@
+[Default]ExecutionAlgo:algoTradeSize = switch(algoIndividualOrderSize > algoPeriodAverageTradeSize, 
+  true->square_root(algoIndividualOrderSize / algoPeriodAverageTradeSize) * algoPeriodAverageTradeSize / 2, 
+  false->algoIndividualOrderSize - square_root(algoIndividualOrderSize / algoPeriodAverageTradeSize) * algoIndividualOrderSize / 2);
+[Default]FSalesOrder:algoTradeSize = algoStrategyAgent :* "algoTradeSize";

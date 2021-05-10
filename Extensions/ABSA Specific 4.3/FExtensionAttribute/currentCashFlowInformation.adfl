@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FLeg:currentCashFlowInformation = 
+# Upgrade 2017: add cashflowinformation object to FLeg in order to use the core CashflowInformation.Rate() to get the current rate
+# - remove FLegAndTrades:rate extension as this fix makes it redundant.
+select(currentCashFlow, 
+  nil->nil, 
+  default->currentCashFlow:cashFlowInformation);

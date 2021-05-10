@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:OdysseyAccrual = select(fundingInsType == "IRD Funding", 
+  true->instrument:ddmAccruedInterestREPCCY, 
+  default->select((object.InsType == "SecurityLoan") or ((object.InsType == "Deposit") and (fundingInsType.At(0) == "Call")) or (fundingInsType == "Non Zar CFC"), 
+    true->ddmCallAccruedIntREPCCY, 
+    default->(ddmAccruedInterestREPCCY - ddmTradedInterestREPCCY)));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:OdysseyAccrual = nil;

@@ -1,0 +1,4 @@
+[Default]FInstrumentAndTrades:vegaStrikeBuckets = convertToCurrency(vegaStrikeBucketValues, theoreticalValueFxRates, displayCurrencySymbol);
+[Default]FTimeBucketAndObject:vegaStrikeBuckets = select(useOnesidedShiftForVega, 
+  true->oneSidedDifferential(vegaStrikeBucketsBase, node(vegaStrikeBucketsBase).Axis, true)[timeBucketCollectionIndex], 
+  default->scenarioaxisarray(rowInstrumentAndTrades:vegaStrikeBuckets [displayCurrency, vegaStrikeBucketsInfoSetExternally], <["parameterExpiryDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex]);

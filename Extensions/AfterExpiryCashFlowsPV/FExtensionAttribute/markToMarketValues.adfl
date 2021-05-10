@@ -1,0 +1,11 @@
+[AfterExpiryCashFlowsPV]FInstrument:markToMarketValues = select(isSettled, 
+  true->onlyFuturePositionPaymentsSpot, 
+  false->shunt(isZeroRiskPosition, 
+    true->positionSpotValues, 
+    false->markToMarketSpotValues * riskPosition + positionSpotValues));
+[AfterExpiryCashFlowsPV]FInstrumentAndTrades:markToMarketValues = select(isSettled, 
+  true->onlyFuturePositionPaymentsSpot, 
+  false->shunt(isZeroRiskPosition, 
+    true->positionSpotValues, 
+    false->markToMarketSpotValues + positionSpotValues));
+[AfterExpiryCashFlowsPV]FMultiInstrumentAndTrades:markToMarketValues = markToMarketSpotValues + positionSpotValues;

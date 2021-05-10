@@ -1,0 +1,371 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Comms_MaturityLadder') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Comms_MaturityLadder' and p.type = 'SQL Query' 
+/*  DO.Cashflows
+
+Query based on .App/Portfoliocashflows
+
+This application presents all cashflows, dividends and payments in
+a given currency for a portfolio. The cashflows are sorted by
+payment date.
+
+NOTE: Combination instrument are not handled by the application.
+
+Macros :
+1_StartDay - Cashflows from this date (incl) will be shown
+2_EndDay - Cashflows up to and incl this date are shown
+3_Currency - The currency of the payments. More than one curr can be selected
+4_ShowTOTALCurrRepDay - Totals Cashflows by Currency and PayDay
+5_ShowTOTALInstype - Totals Cashflows by Instrument Type
+6_Show_TradeDetail - Shows Cashflow details
+CashflowType - Either "All" or select from list
+Filter - The tradefilter from which the payments will be presented 
+Instype - Either "All" or ATLAS Instrument Type or Select from List
+
+Columns :
+Day - Payday
+Amount - Amount
+Curr - Currency
+TrdNbr - Trade number
+Party - Issuer ID if cashflow from security, else Counterparty ID
+Portfolio - Portfolio
+
+
+History:
+When: 		CR:     Who:		    What:                                                           Requestor:
+2012-03-14  C144786 Nidheesh Sharma Used ABSA.Metals_CashflowReport to create Comms_MaturityLadder  Melissa Pillay
+*/ 
+
+
+/* List of trades */
+select
+	t.trdnbr,
+	i.insid,
+	p.ptyid                             'cpid',
+	pi.ptyid                            'issid',
+	t.time,
+	display_id(t,'prfnbr')              'Portfolio'
+	
+into  
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr = p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@Instype{}))
+	
+
+/* Premium amounts */
+select
+	t.value_day	                        'day',
+	t.premium	                        'amount',
+	display_id(t,'curr')	            'curr',
+	t.connected_trdnbr                  'trdnbr',
+	trd.cpid,
+	trd.portfolio
+	
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	t.curr = j.insaddr
+and	t.value_day <= @2_EndDay{Today;}
+
+/* Premium amounts 2*/
+select
+	t.value_day	                        'day',
+	t.quantity	                        'amount',
+	display_id(i,'curr'),
+	t.connected_trdnbr                  'trdnbr',
+	trd.cpid,
+	trd.portfolio
+	
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+	t.trdnbr = trd.trdnbr
+and	t.premium ~= 0.0
+and	t.insaddr = i.insaddr
+and	i.curr = j.insaddr
+and i.instype = 'Curr'
+and	t.value_day <= @2_EndDay{Today;}
+
+
+
+/* Cashflows */
+select
+	c.pay_day	                        'day',
+	projected_cf(c) * t.quantity	    'amount',
+	display_id(l,'curr')	            'curr',
+	t.trdnbr,
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.portfolio
+	
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	leg         l,
+	cashflow    c,
+	TRD         trd,
+	instrument  j
+where
+	i.insaddr = t.insaddr 
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+and	('All' in (@CashflowType{All;Cashflow.type*}) or c.type in (@CashflowType{;Cashflow.type*}))
+and	l.curr = j.insaddr
+and	c.pay_day <= @2_EndDay{Today;}
+
+ 
+/* End premiums and sec loan fees */
+select
+	i.exp_day	                        'day',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+		t.quantity * projected_cf(i)	'amount',
+	display_id(t,'curr')	            'curr',
+	t.trdnbr,
+	trd.cpid                            'Party',
+	trd.portfolio
+	
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and	t.curr = j.insaddr
+and	i.exp_day <= @2_EndDay{Today;}
+
+
+/* Commod Futures */
+select
+	i.exp_day	                        'day',
+	nominal_amount(t)*t.price*-1	    'amount',
+	display_id(t,'curr')	            'curr',
+	t.trdnbr,
+	trd.cpid                            'Party',
+	trd.portfolio
+	
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and	i.und_instype = 'Commodity'
+and	t.curr = j.insaddr
+and	i.exp_day <= @2_EndDay{Today;}
+
+
+/* Additional payments */
+select
+	a.payday	                        'day',
+	a.amount	                        'amount',
+	display_id(a,'curr')	            'curr',
+	a.trdnbr,
+	trd.cpid                            'Party',
+	trd.portfolio
+
+into 
+	CF
+from
+	payment     a,
+	TRD         trd,
+	instrument  j
+where
+	a.trdnbr = trd.trdnbr
+and	a.curr = j.insaddr
+and	a.payday <= @2_EndDay{Today;}
+
+
+/* Dividend payments */
+select
+	d.day			                    'day',
+	d.dividend		                    'amount',
+	display_id(i,'curr')	            'curr',
+	t.trdnbr		                    'Trdnbr',
+	trd.issid                           'Party',
+	trd.portfolio
+
+into
+	CF
+
+from	
+    instrument  i,
+	dividend    d,
+	trade       t,
+	TRD         trd,
+	instrument  j
+where   
+	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	t.trdnbr=trd.trdnbr
+and	t.curr = j.insaddr
+and	d.day <= @2_EndDay{Today;}
+	
+	
+select
+	'Total by Curr & Day'		        'Section',
+	c.day > to_date(@1_StartDay{Yesterday;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.curr		                        'Curr',
+	sum(c.amount)	                    'Amount',
+	c.trdnbr	                        'TrdNbr',
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+into 
+	tot
+from
+	CF c
+where
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day <= @2_EndDay{Today;}
+and	c.day >= @1_StartDay{Yesterday;}
+and	@4_Show_TOTALCurrRepDay{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3
+order by 2
+
+select
+	'Opening Balance'		            'Section',
+	c.day 	                            'Day',
+	c.curr		                        'Curr',
+	sum(c.amount)	                    'Amount',
+	c.trdnbr    	                    'TrdNbr',
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+into
+	open
+from
+	CF c
+where
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day < @1_StartDay{Yesterday;}
+
+group by 3
+
+		
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	*
+from
+	open
+
+union
+
+select * from tot
+
+union
+
+select
+	'Run Tot'                           'Section',
+	c.Day                               'Day',
+	c.Curr                              'Curr',
+	ael_f(,'Metals.Metals_Total',c.Day,c.Curr,o.Amount,to_date(@1_StartDay{Yesterday;}),@Filter{;tradefilter.fltid})		'Amount',
+	c.TrdNbr                            'TrdNbr',           
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+
+from
+	tot     c,
+	open    o
+where
+	o.Curr = c.Curr
+
+union
+
+select
+	'Total by Instype'		            'Section',	
+	c.day > to_date(@1_StartDay{Yesterday;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.curr		                        'Curr',
+	sum(c.amount)	                    'Amount',
+	c.trdnbr	                        'TrdNbr',
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day <= @2_EndDay{Today;}
+and	c.day >= @1_StartDay{Yesterday;}
+and	@5_Show_TOTALInstype{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3
+
+union
+
+select
+	'Details'		                    'Section',
+	c.day 	                            'Day',
+	c.curr		                        'Curr',
+	sum(c.amount)	                    'Amount',
+	c.trdnbr	                        'TrdNbr',
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+
+from
+	CF c
+where 	
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day >= @1_StartDay{Yesterday;}
+and	c.day <= @2_EndDay{Today;}
+and	@6_Show_TradeDetail{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+union
+
+select
+	'Total by Curr' 	                'Section',
+	c.day 	                            'Day',
+	c.curr		                        'Curr',
+	sum(c.amount)	                    'Amount',
+	c.trdnbr	                        'TrdNbr',
+	c.Party                             'Party',
+	c.portfolio                         'Portfolio'
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day >= @1_StartDay{Yesterday;}
+and	c.day <= @2_EndDay{Today;}
+and	@7_Show_TotalCurr{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 3

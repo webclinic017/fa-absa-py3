@@ -1,0 +1,5 @@
+[AMI APT]FSingleInstrumentAndTrades:APT_Universe_53_CallAmount = select(instrument:isFXOption, 
+  true->select(instrument.Underlying == instrument:APT_Universe_46_CallCurrency, 
+    true->APT_Composition_Units, 
+    default->APT_Composition_Units * (instrument:strikeValueModel).Number), 
+  default->nil);

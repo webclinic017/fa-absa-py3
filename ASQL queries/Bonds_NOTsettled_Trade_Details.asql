@@ -1,0 +1,241 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Bonds_NOTsettled_Trade_Details') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Bonds_NOTsettled_Trade_Details' and p.type = 'SQL Query' 
+/*
+
+Name  date           Change
+Anil  2002-02-13     use the function forward_ytm() only from T+4 and not for T+1 and T+2
+                     for T+1, T+2 use is made of the spot yield to calculate the MtM as in the convention for T+3
+
+Anil  2002-03-06    set up parameters to extract trade details (other than rfr) for a different system date
+
+Anil  2002-03-11    enable 'quick and dirty' for determining a forward_ytm() in the case of indexed linked linked bondsÅÅ
+
+Anil  2003-08-27 (when mars was close to earth) trades that have acquirer = ABACAS are excluded
+
+Anil  2005-05-19 adjusted clean_PL to to discounted to today
+
+Change:
+
+Purpose               : Add FRNs to the list of instruments being reported on.
+Department and Desk   : SM PCG RATES & OPTIONS
+Requester             : Mpho Matsolo
+Developer             : Jaysen Naicker
+CR Number             : 252544 
+
+*/
+
+/*--------- set up T+3  ------------ */
+
+select
+s.srdnbr,
+date_add_banking_day(@upto{Today;} ,,3) 'vdate'
+
+into
+temp
+
+from
+serverdata s
+
+/*-------------- not settled trades allocated to temp table -------------- */
+
+select
+@upto{Today;} 'Today',
+'' 'TradeArea',
+port.prfid'Port',
+t.creat_time'DealDate',
+'YES' ? i.extern_id1 : '' 'Bond',
+'YES' ? t.trdnbr : '' 'Trdnbr',
+t.optional_key'STT_ref',
+display_id(t, 'counterparty_ptynbr')  'Ptyid',
+/*party.ptyid*//*''  'Ptyid',*/
+
+(t.quantity*1000000)'Nom',
+
+t.value_day'Settle',
+
+t.price'Yield_Trade',
+
+t.premium'premium',
+
+t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1'CleanTrade',
+
+mtm_price(i,@upto{Today;})'MtM_Yield',
+
+yc_rate(yc,@upto{Today;},t.value_day,'Simple','Act/365','Spot Rate')*100'Carry',
+
+
+(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,@upto{Today;}) : forward_ytm(i,t.value_day)) : mtm_price(i,@upto{Today;})) 'Implied_Yield',
+
+t.value_day=i.exp_day ? t.quantity*1000000 : ((clean_from_yield(i,t.value_day,,, mtm_price(i,@upto{Today;})))  *10000*t.quantity) 'CleanMtM',
+
+t.value_day=i.exp_day ? (t.quantity*1000000)+(t.quantity*-1000000) :
+(((clean_from_yield(i,t.value_day,,, mtm_price(i,@upto{Today;})  )*10000*t.quantity))+
+(clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1))*
+(yc_rate(yc,@upto{Today;},t.value_day,'Discount','Act/365','Discount'))'Clean_PL'
+
+
+into summary
+
+
+
+from
+
+
+yieldcurve yc,
+instrument i,
+trade t,
+/*party party,*/
+portfolio port,
+/*choicelist c,*/ temp tt
+/*party acq*/
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=port.prfnbr
+/*and t.counterparty_ptynbr=party.ptynbr*/
+
+and yc.yield_curve_name = 'ZAR_Bond_repo_GC'
+
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.value_day > @upto{Today;}
+and time_to_day(t.time)<= @upto{Today;} 
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+and i.exp_day >= @upto{Today;}
+
+and port.prfid not in ('9803AFS','9803HFT','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4') 
+
+and trdnbr not in (831644,915643,915940,915941,915942,915943,915944,959151,959015,959179)
+and i.insid not like '%FUTURE%'
+
+/*and t.optkey1_chlnbr=c.seqnbr*/
+/*and t.acquirer_ptynbr = acq.ptynbr*/
+/*and c.entry not in ('ABS001','ABS002')
+and acq.ptyid ~= 'ABACAS'*/
+
+
+order by 2,5,10/*c.entry,i.extern_id1,t.value_day*/
+
+/*------------------ Select trades from temp table ------------*/
+
+
+select
+
+s.Today,
+s.TradeArea,
+s.Port,
+s.DealDate,
+s.Bond,
+s.Trdnbr,
+s.STT_ref,
+s.Ptyid,
+s.Nom,
+s.Settle,
+s.Yield_Trade,
+s.Premium,
+s.CleanTrade,
+S.MtM_Yield,
+s.Carry'Repo_Sim',
+s.Implied_Yield,
+s.CleanMtM,
+s.Clean_Pl
+
+
+
+from
+summary s
+
+
+order by s.TradeArea, s.Settle, s.Bond
+
+union
+
+select
+
+s.Today,
+s.TradeArea,
+''/*s.Port*/,
+s.DealDate,
+s.Bond,
+'Bond/TA' /*s.Trdnbr*/,
+s.STT_ref,
+'' 'Ptyid' ,/*s.Ptyid,*/
+sum(s.Nom),
+s.Settle,
+s.Yield_Trade,
+sum(s.Premium),
+sum(s.CleanTrade),
+S.MtM_Yield,
+s.Carry,
+s.Implied_Yield,
+sum(s.CleanMtM),
+sum(s.Clean_Pl)
+
+
+from summary s
+
+group by 2,5 /*c.entry , i.extern_id*/
+
+order by 2,5
+
+union
+
+select
+
+s.Today,
+s.TradeArea,
+''/*s.Port*/,
+s.DealDate,
+s.Bond,
+'TA' /*s.Trdnbr*/,
+s.STT_ref,
+'' 'Ptyid' ,/*s.Ptyid,*/
+sum(s.Nom),
+s.Settle,
+s.Yield_Trade,
+sum(s.Premium),
+sum(s.CleanTrade),
+S.MtM_Yield,
+s.Carry,
+s.Implied_Yield,
+sum(s.CleanMtM),
+sum(s.Clean_Pl)
+
+
+from summary s
+
+group by 2 /*c.entry */
+
+order by s.TradeArea
+
+union
+
+select
+
+s.Today,
+s.TradeArea,
+''/*s.Port*/,
+s.DealDate,
+s.Bond,
+'Total' /*s.Trdnbr*/,
+s.STT_ref,
+'' 'Ptyid' ,/*s.Ptyid,*/
+sum(s.Nom),
+s.Settle,
+s.Yield_Trade,
+sum(s.Premium),
+sum(s.CleanTrade),
+S.MtM_Yield,
+s.Carry,
+s.Implied_Yield,
+sum(s.CleanMtM),
+sum(s.Clean_Pl)
+
+
+from summary s
+
+group by 1 /*Today */
+

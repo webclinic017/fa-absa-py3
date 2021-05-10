@@ -1,0 +1,7 @@
+[Core Risk]FTimeBucketAndObject:gapOpenRate = switch(double(gapOpenAsset) == 0, 
+  true->nil, 
+  false->switch(double(notANumberIsZero(gapAsset)) > double(notANumberIsZero(gapLiability)), 
+    true->gapAssetRate, 
+    false->switch(double(notANumberIsZero(gapAsset)) < double(notANumberIsZero(gapLiability)), 
+      true->gapLiabilityRate, 
+      false->0.0)));

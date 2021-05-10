@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FInstrument:rebate = nil;
+[Equity Pricing and Risk]FOption:rebate = select(isBarrierOption, 
+  true->select(isDigital and not isCashSettled, 
+    true->nil, 
+    false->object.Rebate), 
+  false->nil);

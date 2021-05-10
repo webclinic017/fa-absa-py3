@@ -1,0 +1,27 @@
+/* ******************  ASQL USAGE LOG  ********************** */
+ select
+      ael_i(p,'ASQL_log','PCG_bond_bm_delta_ins') 'Name'
+ into  ASQL_LOG_TEMP
+ from TextObject p
+ where p.name = 'PCG_bond_bm_delta_ins' and p.type = 'SQL Query'
+  
+/* 
+    ================================================================
+    asql used to extract benchmark deltas for bond instruments
+    done by simulating a 1bp bump on bond yield
+    Hendrik Jansen van Rensburg    03-March-2010
+    ================================================================
+*/
+
+select 
+    TODAY                                       'RepDate',
+    ins.insid                                   'Instrument Name',
+    ins.exp_day                                 'Expiry Date',
+    ael_f(ins, 'dirk_utils.Bond_BM_delta_ins')  'PV01_bnd'
+from
+    instrument ins
+where
+    ins.instype in ('Bond', 'IndexLinkedBond')
+    and ins.exp_day >= TODAY
+order by
+    ins.insid

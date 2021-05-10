@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Carry') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Carry' and p.type = 'SQL Query' 
+select
+	t.trdnbr			'Trade',
+	t.quantity*i.contr_size		'Nominal',
+	abs(t.quantity*i.contr_size)	'ANom',
+	display_id(t, 'optkey1_chlnbr')	'TradArea',
+	i.instype			'Instrument',
+	i.insid				'ID',
+	time_to_day(t.time)		'TDate',
+	t.time				'TTime',
+	display_id(t, 'counterparty_ptynbr')	'CountParty',
+	used_price(t)			'Price',
+	t.value_day			'Settle',
+	t.premium			'Consideration',
+	t.price				'Yield',
+	display_id(t, 'trader_usrnbr')	'Trader',
+	t.status			'Status'
+
+into
+	temptable
+from
+	trade	t,
+	instrument	i
+where
+	t.insaddr = i.insaddr
+and	i.instype = 'Bond'
+and	display_id(t, 'optkey1_chlnbr') in ('KLN006','SPT006')
+and	display_id(t, 'counterparty_ptynbr') ~= 'DRA'
+and	time_to_day(t.time) >= @Starttime{}/*'2002-10-31'*/
+and	time_to_day(t.time) <= @Endtime{}/*'2002-11-30'*/
+and	t.status not in ('Void','Reserved','Terminated','Simulated')
+
+select
+	tt.Trade,
+	tt.Nominal,
+	tt.ANom,
+	tt.TradArea,
+	tt.Instrument,
+	tt.ID,
+	tt.TDate,
+	tt.TTime,
+	tt.CountParty,
+	tt.Price,
+	tt.Settle,
+	tt.Consideration,
+	tt.Yield,
+	tt.Trader,
+	tt.Status
+from
+	temptable	tt
+ORDER BY
+	tt.Trader, tt.TDate, tt.CountParty, tt.ANom, tt.ID, tt.Yield

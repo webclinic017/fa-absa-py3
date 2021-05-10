@@ -1,0 +1,10 @@
+[Securities Lending ABSA]FInstrumentAndTrades:slDividendErrorT3 = switch(abs(slLDTPlusThreeStockPosition - 0) > 0.0001, 
+  true->switch(slLDTPlusThreeStockPosition > 0, 
+    true->switch((((slLDTPlusThreeStockPosition + slLDTPlusThreeLoanPosition) >= 0) and (((slLDTPlusThreeStockPosition + slLDTPlusThreeLoanPosition) <= slLDTPlusThreeStockPosition))), 
+      true->nil, 
+      false->"Manual Intervention"), 
+    false->switch(abs(slLDTPlusThreeStockPosition + slLDTPlusThreeLoanPosition) < 0.0001, 
+      true->nil, 
+      false->"Manual Intervention")), 
+  false->nil);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:slDividendErrorT3 = nil;

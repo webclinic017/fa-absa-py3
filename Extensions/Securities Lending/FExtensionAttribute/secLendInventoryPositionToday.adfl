@@ -1,0 +1,5 @@
+[Securities Lending]FInstrument:secLendInventoryPositionToday = inventoryPosition(tradesInPosition, object.UnderlyingOrSelf, secLendPositionDate, tradeStatusInclusionMaskDefault);
+[Securities Lending]FMultiInstrumentAndTrades:secLendInventoryPositionToday = switch(secLendInstrumentsHasSameUnderlying and secLendSumInventoryPositionToday, 
+  true->secLendSumInventoryPositionToday, 
+  false->nil);
+[Securities Lending]FSingleInstrumentAndTrades:secLendInventoryPositionToday = instrument:secLendInventoryPosition [positionObject, secLendPositionDate = dateToday];

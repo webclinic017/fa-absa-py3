@@ -1,0 +1,71 @@
+[UDMCUtilMod]FObject:udmcMultiGenericPayoff
+#------------------------------------------
+# PAYOFF EXPRESSION
+# Generic Multi Underlying Payoff
+#
+# INTERPRETATION
+# This template is a basic example that passes all available standard exotic events to the function but then prices the instrument as a vanilla option on a basket. 
+# Call:         max(S - K, 0) 
+# Put:          max(K - S, 0)  
+#
+# DEFINITION     
+# S: Sum of underlying spot prices for the underlying assets on all specified observation dates;
+# K: Strike price, 'Strike' field;
+#------------------------------------------
+
+# PARAMETERS
+param matrix(double) historicalFixings;
+param matrix(double) isAveragePrice;
+param matrix(double) isAverageStrike;
+param matrix(double) isBarrierDate;
+param matrix(double) isCliquetDate;
+param matrix(double) isLadderDate;
+param matrix(double) isLadderRung;
+param matrix(double) isLookbackDate;
+param matrix(double) isVariancePrice;
+param matrix(double) isPriceFixing;
+param matrix(double) timeSteps;
+param matrix(double) fixFXRate;
+param int isCall;
+param int isQuanto;
+param double K;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+matrix(double) fx=transpose(1.0 * isQuanto*(fixFXRate-1.0)+1.0);
+double s = 0.0;
+double k = 0.0;
+double callOrPut = 2.0 * isCall - 1.0;
+
+# MAIN LOOP
+s = sum( S .* fx);
+k = K;
+
+cashFlow(0, max(0.0,callOrPut * (s-k)));
+
+
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isAveragePrice: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Average price' fixing;
+# isAverageStrike: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Average strike' fixing;
+# isBarrierDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Barrier date' fixing;
+# isCliquetDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Cliquet date' fixing;
+# isLadderDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Ladder date' fixing;
+# isLadderRung: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Ladder rung' fixing;
+# isLookbackDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Lookback date' fixing;
+# isVariancePrice: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Variance price' fixing;
+# isPriceFixing: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Price Fixing' fixing;
+# timeSteps: One row, the number of columns is equal to the number of observation dates. Contains the time data of the underlying instrument; 
+# fixFXRate: One row, the number of columns is equal to the number of components. Contains the FX Rates for each component;
+#
+# S: Matrix of component prices. The number of rows is equal to the number of components, the number of columns is equal to the number of observation dates;
+#
+# fx: Matrix of FX Rate values if the type of the option is Quanto, with 1.0 values otherwise. 
+# ------------------------------------------
+
+
+...

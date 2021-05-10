@@ -1,0 +1,41 @@
+[Default]FObject:udmcVanillaBasketPayoff
+#------------------------------------------
+# PAYOFF EXPRESSION
+# Vanilla Basket Payoff
+#
+# INTERPRETATION
+# This template is a basic example that prices the instrument as a vanilla option on a basket. 
+# Call:         max(S - K, 0) 
+# Put:          max(K - S, 0)  
+#
+# DEFINITION     
+# S: Sum of underlying spot prices for the underlying assets on all specified observation dates;
+# K: Strike price, 'Strike' field;
+#------------------------------------------
+
+# PARAMETERS
+param int isCall;
+param double K;
+param matrix(double) weights;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double s = 0.0;
+double k = 0.0;
+double callOrPut = 2.0 * isCall - 1.0;
+
+# MAIN LOOP
+s = sum(S[:,-1].*transpose(weights));
+k = K;
+
+cashFlow(0, max(0.0, callOrPut * (s - k)));
+
+# ------------------------------------------
+#PEL IMPLEMENTATION
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+# ------------------------------------------
+
+...

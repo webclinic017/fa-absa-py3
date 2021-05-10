@@ -1,0 +1,8 @@
+[Adaptiv XVA]FCreditBalance:afterPFEXml = AssembleXML(afterPFEDealsXml, afterPFECalculationXml, afterPFEDataXml);
+[Adaptiv XVA]FTrade:afterPFEXml = select(incrementalPFE, 
+  nil->nil, 
+  0.0->nil, 
+  default->switch((nil == matchingCreditBalanceInstrument), 
+    true->nil, 
+    false->matchingCreditBalanceInstrument:afterPFEXml [incTrds := incrementalTrdsList]));
+[Adaptiv XVA]FTradeRow:afterPFEXml = trade:afterPFEXml;

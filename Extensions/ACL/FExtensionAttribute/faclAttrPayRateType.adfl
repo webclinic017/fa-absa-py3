@@ -1,0 +1,6 @@
+[ACL]FTrade:faclAttrPayRateType = select(object.Quantity * instrument:contractSize > 0, 
+  true->instrument:faclPayLegRateType, 
+  false->instrument:faclReceiveLegRateType);
+[ACL]FTradeRow:faclAttrPayRateType = select(trade.Quantity * instrument:contractSize > 0, 
+  true->instrument:faclPayLegRateType, 
+  false->instrument:faclReceiveLegRateType);

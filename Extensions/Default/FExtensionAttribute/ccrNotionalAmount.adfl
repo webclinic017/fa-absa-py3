@@ -1,0 +1,9 @@
+[Default]FAverageForward:ccrNotionalAmount = floatRateRefIns :* "ccrNotionalAmount" [riskPositionBase, tradesInPosition];
+[Default]FCashFlowInstrument:ccrNotionalAmount = denominatedvalue(abs(riskPositionBase), currency, dateToday, nil);
+[Default]FCommodityVariant:ccrNotionalAmount = underlying:ccrNotionalAmount [riskPositionBase, tradesInPosition];
+[Default]FCurrencySwap:ccrNotionalAmount = positionNotionalCurrencySwap(object, riskPositionBase, nominalValueForLegs, priceGreekFxRatesToAccounting, currency, accountingCurrency);
+[Default]FDerivative:ccrNotionalAmount = select(isFXOption, 
+  true->positionNotionalFxOption(object, riskPositionBase, ccrStrikePrices, priceGreekFxRates, currency, accountingCurrency), 
+  false->underlying:ccrNotionalAmount [riskPositionBase, tradesInPosition]);
+[Default]FInstrument:ccrNotionalAmount = marketSpotUnitValue * abs(riskPositionBase);
+[Default]FVarianceSwap:ccrNotionalAmount = denominatedvalue(abs(riskPositionBase), currency, dateToday, nil);

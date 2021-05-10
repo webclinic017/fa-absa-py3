@@ -1,0 +1,181 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Metals Total Open Position') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Metals Total Open Position' and p.type = 'SQL Query' 
+
+/* ======================================================================================================= */
+/* fx swaps*/
+select
+	t.trdnbr,
+	i.insid					        'Instrument',
+	cp.ptyid					    'Counter_Party_Name',
+	abs(t.premium/t.quantity )		'Rate',
+	t.optional_key				    'DevNbr',
+	time_to_day(t.time)			    'DealDate',
+	t.value_day				        'SettlementDate',
+	t.premium <	0 ? t.premium : t.quantity		                    'CallAmount',
+	t.premium <	0 ? display_id(t,'curr') : display_id(i,'curr')		'CallCurrency',
+	t.premium <	0 ? t.quantity : t.premium 	                        'PutAmount',
+	t.premium <	0 ? display_id(i,'curr') : display_id(t,'curr')		'PutCurrency',
+	t.value_day				        'PayDate',
+	0.0                             'premium',
+	display_id(t,'prfnbr')			'Portfolio',
+	t.value_day                     'Expiry',
+	'FxSwap'                        'instype'
+from 	
+	trade t,
+	instrument i,
+	party cp,
+	portfolio p
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})
+	and	t.insaddr = i.insaddr
+	and i.instype = 'Curr'
+	and	t.counterparty_ptynbr = cp.ptynbr
+	and t.prfnbr = p.prfnbr
+	and	t.status not in ('Simulated', 'Terminated', 'Void')
+	and t.premium ~=- 0
+    and t.quantity ~= 0
+    and t.trade_process in (4096,8192)
+
+Union
+
+select
+	t.trdnbr,
+	i.insid					        'Instrument',
+	cp.ptyid					    'Counter_Party_Name',
+	abs(t.premium/t.quantity )		'Rate',
+	t.optional_key				    'DevNbr',
+	time_to_day(t.time)			    'DealDate',
+	t.value_day				        'SettlementDate',
+	(t.premium + t2.premium) <	0 ? t.premium + t2.premium : t2.quantity + t.quantity	'CallAmount',
+	(t.premium + t2.premium) <	0 ? display_id(t,'curr') : display_id(i,'curr')		'CallCurrency',
+	(t.premium + t2.premium) <	0 ? t2.quantity + t.quantity : t.premium + t2.premium	'PutAmount',
+	(t.premium + t2.premium) <	0 ? display_id(i,'curr') : display_id(t,'curr')		'PutCurrency',
+	t2.value_day				    'PayDate',
+	0.0                             'premium',
+	display_id(t,'prfnbr')			'Portfolio',
+	t.value_day                     'Expiry',
+	'FxSwap'                        'instype'
+from 	
+	trade t,
+	trade t2, 
+	instrument i,
+	party cp,
+	portfolio p
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})
+	and	t.insaddr = i.insaddr
+	and i.instype = 'Curr'
+	and	t.counterparty_ptynbr = cp.ptynbr
+	and t.prfnbr = p.prfnbr
+	and	t.status not in ('Simulated', 'Terminated', 'Void')
+	and t.premium + t2.premium ~=- 0
+    and t.quantity + t2.quantity ~= 0
+    and t.trade_process = 16384
+    and t2.trade_process = 32768
+    and t2.connected_trdnbr = t.trdnbr
+    
+Union
+
+
+/* options */
+select
+	t.trdnbr,
+	i.insid					'Instrument',
+	cp.ptyid					'Counter_Party_Name',
+	t.price					'Rate',
+	t.optional_key				'DevNbr',
+	time_to_day(t.time)			'DealDate',
+	t.value_day				'SettlementDate',
+	nominal_amount(t)				'CallAmount',
+	''				'CallCurrency',
+	0.0					'PutAmount',
+	''				'PutCurrency',
+	t.value_day				'PayDate',
+	t.premium,
+	display_id(t,'prfnbr'),
+    i.exp_day               'Expiry',	
+    to_string(i.instype)	'instype'
+from 	
+	trade t,
+	instrument i,
+	party cp
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})
+	and	t.insaddr = i.insaddr
+	and	i.instype = 'Option'
+	and	t.counterparty_ptynbr = cp.ptynbr
+
+
+Union
+
+
+/* deposits */
+select
+	t.trdnbr,
+	i.insid					'Instrument',
+	cp.ptyid					'Counter_Party_Name',
+	t.price					'Rate',
+	t.optional_key				'DevNbr',
+	time_to_day(t.time)			'DealDate',
+	t.value_day				'SettlementDate',
+	nominal_amount(t)				'CallAmount',
+	display_id(i,'curr')				'CallCurrency',
+	0.0					'PutAmount',
+	''				'PutCurrency',
+	t.value_day				'PayDate',
+	t.premium,
+	display_id(t,'prfnbr'),
+    i.exp_day               'Expiry',	
+    to_string(i.instype)	'instype'
+from 	
+	trade t,
+	instrument i,
+	party cp
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})
+	and	t.insaddr = i.insaddr
+	and	i.instype = 'Deposit'
+	and	t.counterparty_ptynbr = cp.ptynbr
+	
+union
+
+select
+	t.trdnbr,
+	i.insid					'Instrument',
+	cp.ptyid					'Counter_Party_Name',
+	t.price					'Rate',
+	t.optional_key				'DevNbr',
+	time_to_day(t.time)			'DealDate',
+	t.value_day				'SettlementDate',
+	t.quantity < 0 ?
+                    t.quantity :
+                    t.quantity * t.price    'CallAmount',
+	t.quantity < 0 ?
+                    u.insid :
+                    display_id(i,'curr')    'CallCurrency',
+    t.quantity > 0 ?
+                    t.quantity :
+                    t.quantity * t.price	'PutAmount',
+	t.quantity > 0 ?
+                    u.insid :
+                    display_id(i,'curr')	'PutCurrency',
+	i.exp_day				'PayDate',
+	t.premium,
+	display_id(t,'prfnbr'),
+    i.exp_day               'Expiry',	
+    to_string(i.instype)	'instype'
+from 	
+	trade t,
+	instrument i,
+	instrument u,
+	party cp
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})
+	and	t.insaddr = i.insaddr
+	and	i.instype = 'Future/Forward'
+	and	t.counterparty_ptynbr = cp.ptynbr    
+    	and u.insaddr = i.und_insaddr

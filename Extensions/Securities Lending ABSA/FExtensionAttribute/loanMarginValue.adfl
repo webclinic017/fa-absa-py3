@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:loanMarginValue = select(isPartyGrouping, 
+  true->select(isSingleCollateral, 
+    true->py("sl_functions", context).margin_factor(trades) * loanValue, 
+    false->loanValue), 
+  false->sumOf(children :* "loanMarginValue"));

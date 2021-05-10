@@ -1,0 +1,9 @@
+[Default]FInstrument:modifiedDurationYTWOD = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->object:modifiedDurationFromYTWOD [instrumentSpotDate, priceSource]), 
+  false->nan);
+[Default]FInstrumentAndTrades:modifiedDurationYTWOD = select(workOutDateInTheoreticalPrice, 
+  nil->nil, 
+  default->instrument :* "modifiedDurationYTWOD" [priceSource]);
+[Default]FMultiInstrumentAndTrades:modifiedDurationYTWOD = nil;

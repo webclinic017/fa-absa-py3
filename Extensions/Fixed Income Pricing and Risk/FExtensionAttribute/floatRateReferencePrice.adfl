@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FCurrencySwap:floatRateReferencePrice = shunt(calibrating, 
+  true->perturbedBenchmarkPriceForStandardCalculations, 
+  default->priceFeedAsFloatRateReference :* "marketPrice");
+[Fixed Income Pricing and Risk]FInstrument:floatRateReferencePrice = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:floatRateReferencePrice = instrument:floatRateReferencePrice [priceSource];
+[Fixed Income Pricing and Risk]FRateIndex:floatRateReferencePrice = shunt[priceSource, floatRateReferencePriceDate](calibrating and not benchmarkDeltaConstantFixings, 
+  true->perturbedBenchmarkPriceForStandardCalculations, 
+  default->priceFeedAsFloatRateReference :* "rateIndexPrice" [floatRateReferencePriceDate]);
+[Fixed Income Pricing and Risk]FSwap:floatRateReferencePrice = shunt(calibrating, 
+  true->perturbedBenchmarkPriceForStandardCalculations, 
+  default->priceFeedAsFloatRateReference :* "marketPrice");

@@ -1,0 +1,5 @@
+[Core Risk]FInstrumentAndTrades:benchmarkVega = convertToCurrency(benchmarkVegaValuesCalculation, theoreticalValueFxRates, displayCurrencySymbol);
+[Core Risk]FMoneyFlowAndTrades:benchmarkVega = differential(volatilityGreekRiskFactorsBenchmarkShiftedUp, theoreticalValue, timesHundred(instrument:valuationModelSpecificRelativeVolatilityShift));
+[Core Risk]FTimeBucketAndObject:benchmarkVega = select(useOnesidedShiftForVega, 
+  true->oneSidedDifferential(benchmarkVegaBase, node(benchmarkVegaBase).Axis, true)[timeBucketCollectionIndex], 
+  false->scenarioaxisarray(rowInstrumentAndTrades:benchmarkVega [displayCurrency, vegaExplicitFilter], <["parameterExpiryDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex]);

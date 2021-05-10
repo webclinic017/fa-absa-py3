@@ -1,0 +1,3 @@
+[Default]FInstrumentAndTrades:interestRateForwardDeltaBucketHedge = shunt((timeBucketsSetExternally <> nil) and (interestRateForwardDeltaSingleCurrency <> nil), 
+  true->-differential(shiftarray(interestRateForwardDeltaBucketHedgeTheoreticalValue, snoop(interestRateForwardDeltaBucketHedgeTheoreticalValue, yieldCurveRiskFactorNames, ^interestRateForwardDeltaCurrencyFilter), shiftCurveForwardBuckets interestRateForwardDeltaParams), interestRateForwardDeltaBucketHedgeTheoreticalValue) ./ interestRateForwardDeltaHedgeValues, 
+  false->timeBucketsSetExternallyNilVector);

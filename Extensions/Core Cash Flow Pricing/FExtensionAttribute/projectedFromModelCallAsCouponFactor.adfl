@@ -1,0 +1,7 @@
+[Core Cash Flow Pricing]FCashFlowInstrument:projectedFromModelCallAsCouponFactor = select(valuationModelDescription, 
+  nil->true, 
+  default->select(valuationModelDescription.Includes("projectedAsCouponFactor"), 
+    true->valuationModelDescription["projectedAsCouponFactor"], 
+    false->true));
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:projectedFromModelCallAsCouponFactor = instrument:projectedFromModelCallAsCouponFactor;
+[Core Cash Flow Pricing]FInstrument:projectedFromModelCallAsCouponFactor = false;

@@ -1,0 +1,11 @@
+[Core Pricing]FCombInstrMap:theoreticalLegComponentValue = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->denominatedbasket(shunt[priceSource, doSplitAll](combinationLegsUnadjusted, 
+    true->setDateTimePart(valuationInstrument :* "theoreticalOrMarketInstrumentValue" [priceSource, doSplitAll], (combination:instrumentSpotDate)), 
+    false->valuationInstrument :* "moveValue" [moveStartValue = (valuationInstrument :* "theoreticalOrMarketInstrumentValue" [priceSource, doSplitAll]), moveToDate = (combination:instrumentSpotDate), priceSource]) * timeDistributionFactor * weight * contractSize));
+[Core Pricing]FLeg:theoreticalLegComponentValue = switch(legValuationModelNameValue, 
+  default->select(object.ComponentValuationType(isCredit), 
+    "Credit Slim"->collapse(theoreticalLegComponentValueCreditSlim), 
+    "Virtual"->collapse(theoreticalLegComponentValueSlimVirtualCashFlows), 
+    "Slim"->collapse(theoreticalLegComponentValueSlim), 
+    "None"->collapse(theoreticalLegComponentValueZero)));

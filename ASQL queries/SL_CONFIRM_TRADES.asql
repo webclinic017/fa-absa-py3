@@ -1,0 +1,14 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_CONFIRM_TRADES') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_CONFIRM_TRADES' and p.type = 'SQL Query' 
+ 
+  select
+    p.prfid,
+    ael_s(p,'SL_ChangeStatus.change_to_fo',p.prfid)
+from
+    portfolio p
+where
+    p.prfid = @Portfolio{;Portfolio.prfid}

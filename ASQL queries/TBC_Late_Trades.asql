@@ -1,0 +1,85 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_Late_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_Late_Trades' and p.type = 'SQL Query' 
+ 
+ 
+ 
+select
+	t.trdnbr							            'TradeNumber',
+	display_id(t,'trader_usrnbr')					'Trader',
+	display_id(t,'counterparty_ptynbr')				'Counterparty',
+	t.status                                        'TradeStatus',
+	time_to_day(t.time)						        'DealDate',
+	time_to_day(t.creat_time)                       'CreateTime',
+	i.exp_day							            'Expiry_Date',
+	display_id(t,'insaddr')						    'Instrument',
+	i.instype							            'InstrumentType',
+    display_id(i,'und_insaddr')				        'Underlying',
+
+    i.und_instype							        'UnderlyingType',
+
+	i.strike_price					                'Strike_Price',
+
+	t.quantity < 0 ?'S':'B'				            'Buy_Sell',
+	i.call_option = 'No' ? 'P':'C' 				    'Put_Call',
+    t.quantity 							            'Number_of_Contracts',
+   	date_add_delta(Today,@1_CreatedDaysBack[7] * -1)'CapturedFrom',
+   	today 							                'CapturedTo',
+
+   	display_id(pl,'owner_prfnbr')			        'Portfolio',
+	display_id(t,'prfnbr')						    'SubPortFolio'	
+
+into
+	temp	
+from 
+	instrument i,
+	trade t,
+	portfoliolink pl
+
+where 
+	match_filter(t,@2_TradeFilter{;tradefilter.fltid})
+	and i.insaddr=t.insaddr
+	and t.prfnbr=pl.member_prfnbr
+	and time_to_day(t.creat_time) >= date_add_delta(Today,@1_CreatedDaysBack[7] * -1)
+	and time_to_day(t.creat_time) <= today 
+    and	time_to_day(t.creat_time) > time_to_day(t.time)
+	and display_id(t,'counterparty_ptynbr') ~= 'FMAINTENANCE'
+	and time_to_day(t.time) > '01/01/0000'
+	and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+
+
+
+select
+	temp.TradeNumber							,
+	temp.Trader	    							,
+	temp.Counterparty							,
+	temp.TradeStatus                            ,
+	temp.DealDate								,
+    temp.CreateTime								,
+
+    days_between(temp.DealDate,temp.CreateTime,'Act/365')  'DelayTime',
+    
+	temp.Instrument								,
+	temp.InstrumentType							,
+	temp.Underlying								,
+	temp.UnderlyingType							,
+	temp.Expiry_Date							,
+
+	temp.Strike_Price							,
+	temp.Buy_Sell								,
+	temp.Put_Call								,
+	temp.CapturedFrom							,
+	temp.CapturedTo 							,
+	temp.Portfolio								,
+	temp.SubPortFolio							
+
+from
+    temp
+
+
+

@@ -1,0 +1,10 @@
+[Fixed Income Pricing and Risk]FCashFlowInformation:forwardCurve = legInformation.ForwardCurve;
+[Fixed Income Pricing and Risk]FInstrument:forwardCurve = mappedForwardLink :* "forwardCurve";
+[Fixed Income Pricing and Risk]FIrCurveInformation:forwardCurve = forwardIrCurveInformation;
+[Fixed Income Pricing and Risk]FLeg:forwardCurve = select(mappedForwardLink, 
+  nil->nil, 
+  default->mappedForwardLink :* "forwardCurve");
+[Fixed Income Pricing and Risk]FLegAndTrades:forwardCurve = leg:forwardCurve;
+[Fixed Income Pricing and Risk]FLegInformation:forwardCurve = object.ForwardCurve;
+[Fixed Income Pricing and Risk]FMappingLink:forwardCurve = forwardCurveHierarchy;
+[Fixed Income Pricing and Risk]FYieldCurveHierarchy:forwardCurve = forwardYieldCurveComponent :* "forwardIrCurveInformation" [component = underlyingComponent];

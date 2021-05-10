@@ -1,0 +1,6 @@
+[InternationalFutures]FInstrumentAndTrades:dailyNZABSAExecutionFee = sumOf(children :* "dailyNZABSAExecutionFee");
+[InternationalFutures]FSingleInstrumentAndTrades:dailyNZABSAExecutionFee = py("PS_TradeFees", context).ReturnTotalNZABSAFee(tradesInPosition.AsArray, oneDayBeforeEndDate, profitAndLossEndDate);
+[InternationalFutures]FTrade:dailyNZABSAExecutionFee = switch(isFundingPortfolio and tradeOrCreateDateToday and (tradeDate <= profitAndLossEndDate) and (object.Status <> "Void"), 
+  true->py("PS_TradeFees", context).ReturnTradeNZABSAFee(object), 
+  false->0);
+[InternationalFutures]FTradeRow:dailyNZABSAExecutionFee = trade :* "dailyNZABSAExecutionFee";

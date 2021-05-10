@@ -1,0 +1,57 @@
+SELECT
+    t.trdnbr 'Trade Number',
+    convert('date', time_to_day(t.creat_time), '%m/%d/%Y') 'Trade Date',
+    convert('time', t.execution_time, '%H:%M:%S') 'Execution Time',
+    convert('date', t.value_day, '%m/%d/%Y') 'Settlement Date',
+    ael_s(t,'Blotter_functions.get_original_counterparty') 'Counterparty',
+    t.quantity > 0 ? 'Buy' : 'Sell'    'Buy/Sell',
+    i.insid 'Instrument',
+    display_id(i,'issuer_ptynbr' ) 'Issuer',
+    i.isin 'ISIN',
+    round(t.price/100,8) 'Price',
+    t.quantity 'Quantity',
+    round(t.premium,2) 'Premium',
+    display_id(t,'curr') 'Trade Currency',
+    round(ael_f(t,'Blotter_functions.get_usd_premium'),2) 'USD Premium'
+
+
+FROM
+    Portfolio p,
+    Trade t,
+    AdditionalInfo addInfo,
+    Party pp,
+    AdditionalInfoSpec addInfoSpec,
+    ChoiceList ch,
+    AdditionalInfo addInfoTrade,
+    AdditionalInfoSpec addInfoSpecTrade,
+    Instrument i
+
+WHERE
+    p.prfnbr = t.prfnbr
+AND
+    p.prfid LIKE '%STL%'
+AND
+    addInfoTrade.recaddr = t.trdnbr
+AND
+    addInfoTrade.addinf_specnbr = addInfoSpecTrade.specnbr
+AND
+    addInfoSpecTrade.field_name LIKE '%XtpTradeType%'
+AND
+    addInfoTrade.value LIKE '%BLOCK%'
+AND
+    addInfo.recaddr = p.prfnbr
+AND
+    addInfo.addinf_specnbr = addInfoSpec.specnbr
+AND
+    addInfoSpec.field_name LIKE '%ASUS Relationship%'
+AND
+    pp.ptyid = addInfo.value
+AND
+    pp.legal_form_chlnbr = ch.seqnbr
+AND
+    ch.entry LIKE '15a6 US client'
+AND
+    (t.creat_time >= today OR t.updat_time >= today)
+AND
+    t.insaddr = i.insaddr
+

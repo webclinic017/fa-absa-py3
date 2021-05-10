@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:impliedUnderlyingForwardPrice = shunt(implyValid and not isMultiExercise, 
+  false->nil, 
+  true->select(underlyingForwardPriceIsParRate, 
+    true->select(impliedUnderlyingForwardParRate, 
+      nil->nil, 
+      default->setDateTime(timesHundred(impliedUnderlyingForwardParRate), expiryDateForCouponToValue)), 
+    false->select(snoop01(theoreticalPrice, "underlyingForwardPrice", object), 
+      nil->nil, 
+      default->imply(snoop01(theoreticalPrice, "underlyingForwardPrice", object), theoreticalPrice, marketPrice, ytmAccuracy, 1e-07, 1000000, implyMaxIterations))));
+[Core Pricing]FInstrumentAndTrades:impliedUnderlyingForwardPrice = instrument :* "impliedUnderlyingForwardPrice" [marketPrice];

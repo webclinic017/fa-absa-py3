@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FInstrument:underlyingWeight = 
+# UPGRADE 2016.5 (H)
+select(isUnderlyingGrouping and instrument.Underlying.IsKindOf("FCombination"), 
+  true->instrument.Underlying.FindInstrumentWeight(grouping.GroupingValue, valuationDate), 
+  default->1.0);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:underlyingWeight = 
+# UPGRADE 2016.5 (H)
+select(isUnderlyingGrouping and instrument.Underlying.IsKindOf("FCombination"), 
+  true->instrument.Underlying.FindInstrumentWeight(grouping.GroupingValue, valuationDate), 
+  default->1.0);

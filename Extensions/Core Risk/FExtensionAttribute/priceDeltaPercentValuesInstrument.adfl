@@ -1,0 +1,9 @@
+[Core Risk]FCombInstrMap:priceDeltaPercentValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->weight * contractSize * timeDistributionFactor * instrument :* "priceDeltaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors] * fxLegToInstrumentOnLegSpotDay, 
+  false->combinationSpotZero);
+[Core Risk]FCombination:priceDeltaPercentValuesInstrument = select(splitCombination, 
+  true->select(priceGreekRiskFactorNodeCount > 0, 
+    true->sumOf((instrumentMaps) :* "priceDeltaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors]) / combinationDivisionFactor, 
+    false->instrumentSpotZero), 
+  false->collapse(priceDeltaPercentValuesInstrumentCore));
+[Core Risk]FInstrument:priceDeltaPercentValuesInstrument = collapse(priceDeltaPercentValuesInstrumentCore);

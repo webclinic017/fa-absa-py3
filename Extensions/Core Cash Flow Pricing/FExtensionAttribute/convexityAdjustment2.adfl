@@ -1,0 +1,6 @@
+[Core Cash Flow Pricing]FAbstractReset:convexityAdjustment2 = select(cashFlowInformation :* "needsConvexityAdjustment2" [legInformation], 
+  true->convexityAdjustments2[fixingIndex], 
+  default->0.0);
+[Core Cash Flow Pricing]FCashFlowInformation:convexityAdjustment2 = select(needsConvexityAdjustment2, 
+  true->getConvexityAdjustment2, 
+  false->0.0);

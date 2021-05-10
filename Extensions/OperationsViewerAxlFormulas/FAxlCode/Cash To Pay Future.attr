@@ -1,0 +1,56 @@
+[OperationsViewerAxlFormulas]FObject:Cash To Pay Future
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+
+isValueDayTodayPlusXDaysOrLater = Or(Compare.IsMore(&'value_day', DateTime.AddWeekday($X)), Compare.IsEqual(&'value_day', DateTime.AddWeekday($X)));
+
+{
+}
+
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+        Label:'Number of weekdays',
+        Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'To Pay Future',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day equal to today + given number of weekdays or later and negative amount.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Description:'Total unsettled cash with value day equal to today + {X.Label} weekdays or later and negative amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(If(And(And(And(Not(Compare.IsNegative($X)), Not(Compare.IsZero($X))), @isValueDayTodayPlusXDaysOrLater($X)), And(&'unSettledCashExtAttr', @isAmountNegative())), &'amount', 0.0)), AttributeDimensions = AttributeList(['curr']));
+
+
+...

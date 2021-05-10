@@ -1,0 +1,223 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_PositionsII') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_PositionsII' and p.type = 'SQL Query' 
+ 
+/*
+bonds and repos settlement positions per portfolio per bond
+*/
+
+
+select
+p.prfid in ('9803AFS','9803HFT','9803HTM','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4')?'SF Carries&Repos,SPV,ABS2,9803 Portfolios': 'All other Portfolios'	'Grouping',
+@Day{Today} 'Day',
+t.trdnbr,
+t.status,
+i.instype,
+i.insid,
+i.start_day,
+i.exp_day,
+t.quantity*1000000'Nominal',
+p.prfid,
+
+party.ptyid'CP'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+
+and 
+    (       i.instype in ('Bond','IndexLinkedBond')
+            or (i.instype in ('Bill','Deposit') and add_info(t, 'MM_Instype') = 'Comm Paper'  )         )
+
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and i.exp_day>=@Day{Today}
+and t.value_day=<@Day{Today}
+and time_to_day(t.time) <= @Day{Today}
+
+order by i.instype, i.insid
+
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+p.prfid in ('9803AFS','9803HFT','9803HTM','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4')?'SF Carries&Repos,SPV,ABS2,9803 Portfolios': 'All other Portfolios'	'Grouping',
+
+@Day{Today} 'Day',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+ui.start_day,
+ui.exp_day,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+p.prfid,
+
+party.ptyid'CP'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and i.exp_day>=@Day{Today}
+and t.value_day=<@Day{Today}
+and time_to_day(t.time) <= @Day{Today}
+
+and @IncludeBSB{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+order by i.instype, ui.insid
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+p.prfid in ('9803AFS','9803HFT','9803HTM','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4')?'SF Carries&Repos,SPV,ABS2,9803 Portfolios': 'All other Portfolios'	'Grouping',
+
+@Day{Today} 'Day',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+ui.start_day,
+ui.exp_day,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1)'Nominal',
+p.prfid,
+
+party.ptyid'CP'
+
+into temp
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and i.exp_day=@Day{Today}
+and time_to_day(t.time) <= @Day{Today}
+
+and @IncludeBSB{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+order by i.instype, ui.insid
+
+
+
+/*----place bonds per portfolio into bondport---------*/
+
+
+select
+t.Grouping	'Grouping',
+@Day{Today} 'Day',
+t.instype,
+t.insid,
+t.start_day,
+t.exp_day,
+sum(t.Nominal)'Nominal',
+t.prfid
+
+into bondport
+from 
+temp t
+
+group by t.prfid,t.insid
+order by t.insid,t.prfid
+
+/*----place bonds into  bonds---------*/
+
+select
+
+t.Grouping	'Grouping',
+@Day{Today} 'Day',
+t.instype,
+t.insid,
+t.start_day,
+t.exp_day,
+sum(t.Nominal)'Nominal',
+t.prfid
+
+into bonds
+from 
+temp t
+
+group by t.Grouping,t.insid 
+order by t.Grouping,t.insid,t.prfid
+
+
+/*--select from bondsport and bonds-----------*/
+
+
+select
+@Day{Today} 'Position as at',
+t.Grouping	'Grouping',
+'Per Portfolio''Report Section'/*t.instype*/,
+t.insid 'Instrument',
+t.start_day  'Instrument Start',
+t.exp_day 'Instrument Expiry',
+t.Nominal,
+t.prfid 'Portfolio'
+from 
+bondport t
+
+where
+(round(t.Nominal)>0 or round(t.Nominal)<-0)
+and @IncludeDetailPerPortfolio{No;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+group by t.Grouping,t.insid ,t.prfid
+
+
+union
+
+select
+@Day{Today} 'Position as at',
+t.Grouping	'Grouping',
+'Total' 'Report Section'/*t.instype*/,
+t.insid 'Instrument',
+t.start_day  'Instrument Start',
+t.exp_day 'Instrument Expiry',
+t.Nominal,
+'' 'Portfolio'
+from 
+bonds t
+
+where 
+(round(t.Nominal)>0 or round(t.Nominal)<-0)
+group by t.Grouping, t.insid

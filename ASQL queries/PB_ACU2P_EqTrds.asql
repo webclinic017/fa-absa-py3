@@ -1,0 +1,26 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_CFD_ACU2P_CR','PB_FRA_ACU2P_CR','PB_IRS_ACU2P_CR','PB_OPTION_FI_ACU2P_CR','PB_SAFEX_ACU2P_CR','PB_YIELDX_ACU2P_CR','PB_CE_ACU2P_CR','PB_CORPBOND_ACU2P_CR','PB_GOVIBOND_ACU2P_CR','PB_MONEYMARKET_FF_ACU2P_CR','PB_CORPBOND_FF_ACU2P_CR','PB_GOVIBOND_FF_ACU2P_CR','PB_CE_FF_ACU2P_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+(
+i.instype in ('Stock')
+OR
+i.und_instype in ('Stock', 'EquityIndex')
+)
+AND
+t.status not in ('Simulated', 'Void')

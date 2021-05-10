@@ -1,0 +1,62 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_IR_FRA') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_FRA' and p.type = 'SQL Query' 
+/*FRONT_IR_FRA*/
+
+
+
+/*----------------------------------------------------*/
+
+select
+    to_string('YES' ? t.trdnbr : '')                            'Deal Ref',
+    time_to_day(t.time)                                         'Deal Date',
+    cp.ptyid                                                    'Counter Party',
+    u.userid                                                    'Dealer',
+    cl.entry                                                    'Portfolio',
+    p.prfid                                                     'Profit Centre',
+    to_double('YES' ? (abs(t.quantity*i.contr_size )) : '')     'Notional',
+    to_double('YES' ? (l.fixed_rate) : '')                      'Deal Rate',
+    c.insid                                                     'CCY',
+    l.start_day                                                 'Interest Start Date',
+    l.end_day                                                   'Interest End Date',
+    t.quantity<0 ? 'SELL' : 'BUY'                               'Buy_Sell',
+    i.instype='fra' ? 'Y' : 'N'                                 'FRA Type',
+    1.0 /*to_double('Yes' ? (c.insid='ZAR' ? present_value(t)/tt.USD : present_value(t)) : '')*/ ' MtM_USD',
+    1.0 /*to_double('Yes' ? (c.insid='ZAR' ? present_value(t) : present_value(t)) : '')*/ 'MtM_ZAR',
+    1.0 /*to_double('Yes' ? (c.insid='ZAR' ? present_value(t) : present_value(t)/tt.USD) : '')*/ 'MtM_CCY',
+    Today                                                       'Data Date',
+    ''                                                          'Dart_Number',
+    t.optional_key                                              'dev ref',
+    t.status
+
+from 
+    trade t,
+    instrument i,
+    party cp,
+    user u,
+    instrument c,
+    leg l,
+    cashflow cf,
+    portfolio p,
+    choicelist cl
+
+where
+    i.instype='fra'
+and i.insaddr=t.insaddr
+and t.counterparty_ptynbr=cp.ptynbr
+and t.trader_usrnbr=u.usrnbr
+and i.curr=c.insaddr
+and l.insaddr=i.insaddr
+and cf.legnbr=l.legnbr
+and l.end_day>Today
+and t.prfnbr=p.prfnbr
+and t.optkey1_chlnbr*=cl.seqnbr
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+
+
+

@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrument:undPriceMarket = select(object.ValuationUnderlying <> nil, 
+  true->object.ValuationUnderlying.UsedPrice(valuationDate, object.Currency.Name, usedMarket), 
+  default->nil);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:undPriceMarket = instrument :* "undPriceMarket" [usedMarket];
+[ABSA Specific 4.3]FTradeRow:undPriceMarket = instrument :* "undPriceMarket" [usedMarket];

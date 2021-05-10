@@ -1,0 +1,6 @@
+[Standard Calculations]FBenchmark:perturbedBenchmarkPriceForStandardCalculations = perturbBenchmarkPrices(calibrationInstrument, calibrationInstrument:benchmarkPriceForStandardCalculations, object.SpreadType, object.Spread, spreadInstrumentPrice, calibrationInstrument:benchmarkPricePerturbations, valuationDate, calibrationInstrument:fxSpotRateForStandardCalculations);
+[Standard Calculations]FInstrument:perturbedBenchmarkPriceForStandardCalculations = perturbBenchmarkPrices(object, benchmarkPriceForStandardCalculations, spreadTypeNone, 0.0, 0.0, benchmarkPricePerturbations, valuationDate, fxSpotRateForStandardCalculations);
+[Standard Calculations]FInstrumentAndTrades:perturbedBenchmarkPriceForStandardCalculations = perturbBenchmarkPrices(instrument, benchmarkPriceForStandardCalculations, spreadTypeNone, 0.0, 0.0, benchmarkPricePerturbations, valuationDate, fxSpotRateForStandardCalculations);
+[Standard Calculations]FRateIndex:perturbedBenchmarkPriceForStandardCalculations = shunt[priceSource, floatRateReferencePriceDate](calibrating, 
+  true->setDateTimePart(perturbBenchmarkPrices(object, benchmarkPriceForStandardCalculations, spreadTypeNone, 0.0, 0.0, benchmarkPricePerturbations, valuationDate, 0.0), floatRateReferencePriceDate), 
+  default->priceFeedAsFloatRateReference :* "rateIndexPrice" [floatRateReferencePriceDate]);

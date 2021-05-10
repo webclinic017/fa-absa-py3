@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:volatilityUnadjusted = select(isForwardStarting, 
+  true->collapse(spotOrForwardStartVolatility), 
+  false->select(baseValuationOnUnderlyingComponents, 
+    true->basketMoments.At("BasketVolatility"), 
+    false->select(useCompoAdjustmentForVolatility, 
+      true->collapse(volatilityCompoAdjusted), 
+      false->volatilityStructureValueBase)));

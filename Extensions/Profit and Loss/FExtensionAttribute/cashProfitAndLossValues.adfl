@@ -1,0 +1,7 @@
+[Profit and Loss]FMultiInstrumentAndTrades:cashProfitAndLossValues = select(isCashGrouping, 
+  true->select(cashGrouperFilterCurrency, 
+    nil->cashProfitAndLossValuesMulti, 
+    default->cashProfitAndLossValuesSingle), 
+  default->cashProfitAndLossValuesMulti);
+[Profit and Loss]FPortfolioInstrumentAndTrades:cashProfitAndLossValues = cashProfitAndLossValuesMulti;
+[Profit and Loss]FSingleInstrumentAndTrades:cashProfitAndLossValues = cashProfitAndLossValuesSingle;

@@ -1,0 +1,7 @@
+[Default]FOption:hasPassedForwardStartDTAndIsInitialized = select(isForwardStart, 
+  true->select(isMultiUnderlyingValued, 
+    true->multiUnderlyingHasPassedForwardStartDTAndIsInitialized, 
+    false->select(count(priceFixingEvents) > 0, 
+      true->(date(forwardStartDateTime) < date(valuationDateTime)) or isFinite(priceFixingSingleEventsStored), 
+      false->(date(forwardStartDateTime) < date(valuationDateTime)))), 
+  false->false);

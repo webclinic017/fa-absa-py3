@@ -1,0 +1,39 @@
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_YieldX_FX_Options_Futures.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_YieldX_FX_Options_Futures.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+    Instrument i,
+    Instrument u
+Where (i.exp_day = 0 or i.exp_day > Today)
+and i.und_insaddr = u.insaddr
+and i.instype in ('Option')
+and u.instype in ('Future/Forward')
+and u.und_instype in ('Curr')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

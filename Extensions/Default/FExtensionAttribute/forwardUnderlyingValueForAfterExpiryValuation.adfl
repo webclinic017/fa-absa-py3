@@ -1,0 +1,5 @@
+[Default]FInstrument:forwardUnderlyingValueForAfterExpiryValuation = select(isCashSettled, 
+  true->shunt[priceSource, doSplitAll](underlyingMtMPriceSourceExpiry.PriceExists, 
+    true->underlyingMtMValueExpiryAdjusted * fxUnderlyingToStrikeExpiry, 
+    false->underlyingValue), 
+  false->forwardModel(underlyingForwardValueModel, valuationStartSpotDate));

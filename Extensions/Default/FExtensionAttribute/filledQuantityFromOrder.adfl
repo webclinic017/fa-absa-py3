@@ -1,0 +1,9 @@
+[Default]ExecutionAlgo:filledQuantityFromOrder = switch(currentOrder, 
+  nil->0.0, 
+  default->currentOrder.FilledQuantity("Order"));
+[Default]FOrderHandler:filledQuantityFromOrder = select(isExchangeOrder or not exchangeOrdersOnly, 
+  true->object.FilledQuantity("Order"), 
+  default->0.0);
+[Default]FOwnCombOrder:filledQuantityFromOrder = (membersFilledQuantityFromOrderSum / (membersFilledQuantityFromOrderSum + membersTotalQuantitySum)) * totalQuantity;
+[Default]FOwnOrder:filledQuantityFromOrder = object.FilledQuantityFromOrder;
+[Default]VirtualOrderType:filledQuantityFromOrder = sumOf(orderHandlers :* "filledQuantityFromOrder" [exchangeOrdersOnly]);

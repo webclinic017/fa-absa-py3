@@ -1,0 +1,10 @@
+[GenericMandates]FInstrumentAndTrades:mandateDisplayTraderGroup = 
+# Check if the parent object passes the mandates
+switch(mandateResultTraderGroup, 
+  1->"Allowed", 
+  0->"Not Allowed", 
+  default->"Not Allowed");
+[GenericMandates]FTrade:mandateDisplayTraderGroup = 
+# Get the evaluated Trader Group mandate for a specific trade
+py("GenericMandatesEval", context).Get_Evaluated_Mandate_Number(object, "Mandate - Trader Group");
+[GenericMandates]FTradeRow:mandateDisplayTraderGroup = trade:mandateDisplayTraderGroup;

@@ -1,0 +1,9 @@
+[ABSA Market Risk]FMultiInstrumentAndTrades:agrisDeltaOunces = shunt(children.IsEmpty, 
+  false->sumOf(children :* "agrisDeltaOunces" [includeAllTrades = false]), 
+  default->0.0);
+[ABSA Market Risk]FSingleInstrumentAndTrades:agrisDeltaOunces = switch(isPreciousMetal, 
+  true->(object :* "fxDeltaTPLCash" [fxDeltaPercentVector = currVec]) * denominatedvalue(convFac.Number, unit(convFac), nil, nil), 
+  false->denominatedvalue(0.0, currencyXAU, nil, nil));
+[ABSA Market Risk]FTradeRow:agrisDeltaOunces = switch(isPreciousMetal, 
+  true->(object :* "fxDeltaTPLCash" [fxDeltaPercentVector = currVec, includeAllTrades = false]) * denominatedvalue(convFac.Number, unit(convFac), nil, nil), 
+  false->denominatedvalue(0.0, currencyXAU, nil, nil));

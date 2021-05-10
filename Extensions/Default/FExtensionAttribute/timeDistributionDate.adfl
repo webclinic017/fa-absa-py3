@@ -1,0 +1,5 @@
+[Default]FFxRate:timeDistributionDate = smallDate;
+[Default]FInstrument:timeDistributionDate = select(exerciseEventsExist and not expiryDateFromModelCall, 
+  true->lastExerciseEvent:timeDistributionDateChoice, 
+  false->collapse(timeDistributionDateChoice));
+[Default]FLeg:timeDistributionDate = instrument:timeDistributionDate;

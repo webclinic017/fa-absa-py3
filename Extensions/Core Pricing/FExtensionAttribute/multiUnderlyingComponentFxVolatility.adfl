@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:multiUnderlyingComponentFxVolatility = select(multiUnderlyingComponentFxVolatilityInformationHasGenericValueFunction, 
+  true->collapse(genericParametricMultiFxVolatilityValue), 
+  false->select(multiUnderlyingComponentFxVolatilityInformationType, 
+    "Parametric"->select(multiUnderlyingComponentFxVolatilityInformation.ParametricVolatilityType, 
+      "Sabr"->defaultMultiUnderlyingComponentFxVolatility, 
+      "Malz"->collapse(genericParametricMultiFxVolatilityValue), 
+      default->nan), 
+    "Single"->singlePointMultiFxVolatilityValue, 
+    default->defaultMultiUnderlyingComponentFxVolatility));

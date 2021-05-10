@@ -1,0 +1,6 @@
+[Default]FInstrument:interestModelProviderCurveComponentTarget[calculationCurrency, discountingType] = select(useExplicitRepoCurve, 
+  true->CreateSingleCurveComponent(forwardValueProviderCurve), 
+  false->select(hasCurrencyAgnosticInstrumentMoneyMarketCurve, 
+    false->CreateSingleCurveComponent(forwardValueProviderCurve), 
+    true->CreateDualCurveComponent(domesticCurrencyMoneyMarketCurve, currencyAgnosticInstrumentMoneyMarketCurve)));
+[Default]FRateIndex:interestModelProviderCurveComponentTarget[calculationCurrency, discountingType] = CreateSingleCurveComponent(forwardCurve);

@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FOption:monitorUnderlyingOrOutside = select(isFXOption, 
+  true->underlying :* "theoreticalInstrumentValueQuoted" [priceSource := "ADS", doSplitAll], 
+  default->select(barrierOutsideUnderlying, 
+    nil->underlying:marketPriceADSLast [priceSource = "ADS", doSplitAll] * fxUnderlyingToStrikePrice, 
+    default->barrierOutsideUnderlying:marketPriceADSLast [priceSource = "ADS", doSplitAll] * fxOutsideToStrikePrice));

@@ -1,0 +1,6 @@
+[Default]FInstrument:optionTypeForVolatility = select(hasExerciseEvents, 
+  true->select(isCall, 
+    true->var("Call", "enum(OptionPayoffType)"), 
+    default->var("Put", "enum(OptionPayoffType)")), 
+  default->nil);
+[Default]FOption:optionTypeForVolatility = optionType;

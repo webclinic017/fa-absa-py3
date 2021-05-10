@@ -1,0 +1,5 @@
+[Default]FLeg:nonCouponValueAccruedCapFloor = setDateTimePart(select(canHaveAccruedCashFlows, 
+  false->denominatedvalue(0, currency, , ), 
+  true->select(isFinite(uniqueCoupon) or staticLegInformationNonCouponValueCapFloor:isAccruingInArrear, 
+    false->interestAccrued(object, instrument:instrumentSpotDate, legInformationATMParRate, staticLegInformationNonCouponValueCapFloor, accountingParameters, "Today", 0, 0, , , roundingInformation) / staticLegInformationNonCouponValueCapFloor:contractSize, 
+    true->denominatedvalue(0, currency, , ))), instrumentSpotDate);

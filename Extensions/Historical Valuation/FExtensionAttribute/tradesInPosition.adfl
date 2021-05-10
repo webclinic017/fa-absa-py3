@@ -1,0 +1,10 @@
+[Historical Valuation]FInstrument:tradesInPosition = select(singleTradePosition, 
+  nil->select(positionObject, 
+    nil->[], 
+    default->historicalTrades(select(tradedPortfolio, 
+      nil->value(positionObject.TradesIn(historicalEntityOriginal(object))), 
+      default->value(positionObject.TradesIn(historicalEntityOriginal(object), tradedPortfolio))), liveOrSnapshotPositionDateTime, instrument, tradeInclusionDateTime, useValidFrom)), 
+  default->[singleTradePosition]);
+[Historical Valuation]FLeg:tradesInPosition = select(singleTradePosition, 
+  nil->historicalTrades(value(positionObject.TradesIn(instrument)), liveOrSnapshotPositionDateTime, instrument, tradeInclusionDateTime, useValidFrom), 
+  default->[singleTradePosition]);

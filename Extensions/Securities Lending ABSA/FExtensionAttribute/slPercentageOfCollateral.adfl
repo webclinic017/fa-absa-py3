@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPercentageOfCollateral = select(groupingReference.IsKindOf("FParty"), 
+  true->sumOf(children :* "slPercentageOfCollateral"), 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPercentageOfCollateral = select(slTotalNonCashCollateral == 0, 
+  true->0.0, 
+  default->(slTotalNonCashCollateral / parent:slTotalNonCashCollateral) * 100);

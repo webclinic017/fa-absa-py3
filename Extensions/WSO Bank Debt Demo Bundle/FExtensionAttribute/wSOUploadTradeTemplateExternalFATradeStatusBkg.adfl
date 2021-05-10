@@ -1,0 +1,9 @@
+[WSO Bank Debt Demo Bundle]FObject:wSOUploadTradeTemplateExternalFATradeStatusBkg = select(wSOUploadTradeTemplateExternalFATradeStatus, 
+  default->select(object.IsKindOf("FBusinessProcess"), 
+    true->select(object.Subject.Subject, 
+      default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFATradeStatus, wSOUploadTradeTemplateExternalFATradeStatus, "string"), 
+        true->1, 
+        default->0)), 
+    default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFATradeStatus, wSOUploadTradeTemplateExternalFATradeStatus, "string"), 
+      true->1, 
+      default->0)));

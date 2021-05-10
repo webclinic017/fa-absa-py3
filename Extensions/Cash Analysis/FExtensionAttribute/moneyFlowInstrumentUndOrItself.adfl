@@ -1,0 +1,11 @@
+[Cash Analysis]FInstrument:moneyFlowInstrumentUndOrItself = select(object.Underlying, 
+  nil->select(object.InsType, 
+    "TotalReturnSwap"->py("CashAnalysis_Instruemnt_Und_Or_Itself", context).getTotalReturnSwap_Und_Or_Itself(object), 
+    default->object.Name), 
+  default->object.Underlying.Name);
+[Cash Analysis]FInstrumentAndTrades:moneyFlowInstrumentUndOrItself = instrument:moneyFlowInstrumentUndOrItself;
+[Cash Analysis]FMoneyFlowAndTrades:moneyFlowInstrumentUndOrItself = instrument:moneyFlowInstrumentUndOrItself;
+[Cash Analysis]FMultiInstrumentAndTrades:moneyFlowInstrumentUndOrItself = 
+# Upgrade 2017 - which instrument should be used
+nil;
+[Cash Analysis]FMultiMoneyFlowAndTrades:moneyFlowInstrumentUndOrItself = nil;

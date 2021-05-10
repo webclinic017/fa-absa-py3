@@ -1,0 +1,121 @@
+/* update_method=0 */
+SELECT
+    ins.insaddr, ins.isin, ins.instype, curr.insid 'und_curr'
+  INTO
+    Und
+  FROM
+    Instrument ins,
+    Instrument curr
+  WHERE ins.curr = curr.insaddr
+    AND ins.instype in ('Bond', 'Bill', 'FRN', 'IndexLinkedBond', 'Combination')
+    AND ins.isin ~= ''
+    AND ins.isin IS NOT NULL
+    AND curr.insid not in ('BWP', 'EGP', 'GHS', 'KES', 'MZN', 'NGN', 'TZS', 'UGX', 'ZMW', 'NAD', 'SCR', 'MUR')
+
+SELECT
+    trd.trdnbr
+  FROM
+    Trade trd, Instrument ins, Und ui, Instrument curr
+  WHERE trd.insaddr = ins.insaddr
+    AND ins.curr = curr.insaddr
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND trd.acquire_day <= to_date('15d')
+    AND ins.instype in ( 'BuySellback', 'Repo/Reverse', 'SecurityLoan')
+    AND ui.isin not like 'ZA%'
+    AND ins.und_insaddr = ui.insaddr
+    AND curr.insId not in ('BWP', 'EGP', 'GHS', 'KES', 'MZN', 'NGN', 'TZS', 'UGX', 'ZMW', 'NAD', 'SCR', 'MUR')
+    AND (ins.exp_day >= to_date('-2m')
+        OR trd.re_acquire_day => to_date('-2m')
+        OR ins.open_end = 'Open End')
+    AND (match_portfolio(trd, 'ABSA BANK LTD')
+        OR match_portfolio(trd, 'BAGL'))
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+
+UNION
+
+SELECT
+    trd.trdnbr
+  FROM
+    Trade trd, Instrument ins, Und ui, ChoiceList cl
+  WHERE trd.insaddr = ins.insaddr
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND trd.acquire_day <= to_date('15d')
+    AND ins.instype in ('BuySellback', 'Repo/Reverse', 'SecurityLoan')
+    AND ui.isin like 'ZA%'
+    AND ins.und_insaddr=ui.insaddr
+    AND trd.settle_category_chlnbr = cl.seqnbr
+    AND cl.entry in ('Euroclear', 'Euroclear 18440', 'Euroclear 41548', 'Euroclear 42265', 'JP Morgan 40342', 'JP Morgan 54540')
+    AND (ins.exp_day >= to_date('-2m')
+        OR trd.re_acquire_day => to_date('-2m')
+        OR ins.open_end = 'Open End')
+    AND (match_portfolio(trd, 'ABSA BANK LTD')
+        OR  match_portfolio(trd, 'BAGL'))
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+
+UNION
+
+SELECT
+    trd.trdnbr
+  FROM
+    Trade trd, Instrument ins, Instrument curr
+  WHERE trd.insaddr = ins.insaddr
+    AND ins.curr = curr.insaddr
+    AND ins.instype in ('Bill', 'Bond', 'FRN', 'IndexLinkedBond', 'Combination')
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND curr.insId not in ('BWP', 'EGP', 'GHS', 'KES', 'MZN', 'NGN', 'TZS', 'UGX', 'ZMW', 'NAD', 'SCR', 'MUR')
+    AND ins.isin ~= ''
+    AND ins.isin not like 'ZA%'
+    AND ins.isin IS NOT NULL
+    AND (match_portfolio(trd, 'ABSA BANK LTD')
+        OR  match_portfolio(trd, 'BAGL'))
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+
+UNION
+
+ SELECT
+    trd.trdnbr
+  FROM
+    Trade trd, Instrument ins, ChoiceList cl
+  WHERE trd.insaddr = ins.insaddr
+    AND ins.instype in ('Bill', 'Bond', 'FRN', 'IndexLinkedBond', 'Combination')
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND ins.insaddr = trd.insaddr
+    AND trd.settle_category_chlnbr = cl.seqnbr
+    AND cl.entry in ('Euroclear', 'Euroclear 18440', 'Euroclear 41548', 'Euroclear 42265', 'JP Morgan 40342', 'JP Morgan 54540')
+    AND ins.isin  like 'ZA%'
+    AND (match_portfolio(trd, 'ABSA BANK LTD')
+        OR  match_portfolio(trd, 'BAGL'))
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+
+UNION
+
+
+SELECT
+    trd.trdnbr
+  FROM
+    Trade trd, Instrument ins, Instrument curr
+  WHERE
+    trd.insaddr = ins.insaddr
+    AND ins.curr = curr.insaddr
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND trd.acquire_day <= to_date('15d')
+    AND ins.instype = 'BasketRepo/Reverse'
+    AND curr.insId not in ('BWP', 'EGP', 'GHS', 'KES', 'MZN', 'NGN', 'TZS', 'UGX', 'ZMW', 'NAD', 'SCR', 'MUR')
+    AND (ins.exp_day >= to_date('-2m')
+        OR ins.open_end = 'Open End')

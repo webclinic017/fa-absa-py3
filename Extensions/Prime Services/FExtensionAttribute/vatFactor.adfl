@@ -1,0 +1,28 @@
+[Prime Services]FBond:vatFactor = vatRate;
+[Prime Services]FBuySellBack:vatFactor = vatRate;
+[Prime Services]FETF:vatFactor = vatRate;
+[Prime Services]FFrn:vatFactor = vatRate;
+[Prime Services]FFuture:vatFactor = switch(object.Otc, 
+  true->1, 
+  false->vatRate);
+[Prime Services]FInstrument:vatFactor = 1;
+[Prime Services]FOption:vatFactor = switch(object.Otc, 
+  true->1, 
+  false->vatRate);
+[Prime Services]FPhysicalPortfolio:vatFactor = switch(object.AdditionalInfo.PS_PortfolioType, 
+  "International Futures"->vatRate, 
+  default->1);
+[Prime Services]FRepo:vatFactor = vatRate;
+[Prime Services]FSingleInstrumentAndTrades:vatFactor = switch(isOffshore, 
+  "Yes"->1, 
+  default->switch(fundingPortfolioType, 
+    "General"->instrument :* "vatFactor", 
+    default->1));
+[Prime Services]FStock:vatFactor = vatRate;
+[Prime Services]FTrade:vatFactor = switch(isOffshore, 
+  "Yes"->1, 
+  default->switch(fundingPortfolioType, 
+    "General"->instrument :* "vatFactor" [valuationDate = date(object.TradeTime)], 
+    "International Futures"->vatRate[valuationDate = date(object.TradeTime)], 
+    default->1));
+[Prime Services]FTradeRow:vatFactor = trade :* "vatFactor";

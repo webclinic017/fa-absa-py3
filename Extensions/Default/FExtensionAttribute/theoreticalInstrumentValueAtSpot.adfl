@@ -1,0 +1,15 @@
+[Default]FAverageForward:theoreticalInstrumentValueAtSpot = select(payTypeForward, 
+  true->moneyMarketCurve.DiscountValue(theoreticalOrMarketInstrumentValue, instrumentSpotDate), 
+  false->collapse(theoreticalOrMarketInstrumentValue));
+[Default]FCashFlowInstrument:theoreticalInstrumentValueAtSpot = instrument :* "moveValue" [priceSource, doSplitAll, valuesOnSpotOverride, moveStartValue = theoreticalOrMarketInstrumentValue, moveToDate = instrument:instrumentSpotDate, moveValueStartPoint = createForwardValuationStartPoint(theoreticalOrMarketInstrumentValueDate)];
+[Default]FCreditDefaultSwap:theoreticalInstrumentValueAtSpot = instrument :* "moveValue" [moveStartValue = theoreticalOrMarketInstrumentValue, moveToDate = instrument:instrumentValueDate, priceSource, valuesOnSpotOverride];
+[Default]FInstrument:theoreticalInstrumentValueAtSpot = select(payType == "Spot", 
+  true->collapse(theoreticalOrMarketInstrumentValue), 
+  false->select(isFXDerivative, 
+    true->(domesticCurrency:fxDiscountCurve).DiscountValue(theoreticalOrMarketInstrumentValue, underlyingFXSpotDate), 
+    false->select(payTypeForward, 
+      true->moneyMarketCurve.DiscountValue(theoreticalOrMarketInstrumentValue, instrumentSpotDate), 
+      false->collapse(theoreticalOrMarketInstrumentValue))));
+[Default]FInstrumentAndTrades:theoreticalInstrumentValueAtSpot = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument:theoreticalInstrumentValueAtSpot [priceSource]);

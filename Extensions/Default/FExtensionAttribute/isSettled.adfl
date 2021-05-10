@@ -1,0 +1,11 @@
+[Default]FDerivative:isSettled = select(isMultiExercise, 
+  true->select(exerciseEventsExist, 
+    true->false, 
+    false->true), 
+  false->object.IsSettledAt(valuationDate));
+[Default]FInstrument:isSettled = object.IsSettledAt(valuationDate);
+[Default]FInstrumentAndTrades:isSettled = instrument:isSettled;
+[Default]FLeg:isSettled = instrument:isSettled;
+[Default]FLegAndTrades:isSettled = false;
+[Default]FMultiInstrumentAndTrades:isSettled = nil;
+[Default]FPriceAggregate:isSettled = instrument:isSettled;

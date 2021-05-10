@@ -1,0 +1,23 @@
+SELECT
+    p.ptynbr,
+    p.ptyid,
+	p.fullname,
+    add_info(p,'FICA_Compliant') 'FICA_Compliant',
+    add_info(p,'PB_APD_call_acc') 'PB_APD_call_acc',
+    add_info(p,'PB_Call_Account') 'PB_Call_Account',
+    add_info(p,'PB_Collateral_Prf') 'PB_Collateral_Prf',
+    add_info(p,'PB_Loan_Account') 'PB_Loan_Account',
+    add_info(p,'PB_Reporting_Prf') 'PB_Reporting_Prf',
+    add_info(p,'PB_SAFEX_call_acc') 'PB_SAFEX_call_acc',
+    add_info(p,'PB_YieldX_call_acc') 'PB_YieldX_call_acc',
+    add_info(p,'StriataAcceptReject') 'StriataAcceptReject',
+    add_info(p,'StriataPassword') 'StriataPassword',
+    pa.alias
+FROM
+	Party p,
+	PartyAlias pa,
+	InstrAliasType iat
+WHERE 1 = 1
+      AND p.ptynbr = pa.ptynbr
+      AND pa.type = iat.oid
+      AND iat.alias_type_name = 'SoftBroker'

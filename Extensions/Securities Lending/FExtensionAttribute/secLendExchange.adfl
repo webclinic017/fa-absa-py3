@@ -1,0 +1,14 @@
+[Securities Lending]FInstrument:secLendExchange = object.AdditionalInfo.SL_Exchange;
+[Securities Lending]FMultiInstrumentAndTrades:secLendExchange = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendExchange));
+[Securities Lending]FOrderBook:secLendExchange = instrument:secLendExchange;
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendExchange = nil;
+[Securities Lending]FPriceLevelRow:secLendExchange = instrument:secLendExchange;
+[Securities Lending]FSecurityLoan:secLendExchange = underlying:secLendExchange;
+[Securities Lending]FSingleInstrumentAndTrades:secLendExchange = instrument:secLendExchange;
+[Securities Lending]FTrade:secLendExchange = instrument:secLendExchange;
+[Securities Lending]FTradeRow:secLendExchange = trade:secLendExchange;
+[Securities Lending]FUndefinedObject:secLendExchange = nil;

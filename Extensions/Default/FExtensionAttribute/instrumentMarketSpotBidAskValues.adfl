@@ -1,0 +1,4 @@
+[Default]FCreditDefaultSwap:instrumentMarketSpotBidAskValues = select(isBook, 
+  true->bidAskCalculation(doubleSumOf(positionTradeQuantities), setDateTime(marketSpotValueBidAsk, object.CDSEffectiveOrStartDate(date(marketPriceBidAsk))), valuationSystemDate, accountingParameters), 
+  false->bidAskCalculation(doubleSumOf(positionTradeQuantities), marketSpotValueBidAsk, valuationSystemDate, accountingParameters));
+[Default]FInstrument:instrumentMarketSpotBidAskValues = bidAskCalculation(doubleSumOf(positionTradeQuantities), marketSpotValueBidAsk, valuationSystemDate, accountingParameters);

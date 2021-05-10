@@ -1,0 +1,6 @@
+[Profit and Loss]FInstrument:valueAtCostTheoreticalInstrumentPositionValuesAdjustment = select(isValuedAtCost, 
+  true->object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = -theoreticalInstrumentPositionValues], 
+  false->baseDateZero);
+[Profit and Loss]FInstrumentAndTrades:valueAtCostTheoreticalInstrumentPositionValuesAdjustment = openInstrument :* "collapse(valueAtCostTheoreticalInstrumentPositionValuesAdjustment)" [positionObject, priceSource, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FMultiInstrumentAndTrades:valueAtCostTheoreticalInstrumentPositionValuesAdjustment = sumOf(openInstruments :* "collapse(valueAtCostTheoreticalInstrumentPositionValuesAdjustment)" [positionObject, priceSource, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate]);
+[Profit and Loss]FTradeRow:valueAtCostTheoreticalInstrumentPositionValuesAdjustment = instrument :* "valueAtCostTheoreticalInstrumentPositionValuesAdjustment" [singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, priceSource, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate];

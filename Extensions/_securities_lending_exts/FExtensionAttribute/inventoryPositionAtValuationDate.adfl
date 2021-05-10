@@ -1,0 +1,6 @@
+[_securities_lending_exts]FDerivative:inventoryPositionAtValuationDate = 0.0;
+[_securities_lending_exts]FInstrument:inventoryPositionAtValuationDate = inventoryPosition(tradesInPosition, inventoryPositionReference, valuationDate, tradeStatusInclusionMaskDefault);
+[_securities_lending_exts]FInstrumentAndTrades:inventoryPositionAtValuationDate = inventoryPositionOpenInstrument :* "collapse(inventoryPositionAtValuationDate)" [positionObject, instrumentGroupingReference, tradedPortfolio];
+[_securities_lending_exts]FMultiInstrumentAndTrades:inventoryPositionAtValuationDate = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->sumOf(inventoryPositionOpenInstruments :* "collapse(inventoryPositionAtValuationDate)" [positionObject, instrumentGroupingReference, tradedPortfolio]));

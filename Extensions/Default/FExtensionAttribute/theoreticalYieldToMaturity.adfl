@@ -1,0 +1,9 @@
+[Default]FInstrument:theoreticalYieldToMaturity = select(ytmCalculationValid, 
+  true->shunt(isFinite(theoreticalInstrumentSpotValueCleanForImpliedCalculations), 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYield, "yield"), theoreticalInstrumentSpotValueCleanFromYield, theoreticalInstrumentSpotValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, 100), 
+    false->nil), 
+  false->nil);
+[Default]FInstrumentAndTrades:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;
+[Default]FMultiInstrumentAndTrades:theoreticalYieldToMaturity = nil;
+[Default]FOrderBook:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;
+[Default]FPriceAggregate:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;

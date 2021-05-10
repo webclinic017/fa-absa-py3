@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:surfaceDependentVolatilityStrikeConverterModel = select(useCompoAdjustmentForVolatility, 
+  true->optionInUnderlyingCurrency:surfaceDependentVolatilityStrikeConverter, 
+  false->select(useATMFXStrike or valuationAddOnNeedsATMVolatilityForValuation, 
+    true->select(volatilityInformation.UseVolatilityATMValue, 
+      true->nil, 
+      false->collapse(surfaceDependentVolatilityStrikeConverter)), 
+    false->collapse(surfaceDependentVolatilityStrikeConverter)));

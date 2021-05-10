@@ -1,0 +1,68 @@
+/*
+Purpose : SAOPS_CA_Bond_settlement
+Department and Desk : OPS, [OPS]
+Requester : Sipho Ndlalane, [Sipho Ndlalane], [Sipho Ndlalane]
+Developer : Manan Ghosh, Andrei Conicov
+CR Number : CHNG0002012969, CHNG0002123067
+Purpose: Copied the code from SAOPS_CA_Bond_Settlement for filetring out the trades for today. 
+The SQL was further amended to include trades for the last 7 days.
+*/
+
+select
+
+t.trdnbr,
+t.status,
+t.prfnbr,
+t.insaddr,
+t.curr,
+t.counterparty_ptynbr,
+t.optkey1_chlnbr
+
+into
+
+tetrades
+
+from trade t
+
+
+where
+
+t.execution_time >=  date_add_delta(TODAY , -7, 0,0)
+
+
+
+select
+    t.trdnbr /*count(*)*/
+from
+    tetrades t,
+    Party party,
+    Portfolio p,
+    Instrument i,
+    Instrument curr
+where
+    t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and t.curr = curr.insaddr
+    and curr.insid = 'ZAR'
+    and t.counterparty_ptynbr = party.ptynbr
+    and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+    /*
+        Comment: Removed the display_id as using functions in a where clause in non-performant
+        629 = Choice List Entry -> TradArea -> SPECIAL_FINANCE
+    */
+    and (t.optkey1_chlnbr ~= 629   or t.optkey1_chlnbr = 0)
+    and (party.type ~= 'Intern Dept' or party.ptyid = 'SECURITY LENDINGS DESK')
+    and party.ptyid not in ('DRA TRANSAKSIES', 'JSE')
+    and
+    (
+        i.instype in ('BuySellback', 'Repo/Reverse', 'IndexLinkedBond', 'TotalReturnSwap', 'SecurityLoan', 'Future/Forward', 'Combination')
+        or
+        (i.instype = 'FRN' and i.isin like 'ZAG%')
+        or 
+        (i.instype = 'Bond' and i.isin like 'ZAG%')
+    )
+    and i.und_instype in ('None', 'FRN', 'Bond', 'IndexLinkedBond')
+     /* Include ABSA BANK LTD */
+    and ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port', p.prfnbr, 'ABSA BANK LTD') = 1
+    /* Exclude some exceptions */
+    and ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port', p.prfnbr, 'GROUP TREASURY,PRIMARY MARKETS BANKING,PRIMARY MARKETS TRADING,PM Portfolio Management,ALCH,SECURITIES LENDING,7268_Prime Services')=0

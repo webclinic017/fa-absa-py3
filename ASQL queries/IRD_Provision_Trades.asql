@@ -1,0 +1,117 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','IRD_Provision_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'IRD_Provision_Trades' and p.type = 'SQL Query' 
+
+
+
+
+select
+    t.trdnbr 'trdnbr'
+into
+    temp1
+from
+    trade t
+where
+    match_filter(t, @1_Filter{IRD_MAN_SWAP_2;tradefilter.fltid})  
+
+
+select
+    tmp.trdnbr 'trdnbr',
+    IRD_SHORT_END_PROV_FINAL.ExcludeBasisTrades(tmp.trdnbr) 'trdnbr_sys'
+into 
+    temp1_1
+from
+    temp1 tmp
+   
+ 
+select
+    trdnbr
+into
+    temp2
+from 
+    temp1_1
+where 
+    trdnbr = trdnbr_sys
+
+
+
+ 
+  select t.trdnbr                                                        'TrdNbr',
+        t.status                                                                 'Status',
+        display_id(t,'counterparty_ptynbr')                                     'Counterparty',
+        i.insid                                                                   'Instrument',
+        display_id(t,'acquirer_ptynbr')                                            'Aquirer',
+        display_id(t,'prfnbr')                                                           'Portfolio',
+        i.instype                                                               'InsType',
+        display_id(l,'curr')                                                              'Curr',
+        r.day                                                                    'ResetDay',
+        display_id(l, 'float_rate')                                                     'Float_Rate',
+        dirk_utils.get_fx_rate(display_id(l, 'curr'))                          'FX_Rate',        
+        i.instype = 'FRA' ? to_double(nominal_amount(cf) * t.quantity) : (to_double(projected_cf(cf)*t.quantity < 0 ? abs(nominal_amount(cf) * t.quantity)*(-1)  : abs(nominal_amount(cf) * t.quantity) ))          'Nominal',            
+        l.type 'Type',        
+        to_string(l.rolling_period.count,' ',l.rolling_period.unit)         'Rolling',        
+        cf.type                                                                  'CFType',        
+        projected_cf(cf)*t.quantity < 0 ? 'Pay' : 'Receive'                               'Pay/Receive',        
+        projected_cf(cf)*t.quantity 'Projected_Amount',  
+        yc_rate(yc, r.day, date_add_delta(r.day, 0 ,@5_Fwd_Rt_Maturity[3],0),'Quarterly', @8_Daycount{Act/365;'Act/360','30E/360','Act/365'},'Forward Rate',,i.insid)*100                                                       'fwd_rt',
+        @7_YieldCurve{;yieldcurve.yield_curve_name} = 'ZAR-SWAP'? IRD_SHORT_END_PROV_FINAL.mkt_rate_ZAR(r.day, to_date(@3_RepDate{TODAY}), IRD_SHORT_END_PROV_FINAL.get_next_mpczar(to_date(@3_RepDate{TODAY}))): IRD_SHORT_END_PROV_FINAL.mkt_rate_USD(r.day, to_date(@3_RepDate{TODAY}), IRD_SHORT_END_PROV_FINAL.get_next_mpcusd(to_date(@3_RepDate{TODAY}))) 'mkt_rt',
+        years_between(r.start_day, r.end_day, @8_Daycount{Act/365;'Act/360','30E/360','Act/365'})                  'reset_term'        
+
+INTO
+            temp
+
+from trade t,
+     instrument i,
+     instrument c,
+     cashflow cf,
+     leg l,
+     reset r,
+     yieldcurve    yc,
+     temp2 tmp
+
+ 
+
+where 
+
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+        and t.trdnbr = tmp.trdnbr
+        and yc.yield_curve_name=@7_YieldCurve{;yieldcurve.yield_curve_name}
+        AND t.insaddr = i.insaddr
+        AND i.insaddr  = l.insaddr
+        AND cf.legnbr = l.legnbr
+        AND cf.cfwnbr = r.cfwnbr
+        AND r.day >= to_date(@3_RepDate{TODAY})
+        AND r.Day <= to_date(date_add_delta(@3_RepDate{TODAY},0,@4_Num_Months_to_adj{9},0))        
+        AND r.type in ('Single','Compound')        
+        AND l.type = 'Float'
+        AND c.insid = @9_Curr{ZAR;instrument.insid WHERE instype = 'Curr'}
+        AND l.curr = c.insaddr
+        and i.instype ~= 'CurrSwap'
+        
+   
+/* ================================================================================================*/
+
+ 
+select temp.*,
+            @7_YieldCurve{;yieldcurve.yield_curve_name} = 'ZAR-SWAP'? IRD_SHORT_END_PROV_FINAL.get_next_mpczar(to_date(@3_RepDate{TODAY})) : IRD_SHORT_END_PROV_FINAL.get_next_mpcusd(to_date(@3_RepDate{TODAY}))    'mpc',
+            (mkt_rt - fwd_rt) * 100                                                               'bp_adj',
+            reset_term * 96                                                                                     'adj01',
+            nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100                  'total_adj',
+            nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate         'total_adj_ZAR'
+into 
+            final
+from 
+            temp 
+
+/*================================================================================================*/
+
+select 
+            * 
+from
+            final
+
+ 

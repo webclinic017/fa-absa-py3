@@ -1,0 +1,8 @@
+[Fixed Income Pricing and Risk]FCashFlowInformation:spreadVolatilityInformation = legInformation.SpreadVolatilityInformation;
+[Fixed Income Pricing and Risk]FLeg:spreadVolatilityInformation = mappedSpreadVolatilityLink :* "spreadVolatilityInformation";
+[Fixed Income Pricing and Risk]FLegAndTrades:spreadVolatilityInformation = leg:spreadVolatilityInformationForLeg;
+[Fixed Income Pricing and Risk]FLegInformation:spreadVolatilityInformation = object.SpreadVolatilityInformation;
+[Fixed Income Pricing and Risk]FMappingLink:spreadVolatilityInformation = spreadVolatilityInformationHierarchy;
+[Fixed Income Pricing and Risk]FVolatilityStructureHierarchy:spreadVolatilityInformation = select(constantVolatilityTermStructure, 
+  true->volatilityAdjustValuationDate(delta(spreadVolatilityStructure :* "spreadVolatilityStructureInformation" [component = underlyingVolatilityHierarchy], volatilityShift), parameterDateOffset), 
+  false->delta(spreadVolatilityStructure :* "spreadVolatilityStructureInformation" [component = underlyingVolatilityHierarchy], volatilityShift));

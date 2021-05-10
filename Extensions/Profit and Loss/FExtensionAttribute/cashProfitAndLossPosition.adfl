@@ -1,0 +1,7 @@
+[Profit and Loss]FInstrumentAndTrades:cashProfitAndLossPosition = nil;
+[Profit and Loss]FLegAndTrades:cashProfitAndLossPosition = nil;
+[Profit and Loss]FMultiInstrumentAndTrades:cashProfitAndLossPosition = select(cashGrouperFilterCurrency <> nil, 
+  true->select(calculateCash, 
+    true->cashProfitAndLossPositionEnd - cashProfitAndLossPositionStart, 
+    false->object:bookTotalCashValue [profitAndLossParameters, profitAndLossEndDate, profitAndLossStartDate, displayCurrency := cashGrouperFilterCurrency]), 
+  false->nil);

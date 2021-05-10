@@ -1,0 +1,541 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_IR_OPT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_OPT' and p.type = 'SQL Query' 
+/*FRONT_IR_OPT*/
+
+
+/*
+
+Description
+
+ 
+
+Options extract from Front for DVaR purposes
+
+ 
+
+Date:                   2010-04-13
+
+Purpose:                Change FRA option code so that a cap/floor indicator is assigned to all FRA options
+
+Department and Desk:    Market Risk, Money Markets
+
+Requester:              Monique de Waal
+
+Developer:              Monique de Waal
+
+CR Number:              C000000280815
+
+*/
+
+ 
+
+
+
+
+select distinct
+i.insid					'ins',
+lp.settle				'price',
+c.insid					'curr_price',
+i.insid='USD' ? (c.insid='ZAR' ? lp.settle : 1) : 1'USD'
+
+
+into temp
+
+
+from
+instrument i,
+lastprice lp,
+instrument c,
+party p
+
+where
+i.insaddr=lp.insaddr
+and i.insid = 'USD' 
+and lp.curr=c.insaddr
+and c.insid='ZAR'
+and p.ptynbr = lp.ptynbr
+and p.ptyid = 'SPOT'
+/*and display_id(lp,'ptynbr') = 'SPOT'*/
+
+
+/*RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR*/
+select
+    p.prfid 'Portfolio',
+    t.trdnbr,
+    i.instype,
+    i.insid,
+    i.call_option,
+    i.call_option = 'Yes'?'Call':'Put'  'CallPut',
+    (l.payleg = 'Yes' and l.type = 'Fixed') ? 'PAYFIX':(l.payleg = 'No' and l.type = 'Fixed') ? 'RECFIX' : 'KKKKK'     'LEGFIX',
+    l.payleg,
+    l.type
+
+into temp1
+
+from
+    instrument  i,
+    instrument  und,
+    trade   t,
+    portfolio   p,
+    leg l
+
+where i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and i.und_insaddr = und.insaddr
+and l.insaddr = und.insaddr
+and i.instype = 'Option'
+and und.instype = 'Swap'
+and l.type not in ('Float')
+
+select
+    t1.trdnbr,
+    (t1.LEGFIX = 'PAYFIX' and t1.call_option = 'Yes') ? 'Payer' : (t1.LEGFIX = 'PAYFIX' and t1.call_option = 'No') ? 'Receiver' : (t1.LEGFIX = 'RECFIX' and t1.call_option = 'No') ? 'Receiver' : (t1.LEGFIX = 'RECFIX' and t1.call_option = 'Yes') ? 'Payer' : 'PPPPP' 'PAYREC'
+
+into temp2
+
+from
+    temp1   t1
+
+/*MAIN*/    
+select
+    t2.trdnbr,
+    (t2.PAYREC = 'Receiver' and t1.LEGFIX = 'PAYFIX') ? 'Put' : (t2.PAYREC = 'Receiver' and t1.LEGFIX = 'RECFIX') ? 'Put' : (t2.PAYREC = 'Payer' and t1.LEGFIX = 'PAYFIX') ? 'Call' : (t2.PAYREC = 'Payer' and t1.LEGFIX = 'RECFIX') ? 'Call' : 'LLLLLL'    'Call_Put'
+
+into temp3
+
+from
+temp1   t1,
+temp2   t2
+
+where t1.trdnbr = t2.trdnbr
+
+
+/*RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR*/
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	i.und_instype = 'Swap' ? (i.exp_day) : (exclude_first_period = 'Yes' ? ael_s(i,'SACM_CASHFLOW_F_S.firstcf_start_day') : (i.und_instype = 'Swap' ? i.exp_day : l.start_day))  'Interest Start Date',
+/*and un.generic = 'Yes'*/
+/*i.und_instype = 'Swap' ? i.exp_day : l.start_day*/				
+
+	(i.und_instype = 'Swap' ? (un.generic = 'Yes' ? date_add_delta(i.exp_day,0,0,1) : un.exp_day) 
+/*date_add_delta(i.exp_day,un.exp_period.count)*/
+				: l.end_day) 	'Interest End Date',
+	i.und_instype = 'Swap' ? i.strike_price : l.strike				'Deal Rate',
+	/*i.und_instype = 'Swap' ? 'CALL' : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',*/
+	i.und_instype = 'Swap' ? (i.call_option = 'No' ? 'Put' : 'Call') : i.instype = 'CAP' ? 'Call' : (i.instype = 'FLOOR' ? 'Put' : '')	'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	i.und_instype = 'Swap' ? 0.0 : (ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	i.und_instype = 'Swap' ? 'Swaption' : ael_s(t,'InstrType.InstrumentType')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'quarter' : (l.rolling_period.count = 1 and l.rolling_period.unit = 'Months') ? 'month':(l.rolling_period.count = 6 and l.rolling_period.unit = 'Months') ? 'semi-annual':''		'Cap Frequency',
+	t.optional_key				'Devonnumber',
+	exclude_first_period,
+	t.status,
+	f.insid 'FloatRef',
+	used_vol(i) 'Vol'
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un,
+	instrument f
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CAP','FLOOR')
+/*or 	i.und_instype = 'Swap')*/
+and	i.exp_day > today
+and	l.insaddr =* i.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and f.insaddr = l.float_rate
+
+
+
+
+
+union
+
+
+
+
+
+/*** Swaptions ***/
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	i.und_instype = 'Swap' ? (i.exp_day) : (exclude_first_period = 'Yes' ? ael_s(i,'SACM_CASHFLOW_F_S.firstcf_start_day') : (i.und_instype = 'Swap' ? i.exp_day : l.start_day))  'Interest Start Date',
+/*and un.generic = 'Yes'*/
+/*i.und_instype = 'Swap' ? i.exp_day : l.start_day*/				
+
+	(i.und_instype = 'Swap' ? (un.generic = 'Yes' ? date_add_delta(i.exp_day,0,0,1) : un.exp_day) 
+/*date_add_delta(i.exp_day,un.exp_period.count)*/
+				: l.end_day) 	'Interest End Date',
+	i.und_instype = 'Swap' ? i.strike_price : l.strike				'Deal Rate',
+	/*i.und_instype = 'Swap' ? 'CALL' : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',*/
+	/*(i.call_option = 'Yes' ? 'CALL' : 'PUT')   'Call_Put',*/
+	t3.Call_Put             'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	i.und_instype = 'Swap' ? 0.0 : (ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	i.und_instype = 'Swap' ? 'Swaption' : ael_s(t,'InstrType.InstrumentType')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'QURT' : ''		'Cap Frequency',
+	t.optional_key				'Devonnumber',
+	exclude_first_period,
+	t.status,
+	''  'FloatRef',
+    used_vol(i) 'Vol'
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un,
+	temp3   t3
+where t3.trdnbr = t.trdnbr
+and	t.insaddr = i.insaddr
+and	/*(i.instype in ('CAP','FLOOR')
+or 	*/i.und_instype = 'Swap'
+and	i.exp_day > today
+and	l.insaddr =* i.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+
+
+
+
+union
+
+
+
+
+/*** Fraoptions ***/
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	convert('date', i.exp_day, '%Y-%m-%d')  'Interest Start Date',
+	un.exp_day				'Interest End Date',
+	i.strike_price				'Deal Rate',
+	i.call_option  = 'No' ? 'Put' : (i.call_option = 'Yes' ? 'Call' : '')	'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	(ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+    	i.call_option  = 'No' ? 'Floor' : (i.call_option = 'Yes' ? 'Cap' : '')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'quarter' : (l.rolling_period.count = 1 and l.rolling_period.unit = 'Months') ? 'month':(l.rolling_period.count = 6 and l.rolling_period.unit = 'Months') ? 'semi-annual':''		'Cap Frequency',
+	''					'Devonnumber',
+	exclude_first_period,
+	t.status,
+	f.insid  'FloatRef',
+    used_vol(i) 'Vol'
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un,
+	ChoiceList  ch,
+	instrument f
+
+where
+	t.insaddr = i.insaddr
+and	(i.instype in ('Option')
+and	i.und_instype = 'FRA')
+and	i.exp_day > today
+and	l.insaddr =* un.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+and i.product_chlnbr = ch.seqnbr
+and f.insaddr = l.float_rate
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+
+
+
+/*
+/* Usage code for this ASQL *
+select
+ael_i(p,'ASQL_log','FRONT_IR_OPT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_OPT' and p.type = 'SQL Query' 
+/*FRONT_IR_OPT*
+
+
+
+select distinct
+i.insid					'ins',
+lp.settle				'price',
+c.insid					'curr_price',
+i.insid='USD' ? (c.insid='ZAR' ? lp.settle : 1) : 1'USD'
+
+
+into temp
+
+
+from
+instrument i,
+lastprice lp,
+instrument c
+
+where
+i.insaddr=lp.insaddr
+and i.insid = 'USD' 
+and lp.curr=c.insaddr
+and c.insid='ZAR'
+and display_id(lp,'ptynbr') = 'SPOT'
+
+
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	i.und_instype = 'Swap' ? (i.exp_day) : (exclude_first_period = 'Yes' ? ael_s(i,'SACM_CASHFLOW_F_S.firstcf_start_day') : (i.und_instype = 'Swap' ? i.exp_day : l.start_day))  'Interest Start Date',
+/*and un.generic = 'Yes'*/
+/*i.und_instype = 'Swap' ? i.exp_day : l.start_day*				
+
+	(i.und_instype = 'Swap' ? (un.generic = 'Yes' ? date_add_delta(i.exp_day,0,0,1) : un.exp_day) 
+/*date_add_delta(i.exp_day,un.exp_period.count)*
+				: l.end_day) 	'Interest End Date',
+	i.und_instype = 'Swap' ? i.strike_price : l.strike				'Deal Rate',
+	/*i.und_instype = 'Swap' ? 'CALL' : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',*
+	i.und_instype = 'Swap' ? (i.call_option = 'No' ? 'PUT' : 'CALL') : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	i.und_instype = 'Swap' ? 0.0 : (ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	i.und_instype = 'Swap' ? 'Swaption' : ael_s(t,'InstrType.InstrumentType')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'QURT' : ''		'Cap Frequency',
+	t.optional_key				'Devonnumber',
+	exclude_first_period,
+	t.status
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CAP','FLOOR')
+/*or 	i.und_instype = 'Swap')*
+and	i.exp_day > today
+and	l.insaddr =* i.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*
+
+
+
+
+
+
+union
+
+
+
+
+
+/*** Swaptions ***
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	i.und_instype = 'Swap' ? (i.exp_day) : (exclude_first_period = 'Yes' ? ael_s(i,'SACM_CASHFLOW_F_S.firstcf_start_day') : (i.und_instype = 'Swap' ? i.exp_day : l.start_day))  'Interest Start Date',
+/*and un.generic = 'Yes'*/
+/*i.und_instype = 'Swap' ? i.exp_day : l.start_day*				
+
+	(i.und_instype = 'Swap' ? (un.generic = 'Yes' ? date_add_delta(i.exp_day,0,0,1) : un.exp_day) 
+/*date_add_delta(i.exp_day,un.exp_period.count)*
+				: l.end_day) 	'Interest End Date',
+	i.und_instype = 'Swap' ? i.strike_price : l.strike				'Deal Rate',
+	/*i.und_instype = 'Swap' ? 'CALL' : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',*
+	(i.call_option = 'Yes' ? 'CALL' : 'PUT')   'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	i.und_instype = 'Swap' ? 0.0 : (ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	i.und_instype = 'Swap' ? 'Swaption' : ael_s(t,'InstrType.InstrumentType')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'QURT' : ''		'Cap Frequency',
+	t.optional_key				'Devonnumber',
+	exclude_first_period,
+	t.status
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un
+where
+	t.insaddr = i.insaddr
+and	/*(i.instype in ('CAP','FLOOR')
+or 	*i.und_instype = 'Swap'
+and	i.exp_day > today
+and	l.insaddr =* i.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*
+
+
+
+
+
+union
+
+
+
+
+/*** Fraoptions ***
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	convert('date', i.exp_day, '%Y-%m-%d')  'Interest Start Date',
+	un.exp_day				'Interest End Date',
+	i.strike_price				'Deal Rate',
+	i.insid like '%CAP%' ? 'CALL' : (i.insid like '%FLOOR%' ? 'PUT' : '')	'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	(ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	ael_s(t,'InstrType.InstrumentType')	'Account',
+	(l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'QURT' : ''		'Cap Frequency',
+	''					'Devonnumber',
+	exclude_first_period,
+	t.status
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un
+where
+	t.insaddr = i.insaddr
+and	(i.instype in ('Option')
+and	i.und_instype = 'FRA')
+and	i.exp_day > today
+and	l.insaddr =* un.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in ('Simulated',  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+
+
+/*FOR KNOCKINS ONLY - NEED TO REMOVE WHEN INSTRUMENT EXPIRES - TRDNBR = 2602876*/
+union 
+
+select
+	t.trdnbr				'Deal Ref',
+	display_id(t, 'trader_usrnbr')		'Dealer',
+	time_to_day(t.time)			'Deal Date',
+	display_id(t, 'counterparty_ptynbr')	'Counter Party',
+	'OPT'					'Contract Type',
+	display_id(t, 'prfnbr')			'Profit Centre',
+	t.quantity*i.contr_size			'Nominal',
+	display_id(i, 'curr')			'Currency',
+	i.und_instype = 'Swap' ? (i.exp_day) : (exclude_first_period = 'Yes' ? ael_s(i,'SACM_CASHFLOW_F_S.firstcf_start_day') : (i.und_instype = 'Swap' ? i.exp_day : l.start_day))  'Interest Start Date',
+/*and un.generic = 'Yes'*/
+/*i.und_instype = 'Swap' ? i.exp_day : l.start_day*/				
+
+	(i.und_instype = 'Swap' ? (un.generic = 'Yes' ? date_add_delta(i.exp_day,0,0,1) : un.exp_day) 
+/*date_add_delta(i.exp_day,un.exp_period.count)*/
+				: l.end_day) 	'Interest End Date',
+	i.und_instype = 'Swap' ? i.strike_price : l.strike				'Deal Rate',
+	/*i.und_instype = 'Swap' ? 'CALL' : i.instype = 'CAP' ? 'CALL' : (i.instype = 'FLOOR' ? 'PUT' : '')	'Call_Put',*/
+	i.und_instype = 'Swap' ? (i.call_option = 'No' ? 'Put' : 'Call') : i.instype = 'CAP' ? 'Call' : (i.instype = 'FLOOR' ? 'Put' : '')	'Call_Put',
+	t.quantity*i.contr_size < 0 ? 'SELL' : 'BUY'	'Buy_Sell',
+	present_value(t)/tp.USD		'MtM_USD',
+	present_value(t)			'MtM_ZAR',
+	present_value(t)			'MtM_CCY',
+	display_id(i, 'curr')			'CCY',
+	today					'Last Update',
+	i.und_instype = 'Swap' ? 0.0 : (ael_f(l,'Kim2') = 0.0 ? ael_f(l, 'Kim5') : ael_f(l,'Kim2'))	'Last Reset Rate',
+	i.und_instype = 'Swap' ? 'Swaption' : ael_s(t,'InstrType.InstrumentType')	'Account',
+	i.und_instype = 'Swap' ? '' : (l.rolling_period.count = 3 and l.rolling_period.unit = 'Months') ? 'quarter' : (l.rolling_period.count = 1 and l.rolling_period.unit = 'Months') ? 'month':(l.rolling_period.count = 6 and l.rolling_period.unit = 'Months') ? 'semi-annual':''		'Cap Frequency',
+	t.optional_key				'Devonnumber',
+	exclude_first_period,
+	t.status,
+	f.insid 'FloatRef',
+    used_vol(i) 'Vol'
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	temp	tp,
+	instrument un,
+	instrument f
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CAP','FLOOR')
+/*or 	i.und_instype = 'Swap')*/
+and	i.exp_day > today
+and	l.insaddr =* i.insaddr
+and 	i.und_insaddr *= un.insaddr
+and 	t.status not in (  'Terminated', 'Void')
+/*or 	(t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and f.insaddr = l.float_rate
+and t.trdnbr in (2554056,2554155,2553756,2553974)
+
+
+

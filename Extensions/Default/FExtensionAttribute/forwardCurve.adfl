@@ -1,0 +1,10 @@
+[Default]FCashFlowInformation:forwardCurve = legInformation.ForwardCurve;
+[Default]FInstrument:forwardCurve = mappedForwardLink :* "forwardCurve";
+[Default]FIrCurveInformation:forwardCurve = forwardIrCurveInformation;
+[Default]FLeg:forwardCurve = select(mappedForwardLink, 
+  nil->nil, 
+  default->mappedForwardLink :* "forwardCurve");
+[Default]FLegAndTrades:forwardCurve = leg:forwardCurve;
+[Default]FLegInformation:forwardCurve = object.ForwardCurve;
+[Default]FMappingLink:forwardCurve = forwardCurveHierarchy;
+[Default]FYieldCurveHierarchy:forwardCurve = forwardYieldCurveComponent :* "forwardIrCurveInformation" [component = underlyingComponent];

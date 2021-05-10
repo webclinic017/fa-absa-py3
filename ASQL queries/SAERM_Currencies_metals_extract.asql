@@ -1,0 +1,17 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_Currencies_metals_extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_Currencies_metals_extract' and p.type = 'SQL Query' 
+select
+	i.insid					'Name',
+	add_info(i,'IsCurrency') = 'No' ? 'Metals' : 'Currency'  'Currency_Metal',
+	i.creat_time				'Created',
+	i.updat_time				'Updated',
+	TODAY					'BusinessDay'
+	
+from
+	instrument i
+where
+	i.instype = 'Curr'

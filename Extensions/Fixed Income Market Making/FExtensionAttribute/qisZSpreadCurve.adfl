@@ -1,0 +1,7 @@
+[Fixed Income Market Making]FQuoteController:qisZSpreadCurve = shunt((quoteParameter <> nil), 
+  false->nil, 
+  default->shunt(quoteParameter.QuoteInsSpreadFromType("Yield"), 
+    nil->nil, 
+    default->shunt(quoteParameter.QuoteInsSpreadFromType("Yield").UnderlyingYieldCurve, 
+      nil->nil, 
+      default->quoteParameter.QuoteInsSpreadFromType("Yield").UnderlyingYieldCurve)));

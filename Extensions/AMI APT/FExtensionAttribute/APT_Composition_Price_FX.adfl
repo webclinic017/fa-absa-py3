@@ -1,0 +1,5 @@
+[AMI APT]FSingleInstrumentAndTrades:APT_Composition_Price_FX = select(instrument.IsKindOf("FFxRate"), 
+  true->select(aptUseMtMPrice, 
+    true->aptFxRateCurrencies :* "historicalSimplisticFXSpotRate" [fxHistoricalDate = yesterday], 
+    default->object:theoreticalValueFxRates [theoreticalValueCurrencies = aptFxCashCurrencies, displayCurrency = aptCompositionCurrency]), 
+  default->nil);

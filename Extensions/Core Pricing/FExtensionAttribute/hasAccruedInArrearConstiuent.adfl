@@ -1,0 +1,7 @@
+[Core Pricing]FCashFlowInstrument:hasAccruedInArrearConstiuent[] = accruedArrear;
+[Core Pricing]FCombInstrMap:hasAccruedInArrearConstiuent[] = instrument:hasAccruedInArrearConstiuent;
+[Core Pricing]FCombInstrMapAndTrades:hasAccruedInArrearConstiuent[] = instrument:hasAccruedInArrearConstiuent;
+[Core Pricing]FCombination:hasAccruedInArrearConstiuent[] = select(needsLegInformation, 
+  false->false, 
+  true->maxOfAny(includes(instrumentMapsWithLegs :* "hasAccruedInArrearConstiuent", true)));
+[Core Pricing]FInstrument:hasAccruedInArrearConstiuent = false;

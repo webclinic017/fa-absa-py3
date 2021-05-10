@@ -1,0 +1,8 @@
+[Default]FLegAndTrades:multiLegLabel = select(instrument:payOrRecLabel, 
+  true->select(leg.PayLeg, 
+    true->"Pay " + currency, 
+    false->"Rec " + currency), 
+  false->select(leg.IsFirstStartDayLeg, 
+    true->"First " + currency, 
+    false->"Second " + currency));
+[Default]FTradeRow:multiLegLabel = "Total " + displayCurrency;

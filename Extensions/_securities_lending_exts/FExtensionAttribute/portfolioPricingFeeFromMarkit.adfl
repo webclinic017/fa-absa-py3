@@ -1,0 +1,5 @@
+[_securities_lending_exts]FInstrument:portfolioPricingFeeFromMarkit = select(secLendMarkitMarket, 
+  default->switch(secLendGetMasterLoan, 
+    default->secLendGetMasterLoan :* "marketPrice" [priceSource = "ADS", orderBookMarketSearchOrder = [secLendMarkitMarket], priceFindingMarketSet = true, marketPriceSearchOrder = ["LastPrice"]], 
+    nil->0.0), 
+  nil->0.0);

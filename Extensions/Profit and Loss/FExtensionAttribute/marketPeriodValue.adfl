@@ -1,0 +1,14 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:marketPeriodValue = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:marketPeriodValue = nil;
+[Profit and Loss]FInstrumentAndTrades:marketPeriodValue = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->marketValueEnd, 
+  "Inception to Historical"->marketValueEndValues, 
+  "Historical to Present"->marketValueEnd - marketValueStart, 
+  "Historical to Historical"->marketValueEndValues - marketValueStart);
+[Profit and Loss]FLegAndTrades:marketPeriodValue = nil;
+[Profit and Loss]FPriceAggregate:marketPeriodValue = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "marketPeriodValue");
+[Profit and Loss]FTimeBucketAndObject:marketPeriodValue = scenarioaxisarray(rowInstrumentAndTrades:marketPeriodValue [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

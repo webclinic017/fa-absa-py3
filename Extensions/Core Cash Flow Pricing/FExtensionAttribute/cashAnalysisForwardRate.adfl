@@ -1,0 +1,11 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:cashAnalysisForwardRate = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(cashFlowIsGenericForForwardRate, 
+    true->cashFlowSimpleRateFromParQuote(cashFlowInformation, legInformation, opaque(double(instrument:parCoupon)), replaceFixedRate, valuationDate), 
+    false->select(isCapletFloorlet(cashFlowType) and not leg.IsInflationOptionalityLeg, 
+      true->cashFlowInformation :* "capletFloorletUndRate" [legInformation], 
+      false->select(isAmountCashFlow, 
+        true->0.0, 
+        default->cashFlowSimpleRate(cashFlowInformation, legInformationOrNil, valuationDate)))));
+[Core Cash Flow Pricing]FMoneyFlow:cashAnalysisForwardRate = nil;
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:cashAnalysisForwardRate = moneyFlow:cashAnalysisForwardRate;

@@ -1,0 +1,71 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','TBR_PCG_FXswap_Cfs') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+    where p.name = 'TBR_PCG_FXswap_Cfs' and p.type = 'SQL Query' 
+
+ 
+select
+    t.trdnbr                        'Trd',
+    cf.pay_day                      'Payday',
+    maturity_date(t)                'Trdexpiry',
+    i.instype                       'Type',
+    display_id(l,'curr')            'curr',
+    projected_cf(cf,,,display_id(l,'curr'))*t.quantity 'Currency_Cashflow',
+    p.fullname                      'Counterparty',
+    p.type                          'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',display_id(l,'curr')) 'FXRate'
+
+into temp
+
+from
+    trade t,
+    leg l,
+    cashflow cf,
+    instrument i,
+    party p
+    
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and cf.pay_day > @StartDay{TODAY}
+    and i.instype = 'FxSwap'
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and t.counterparty_ptynbr = p.ptynbr
+/*and p.type ~= 'Intern Dept'*/
+order by t.trdnbr
+/*----------------------------------------------------------*/
+
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    to_double(Currency_Cashflow)'Cflow',
+    Counterparty,
+    CPTY_Type,
+    Fxrate,
+    Currency_Cashflow * Fxrate 'USDEqCF'
+into temp2
+
+from temp
+/*where Counterparty ~= 'FORWARDS DESK'*/
+
+/*---------------------------------------------------------*/
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    sum(Cflow)'Sum',
+    Counterparty,
+    Counterparty = 'FORWARDS DESK' ? 'Intern Dept' : CPTY_Type ' Cpty Type',
+    avg(FXrate) 'FX Rate',
+    sum(USDEqCF) 'Sum USD'
+
+from temp2
+    
+Group by Trd,curr
+

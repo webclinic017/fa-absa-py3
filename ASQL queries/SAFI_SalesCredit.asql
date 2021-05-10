@@ -1,0 +1,215 @@
+/*------------------------------------------------------------------
+    SAFI_SalesCredit
+    
+    This query supplies supplies the sales_credit totals per sales person 
+    for a specific range of dates and trade filter.
+
+    Date                : 2010-04-08, 2011-01-27
+    Purpose             : Select the sales credit created by the SAFI_SalesCredit python script
+			  Add Nominal amounts and sales persons 1,3,4 and 5
+    Department and Desk : PCG SM Middle Office
+    Requester           : Kelly Chetty
+    Developer           : Herman Hoon
+    CR Number           : 271252, 562748
+    
+    Date                : 2010-05-06
+    Purpose             : Added column displaying Instrument ID 
+    Department and Desk : PCG SM Middle Office
+    Requester           : Kelly Chetty
+    Developer           : Bhavnisha Sarawan
+    CR Number           : C300001
+------------------------------------------------------------------*/
+
+
+select
+    t.trdnbr                                'FrontID',
+    'YES'? t.trdnbr : ''                    'Trade_Number',
+    'YES'? time_to_day(t.creat_time): ''    'Trade_Creation_Date', 
+    'YES'? time_to_day(t.time): ''          'Trade_Date',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    add_info(t,'Relationship_Party')        'Relationship_Party',
+    display_id(ins_issuer, 'free4_chlnbr')  'Issuer_Sector',
+    display_id(t,'prfnbr')                  'Portfolio',
+    i.insid                                 'Instrument_ID',
+    to_string(i.instype)                    'Instrument_Type',
+    i.contr_size * t.quantity               'Nominal',
+    abs(i.contr_size * t.quantity)          'Absolute_Nominal'
+into 
+    trades      
+from    
+    trade t,
+    instrument i,
+    party ins_issuer
+where
+    match_filter(t,@1_Filter{SAFI_SalesCredit;TradeFilter.fltid})
+and i.insaddr = t.insaddr
+and i.issuer_ptynbr = ins_issuer.ptynbr
+and time_to_day(t.creat_time) between @2_Start_date{Yesterday} and @3_End_date{Yesterday} 
+
+select
+    tr.*,
+    display_id(t,'sales_person_usrnbr')     'Sales_Person',
+    to_double(t.sales_credit)               'Sales_Credit'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and t.sales_person_usrnbr ~= 0
+
+select
+    tr.*,
+    add_info(t,'Sales_Person2')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit2'))  'Sales_Credit'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person2') ~= ''
+    
+select
+    tr.*,
+    add_info(t,'Sales_Person3')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit3'))  'Sales_Credit'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person3') ~= ''
+
+select
+    tr.*,
+    add_info(t,'Sales_Person4')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit4'))  'Sales_Credit'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person4') ~= ''
+    
+select
+    tr.*,
+    add_info(t,'Sales_Person5')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit5'))  'Sales_Credit'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person5') ~= ''
+
+select
+    f.Trade_Number,
+    f.Trade_Creation_Date, 
+    f.Trade_Date,
+    f.Counterparty,
+    f.Relationship_Party,
+    f.Issuer_Sector,
+    f.Portfolio,
+    f.Instrument_ID,
+    f.Instrument_Type,
+    f.Nominal,
+    f.Absolute_Nominal,
+    f.Sales_Person,
+    f.Sales_Credit
+from
+    final f
+
+union
+
+select  
+    'TOTAL BY SALES PERSON' 'Trade_Number',
+    ''                      'Trade_Creation_Date', 
+    ''                      'Trade_Date',
+    ''                      'Counterparty',
+    ''                      'Relationship_Party',
+    ''                      'Issuer_Sector',
+    ''                      'Portfolio',
+    ''                      'Instrument_ID',
+    ''                      'Instrument_Type',
+    0.0                     'Nominal',
+    0.0                     'Absolute_Nominal',
+    t.Sales_Person          'Sales_Person',
+    sum(t.Sales_Credit)     'Sales_Credit'
+from 
+    final t
+group by 
+    t.Sales_Person
+
+union
+
+select  
+    'TOTAL BY PORTFOLIO'    'Trade_Number',
+    ''                      'Trade_Creation_Date', 
+    ''                      'Trade_Date',
+    ''                      'Counterparty',
+    ''                      'Relationship_Party',
+    ''                      'Issuer_Sector',
+    t.Portfolio             'Portfolio',
+    ''                      'Instrument_ID',
+    ''                      'Instrument_Type',
+    0.0                     'Nominal',
+    0.0                      'Absolute_Nominal',
+    ''                      'Sales_Person',
+    sum(t.Sales_Credit)     'Sales_Credit'
+from 
+    final t
+group by 
+    t.Portfolio 
+ 
+union
+
+select  
+    'TOTAL BY PORTFOLIO & SALES PERSON' 'Trade_Number',
+    ''                      'Trade_Creation_Date', 
+    ''                      'Trade_Date',
+    ''                      'Counterparty',
+    ''                      'Relationship_Party',
+    ''                      'Issuer_Sector',
+    t.Portfolio             'Portfolio',
+    ''                      'Instrument_ID',
+    ''                      'Instrument_Type',
+    0.0                     'Nominal',
+    0.0                     'Absolute_Nominal',
+    t.Sales_Person          'Sales_Person',
+    sum(t.Sales_Credit)     'Sales_Credit'
+from 
+    final t
+group by 
+    t.Portfolio, t.Sales_Person
+
+union
+
+select  
+    'TOTAL BY INSTRUMENT TYPE & SALES PERSON' 'Trade_Number',
+    ''                      'Trade_Creation_Date', 
+    ''                      'Trade_Date',
+    ''                      'Counterparty',
+    ''                      'Relationship_Party',
+    ''                      'Issuer_Sector',
+    ''                      'Portfolio',
+    ''                      'Instrument_ID',
+    t.Instrument_Type       'Instrument_Type',
+    0.0                     'Nominal',
+    0.0                     'Absolute_Nominal',
+    t.Sales_Person          'Sales_Person',
+    sum(t.Sales_Credit)     'Sales_Credit'
+from 
+    final t
+group by  
+    t.Instrument_Type, t.Sales_Person
+
+

@@ -1,0 +1,65 @@
+/* update_method=0 */
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_get_fxrates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_get_fxrates' and p.type = 'SQL Query' 
+
+
+
+/*  Anil Parbhoo    Used by MO, PCG and FO to get FX Rates   */
+ 
+   
+SELECT
+    to_date(@01_StartDate{YESTERDAY;})      't0',
+    to_date(@02_EndDate{TODAY;})      't1'
+INTO
+	parms
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+
+
+/* ====================================================================*/
+
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	1 / used_price(hc, p.t0, curr.insid)'fx_t0',
+	1 / used_price(hc, p.t1, curr.insid)'fx_t1'
+	
+	/*
+	1 / mtm_price(hc, p.t0, curr.insid)			'fx_t0',
+    p.t1=today ? 1 / used_price(hc, p.t1, curr.insid) :
+		1 / mtm_price(hc, p.t1, curr.insid)		'fx_t1'
+    */
+into 
+    fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	parms p
+WHERE
+    hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+order by 2
+
+/* ====================================================================*/
+
+select
+    curr,
+    fx_t0,
+    fx_t1,
+    fx_t1 - fx_t0           'fx_mv',
+    p.t0,
+    p.t1
+from
+    fxrates fx,
+    parms p
+where
+    fx_t0 ~= 0
+    and fx_t1 ~= 0
+order by 1

@@ -1,0 +1,5 @@
+[Default]FYieldCurve:realTimeFxMatrices = select(object.IsMultiCurrency, 
+  true->createDictionary(fxRateCellFromBenchmarkInstruments, shunt[](realTimeUpdateClock, 
+    nil->fxRatesFromBenchmarkInstruments :* "simplisticFXRateValue", 
+    default->latch(fxRatesFromBenchmarkInstruments :* "simplisticFXRateValue", realTimeUpdateClock.LastTick))), 
+  false->nil);

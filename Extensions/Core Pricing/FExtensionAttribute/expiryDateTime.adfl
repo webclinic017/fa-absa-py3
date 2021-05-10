@@ -1,0 +1,14 @@
+[Core Pricing]FConvertible:expiryDateTime = collapse(instrumentExpiryDateTime);
+[Core Pricing]FDerivative:expiryDateTime = select(isMultiExercise, 
+  true->select(hasExerciseEvents, 
+    true->exerciseEvents.ExpiryDate, 
+    false->object.ExpiryDate), 
+  false->collapse(instrumentExpiryDateTime));
+[Core Pricing]FExerciseEvent:expiryDateTime = object.ExpiryDate;
+[Core Pricing]FFuture:expiryDateTime = select(isGeneric, 
+  true->genericExpiryDate, 
+  false->collapse(instrumentExpiryDateTime));
+[Core Pricing]FInstrument:expiryDateTime = select(isMultiExercise, 
+  true->exerciseEvents.ExpiryDate, 
+  false->collapse(instrumentExpiryDateTime));
+[Core Pricing]FVolatilityPoint:expiryDateTime = object.ActualExpiryDay;

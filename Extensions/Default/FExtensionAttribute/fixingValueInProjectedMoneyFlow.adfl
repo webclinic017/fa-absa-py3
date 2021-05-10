@@ -1,0 +1,8 @@
+[Default]FCashFlowMoneyFlow:fixingValueInProjectedMoneyFlow = shunt[](needsLegInformationForProjected, 
+  false->select(cashFlowInformation, 
+    nil->nil, 
+    default->cashFlowInformation:fixedFixingValue), 
+  true->snoop(projectedMoneyFlow, "fixingValue"));
+[Default]FMoneyFlow:fixingValueInProjectedMoneyFlow = nil;
+[Default]FMoneyFlowAndTrades:fixingValueInProjectedMoneyFlow = moneyFlow:fixingValueInProjectedMoneyFlow;
+[Default]FResetMoneyFlow:fixingValueInProjectedMoneyFlow = dividedByHundred(fixingValue);

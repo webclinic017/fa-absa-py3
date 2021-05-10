@@ -1,0 +1,55 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ /*select 
+      ael_i(p,'ASQL_log','LandingArea_Product_Map_Bond') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Product_Map_Bond' and p.type = 'SQL Query' */
+
+ 
+
+
+
+select
+	today							        'RepDay',
+	date_add_delta(today, -90, 0, 0,)       'past'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+	
+	
+	
+
+select distinct 
+    i.insaddr,
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    add_info(t,'MM_Instype')            'MM_INSTYPE',
+    add_info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    und.insaddr                         'Und_insaddr',
+    und.insid                           'Und_insid',
+    und.instype                         'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    add_info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und,
+    macros m
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype = 'Bond'
+and i.exp_day > m.past

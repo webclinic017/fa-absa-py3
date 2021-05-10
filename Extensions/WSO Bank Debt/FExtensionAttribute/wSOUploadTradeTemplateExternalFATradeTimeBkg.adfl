@@ -1,0 +1,9 @@
+[WSO Bank Debt]FObject:wSOUploadTradeTemplateExternalFATradeTimeBkg = select(wSOUploadTradeTemplateExternalFATradeTime, 
+  default->select(object.IsKindOf("FBusinessProcess"), 
+    true->select(object.Subject.Subject, 
+      default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFATradeTime, wSOUploadTradeTemplateExternalFATradeTime, "string"), 
+        true->1, 
+        default->0)), 
+    default->switch(py("FReconciliationValueMapping", context).CompareValuePair(wSOUploadTradeTemplateInternalFATradeTime, wSOUploadTradeTemplateExternalFATradeTime, "string"), 
+      true->1, 
+      default->0)));

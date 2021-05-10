@@ -1,0 +1,37 @@
+/*------------------------------------------------------------------
+    Structured_FixNominal
+
+    Date                : 2010-12-09
+    Purpose             : Used to set the contral size of a specific trade
+    Department and Desk : Structered Desk
+    Requester           : Yalusa Jongihlati
+    Developer           : Herman Hoon
+    CR Number           : 519986
+
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+	ael_i(p,'ASQL_log','Structured_FixNominal') 'Name'
+into  
+	ASQL_LOG_TEMP
+from 
+	TextObject p 
+where 
+	p.name = 'Structured_FixNominal' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Select the contract size
+------------------------------------------------------------------*/
+select
+    i.insid      'Instrument Name',
+    i.contr_size 'Swap Nominal Amount'
+from
+    instrument i,
+    trade t
+where 
+    i.insaddr = t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})

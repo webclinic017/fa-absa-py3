@@ -1,0 +1,81 @@
+[UDMC Templates]FObject:udmcWorstBestOfBarrierPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for worst/best of basket option
+#
+# INTERPRETATION
+# An worst/best of option on the returns in a basket.
+#
+# DEFINITION
+# nAssets: Number of underlying assets in the basket.
+# rainbowType: Exotic tab Rainbow. Supported values are On the max (3) and On the min (4).
+# absoluteStrikes: The relative strikes of the underlying assets.
+# weights: The weights of the underlying basket components.
+#--------------------------------------------
+
+#PARAMETERS
+param int isCall;
+param int barrierIsCrossed;
+param int nAsset;
+param int rainbowType; # 3=OnTheMax, 4=OnTheMin
+param int barrierType; # 1,3=KnockOut;2,4 =KnockIn
+param matrix(double) absoluteStrikes;
+param matrix(double) referencePrices;
+param matrix(double) barriers;
+param matrix(double) weights;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double callOrPut = (2.0 * isCall) - 1.0;
+double minOrMax = 7.0 - 2.0*rainbowType; # -1=OnTheMin, 1=OnTheMax
+double optionValue = 0.0;
+matrix(double) performanceS = S;
+int worstBestIndex = 0;
+int isKnockIn = (barrierType == 2) or (barrierType == 4);
+int isDownBarrier = (barrierType == 1) or (barrierType ==2);
+int isKnocked = 0;
+
+#MAIN LOOP
+if ((barrierType > 0) and (barrierIsCrossed == 0))
+{
+    if (isDownBarrier == 1)
+    {
+        isKnocked = max(rowMin(S) < barriers) == 1.0;
+    }
+    else # Upper barrier
+    {
+        isKnocked = max(rowMax(S) > barriers) == 1.0;
+    };
+}
+else
+{
+    isKnocked = barrierIsCrossed;
+};
+
+if ((barrierType == 0) or (isKnockIn == isKnocked))
+{
+    performanceS = S[:,-1]./referencePrices[:,0];
+    if(minOrMax==-1)
+    {
+        # On the min
+        worstBestIndex = indexMin(performanceS);
+    }
+    else
+    {
+        # On the max
+        worstBestIndex = indexMax(performanceS);
+    };
+    optionValue = weights[worstBestIndex]*max(0.0, callOrPut*(S[worstBestIndex, -1] - absoluteStrikes[worstBestIndex]));
+}
+else
+{
+    optionValue = 0.0;
+};
+
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

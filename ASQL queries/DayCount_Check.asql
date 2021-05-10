@@ -1,0 +1,38 @@
+select
+    t.trdnbr 'Trade Number',
+    p.prfid 'Portfolio Name',
+    t.status 'Trade Status',
+    pa.ptyid 'Party Name',
+    t.quantity * i.contr_size 'Nominal', 
+    i.instype,
+    i.insid,
+    i.exp_day,
+    il.daycount_method 'Instr Daycount',
+    c.insid 'Curr',
+    cl.daycount_method 'Currency Daycount',
+    ul.insid 'Issuer',
+    display_id(t,'trader_usrnbr') 'Trader'
+
+from 
+    trade t,
+    instrument i,
+    instrument c,
+    instrument ul,
+    leg il,
+    leg cl,
+    portfolio p,
+    party pa
+
+where
+    t.insaddr = i.insaddr
+    and i.curr = c.insaddr
+    and i.insaddr = il.insaddr
+    and c.insaddr = cl.insaddr
+    and il.type ~= 'Credit Default'
+    and i.instype = 'CreditDefaultSwap'
+    and cl.daycount_method ~= il.daycount_method
+    and ul.insaddr = il.credit_ref
+    and t.prfnbr = p.prfnbr
+    and t.counterparty_ptynbr = pa.ptynbr
+    and (t.status = 'BO Confirmed' or t.status = 'BO-BO Confirmed' or t.status = 'FO Confirmed' or t.status = 'FO Sales')
+    and i.exp_day > TODAY

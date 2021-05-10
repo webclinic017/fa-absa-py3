@@ -1,0 +1,497 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_CashBook_Final_AB') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_CashBook_Final_AB' and p.type = 'SQL Query' 
+/*SAMM_Cashbook_Final 10/03/04 */
+
+/* TB/LBB/CommPaper/non-primary BA deals maturing for date  (buy-debit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs((t.quantity * i.contr_size))	'Debit',
+		0.0					'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') = 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+and		(t.quantity * i.contr_size) > 0
+
+/* TB/LBB/CommPaper/non-primary BA deals maturing for date  (sell-credit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0					'Debit',
+		abs((t.quantity * i.contr_size))	'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') = 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+and		(t.quantity * i.contr_size) < 0
+
+/* TB/LBB/CommPaper/non-primary BA deals settlement for date  (sell-debit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs(t.premium)		 		'Debit',
+		0.0			 		'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+	
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') = 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+and		(t.quantity * i.contr_size) < 0.0
+
+/* TB/LBB/CommPaper/non-primary BA deals settlement for date (buy-credit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0			 		'Debit',
+		abs(t.premium)			 	'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+	
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') = 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+and		(t.quantity * i.contr_size) > 0.0
+
+/* Andries Zone starts here baby - now don't touch   */
+
+/* TB/LBB/CommPaper/primary BA deals maturing for date  (buy-debit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs((t.quantity * i.contr_size))	'Debit',
+		0.0					'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') ~= 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+
+
+/* TB/LBB/CommPaper/primary BA deals maturing for date  (sell-credit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0					'Debit',
+		abs((t.quantity * i.contr_size))	'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') ~= 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+
+/* TB/LBB/CommPaper/primary BA deals settlement for date  (sell-debit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs(t.premium)		 		'Debit',
+		0.0			 		'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+	
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') ~= 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+
+
+/* TB/LBB/CommPaper/primary BA deals settlement for date (buy-credit) */
+
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0			 		'Debit',
+		abs(t.premium)			 	'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+	
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		add_info(t,'MM_Primary_Issue') ~= 'No'
+and		(add_info(t,'MM_Instype') in ('BA','LBB','TB','Comm Paper','SARB Debenture'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+
+
+/* Andries Zone ends here */
+
+
+
+/*NCD/PN (sell-debit)*/
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs(t.premium)				'Debit',
+		0.0					'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+		
+
+into temp
+
+
+
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		(add_info(t,'MM_Instype') in ('NCD','PN'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+and		(t.quantity * i.contr_size) < 0.0
+
+
+
+/*NCD/PN (buy - credit)*/
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0					'Debit',
+		abs(t.premium)				'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+		
+
+into temp
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		(add_info(t,'MM_Instype') in ('NCD','PN'))
+and		i.instype = 'Bill'
+and		t.value_day = @DealDate{}
+and		(t.quantity * i.contr_size) > 0.0
+
+/*NCD/PN Maturing on date (buy-debit)*/
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		abs((t.quantity*i.contr_size))		'Debit',
+		0.0					'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+into temp
+
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		(add_info(t,'MM_Instype') in ('NCD','PN'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+and		(t.quantity * i.contr_size) > 0.0
+
+/*NCD/PN Maturing on date (buy-debit)*/
+
+select 		t.trdnbr				'Trade',
+		i.exp_day				'MaturityDate',
+		t.value_day				'Settlement',
+		add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+		i.insid					'Instrument',
+		pa.ptyid				'Counterparty',
+		p.prfid					'Portfolio',
+		0.0					'Debit',
+		abs((t.quantity*i.contr_size))		'Credit',
+		t.status				'Status',
+		add_info(t,'MM_Primary_Issue')		'PrimaryIssue'
+
+
+into temp
+
+
+from		instrument	i,
+		trade		t,
+		party		pa,
+		party		py,
+		portfolio	p,
+		leg		l
+
+where		match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and		i.issuer_ptynbr=py.ptynbr
+and		(add_info(t,'MM_Instype') in ('NCD','PN'))
+and		i.instype = 'Bill'
+and		i.exp_day = @DealDate{}
+and		(t.quantity * i.contr_size) < 0.0
+
+select distinct
+
+		t.Trade,
+		t.MaturityDate,
+		t.Settlement,
+		t.Product,
+		t.Instrument,
+		t.Counterparty,
+		t.Portfolio,
+		t.Debit,
+		t.Credit,
+		t.Status,
+		t.PrimaryIssue
+
+from temp t
+
+union
+
+
+select distinct
+
+		t.Trade,
+		t.MaturityDate,
+		t.Settlement,
+		t.Product,
+		t.Instrument,
+		t.Counterparty,
+		t.Portfolio,
+		sum(t.Debit) 'Debit',
+		sum(t.Credit) 'Credit',
+		t.Status,
+		'Grand Total'
+
+from temp t
+
+group by 11

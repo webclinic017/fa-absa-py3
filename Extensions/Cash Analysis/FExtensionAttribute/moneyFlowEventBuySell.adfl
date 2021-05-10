@@ -1,0 +1,7 @@
+[Cash Analysis]FMoneyFlowAndTrades:moneyFlowEventBuySell = select((object.MoneyFlow.PayDate == instrument.ExpiryDate) and ((object.MoneyFlow.Type <> "Security Nominal") and (object.MoneyFlow.Type <> "Premium") and (object.MoneyFlow.Type <> "Coupon") and (object.MoneyFlow.Type <> "Coupon transfer")), 
+  true->select(tradeNominal > 0, 
+    true->"Sell", 
+    default->"Buy"), 
+  default->select(tradeNominal > 0, 
+    true->"Buy", 
+    default->"Sell"));

@@ -1,0 +1,6 @@
+[Default]FInstrument:bondOnlyModifiedDuration = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->object:modifiedDurationFromYield [yieldValue = bondOnlyYieldToMaturity, instrumentSpotDate], 
+  false->nan);
+[Default]FInstrumentAndTrades:bondOnlyModifiedDuration = instrument :* "bondOnlyModifiedDuration" [priceSource];
+[Default]FMultiInstrumentAndTrades:bondOnlyModifiedDuration = nan;
+[Default]FPriceAggregate:bondOnlyModifiedDuration = instrument:bondOnlyModifiedDuration;

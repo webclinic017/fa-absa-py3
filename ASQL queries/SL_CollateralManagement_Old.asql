@@ -1,0 +1,195 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_CollateralManagement_Old') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_CollateralManagement_Old' and p.type = 'SQL Query' 
+
+
+
+
+/* 
+Code to add the Equity & Bonds/NCD collateral into this query, 
+as these figures are currently not available in Front Arena
+examples : 
+    select 'ABM22' 'ptyid', 787596186.39 'amt', 'Bonds/NCD' 'type', insid 'dummy' into temp_totals_dummy from instrument where insaddr = 1
+    select 'ABM22' 'ptyid', 787596186.39 'amt', 'Shares' 'type', insid 'dummy' into temp_totals_dummy from instrument where insaddr = 1
+Note that the keyword for the type is either 'Share' or 'Bonds/NCD'
+*/
+select 'ABM21' 'ptyid', 100000000.00 'amt', 'Bonds/NCD' 'type', insid 'dummy' into temp_totals_dummy from instrument where insaddr = 1
+select 'ABM22' 'ptyid', 787596186.39 'amt', 'Bonds/NCD' 'type', insid 'dummy' into temp_totals_dummy from instrument where insaddr = 1
+
+
+/* Build a table containing the margin values that could be used for each type */
+select 'Loan value' 'type', 1.05 'margin', insid 'dummy' into temp_margin_dummy from instrument where insaddr = 1
+select 'Fixed cash' 'type', 1.05 'margin', insid 'dummy' into temp_margin_dummy from instrument where insaddr = 1
+select 'Call cash' 'type', 1.05 'margin', insid 'dummy' into temp_margin_dummy from instrument where insaddr = 1
+select 'Bonds/NCD' 'type', 1.10 'margin', insid 'dummy' into temp_margin_dummy from instrument where insaddr = 1
+select 'Shares' 'type', 1.15 'margin', insid 'dummy' into temp_margin_dummy from instrument where insaddr = 1
+/* Now build the actual margin value table (i.e. without the dummy field */
+select type, margin into temp_margin from temp_margin_dummy
+
+/* This will work out the cash balance - done by summing up the premiums for 
+deposits that aren't open-ended */
+select 
+    cp.ptyid, 
+    1.0 * abs(sum(t.premium)) 'amt', 
+    'Fixed cash' 'type'
+into 
+    temp_totals
+from 
+    trade t, 
+    instrument i, 
+    portfolio p,
+    party cp
+where 
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.ptyid in (@Counterparty{;Party.ptyid;*})
+and p.prfid in (@Portfolio{;Portfolio.prfid*})
+and i.instype = 'Deposit'
+and i.open_end = 'None'
+group by cp.ptyid
+
+/* This will work out the balance for the call accounts - done by summing up all the 
+cashflows for an open-ended deposit */
+select 
+    cp.ptyid, 
+    1.0 * abs(sum(cf.fixed_amount)) 'amt', 
+    'Call cash' 'type'
+into 
+    temp_totals
+from 
+    trade t, 
+    instrument i, 
+    leg l, 
+    cashflow cf, 
+    party cp
+where 
+    t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and cf.legnbr = l.legnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.ptyid in (@Counterparty{;Party.ptyid;*})
+and i.instype = 'Deposit'
+and i.open_end = 'Open End'
+and cf.pay_day <= @Date{}
+group by cp.ptyid
+
+
+/* Now start working out the loan amount - code taken directly from SL_Colateral */
+select
+    t.trdnbr,
+    i.insid,
+    time_to_day(t.time) <= date_add_banking_day(@Date{},'ZAR',-1) ? nominal_amount(t) : 0         'PositionT',
+    cp.ptyid                                                    'Counterparty',
+    i.instype = 'Stock' ? mtm_price(i,date_add_banking_day(@Date{},'ZAR',-1)) : dirty_from_yield(i,,,,8.42)         'ClosingPrice',
+    date_add_banking_day(@Date{},'ZAR',-1)                      'ClosingPriceDate'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    party cp,
+    portfolio p
+where
+    i.instype IN ('Stock','Bond')
+and i.insaddr = t.insaddr
+and p.prfid in (@Portfolio{;Portfolio.prfid*})
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.ptyid in (@Counterparty{;Party.ptyid;*})
+and time_to_day(t.time) <= @Date{}
+and t.status not in ('Void')
+
+/* Calculate loan amount from temp table - code taken directly from SL_Colateral and then 
+results added into the temp table we are building */
+select
+    Counterparty 'ptyid',
+    -1.0 * abs(sum((positionT * ClosingPrice/100))) 'amt',
+    'Loan value' 'type'
+into
+    temp_totals
+from
+    temp
+group by 
+    Counterparty
+
+
+/* Add the manually created collateral information, to our temporary table 
+containing the cash collaterals and loan values */
+select 
+    ptyid,
+    amt,
+    type
+into
+    temp_totals
+from
+    temp_totals_dummy
+
+
+/* Calculate count of all collateral types for a counterparty */
+select ptyid, count(*) into temp1 from temp_totals where type ~= 'Loan value' group by 1
+/* Calculate count of cash collateral types for a counterparty */
+select ptyid, count(*) into temp2 from temp_totals where type in ('Call cash','Fixed cash') group by 1
+/* Cash collaterals might have missing rows - create these with zero values */
+select t1.ptyid, t2.count = '' ? 0 : t2.count 'count' into temp3 from temp1 t1, temp2 t2 where t1.ptyid *= t2.ptyid
+/* If the difference of all collateral types and cash collateral types
+is not zero, then we have multiple types of collateral for the counterparty */
+select t1.ptyid, (t1.count - t3.count) = 0 ? 'No' : 'Yes' 'multi_collateral'
+into temp_multi_collateral
+from temp1 t1, temp3 t3
+where t1.ptyid *= t3.ptyid
+
+
+/* Counterparty has only single collateral type, then add margin to loan value */
+select 
+    tt.ptyid, 
+    tt.type,
+    tt.amt, 
+    tt.type = 'Loan value' ? tt.amt * tm.margin : tt.amt 'margin_amt'
+into 
+    temp_margin_totals
+from 
+    temp_totals tt,
+    temp_multi_collateral tmc,
+    temp_margin tm
+where tt.ptyid =* tmc.ptyid
+and tt.type = tm.type
+and tmc.multi_collateral = 'No'
+
+/* Counterparty has multiple collateral type, then discount collateral value */
+select 
+    tt.ptyid, 
+    tt.type,
+    tt.amt, 
+    tt.type ~= 'Loan value' ? tt.amt / tm.margin : tt.amt 'margin_amt'
+into 
+    temp_margin_totals
+from 
+    temp_totals tt,
+    temp_multi_collateral tmc,
+    temp_margin tm
+where tt.ptyid =* tmc.ptyid
+and tt.type = tm.type
+and tmc.multi_collateral = 'Yes'
+
+
+select 
+    ptyid, 
+    type,
+    amt, 
+    margin_amt
+from temp_margin_totals
+order by 1
+union
+select 
+    ptyid, 
+    '',
+    0.0, 
+    sum(margin_amt)
+from temp_margin_totals
+group by ptyid
+order by ptyid
+

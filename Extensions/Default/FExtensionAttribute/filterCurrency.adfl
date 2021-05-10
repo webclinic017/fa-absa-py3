@@ -1,0 +1,8 @@
+[Default]FInstrument:filterCurrency = globalFilterCurrency;
+[Default]FInstrumentAndTrades:filterCurrency = select(currencySplitGroupingValue, 
+  nil->select(isCashGrouping, 
+    true->value(filterCurrencyForCashGrouping), 
+    false->collapse(globalFilterCurrency)), 
+  default->value(currencySplitGroupingValue));
+[Default]FPortfolioInstrumentAndTrades:filterCurrency = nilObject:globalFilterCurrency;
+[Default]FPriceAggregate:filterCurrency = globalFilterCurrency;

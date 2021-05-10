@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:usedUnderlyingFuture = select(usedUnderlyingFutureMethod, 
+  nil->nil, 
+  default->select(count(underlyingFutureChoosen), 
+    1->underlyingFutureChoosen[0], 
+    default->nil));
+[Core Pricing]FInstrumentAndTrades:usedUnderlyingFuture = instrument:usedUnderlyingFuture;
+[Core Pricing]FMultiInstrumentAndTrades:usedUnderlyingFuture = nil;
+[Core Pricing]FPriceAggregate:usedUnderlyingFuture = instrument:usedUnderlyingFuture;

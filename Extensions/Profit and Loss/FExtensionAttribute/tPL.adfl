@@ -1,0 +1,17 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:tPL = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:tPL = nil;
+[Profit and Loss]FInstrumentAndTrades:tPL = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->collapse(assetTPL));
+[Profit and Loss]FMultiInstrumentAndTrades:tPL = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetTPL), 
+    default->collapse(cashAssetTPL)));
+[Profit and Loss]FPortfolioInstrumentAndTrades:tPL = collapse(cashAssetTPL);
+[Profit and Loss]FPriceAggregate:tPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "tPL");
+[Profit and Loss]FTimeBucketAndObject:tPL = scenarioaxisarray(rowInstrumentAndTrades:tPL [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

@@ -1,0 +1,50 @@
+/*
+
+coded by anil on 16 may 2008
+
+used to identify the external trades in any poprtfolio other than our own
+
+uses  match_filter(t,'NOT_LA_FUND_TOTAL')
+
+exclude counterparty 'IRD INTERNAL'
+
+*/
+
+
+
+select
+
+t.trdnbr,
+i.instype,
+i.insid,
+display_id(t,'prfnbr')'prfid',
+cp.ptyid'CP',
+i.exp_day,
+t.status,
+t.quantity*1000000'nominal',
+l.fixed_rate,
+delta_implicit(t)'delta'
+
+
+from trade t,
+instrument i,
+party cp,
+leg l
+
+where
+
+ match_filter(t,'NOT_LA_FUND_TOTAL')
+and  i.insaddr=t.insaddr 
+and i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.counterparty_ptynbr=cp.ptynbr
+and cp.ptyid not in ('ALCO DESK.','Alco Desk Issuer')
+and t.quantity<0
+and i.instype='Swap'
+and i.exp_day between @exp_date1{} and @exp_date2{}
+and cp.ptyid ~= 'IRD INTERNAL'
+and l.type='Fixed'
+
+
+order by i.exp_day

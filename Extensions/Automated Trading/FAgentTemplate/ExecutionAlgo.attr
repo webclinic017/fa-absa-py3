@@ -1,0 +1,2338 @@
+[Automated Trading]FObject:ExecutionAlgo
+
+Properties =
+  Abstract=Yes
+  CanBePaused=Yes
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=ExecutionAlgo
+  EditPermission=System
+  Granularity=10
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TraceLog=10000
+  TradingEnabled=Yes
+
+State Auction =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterAuctionActions
+  OnExit=<none>
+  SuperState=<none>
+
+State AuctionOrderActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State AuctionWaitForTimer =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnAuctionWaitActions
+  OnExit=<none>
+  SuperState=<none>
+
+State CheckAuctionStatus =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ClaimOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ComfortFillActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ComfortFillFilled =
+  Description=
+  InitialSubState=<none>
+  OnEntry=SaveComfortFilledQty
+  OnExit=<none>
+  SuperState=<none>
+
+State ContinuousTrading =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterContinuousTrading
+  OnExit=<none>
+  SuperState=<none>
+
+State CreateExecutionPlan =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterCreateExecutionPlan
+  OnExit=<none>
+  SuperState=<none>
+
+State DeleteActiveAuctionOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Done =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterDone
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterAuctionOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterAuctionOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterComfortFillOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterFishingOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterMatchingOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterMatchingOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterWouldOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State EnterWouldOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State Error =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterError
+  OnExit=<none>
+  SuperState=<none>
+
+State Execution =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Fishing =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterTradingPhase
+  OnExit=<none>
+  SuperState=<none>
+
+State MarketClosed =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterMarketClosed
+  OnExit=<none>
+  SuperState=<none>
+
+State MarketOpen =
+  Description=
+  InitialSubState=<none>
+  OnEntry=SaveInitialMarketVolume
+  OnExit=<none>
+  SuperState=<none>
+
+State Matching =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterTradingPhase
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyAuctionOrderActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyAuctionOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyComfortFill =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyComfortFillError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyFishingOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyFishingOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyMatchingOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyMatchingOrderError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyWouldOrderActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ModifyWouldOrderActiveError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State Optimize =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnOptimize
+  OnExit=<none>
+  SuperState=<none>
+
+State OrderFilled =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterOrderFilled
+  OnExit=<none>
+  SuperState=<none>
+
+State PhaseChangeFillCheck =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State PhaseChangeImbalance =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Preparations =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnPreparations
+  OnExit=<none>
+  SuperState=<none>
+
+State Ready =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterReady
+  OnExit=<none>
+  SuperState=<none>
+
+State Restart =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterRestart
+  OnExit=<none>
+  SuperState=<none>
+
+State RestartError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnModifyOrderError
+  OnExit=<none>
+  SuperState=<none>
+
+State SliceDone =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Start =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterStart
+  OnExit=<none>
+  SuperState=<none>
+
+State Stop =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterStop
+  OnExit=<none>
+  SuperState=<none>
+
+State Verify =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnVerify
+  OnExit=<none>
+  SuperState=<none>
+
+State VerifyNotOK =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterVerifyNotOK
+  OnExit=<none>
+  SuperState=<none>
+
+State VerifyOK =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterVerifyOK
+  OnExit=<none>
+  SuperState=<none>
+
+State Wait =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterWait
+  OnExit=<none>
+  SuperState=<none>
+
+State WaitForFills =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterWaitForFills
+  OnExit=OnExitWaitForFills
+  SuperState=<none>
+
+State WaitForRealPhaseChange =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnWaitForRealPhaseChange
+  OnExit=<none>
+  SuperState=<none>
+
+State WaitForSchedulePhaseChange =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnWaitForSchedulePhaseChange
+  OnExit=<none>
+  SuperState=<none>
+
+State WouldOrderActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State WouldOrderFilled =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+Transitions =
+  agentIsDone=ContinuousTrading -> baseOrderDone / UpdateWaitMessage -> Done
+  auctionEquilibriumChanged=AuctionOrderActive -> auctionEquilibriumChanged / EquilibriumChanged -> AuctionOrderActive
+  auctionOrderQtyNeedsUpdate=AuctionOrderActive -> auctionOrderQtyNeedsUpdate / UpdateAuctionOrder -> ModifyAuctionOrderActive
+  auctionOverNotParticipating=AuctionWaitForTimer -> notParticipatingInAuction / <none> -> PhaseChangeFillCheck
+  baseOrderDoneAtWouldFilled=WouldOrderFilled -> baseOrderDone / <none> -> Done
+  bothOrdersDeletedAtFishing=Fishing -> currentOrderDeleted / ClearCurrentOrder -> ContinuousTrading
+  claimOrderFailed=ClaimOrder -> commandFailed / UpdateFatalErrorMessage -> Error
+  comfortFillSliceFilled=ComfortFillFilled -> sliceFilled / <none> -> OrderFilled
+  comfortFillSliceNotFilled=ComfortFillFilled -> notSliceFilled / <none> -> Execution
+  commandFailed=ModifyWouldOrderActive -> commandFailed / <none> -> ModifyWouldOrderActiveError
+  commandFailedComfortFillOrder=EnterComfortFillOrder -> commandFailed / UpdateFatalErrorMessage -> Error
+  commandFailedEnterWouldOrder=EnterWouldOrder -> commandFailed / <none> -> EnterWouldOrderError
+  commandSuccess=ModifyWouldOrderActive -> commandSuccess / UpdateWouldFilledAndClearPending -> WouldOrderActive
+  commandSuccessComfortFillOrder=EnterComfortFillOrder -> commandSuccess / ClearPendingCommand -> ComfortFillActive
+  commandSuccessEnterWouldOrder=EnterWouldOrder -> commandSuccess / <none> -> WouldOrderActive
+  completeModifyFishingOrder=ModifyFishingOrder -> commandSuccess / ClearPendingCommand -> Fishing
+  currentOrderDeletedAtWouldOrderActive=WouldOrderActive -> currentOrderDeleted / <none> -> ContinuousTrading
+  deleteOrderAtFishing=Fishing -> deleteOrder / DeleteOrders -> ModifyFishingOrder
+  deleteOrderAtMatching=Matching -> deleteOrderMatch / DeleteOrders -> ModifyMatchingOrder
+  didNotReceiveFills=WaitForFills -> timerEventExpired / OnWaitForFillsTimeout -> Error
+  doneOrReoptimize=OrderFilled -> doneOrReoptimize / <none> -> ContinuousTrading
+  enterFishing=ContinuousTrading -> enterFishing / <none> -> Fishing
+  enterFishingOrder=ContinuousTrading -> enterFishingOrder / PlaceFishingOrder -> EnterFishingOrder
+  enterFishingOrderFailed=EnterFishingOrder -> commandFailed / UpdateFatalErrorMessage -> Error
+  enterFishingOrderSuccess=EnterFishingOrder -> commandSuccess / ClearPendingCommand -> Fishing
+  enterMatchingOrderFailure=EnterMatchingOrder -> commandFailed / <none> -> EnterMatchingOrderError
+  enterMatchingOrderSuccess=EnterMatchingOrder -> commandSuccess / EnterMatchOrderSuccess -> Matching
+  enterMatchOrder=Fishing -> enterMatchOrder / PlaceMatchOrder -> EnterMatchingOrder
+  fatalEnterMatchingOrderError=EnterMatchingOrderError -> fatalError / <none> -> Error
+  fatalErrorAtModifyWouldOrderActiveError=ModifyWouldOrderActiveError -> fatalError / <none> -> Error
+  fatalErrorEnterWouldError=EnterWouldOrderError -> fatalError / <none> -> Error
+  fatalFishingOrderError=ModifyFishingOrderError -> fatalError / <none> -> Error
+  fatalMatchingOrderError=ModifyMatchingOrderError -> fatalError / <none> -> Error
+  fatalRestartError=RestartError -> fatalError / UpdateFatalErrorMessage -> Error
+  fishingCommandFailed=ModifyFishingOrder -> commandFailed / <none> -> ModifyFishingOrderError
+  marketClosed=Execution -> marketClosed / <none> -> MarketClosed
+  marketOpenToComfortFillOrder=MarketOpen -> sendComfortFills / PlaceInitialFillOrder -> EnterComfortFillOrder
+  marketOpenToExecution=MarketOpen -> notSendComfortFills / <none> -> Execution
+  modifyMatchOrderFailure=ModifyMatchingOrder -> commandFailed / <none> -> ModifyMatchingOrderError
+  modifyMatchOrderSuccess=ModifyMatchingOrder -> commandSuccess / ClearPendingCommand -> Matching
+  moveNextPhase=SliceDone -> moveNextPhase / UpdateNextOrderQuantity -> ContinuousTrading
+  moveNextSlice=SliceDone -> moveNextSlice / NextSlice -> ContinuousTrading
+  nonfatalEnterMatchOrderError=EnterMatchingOrderError -> nonFatalError / ClearNextSliceAndPendingCommand -> Fishing
+  nonFatalErrorAtModifyWouldOrderActiveError=ModifyWouldOrderActiveError -> nonFatalError / ClearPendingCommand -> WouldOrderActive
+  nonFatalErrorEnterWouldError=EnterWouldOrderError -> nonFatalError / ClearPendingCommand -> ContinuousTrading
+  nonFatalFishingOrderError=ModifyFishingOrderError -> nonFatalError / ClearPendingCommand -> Fishing
+  nonFatalMatchingOrderError=ModifyMatchingOrderError -> nonFatalError / ClearPendingCommand -> Matching
+  nonFatalRestartError=RestartError -> nonFatalError / ClearPendingCommand -> Restart
+  orderFilledSliceDone=OrderFilled -> sliceDone / <none> -> SliceDone
+  ordersDeletedInMatching=Matching -> currentOrderDeleted / ClearCurrentOrder -> ContinuousTrading
+  ordersFilled=Fishing -> currentOrderFilled / <none> -> OrderFilled
+  ordersFilled2=Matching -> currentOrderFilled / <none> -> OrderFilled
+  priceUnsafeAtFishing=Fishing -> priceUnsafe / DeleteOrders -> ModifyFishingOrder
+  priceUnsafeAtMatching=Matching -> priceUnsafeMatch / DeleteOrders -> ModifyMatchingOrder
+  readyForRestart=WaitForFills -> readyForRestart / <none> -> Preparations
+  readyToMarketOpen=Ready -> marketNotClosed / <none> -> MarketOpen
+  recalculateNextOrderQuantity=WouldOrderFilled -> recalculateNextOrderQuantity / UpdateNextOrderQuantityWouldMode -> ContinuousTrading
+  reoptimizeAtWouldMode=WouldOrderFilled -> reoptimizeAtWouldMode / DeleteOrdersAndSetReoptimizeReason -> Restart
+  reOptimizeFromFishing=Fishing -> reoptimize / DeleteOrders -> ModifyFishingOrder
+  reoptimizeInAuction=AuctionOrderActive -> reoptimizeInAuction / DeleteOrders -> DeleteActiveAuctionOrder
+  reoptimizeInMonitor=ContinuousTrading -> reoptimize / DeleteOrders -> Restart
+  safetuRulesNotOkAtWouldActive=WouldOrderActive -> safetyRulesNotOkAtWouldActive / DeleteCurrentOrder -> ModifyWouldOrderActive
+  sliceDoneContTrading=SliceDone -> doneOrReoptimize / <none> -> ContinuousTrading
+  tAgentReady=Wait -> ready / <none> -> Ready
+  tAuctionOrderDeleted=AuctionOrderActive -> currentOrderDeleted / <none> -> Auction
+  tAuctionOrderFailed=EnterAuctionOrder -> commandFailed / UpdateFatalErrorMessage -> EnterAuctionOrderError
+  tAuctionOrderFilled02=AuctionOrderActive -> currentOrderFilled / <none> -> Auction
+  tAuctionOrderSucceded=EnterAuctionOrder -> commandSuccess / ClearPendingCommand -> AuctionOrderActive
+  tAuctionSliceDone=AuctionWaitForTimer -> plannedSliceDone / <none> -> PhaseChangeFillCheck
+  tAuctionSliceNotTraded=AuctionWaitForTimer -> sliceNotDoneAndTimerExpired / <none> -> PhaseChangeImbalance
+  tBaseOrderDoneInAuction=Auction -> baseOrderDone / <none> -> Done
+  tBaseOrderIsDone=Preparations -> baseOrderDone / <none> -> Done
+  tClaimOrder01=ClaimOrder -> baseOrderClaimed / <none> -> Preparations
+  tComfortFillDeleted=ComfortFillActive -> currentOrderDeleted / ClearComfortFill -> Execution
+  tComfortFillFatalError=ModifyComfortFillError -> fatalError / <none> -> Error
+  tComfortFillFilled=ComfortFillActive -> currentOrderFilled / ClearInitialFillTimer -> ComfortFillFilled
+  tComfortFillNonFatalError=ModifyComfortFillError -> nonFatalError / ClearPendingCommand -> ComfortFillActive
+  tComfortFillTimerExpired=ComfortFillActive -> timerEventExpired / InitialFillTimerExpiredActions -> Error
+  tDeleteAuctionOrderFailed=DeleteActiveAuctionOrder -> commandFailed / HandleModificationDelay -> ModifyAuctionOrderError
+  tDeleteAuctionOrderWentOK=DeleteActiveAuctionOrder -> commandSuccess / ClearPendingCommand -> Auction
+  tEnterAuctionOrder=Auction -> okToEnterAndNotFilled / UpdateAndPlaceAuctionOrder -> EnterAuctionOrder
+  tEnterAuctionOrderFatalError=EnterAuctionOrderError -> fatalError / <none> -> Error
+  tEnterAuctionOrderNonFatalError=EnterAuctionOrderError -> nonFatalError / <none> -> Auction
+  tFilledAsPlanned=PhaseChangeFillCheck -> tradedAccordingToPlan / NextPhase -> Execution
+  tGoingToPreparations=Restart -> restart / ClearPendingCommand -> WaitForFills
+  tGoToVerify=Preparations -> preparationsDone / SaveAgentVariables -> Verify
+  tGoToWait=CreateExecutionPlan -> alwaysTrue / <none> -> Wait
+  tLastSliceAndAuctionOver=AuctionWaitForTimer -> lastPlannedSliceDone / <none> -> PhaseChangeImbalance
+  tLastSliceButNotDone=PhaseChangeImbalance -> lastSlice / SetPhaseChangeError -> Error
+  tMaxClockDiffReached=WaitForSchedulePhaseChange -> safetyRuleMaxDiffScheduleAndReality / TimeDifferenceError -> Error
+  tMaxClockDiffReached02=WaitForRealPhaseChange -> safetyRuleMaxDiffScheduleAndReality / TimeDifferenceError -> Error
+  tModifyAucrtionOrderFatalError=ModifyAuctionOrderError -> fatalError / <none> -> Error
+  tModifyAuctionOrderFailed2=ModifyAuctionOrderActive -> commandFailed / HandleModificationDelay -> ModifyAuctionOrderError
+  tModifyAuctionOrderNonFatalError=ModifyAuctionOrderError -> nonFatalError / ClearPendingCommand -> AuctionOrderActive
+  tModifyAuctionOrderWentOK=ModifyAuctionOrderActive -> commandSuccess / ClearPendingCommand -> AuctionOrderActive
+  tModifyAuctionPrice2=AuctionOrderActive -> auctionOrderPriceNeedsUpdate / UpdateAuctionPrice -> ModifyAuctionOrderActive
+  tModifyComfortFill=ComfortFillActive -> updateComfortFillOrder / UpdateComfortFillPrice -> ModifyComfortFill
+  tModifyComfortFillFailed=ModifyComfortFill -> commandFailed / <none> -> ModifyComfortFillError
+  tModifyComfortFillSuccess=ModifyComfortFill -> commandSuccess / ClearPendingCommand -> ComfortFillActive
+  tNoOptimization=VerifyOK -> notOptimize / SetManualSlices -> CreateExecutionPlan
+  tNotAuctionAndFilled=CheckAuctionStatus -> notAuctionAndOrderFilledOrDone / DeleteOrders -> Auction
+  tNotAuctionButNeedDelete=CheckAuctionStatus -> notAuctionButActiveOrders / DeleteOrders -> DeleteActiveAuctionOrder
+  tNotCTnow02=ContinuousTrading -> scheduleNotInTradingPhase / DeleteOrders -> WaitForRealPhaseChange
+  tNotFilledAsPlanned=PhaseChangeFillCheck -> notTradedAccordingToPlan / <none> -> PhaseChangeImbalance
+  tNotLastSliceAndNotDone=PhaseChangeImbalance -> notLastSlice / ReoptimizeAfterPhaseChange -> Restart
+  tNotOkButStillAuction=CheckAuctionStatus -> notEnoughEqInfoButStillAuction / DeleteOrders -> DeleteActiveAuctionOrder
+  tNotOKToEnterAuctionOrder=AuctionOrderActive -> notOkToEnterAuctionOrder / <none> -> CheckAuctionStatus
+  tOBinAuction=Execution -> orderBookInAuctionPhase / UpdateAuctionParameters -> Auction
+  tOBinCT=Execution -> orderBookInTradingPhase / <none> -> ContinuousTrading
+  tOBnotInAuction=Auction -> orderBookNotInAuctionPhase / AfterAuctionUpdates -> AuctionWaitForTimer
+  tOBnotInCT=ContinuousTrading -> orderBookNotInTradingPhase / DeleteOrders -> WaitForSchedulePhaseChange
+  tOBnotInCT02=WaitForRealPhaseChange -> orderBookNotInTradingPhase / <none> -> PhaseChangeFillCheck
+  tObNotTradable=WaitForSchedulePhaseChange -> orderBookNotInAuctionNorTradingPhase / <none> -> Execution
+  tOptimizationOK=Optimize -> optimizationOK / <none> -> CreateExecutionPlan
+  tOptimize=VerifyOK -> optimize / <none> -> Optimize
+  tOptimizeOKandRefresh=Optimize -> optimizationOKandRefresh / CreateTradingSchedule -> CreateExecutionPlan
+  tOrderFilled02=OrderFilled -> ordersHaveDeletedQty / UpdateNextOrderQuantity -> ContinuousTrading
+  tPreparationsTimeOut=Preparations -> timerEventExpired / OnPreparationsTimedOut -> Error
+  tReoptimizeFromAuction=Auction -> reoptimize / <none> -> Restart
+  tRestartError=Restart -> commandFailed / <none> -> RestartError
+  tScheduleIsNotCT=ContinuousTrading -> tradingSchedulePhaseChanges / DeleteOrders -> WaitForRealPhaseChange
+  tScheduleNotInCOTR03=WaitForSchedulePhaseChange -> scheduleNotInTradingPhase / <none> -> PhaseChangeFillCheck
+  tScheduleNowIsNotCT=WaitForSchedulePhaseChange -> tradingSchedulePhaseChanges / <none> -> PhaseChangeFillCheck
+  tStart01=Start -> vitalRulesOk / ClaimBaseOrder -> ClaimOrder
+  tTimeAgainForPhaseChange=WaitForRealPhaseChange -> tradingSchedulePhaseChanges / <none> -> PhaseChangeFillCheck
+  tUnplannedAuction02=WaitForSchedulePhaseChange -> orderBookInIrregularAuction / <none> -> Execution
+  tUnPlannedAuctionSliceDone=AuctionWaitForTimer -> unplannedSliceDone / <none> -> Execution
+  tVerifyNotOK=Verify -> verificationNotOK / <none> -> VerifyNotOK
+  tVerifyOK=Verify -> verificationOK / <none> -> VerifyOK
+  tVitalStopTimeNotPassedInImbalance=PhaseChangeImbalance -> vitalStopTimeNotPassed / ReoptimizeAfterPhaseChange -> Restart
+  updateAgentInfoInMonitoring=ContinuousTrading -> updateAgentInfo / UpdateWaitMessage -> ContinuousTrading
+  updatePriceFishing=Fishing -> updatePriceEnterJoin / UpdatePrice -> ModifyFishingOrder
+  updatePriceMatching=Matching -> updatePrice / UpdatePrice -> ModifyMatchingOrder
+  wouldOrderFilled=WouldOrderActive -> currentOrderFilled / UpdateCompletedOrderVolume -> WouldOrderFilled
+  wouldPriceCrossed=ContinuousTrading -> wouldPriceCrossedAtMonitor / PlaceWouldOrder -> EnterWouldOrder
+  wouldPriceCrossedAtFishing=Fishing -> wouldPriceCrossed / DeleteOrders -> ModifyFishingOrder
+  wouldPriceCrossedAtOrderFilled=OrderFilled -> wouldPriceCrossed / UpdateNextOrderQuantity -> ContinuousTrading
+  wouldPriceUncrossedAtWouldOrderActive=WouldOrderActive -> wouldPriceUncrossedAtActive / DeleteCurrentOrder -> ModifyWouldOrderActive
+
+Panel Auction =
+  DisplayName=Auction Phase
+  Orientation=Horizontal
+  Panels=AuctionPanelOne, AuctionPanelTwo
+
+Panel AuctionPanelOne =
+  DisplayName=
+  Orientation=Vertical
+  Variables=auctionOpenAllowed, auctionIntradayAllowed
+
+Panel AuctionPanelTwo =
+  DisplayName=
+  Orientation=Vertical
+  Variables=auctionCloseAllowed, auctionVolaAllowed
+
+Panel AutoConfigurePanel =
+  DisplayName=
+  Orientation=Vertical
+  Variables=autoConfigureOrderPlacement
+
+Panel Cost Protection Limits =
+  DisplayName=Cost Protection Limit
+  Orientation=Horizontal
+  Variables=modificationFillLimitInfo
+
+Panel Costs =
+  DisplayName=Costs
+  Orientation=Horizontal
+
+Panel EstimatedCostsBoxOne =
+  DisplayName=
+  Orientation=Vertical
+  Variables=estimatedCost, estimatedRisk
+
+Panel EstimatedCostsBoxTwo =
+  DisplayName=
+  Orientation=Vertical
+  Variables=risk, estimatedTotalCost
+
+Panel EstimatedCostsbp =
+  DisplayName=Estimated Costs (bp)
+  Orientation=Horizontal
+  Panels=EstimatedCostsBoxOne, EstimatedCostsBoxTwo
+
+Panel Hidden =
+  DisplayName=Hidden
+  Orientation=Vertical
+  Variables=trigger, tradingInterface, targetPrice, targetPosition, targetDiff, volumeDone, limMaxLag, limMaxSpreadCustomer, limSlicePrice, limSlicePriceUsed, limVolumeParticipationCustomer, costOfRisk, startTimeInput, stopTimeInput
+
+Panel Info =
+  DisplayName=Info
+  Orientation=Vertical
+  Variables=participation
+
+Panel InfoOnly =
+  DisplayName=InfoOnly
+  Orientation=Vertical
+
+Panel Misc =
+  DisplayName=
+  Orientation=Horizontal
+  Panels=Risk, SliceSizeRange
+
+Panel OptimizeBox =
+  DisplayName=
+  Orientation=Horizontal
+  Variables=autoOptimizeSlicesAndDuration
+
+Panel OrderPlacement =
+  DisplayName=Order Placement
+  Orientation=Vertical
+  Panels=AutoConfigurePanel, OrderPlacementBoxOuter, Cost Protection Limits
+
+Panel OrderPlacementBoxInnerOne =
+  DisplayName=Trigger
+  Orientation=Vertical
+  Variables=trigEnter, trigJoin, trigMatch
+
+Panel OrderPlacementBoxInnerThree =
+  DisplayName=Offset
+  Orientation=Vertical
+  Variables=priceOffsetEnter, priceOffsetJoin, priceOffsetMatch
+
+Panel OrderPlacementBoxInnerTwo =
+  DisplayName=Ref Price
+  Orientation=Vertical
+
+Panel OrderPlacementBoxOuter =
+  DisplayName=
+  Orientation=Horizontal
+  Panels=RefPrice, OrderPlacementBoxInnerThree
+
+Panel RandomSize =
+  DisplayName=
+  Orientation=Horizontal
+
+Panel RefPrice =
+  DisplayName=Ref Price
+  Orientation=Vertical
+  Variables=refTypeEnter, refTypeJoin, refTypeMatch
+
+Panel Risk =
+  DisplayName=Risk
+  Orientation=Vertical
+  Variables=costOfRiskInfo
+
+Panel safetyRuleBoxTwo =
+  DisplayName=Default Safety Rules
+  Orientation=Vertical
+  Variables=limMarginLagTrader, limMaxPriceDiffTrader, limVolumeParticipationTrader, limMaxSpreadTrader
+
+Panel SafetyRules =
+  DisplayName=
+  Orientation=Horizontal
+  Panels=safetyRulesBoxOne, safetyRuleBoxTwo
+
+Panel safetyRulesBoxOne =
+  DisplayName=Customer Safety Rules
+  Orientation=Vertical
+  Variables=baseOrderPrice, limSlicePriceInfo, limVolumeParticipationCustomerInfo, highLowTimeWindow
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=TimeandSize, Misc, EstimatedCostsbp, OrderPlacement, SmartOrderRouting, TradingPattern, Auction, SafetyRules, VolumeMarketSource
+
+Panel SliceSizeRange =
+  DisplayName=Slice Size Range
+  Orientation=Vertical
+  Variables=sliceSizeRange
+
+Panel SmartOrderRouting =
+  DisplayName=Order Routing
+  Orientation=Horizontal
+  Variables=orderRouting
+
+Panel Target =
+  DisplayName=Target
+  Orientation=Vertical
+
+Panel TimeandSize =
+  DisplayName=Time and Size
+  Orientation=Vertical
+  Panels=OptimizeBox, TimeAndSizeParams
+
+Panel TimeAndSizeBoxOne =
+  DisplayName=
+  Orientation=Vertical
+  Variables=startTime, manualSlices, estimatedSlices
+
+Panel TimeAndSizeBoxTwo =
+  DisplayName=
+  Orientation=Vertical
+  Variables=stopTime, estimatedSliceSize, comfortFillsInfo
+
+Panel TimeAndSizeParams =
+  DisplayName=
+  Orientation=Horizontal
+  Panels=TimeAndSizeBoxOne, TimeAndSizeBoxTwo
+
+Panel TradingPattern =
+  DisplayName=Trading Pattern
+  Orientation=Horizontal
+  Variables=frontLoad, wouldPriceInfo
+
+Panel TriggerPanel =
+  DisplayName=
+  Orientation=Horizontal
+
+Panel VolumeMarketSource =
+  DisplayName=Volume Market Source
+  Orientation=Horizontal
+  Variables=volumeFeedMarketSourceInfo
+
+Enums =
+  EnumPriceReference=Join, Match
+
+Conditions =
+  agentQuantityIsZero=(baseOrder.Balance <= 0.0)
+  alwaysFalse=false
+  alwaysTrue=true
+  auctionEquilibriumChanged=(algoAuctionEquilibriumPrice.Number <> lastEquilibriumPrice) and (not reoptimizeInAuction)
+  auctionOrderPriceNeedsUpdate=((algoAuctionOrderShouldBeMoreAggressive or algoAuctionOrderIsTooAggressive) and modificationDelayExceeded) or (auctionPriceLimit <> lastLimitPrice)
+  auctionOrderQtyNeedsUpdate=algoAuctionOrderNeedQtyUpdate and (not algoAuctionSliceIsPriceLimited) and okToModifyAuctionOrder
+  balanceUpdateTimerExpired=switch(afterAuctionWaitForBalance, \
+      nil->true, \
+      default->afterAuctionWaitForBalance.IsExpired)
+  baseOrderClaimed=baseOrder.IsOrderClaimed
+  baseOrderDone=agentQuantityIsZero or (acm.Math.AlmostEqual(doneVolume, goalVolume)) or completedOrdersSumUpToTotalQty
+  baseOrderOverFilled=baseOrder.Balance > -1
+  commandFailed=switch(pendingCommand, \
+      nil->false, \
+      default->pendingCommand.Result == "Error")
+  commandSuccess=switch(pendingCommand, \
+      nil->true, \
+      default->pendingCommand.Result == "Success")
+  currentOrderActive=switch(currentOrder, \
+      nil->false, \
+      default->currentOrder.IsOrderActive)
+  currentOrderDeleted=switch(currentOrder, \
+      nil->true, \
+      default->currentOrder.IsOrderDeleted)
+  currentOrderFilled=switch(currentOrder, \
+      nil->false, \
+      default->currentOrder.IsOrderDone)
+  currentOrderHasMovedQty=switch(currentOrder, \
+      nil->false, \
+      default->not acm.Math.AlmostEqual(currentOrder.MovedQuantity, 0.0))
+  deleteOrder=(not currentOrderFilled) and (algoModificationDelayExceeded and (reoptimize and enterOrJoinTrigger) or algoTradingPhaseUnsafe or baseOrderDone)
+  deleteOrderMatch=algoModificationDelayExceeded and (algoTradingPhaseUnsafe or baseOrderDone) and (not currentOrderFilled)
+  doneOrReoptimize=baseOrderDone or reoptimize
+  enterFishing=enterFishingOk and (currentOrder <> nil)
+  enterFishingOrder=enterFishingOk and (slice.RemainingQuantity > 0.0) and (currentOrder == nil) and (not wouldPriceCrossedAtMonitor)
+  enterMatchOrder=enterMatchingOk
+  executionTimeChanged=algoExecutionTimeChanged
+  fatalError=switch(fatalErrorString, \
+      nil->false, \
+      ""->false, \
+      default->true)
+  hide=switch(trigger, \
+      nil->true, \
+      default->trigger == "MaxLag")
+  infoRuleLimHighLowPriceUnbreached=(not executingSlice) or (not limHighLowPriceExceeded)
+  infoRuleLimMaxPriceDiffTraderUnbreached=(not executingSlice) or (not limMaxPriceDiffTraderExceeded)
+  infoRuleLimSlicePriceUnbreached=(not executingSlice) or (not limSlicePriceExceeded)
+  infoRuleSliceParticipationUnbreached=executingSlice or (not sliceQuantityBreaksParticipationLimit)
+  isClosingAuction=orderBookInAuctionClosePhase
+  isIntradayAuction=orderBookInAuctionIntradayPhase
+  isLastPhase=switch(tradingSchedule, \
+      nil->false, \
+      default->tradingSchedule.IsLastPhase)
+  isOpeningAuction=orderBookInAuctionOpenPhase
+  isVolaAuction=orderBookInAuctionVolaPhase
+  lastPlannedSliceDone=currentAuctionIsPlanned and sliceDone and lastSlice and balanceUpdateTimerExpired
+  lastSlice=switch(executionPlan, \
+      nil->false, \
+      default->almostZero(executionPlan.RemainingQuantity(true), 0.0001))
+  marketClosed=tradingInterface.Status.Closed
+  marketNotClosed=not marketClosed
+  modificationDelayExceeded=algoModificationDelayExceeded
+  moveNextPhase=(not moveNextSlice) and (executionPlan.RemainingPhases > 0)
+  moveNextSlice=executionPlan.RemainingQuantityCurrentPhase(true) > 0
+  noEquilibriumPrice=not algoEquilibriumPriceAvailable
+  nonFatalError=not fatalError
+  notAuctionAndOrderFilledOrDone=(not orderBookInAuctionPhase) and (currentOrderFilled or currentOrderDeleted)
+  notAuctionButActiveOrders=(not orderBookInAuctionPhase) and currentOrderActive
+  notEnoughEqInfoButStillAuction=notOkToEnterAuctionOrder and orderBookInAuctionPhase
+  notEnoughEquilibriumVolume=not algoEnoughEquilibriumQuantityAvailable
+  notLastSlice=not lastSlice
+  notOkToEnterAuctionOrder=not okToEnterAuctionOrder and modificationDelayExceeded
+  notOptimize=not autoOptimizeSlicesAndDuration
+  notParticipatingInAuction=not participateInAuction
+  notSendComfortFills=(not sendComfortFills)
+  notSliceFilled=not sliceFilled
+  notTradedAccordingToPlan=not tradedAccordingToPlan
+  notTradingSchedulePhaseChangeExpired=not tradingSchedulePhaseChangeExpired
+  okToEnterAndNotFilled=okToEnterAuctionOrder and (not currentOrderFilled) and (not reoptimizeInAuction)
+  okToEnterAuctionOrder=(algoEquilibriumPriceAvailable and algoEnoughEquilibriumQuantityAvailable and algoEnoughEquilibriumParticipationQuantityAvaliable) and (currentAuctionIsPlanned or (isVolaAuction and auctionVolaAllowed))
+  okToModifyAuctionOrder=(algoEquilibriumPriceAvailable and algoEnoughEquilibriumQuantityAvailable and algoEnoughEquilibriumParticipationQuantityAvaliable)
+  optimizationOK=estimatedSlicesFound and (not refreshTradingSchedule)
+  optimizationOKandRefresh=estimatedSlicesFound and refreshTradingSchedule
+  optimize=autoOptimizeSlicesAndDuration
+  orderBookInAuctionPhase=tradingInterface.Status.Auction
+  orderBookInIrregularAuction=orderBookInAuctionPhase and (not regularAuction)
+  orderBookInTradingPhase=tradingInterface.Status.AutomaticTrade
+  orderBookNotInAuctionNorTradingPhase=(not orderBookInAuctionPhase) and (not orderBookInTradingPhase)
+  orderBookNotInAuctionPhase=not orderBookInAuctionPhase
+  orderBookNotInTradingPhase=not orderBookInTradingPhase
+  ordersHaveDeletedQty=switch(currentOrder, \
+      nil->false, \
+      default->(currentOrder.DeletedQuantity > 0))
+  originalQuantityChanged=baseOrder.OriginalQuantity <> object.OriginalQuantity
+  plannedSliceDone=currentAuctionIsPlanned and sliceDone and (not lastSlice) and balanceUpdateTimerExpired
+  preparationsDone=priceDetailsOK and volumePatternOK and volatilityOK and (not baseOrderDone) and switch(priceFeed, \
+      nil->false, \
+      default->true)
+  priceDetailsOK=switch(priceFeed, \
+      nil->false, \
+      default->priceFeed.Details.IsSubscribing)
+  priceUnsafe=algoModificationDelayExceeded and (switch(currentOrder, \
+      nil->false, \
+      default->((not highLowPriceExist) or switch(baseOrder.IsBuy, \
+        true->((slicePriceLimitUsed > 0) and (double(currentOrder.Price) > slicePriceLimitUsed) and (not acm.Math.AlmostEqual(double(currentOrder.Price), slicePriceLimitUsed))), \
+        false->((slicePriceLimitUsed > 0) and (double(currentOrder.Price) < slicePriceLimitUsed) and (not acm.Math.AlmostEqual(double(currentOrder.Price), slicePriceLimitUsed)))))))
+  priceUnsafeMatch=priceUnsafe
+  ready=safetyRuleTimeToStart
+  readyForRestart=readyToRestart
+  readyToPlaceWouldOrder=wouldPriceCrossed and (not currentOrderActive) and (not algoOriginalQuantityChanged) and (not algoCurrentOrderUpdateInProgress) and safetyRulesOk
+  recalculateNextOrderQuantity=(currentOrder.FilledQuantity("Order") < slice.RemainingQuantity) and (not baseOrderDone)
+  reoptimize=algoReoptimize and (not baseOrderDone) and modificationDelayExceeded
+  reoptimizeAtWouldMode=(currentOrder.FilledQuantity("Order") >= slice.RemainingQuantity) and (not baseOrderDone)
+  reoptimizeInAuction=reoptimize
+  restart=(not currentOrderActive) and (not algoNextSliceOrderIsActive) and commandSuccess
+  safetyRuleAskSideNotEmpty=not (priceFeed.AskPriceDepth.IsEmpty and orderBookInTradingPhase)
+  safetyRuleBidSideNotEmpty=not (priceFeed.BidPriceDepth.IsEmpty and orderBookInTradingPhase)
+  safetyRuleHighLowPriceExist=highLowPriceExist
+  safetyRuleMaxDiffScheduleAndReality=switch(maxDiffScheduleAndReality, \
+      nil->false, \
+      default->maxDiffScheduleAndReality.IsExpired)
+  safetyRuleMaxSpreadOk=switch(limMaxSpreadActivated, \
+      true->marketSpreadIsTooLarge, \
+      default->true)
+  safetyRuleNoCross=not priceFeed.BidPriceDepth.HasCrossingPrice
+  safetyRuleOrderBookConnected=tradingInterface.IsAvailable
+  safetyRuleParticipationOk=participation <= limVolumeParticipation
+  safetyRulesNotOk=not safetyRulesOk
+  safetyRulesNotOkAtWouldActive=safetyRulesNotOk and (not currentOrderDeleted)
+  safetyRulesOk=safetyRuleAskSideNotEmpty and safetyRuleBidSideNotEmpty and safetyRuleParticipationOk and safetyRuleMaxSpreadOk
+  safetyRuleTimeToStart=switch(startEvent, \
+      nil->false, \
+      default->startEvent.IsExpired)
+  scheduleNotInTradingPhase=not tradingScheduleNowIsCONTR
+  sendComfortFills=(not comfortFillsDone) and (comfortFillsInfo > 0.0) and orderBookInTradingPhase and (baseOrder.FilledQuantity("Trade") < 0.001)
+  sliceDone=slice.IsFinished
+  sliceFilled=slice.IsFilled
+  sliceNotDoneAndTimerExpired=(not sliceDone) and balanceUpdateTimerExpired and (not zeroSlice)
+  timerEventExpired=switch(timerEvent, \
+      nil->false, \
+      default->timerEvent.IsExpired)
+  tradedAccordingToPlan=(volumeDoneFromCompletedOrders == (switch(executionPlan, \
+      nil->0.0, \
+      default->executionPlan.DoneQuantityPreviousPhases + executionPlan.CurrentPhaseQuantity)))
+  tradingPhaseOk=safetyRulesOk and orderBookInTradingPhase
+  tradingSchedulePhaseChanges=tradingSchedulePhaseChangeExpired and not isLastPhase
+  unplannedSliceDone=(not currentAuctionIsPlanned) and balanceUpdateTimerExpired and switch(unplannedAuctionEnd, \
+      nil->false, \
+      default->unplannedAuctionEnd.IsExpired)
+  updateAgentInfo=(not enterFishing) and (not enterFishingOrder) and (not reoptimize) and (not hide) and (baseOrder.AlgoTradingInstruction.AgentModifyReason <> waitMessage) and (not baseOrderDone) and (not wouldPriceCrossedAtMonitor)
+  updateComfortFillOrder=currentOrderActive and algoCurrentOrderCanBeModified and (not algoCurrentOrderUpdateInProgress) and currentOrderHasMovedQty and (not timerEventExpired)
+  updatePrice=currentOrderActive and modifyPriceAllowed and (((currentTrigger <> trigger) or priceSlackExceeded) and algoCurrentOrderCanBeModified and (not algoCurrentOrderUpdateInProgress))
+  updatePriceEnterJoin=updatePrice and enterOrJoinTrigger
+  verificationNotOK=verificationFailed
+  verificationOK=not verificationFailed
+  vitalRuleActiveOrder=baseOrder.IsOrderActive
+  vitalRuleAheadOfMaxLag=trigger <> "MaxLag"
+  vitalRuleCostOfRiskUnchanged=acm.Math.AlmostEqual(costOfRisk, costOfRiskInfo)
+  vitalRuleNotTimeToStop=(pendingCommand <> nil) or baseOrderDone or switch(stopEvent, \
+      nil->true, \
+      default->not stopEvent.IsExpired)
+  vitalRuleOrderIsConnected=algoTrading.IsAvailable
+  vitalRuleSlicesFound=estimatedSlicesFound or baseOrderDone
+  vitalRulesOk=vitalRuleActiveOrder and vitalRuleNotTimeToStop and vitalRuleOrderIsConnected
+  vitalStopTimeNotPassed=not vitalStopTimePassed
+  vitalStopTimePassed=switch(stopEvent, \
+      nil->false, \
+      default->stopEvent.IsExpired)
+  volatilityOK=algoVolatilityOK
+  volumePatternOK=allowDirtyVolumePattern or switch(volumePattern, \
+      nil->false, \
+      default->switch(volumePattern.IsDirty, \
+        true->false, \
+        false->(not volumePattern.IsEmpty)))
+  wouldPriceCrossed=switch(baseOrder.IsBuy, \
+      true->(almostEqual(wouldPriceValid, priceFeed.BestAskPrice.Get.Number) or (wouldPriceValid > priceFeed.BestAskPrice.Get.Number)), \
+      default->(almostEqual(wouldPriceValid, priceFeed.BestBidPrice.Get.Number) or (wouldPriceValid < priceFeed.BestBidPrice.Get.Number))) and (wouldPriceValid <> 0.0) and (not baseOrderDone) and modificationDelayExceeded
+  wouldPriceCrossedAtMonitor=wouldPriceCrossed and (not baseOrderDone) and safetyRulesOk and notTradingSchedulePhaseChangeExpired
+  wouldPriceUncrossed=(not wouldPriceCrossed) and (not baseOrderDone)
+  wouldPriceUncrossedAtActive=wouldPriceUncrossed and currentOrderActive and (not currentOrderFilled) and (not algoCurrentOrderUpdateInProgress)
+  zeroSlice=switch(slice, \
+      nil->true, \
+      default->slice.Quantity == 0)
+
+Actions =
+  AddDoneQuantity=!AddDoneQuantity
+  ClaimBaseOrder=!ClaimBaseOrder
+  ClearCurrentOrder=!ClearCurrentOrder
+  ClearInitialFillTimer=nil => timerEvent
+  ClearNextSlice=!ClearNextSlice
+  ClearPendingCommand=nil => pendingCommand
+  ClearPreviousPlanData=!ClearPreviousPlanData
+  ClearUnplannedAuctionTimer=nil => unplannedAuctionEnd
+  CreateTradingSchedule=!CreateTradingSchedule
+  DeleteCurrentOrder=!DeleteCurrentOrder
+  DeleteOrders=!DeleteOrders
+  EquilibriumChanged=!EquilibriumChanged
+  GetAuctionPrice=!GetAuctionPrice
+  GetEnterAuctionQuantity=!GetEnterAuctionQuantity
+  GetPrice=!GetPrice
+  GetTradingQuantities=!GetTradingQuantities
+  HandleModificationDelay=!HandleModificationDelay
+  NextPhase=!NextPhase
+  NextSlice=!NextSlice
+  NextSliceAfterAuction=!NextSliceAfterAuction
+  NowInScheduleIsCONTR=!NowInScheduleIsCONTR
+  OnAuctionWaitForTimer=!OnAuctionWaitForTimer
+  OnEnterAuctionPhase=!OnEnterAuctionPhase
+  OnEnterContinuousTrading=!OnEnterContinuousTrading
+  OnEnterCreateExecutionPlan=!OnEnterCreateExecutionPlan
+  OnEnterDone=!OnEnterDone
+  OnEnterError=!OnEnterError
+  OnEnterMarketClosed=!OnEnterMarketClosed
+  OnEnterOrderFilled=!OnEnterOrderFilled
+  OnEnterReady=!OnEnterReady
+  OnEnterRestart=!OnEnterRestart
+  OnEnterStart=!OnEnterStart
+  OnEnterStop=!OnEnterStop
+  OnEnterTradingPhase=!OnEnterTradingPhase
+  OnEnterVerifyNotOK=!OnEnterVerifyNotOK
+  OnEnterVerifyOK=!OnEnterVerifyOK
+  OnEnterWait=!OnEnterWait
+  OnEnterWaitForFills=!OnEnterWaitForFills
+  OnEnterWouldStateMonitor=!OnEnterWouldStateMonitor
+  OnExitWaitForFills=!OnExitWaitForFills
+  OnModifyOrderError=!OnModifyOrderError
+  OnOptimize=!OnOptimize
+  OnPreparations=!OnPreparations
+  OnPreparationsTimedOut=!OnPreparationsTimedOut
+  OnVerify=!OnVerify
+  OnWaitForFillsTimeout=!OnWaitForFillsTimeout
+  OnWaitForRealPhaseChange=!OnWaitForRealPhaseChange
+  OnWaitForSchedulePhaseChange=!OnWaitForSchedulePhaseChange
+  PlaceAuctionOrder=!PlaceAuctionOrder
+  PlaceFishingOrder=!PlaceFishingOrder
+  PlaceInitialFillOrder=!PlaceInitialFillOrder
+  PlaceMatchOrder=!PlaceMatchOrder
+  PlaceWouldOrder=!PlaceWouldOrder
+  PrintBidAsk=!PrintBidAsk
+  ReoptimizeAfterPhaseChange=!ReoptimizeAfterPhaseChange
+  ResetCurrentOrder=nextSliceOrder => currentOrder
+  SaveBalanceWhenEnteringAuction=baseOrder.Balance => balanceWhenEnteringAuciton
+  SaveComfortFilledQty=!SaveComfortFilledQty
+  SaveInitialMarketVolume=priceFeed.Details.AutomaticQuantityTraded => marketVolumeStart
+  SaveOrderBook=!SaveOrderBook
+  SaveStartStopTime=!SaveStartStopTime
+  SetAuctionSliceQuantity=!SetAuctionSliceQuantity
+  SetManualSlices=!SetManualSlices
+  SetMaxWaitInitialFillError=!SetMaxWaitInitialFillError
+  SetPhaseChangeError=!SetPhaseChangeError
+  SetTradingPhaseChangeTime=!SetTradingPhaseChangeTime
+  SetWouldOrderReoptimizeReason="Filled \'Would\' order exceeding remaining slice quantity" => reoptimizeReason
+  TimeDifferenceError="Maximum phase change wait time reached" => fatalErrorString
+  UpdateAuctionOrder=!UpdateAuctionOrder
+  UpdateAuctionPrice=!UpdateAuctionPrice
+  UpdateAuctionQuantity=!UpdateAuctionQuantity
+  UpdateBalanceAndDoneValue=!UpdateBalanceAndDoneValue
+  UpdateComfortFillPrice=!UpdateComfortFillPrice
+  UpdateCompletedOrderVolume=!UpdateCompletedOrderVolume
+  UpdateCurrentTrigger=trigger => currentTrigger
+  UpdateFatalErrorMessage=!UpdateFatalErrorMessage
+  UpdateIsPlannedAuction=!UpdateIsPlannedAuction
+  UpdateNextOrderQuantity=!UpdateNextOrderQuantity
+  UpdateNextOrderQuantityWouldMode=!UpdateNextOrderQuantityWouldMode
+  UpdatePrice=!UpdatePrice
+  UpdateWaitMessage=!UpdateWaitMessage
+
+ActionLists =
+  AfterAuctionUpdates=UpdateCompletedOrderVolume
+  ClearComfortFill=ClearCurrentOrder, ClearInitialFillTimer
+  ClearNextSliceAndPendingCommand=ResetCurrentOrder, ClearNextSlice, ClearPendingCommand
+  ClearOrders=ClearCurrentOrder
+  DeleteOrdersAndSetReoptimizeReason=DeleteOrders, SetWouldOrderReoptimizeReason
+  EnterMatchOrderSuccess=ClearPendingCommand
+  EnterWouldOrderSuccess=ClearPendingCommand, PrintBidAsk
+  InitialFillTimerExpiredActions=DeleteOrders, SetMaxWaitInitialFillError, ClearInitialFillTimer
+  OnAuctionWaitActions=OnAuctionWaitForTimer
+  OnEnterAuctionActions=SetAuctionSliceQuantity, OnEnterAuctionPhase
+  SaveAgentVariables=SaveOrderBook, SaveStartStopTime, CreateTradingSchedule
+  UpdateAndPlaceAuctionOrder=UpdateAuctionQuantity, PlaceAuctionOrder
+  UpdateAuctionParameters=UpdateIsPlannedAuction, ClearUnplannedAuctionTimer, SaveBalanceWhenEnteringAuction, ClearCurrentOrder
+  UpdateWouldFilledAndClearPending=UpdateCompletedOrderVolume, ClearPendingCommand
+
+Variable adjustQuantityInAuctions =
+  Description=If this is true, then will the quantity of the active order in auctions vary with the participation rate of the equilibrium quantity
+  DisplayName=Adjust Quantity In Auctions
+  Domain=bool
+  Type=ReadOnly
+  Value=false
+
+Variable afterAuctionWaitForBalance =
+  Description=The Balance of the Sales Order (Base Order) can take several seconds to update, so timer is needed to wait before leaving auction.
+  DisplayName=After Auction Wait For Balance
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable allowDirtyVolumePattern =
+  Description=This variable is overridden in subclasses if the algo should be allowed to start even if no volume pattern is found in RAMSA
+  DisplayName=Allow Dirty Volume Pattern
+  Domain=bool
+  Type=ReadOnly
+  Value=false
+
+Variable auctionCloseAllowed =
+  Description=closingAuctionAllowed
+  DisplayName=Participate in Closing Call
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=false
+
+Variable auctionEquilibriumQuantity =
+  Description=Equilibrium Quantity
+  DisplayName=Algo Auction Equlibrium Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=algoEquilibriumQuantity
+
+Variable auctionIntradayAllowed =
+  Description=intradayAuctionAllowed
+  DisplayName=Participate in Intra-Day Call
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=false
+
+Variable auctionMaxParticipationAuctionQuantity =
+  Description=The maximum allowed quantity in Auctions due to participation limits
+  DisplayName=Algo Max Participation Auction Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=algoAuctionMaxParticipationAuctionQuantity
+
+Variable auctionMaxParticipationRate =
+  Description=The maximum participation rate in the Auction
+  DisplayName=Algo Auction Max Participation Rate
+  Domain=double
+  Type=ReadOnly
+  Value=algoAuctionMaxParticipationRate
+
+Variable auctionOpenAllowed =
+  Description=openingAuctionAllowed
+  DisplayName=Participate in Open Call
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=false
+
+Variable auctionPriceLimit =
+  Description=Limit for auction orders
+  DisplayName=Auction Price Limit
+  Domain=double
+  Type=ReadOnly
+  Value=algoAuctionPriceLimitTickAdjusted
+
+Variable auctionQtyNeedsUpdate =
+  Description=algoAuctionOrderNeedQtyUpdate
+  DisplayName=Auction Order Quantitiy Needs Updating
+  Domain=bool
+  Type=ReadOnly
+  Value=algoAuctionOrderNeedQtyUpdate
+
+Variable auctionQuantityRatio =
+  Description=This ratio is used as: EnteredVolumeInAuction >= (auctionQuantityRatio * EquilibriumQuantity) to make sure our order in auctions is not impacting the market too much
+  DisplayName=Auction Quantity Ratio
+  Domain=double
+  Type=Private
+  Value=algoAuctionQuantityRatio
+
+Variable auctionSliceIsPriceLimited =
+  Description=Auction Slice is Price Limited
+  DisplayName=Auction Slice Is Price Limited
+  Domain=bool
+  Type=ReadOnly
+  Value=algoAuctionSliceIsPriceLimited
+
+Variable auctionSliceQuantity =
+  DisplayName=Auction Slice Quantity
+  Domain=double
+  Type=Private
+  Value=0
+
+Variable auctionSurplus =
+  Description=Relevant Surplus used in calculating Max Participation Quantity
+  DisplayName=Algo Auction Surplus
+  Domain=double
+  Type=ReadOnly
+  Value=algoAuctionSurplus
+
+Variable auctionVolaAllowed =
+  Description=Some exchanges have Volatility guards, preventing an OrderBooks price to deviate too far in a short time. If this happens a Volatility Interrupt Call takes place, lasting for a minute or so (depending on exchange)
+  DisplayName=Part. in Vol. Interrupt Call
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=false
+
+Variable auctionVolaLength =
+  Description=Length in seconds of volatility interruption Auction, exchange specific. Used to know when auction is expected to end.
+  DisplayName=Auction Volatility Interruption Length
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("marketVolatilityInterruptionLengthInSeconds", context)
+
+Variable autoConfigureOrderPlacement =
+  DisplayName=Auto Configure
+  Domain=bool
+  Mandatory=No
+  Type=Input
+  Value=true
+
+Variable autoOptimizeSlicesAndDuration =
+  Description=Automatically optimize slices and duration
+  DisplayName=Auto Optimize
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=true
+
+Variable averageSliceQuantity =
+  Description=This is the Total volume of BaseOrder (Sales order) divided by number of slices to execute (manually entered or calculated via optimization)
+  DisplayName=Average Slice Quantity
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable balance =
+  Description=This is the base order quantity left to trade
+  DisplayName=Balance
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable balanceWhenEnteringAuciton =
+  Description=Keeps track of what balance the sales (base) order have when entering auciton phase in order to compare with when leaving auction.
+  DisplayName=Balance When Entering Auciton
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable baseOrder =
+  Description=baseOrder
+  DisplayName=baseOrder
+  Domain=FOrderHandler
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable baseOrderPrice =
+  Description=The price of the Sales Order.
+  DisplayName=Total Price Limit
+  Domain=double
+  Type=ReadOnly
+  Value=double(baseOrder.Price)
+
+Variable baseTradingInterface =
+  Description=The order book of the base order
+  DisplayName=Base OB
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=baseOrder.TradingInterface
+
+Variable checkArrivalPrice =
+  Description=Set to true to sanity check that the Arrival Price, set by AIMS, is a valid price
+  DisplayName=Check Arrival Price
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable comfortFillsDone =
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable comfortFillsInfo =
+  Description=Quantity to be sent immediately at market price, to demonstrate that the agent is alive. It is going to be less than the quantity of the first slice and not used if set to zero. The quantity is going to be removed from the first slice.
+  DisplayName=Initial Fill Qty
+  Domain=int
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable costOfRisk =
+  Description=costOfRisk lambda
+  DisplayName=Cost of Risk (Urgency)
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=0.0
+
+Variable costOfRiskInfo =
+  Description=costOfRisk lambda
+  DisplayName=Cost of Risk
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=costOfRisk
+
+Variable createExecutionPlan =
+  Domain=FVolumeExecutionPlan
+  Type=ReadOnly
+  Value=nil
+
+Variable currentAuctionIsPlanned =
+  Description=This is used to distinguish is agent should trade in an ongoing Auction.
+  DisplayName=Current Auction Is Plannes
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable currentOrder =
+  DisplayName=The order executed in the current slice
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable currentOrderCanBeModified =
+  Domain=bool
+  Type=ReadOnly
+  Value=algoCurrentOrderCanBeModified
+
+Variable currentOrderFillRatio =
+  Description=If currentOrder is active it displays what percentage of the original order has been filled.
+  Domain=double
+  Type=ReadOnly
+  Value=switch(currentOrder, \
+      nil->0.0, \
+      default->currentOrder.FilledQuantity("Order") / currentOrder.OriginalQuantity)
+
+Variable currentOrderQty =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable currentTrigger =
+  DisplayName=Current Trigger
+  Domain=FVolumeTrigger
+  Type=Private
+  Value=nil
+
+Variable daysOfClosingPrices =
+  Description=This setting will be used when calculating historical volatility based on closing prices query send to RAMSA. Also for the volume average used in optimization.
+  DisplayName=Historical Closing Prices
+  Domain=int
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("historicalVolatilityNumberOfDays", context)
+
+Variable daysOfVolumePattern =
+  Description=The requested number of days back of historical volume pattern held by the RAMSA.
+  DisplayName=Days of Volume Pattern
+  Domain=int
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("volumePatternNumberOfDays", context)
+
+Variable distEJ =
+  Domain=double
+  Type=ReadOnly
+  Value=abs(targetPriceJoin - targetPriceEnter)
+
+Variable distJM =
+  Domain=double
+  Type=ReadOnly
+  Value=abs(targetPriceMatch - targetPriceJoin)
+
+Variable doneValue =
+  DisplayName=Value done during agent execution
+  Domain=double
+  Type=Private
+  Value=0
+
+Variable doneVolume =
+  DisplayName=Done Volume
+  Domain=double
+  Type=ReadOnly
+  Value=switch(executionPlan, \
+      nil->0.0, \
+      default->executionPlan.DoneQuantity)
+
+Variable doneVolumeFromAgent =
+  Description=The volume traded by the agent.
+  DisplayName=Algo Volume Done
+  Domain=double
+  Type=ReadOnly
+  Value=algoDoneQuantity
+
+Variable durationMax =
+  Description=The max duration
+  DisplayName=Max Duration
+  Domain=double
+  Type=Public
+  Value=algoDurationMax
+
+Variable durationMin =
+  Description=The min duration
+  DisplayName=Min Duration
+  Domain=double
+  Type=Public
+  Value=algoDurationMin
+
+Variable equilibriumPriceMaxDiff =
+  Description=Auction Order is send at equilibriumPriceOffset (nr of ticks) better than Equilibrium Price but capped at the percentage equilibriumPriceMaxDiff.This is needed for e.g Stocks that trade in a very low price range
+  DisplayName=Equilibrium Price Max Diff
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("algoAuctionPriceMaxPctDiffFromEqPrice", context)
+
+Variable equilibriumPriceOffset =
+  Description=Auction Order is send at this number of ticks better price than current EquilibriumPrice to be more sure to match, but it will be capped at equilibriumPriceMaxDiff
+  DisplayName=Equilibrium Price Offset
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("algoNbrOfTicksBetterThanEqPrice", context)
+
+Variable estimatedCost =
+  Description=The estimated cost
+  DisplayName=Cost
+  Domain=double
+  Type=ReadOnly
+  Value=algoEstimatedCost
+
+Variable estimatedRisk =
+  Description=The risk times lambda
+  DisplayName=Lambda * Risk
+  Domain=double
+  Type=ReadOnly
+  Value=algoEstimatedRisk
+
+Variable estimatedSlices =
+  DisplayName=Estimated Slices
+  Domain=double
+  Type=Private
+  Value=
+
+Variable estimatedSlicesFound =
+  DisplayName=Estimated Slices Found
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable estimatedSliceSize =
+  DisplayName=Est. Slice Size
+  Domain=double
+  Type=ReadOnly
+  Value=switch(object.IsStarted, \
+      true->(goalVolume / estimatedSlices), \
+      false->(baseOrder.Balance / estimatedSlices))
+
+Variable estimatedTotalCost =
+  Description=The total estimated costs to execute the order
+  DisplayName=Total
+  Domain=double
+  Type=ReadOnly
+  Value=algoEstimatedTotalCost
+
+Variable executingSlice =
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable executionPlan =
+  Domain=FVolumeExecutionPlan
+  Type=Private
+  Value=nil
+
+Variable externalDealDetected =
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable externalMarket =
+  Description=The External Market Place extracted from the Internal Market Orders OrderBook
+  DisplayName=External Market Place
+  Domain=FMarketPlace
+  Type=ReadOnly
+  Value=algoHomeMarketPlace
+
+Variable fatalErrorString =
+  Domain=string
+  Type=Private
+  Value=""
+
+Variable firstVerification =
+  Description=To keep track if the Agent is Verifying for the first time, or if it is another verification due to e.g reoptimization
+  Domain=bool
+  Type=Private
+  Value=true
+
+Variable frontLoad =
+  Description=FrontLoad
+  DisplayName=FrontLoad
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=0.0
+
+Variable goalVolume =
+  Description=The total quantity that the agent plans to execute
+  DisplayName=goalVolume
+  Domain=double
+  Type=Private
+  Value=
+
+Variable highLowTimeWindow =
+  Description=The time window (in minutes) for high/low price. This price is used to limit the agent to only trade on price levels which have already been traded on during the specified time span (0 means that there is no limit).
+  DisplayName=High/Low Time Window
+  Domain=int
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoHighLowTimeWindow", context)
+
+Variable initialManualDoneQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable initialManualQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable lastEquilibriumPrice =
+  DisplayName=Last Equilibrium Price
+  Domain=double
+  Type=Private
+  Value=0
+
+Variable lastLimitPrice =
+  DisplayName=Last Limit Price
+  Domain=double
+  Type=Private
+  Value=0
+
+Variable lastStartTimeInput =
+  Description=We need to make sure that the startTime set as algo parameter has not changed,
+  DisplayName=Input start time from last start/restart.
+  Domain=FDateTime
+  Type=Private
+  Value=nil
+
+Variable lastStopTimeInput =
+  Description=We need to make sure that the stopTime set as algo parameter has not changed,
+  DisplayName=Input stop time from last start/restart.
+  Domain=FDateTime
+  Type=Private
+  Value=nil
+
+Variable limHighLow =
+  DisplayName=High/Low Price Limit
+  Domain=double
+  Type=ReadOnly
+  Value=highLowPriceLimit
+
+Variable limHighLowPriceIsExceeded =
+  DisplayName=High Low Price Limit Is Exceeded
+  Domain=bool
+  Type=ReadOnly
+  Value=limHighLowPriceExceeded
+
+Variable limMarginLagTrader =
+  Description=The maximum lag allowed before the agent is terminated (defined as missed number of planned fills where 0 means that there is no maximum lag)
+  DisplayName=Margin Lag
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMarginLagParticipation", context)
+
+Variable limMaxLag =
+  Description=The maximum lag allowed (set by trader)
+  DisplayName=Max Lag
+  Domain=double
+  Type=ReadOnly
+  Value=limMarginLagTrader
+
+Variable limMaxPriceDiffAllowed =
+  Domain=double
+  Type=ReadOnly
+  Value=switch(object.BaseOrder.IsBuy, \
+      true->algoArrivalPrice * (1 + limMaxPriceDiffTrader), \
+      false->algoArrivalPrice * (1 - limMaxPriceDiffTrader))
+
+Variable limMaxPriceDiffTrader =
+  Description=The maximum price difference from the initial price (set by trader)
+  DisplayName=Max Price Diff
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMaxPriceDiff", context)
+
+Variable limMaxPriceDiffTraderIsExceeded =
+  DisplayName=Max Price Diff Is Exceeded
+  Domain=bool
+  Type=ReadOnly
+  Value=limMaxPriceDiffTraderExceeded
+
+Variable limMaxSpread =
+  Description=Checking that this is set either from trading settings or from outside source (like OMNI)
+  DisplayName=Limit Max Spread
+  Domain=double
+  Type=ReadOnly
+  Value=switch(limMaxSpreadCustomer > 0, \
+      true->limMaxSpreadCustomer, \
+      default->limMaxSpreadTrader)
+
+Variable limMaxSpreadActivated =
+  Description=checking that the Input of limMaxSpread is valid.
+  DisplayName=Limit Max Spread Info
+  Domain=bool
+  Type=ReadOnly
+  Value=switch(limMaxSpread > 0, \
+      true->true, \
+      default->false)
+
+Variable limMaxSpreadCustomer =
+  DisplayName=Max Spread (%)
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable limMaxSpreadTrader =
+  Description=Set this to restrict agent from trading when the spread is larger than this. Value in percent.
+  DisplayName=Max Spread Trader
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMaxSpreadPercent", context)
+
+Variable limMaxUpdateInterval =
+  Domain=int
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMaxUpdateInterval", context)
+
+Variable limPriceSlack =
+  DisplayName=limPriceSlack
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoPriceSlack", context)
+
+Variable limSlicePrice =
+  Description=limSlicePrice
+  DisplayName=SlicePriceLimit
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+Variable limSlicePriceInfo =
+  Description=limSlicePrice
+  DisplayName=Slice Price Limit
+  Domain=double
+  Type=ReadOnly
+  Value=limSlicePrice
+
+Variable limSlicePriceIsExceeded =
+  DisplayName=Slice Price Limit Is Exceeded
+  Domain=bool
+  Type=ReadOnly
+  Value=limSlicePriceExceeded
+
+Variable limSlicePriceUsed =
+  Description=The limit used. If an explicit slice price limit has been set that is used, else the price of the base order is used.
+  DisplayName=SlicePriceLimitUsed
+  Domain=double
+  Type=ReadOnly
+  Value=switch(limSlicePrice > 0, \
+      true->limSlicePrice, \
+      default->baseOrderPrice)
+
+Variable limVolumeParticipation =
+  Description=The maximum volume participation allowed at any time
+  DisplayName=Participation Limit (internal)
+  Domain=double
+  Type=ReadOnly
+  Value=switch(limVolumeParticipationCustomer > 0.0, \
+      true->limVolumeParticipationCustomer, \
+      default->limVolumeParticipationTrader)
+
+Variable limVolumeParticipationAuctionQty =
+  Description=The maximum order quantity allowed in Auctions due to volume participation restrictions as well as remaining volume
+  DisplayName=VolumeParicipationLimitAuctionQty
+  Domain=double
+  Type=ReadOnly
+  Value=algoNextValidOrderQuantity
+
+Variable limVolumeParticipationCustomer =
+  Description=The maximum volume participation allowed at any time (set by customer)
+  DisplayName=VolumeParticipationLimit
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable limVolumeParticipationCustomerInfo =
+  Description=The maximum volume participation allowed at any time (set by customer)
+  DisplayName=Vol. Participation Limit
+  Domain=double
+  Type=ReadOnly
+  Value=limVolumeParticipationCustomer
+
+Variable limVolumeParticipationTrader =
+  Description=The maximum volume participation allowed at any time (set by trader)
+  DisplayName=Vol. Participation Limit
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMaxParticipation", context)
+
+Variable manualActiveQuantity =
+  Domain=double
+  Type=ReadOnly
+  Value=manualActiveOrderQuantity
+
+Variable manualDoneQuantity =
+  Domain=double
+  Type=ReadOnly
+  Value=manualDoneOrderQuantity
+
+Variable manualQuantity =
+  Domain=double
+  Type=ReadOnly
+  Value=manualActiveOrDoneOrderQuantity
+
+Variable manualSlices =
+  Description=Number of slices set manually. Ignored if Auto Optimize is enabled.
+  DisplayName=Manual Slices
+  Domain=int
+  Mandatory=No
+  Type=InputFixed
+  Value=
+
+Variable marketVolumeDone =
+  Description=marketVolumeDone
+  DisplayName=The traded market volume since start time
+  Domain=double
+  Type=ReadOnly
+  Value=switch(marketTotalQtyDuringExecution, \
+      nil->0.0, \
+      default->marketTotalQtyDuringExecution)
+
+Variable marketVolumeStart =
+  Description=marketVolumeStart
+  DisplayName=marketVolumeStart
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable maxDiffScheduleAndReality =
+  Description=Timer that will send agent to Error if it is reached, due to too long difference between local time and the exchange time. Only noticed if the trading phase changes (example from Continuous Trading to IntraDay auction)
+  DisplayName=MaxDiffScheduleAndReality
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable maxMsDiffScheduleAndReality =
+  Description=Configure this extension value as the maximum allowed difference between the algos local time and the exchange real time.
+  DisplayName=Max Diff in ms Between Schedule And Reality
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoMaxDiffInMsBetweenLocalClockAndExchange", context)
+
+Variable maxNbrFailedModifications =
+  Domain=int
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoMaxNbrOfFailedModifications", context)
+
+Variable maxWaitInMsForInitialFill =
+  Description=Configurable time to wait for Initial Fill, see explanation of the timer variable maxWaitForInitialFillOrder
+  DisplayName=Max Wait In Ms For InitalFill
+  Domain=int
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoMaxWaitInMsForInitialFill", context)
+
+Variable minimumEquilibriumQuantity =
+  Description=Minimun Equilibrium quantity needed before algo will enter auction orders. Just to make sure the auction liquidity is high enough before entering.
+  DisplayName=Minimum Equilibrium Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=algoMinEquilibriumQtyRequired
+
+Variable modificationDelay =
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable modificationFillLimit =
+  Domain=double
+  Type=ReadOnly
+  Value=double(modificationFillLimitInfo) / 100.0
+
+Variable modificationFillLimitInfo =
+  Description=A partially filled order will have its price updated only if it is filled at a greater percentage that this limit e.g. if an agent has a limit of 20% and the order is filled  by 15% then the order will not have its price updated until the agent's trigger reaches MatchAll. If the limit is set to zero, no limitations will be imposed on the price updates.
+  DisplayName=Modification Fill Limit (%)
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable nextSliceOrder =
+  Description=Order left for next slice
+  Domain=FOrderHandler
+  Type=Private
+  Value=nil
+
+Variable nextSliceQuantity =
+  Description=Quantity left for next slice
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable orderRouting =
+  Description=If set then orders will be sent to Internal Market with the specified trading strategy (like SMART Post 1-to-1)
+  DisplayName=Order Strategy
+  Domain=FAlgoTradingStrategy
+  Mandatory=No
+  Type=InputFixed
+  Value=switch(algoTrading.GetDefaultValueEx("AlgoOrderRouting", context), \
+      ""->nil, \
+      default->algoTrading.GetDefaultValueEx("AlgoOrderRouting", context))
+
+Variable orderRoutingInitialFill =
+  Description=If set then will any Initial Fill order be sent to Internal Market with the specified trading strategy (like SMART Post 1-to-1)
+  DisplayName=Order Routing Initial Fill
+  Domain=FAlgoTradingStrategy
+  Mandatory=No
+  Type=InputFixed
+  Value=switch(algoTrading.GetDefaultValueEx("AlgoOrderRoutingInitialFill", context), \
+      ""->nil, \
+      default->algoTrading.GetDefaultValueEx("AlgoOrderRoutingInitialFill", context))
+
+Variable originalFilledQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable originalQuantity =
+  Domain=double
+  Type=Private
+  Value=
+
+Variable originalReservedQuantity =
+  Description=The reserved quantity on the base order when the agent starts executing
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable originalStartTime =
+  Domain=FDateTime
+  Type=Private
+  Value=baseOrder.ValidStartExecutionTime
+
+Variable originalStopTime =
+  Domain=FDateTime
+  Type=Private
+  Value=baseOrder.ValidEndExecutionTime
+
+Variable participateInAuction =
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable participation =
+  Description=The volume participation of the agent
+  DisplayName=Participation
+  Domain=double
+  Type=ReadOnly
+  Value=switch(marketVolumeDone, \
+      0.0->0.0, \
+      default->doneVolumeFromAgent / marketVolumeDone)
+
+Variable pendingCommand =
+  Domain=FOrderCommandCompletion
+  Type=Private
+  Value=nil
+
+Variable periodAverageTradeSize =
+  Description=This variable is only used for logging.\
+The value is used when optimizing to know the historical average trade size between the start stop time.
+  DisplayName=Period Average Trade Size
+  Domain=double
+  Type=ReadOnly
+  Value=algoPeriodAverageTradeSize
+
+Variable periodAverageVolume =
+  Description=The Historical Traded Quantity (PeriodQuantity) calculated from VolumePattern between StartTime and StopTime
+  DisplayName=Period Average Volume
+  Domain=double
+  Type=ReadOnly
+  Value=algoPeriodAverageVolume
+
+Variable periodVolumeAdjustedForParticipation =
+  Description=Used in optimization, primarily for VolumeParticipation, and is the Period Average Volume multiplied by Participation Ratio or Participation Limit
+  DisplayName=Period Agerage Volume Participation Adjusted
+  Domain=double
+  Type=ReadOnly
+  Value=algoPeriodQtyAdjustedForParticipation
+
+Variable preparationsTimeOut =
+  Description=Time in seconds the Preparations state waits for VolumePattern and Closing Prices before sending Agent to Error
+  DisplayName=Preparations TimeOut
+  Domain=int
+  Mandatory=No
+  Type=InputFixed
+  Value=algoTrading.GetDefaultValueEx("algoPreparationsTimeOutSeconds", context)
+
+Variable preTradePriceDetailsInfoVolatility =
+  Description=This is the class that calculates volatility based on historical closing prices. The Volatility is used when optimizing slices and also to know which price to enter orders
+  DisplayName=PreTradePriceDetailsInfoVolatility
+  Domain=FPriceDetailsInfoVolatility
+  Type=ReadOnly
+  Value=prePostTradeAnalysis:preTradePriceDetailsInfoVolatility
+
+Variable price =
+  Description=The new price to change to
+  DisplayName=Price
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable priceFeed =
+  Description=The used price feed
+  DisplayName=Price Feed
+  Domain=FPriceFeed
+  Type=ReadOnly
+  Value=switch(tradingInterface, \
+      nil->nil, \
+      default->tradingInterface.PriceFeed)
+
+Variable priceLimitExceeded =
+  Domain=bool
+  Type=ReadOnly
+  Value=algoPriceLimitExceeded
+
+Variable priceOffsetEnter =
+  Domain=double
+  Type=Public
+  Value=priceOffsetEnterCalculation
+
+Variable priceOffsetJoin =
+  Domain=double
+  Type=Public
+  Value=priceOffsetJoinCalculation
+
+Variable priceOffsetMatch =
+  Domain=double
+  Type=Public
+  Value=priceOffsetMatchCalculation
+
+Variable refreshTradingSchedule =
+  Description=This is only true for the ExecutionAlgos that change the Start or Stop time during optimization. It will then recreate the tradingSchedule with the new times
+  DisplayName=Refresh Trading Schedule
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable refTypeEnter =
+  DisplayName=Enter
+  Domain=EnumPriceReference
+  Mandatory=No
+  Type=Input
+  Value="Match"
+
+Variable refTypeJoin =
+  DisplayName=Join
+  Domain=EnumPriceReference
+  Mandatory=No
+  Type=Input
+  Value="Match"
+
+Variable refTypeMatch =
+  DisplayName=Match
+  Domain=EnumPriceReference
+  Mandatory=No
+  Type=Input
+  Value="Match"
+
+Variable regularAuction =
+  Description=True if open, intraday or closing auction. Else False.
+  DisplayName=Regular Auction
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable reoptimizeReason =
+  Description=This string will be written to external users like OMNI of why the agent restarts - if there is no other known reason in OnEnterRestart
+  Domain=string
+  Type=Private
+  Value=""
+
+Variable risk =
+  Description=The estimated risk
+  DisplayName=Risk
+  Domain=double
+  Type=ReadOnly
+  Value=algoRisk
+
+Variable savedVitalStopTime =
+  Description=The saved vital stop time that the algo is never allowed to pass.
+  DisplayName=Saved Vital Stop Time
+  Domain=FDateTime
+  Type=Private
+  Value=nil
+
+Variable slice =
+  DisplayName=The current slice
+  Domain=FVolumeSlice
+  Type=Private
+  Value=nil
+
+Variable sliceSizeRange =
+  Description=The range of sizes from the average slice size
+  DisplayName=Range
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.05
+
+Variable slicesMax =
+  Description=The max number of slices
+  DisplayName=Max Slices
+  Domain=double
+  Type=Public
+  Value=algoSlicesMaxCalculation
+
+Variable slicesMin =
+  Description=The min number of slices
+  DisplayName=Min Slices
+  Domain=double
+  Type=Public
+  Value=algoSlicesMinCalculation
+
+Variable slicesToExecute =
+  Description=The number of slices that the agent should execute
+  DisplayName=Slices to Execute
+  Domain=double
+  Type=Private
+  Value=
+
+Variable smartOrderBook =
+  Description=Smart Order Book
+  DisplayName=Smart Order Book
+  Domain=FOrderBook
+  Type=Private
+  Value=
+
+Variable smartTradingInterface =
+  Description=The SMART order book
+  DisplayName=SMART OB
+  Domain=FTradingInterface
+  Type=Private
+  Value=nil
+
+Variable splitPhases =
+  Domain=bool
+  Type=ReadOnly
+  Value=true
+
+Variable startDateTimeInput =
+  Domain=FDateTime
+  Type=ReadOnly
+  Value=algoStartDateTimeInput
+
+Variable startEvent =
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable startInfo =
+  DisplayName=Start Info
+  Domain=string
+  Type=ReadOnly
+  Value="Start " + value(object.AgentClass.DisplayName) + " " + baseOrder.AsString
+
+Variable startTime =
+  Description=The time when the agent should start executing the order
+  DisplayName=Start Time
+  Domain=FDateTime
+  Type=Private
+  Value=nil
+
+Variable startTimeInput =
+  Description=The start time that has been specified on the Algos Strategy Parameter.
+  DisplayName=StartTime
+  Domain=FDateTime
+  Mandatory=No
+  Type=Input
+  Value=nil
+
+Variable stopDateTimeInput =
+  Description=Stop time with date
+  Domain=FDateTime
+  Type=ReadOnly
+  Value=algoStopDateTimeInput
+
+Variable stopEvent =
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable stopTime =
+  Description=The time when the agent should stop
+  DisplayName=Stop Time
+  Domain=FDateTime
+  Type=Private
+  Value=nil
+
+Variable stopTimeInput =
+  Description=The end time specified on the Algos Strategy Parameter.
+  DisplayName=EndTime
+  Domain=FDateTime
+  Mandatory=No
+  Type=Input
+  Value=nil
+
+Variable sufficientAuctionVolumeAvailable =
+  Description=Returns true if the available volume in the OrderBook is large enough for an Auction Order to be entered by the Agent
+  DisplayName=Sufficient Auction Volume Available
+  Domain=bool
+  Type=Private
+  Value=true
+
+Variable targetDiff =
+  Description=The deviation between the planned and actual target position
+  DisplayName=TargetDiff
+  Domain=double
+  Type=ReadOnly
+  Value=targetPosition - plan
+
+Variable targetPosition =
+  Description=The fraction of goal volume that the agent has executed at this time (excluding active orders with partial fills)
+  DisplayName=Target Position
+  Domain=double
+  Type=ReadOnly
+  Value=volumeDoneFromCompletedOrders / goalVolume
+
+Variable targetPrice =
+  Description=The price an order would have if it was sent now
+  DisplayName=TargetPrice
+  Domain=double
+  Type=ReadOnly
+  Value=targetPriceTickAdjusted
+
+Variable targetPriceEnter =
+  DisplayName=TargetPriceEnter
+  Domain=double
+  Type=ReadOnly
+  Value=double(priceReferenceEnter) + double(priceOffsetEnter)
+
+Variable targetPriceJoin =
+  DisplayName=TargetPriceJoin
+  Domain=double
+  Type=ReadOnly
+  Value=double(priceReferenceJoin) + double(priceOffsetJoin)
+
+Variable targetPriceMatch =
+  DisplayName=TargetPriceMatch
+  Domain=double
+  Type=ReadOnly
+  Value=double(priceReferenceMatch) + double(priceOffsetMatch)
+
+Variable targetPriceMatchAll =
+  DisplayName=TargetPriceMatchAll
+  Domain=double
+  Type=ReadOnly
+  Value=double(matchPrice)
+
+Variable timerEvent =
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable tradeCostFixed =
+  DisplayName=Estimated fixed trade cost
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=algoTrading.GetDefaultValueEx("algoCostTrade", context)
+
+Variable tradeCostRelative =
+  DisplayName=Estimated relative trade cost
+  Domain=double
+  Mandatory=No
+  Type=InputFixed
+  Value=algoTrading.GetDefaultValueEx("algoCostOrderValue", context)
+
+Variable tradingInterface =
+  Description=The order book where the trades should be executed
+  DisplayName=OB
+  Domain=FOrderBookInterface
+  Type=ReadOnly
+  Value=algoHomeTrading
+
+Variable tradingQuantities =
+  Description=An Array holding the quantities that each Trading Phase should Trade. The sum of them are the GoalVolume
+  DisplayName=Trading Quantities
+  Domain=FArray
+  Type=Private
+  Value=nil
+
+Variable tradingSchedule =
+  Description=This holds all relevant timesstamps that the Agent should know of when trading - when Auctions occurs (if it should participate) and when continuous trading is.
+  DisplayName=Trading Schedule
+  Domain=FTradingSchedule
+  Type=Private
+  Value=nil
+
+Variable tradingScheduleNowIsCONTR =
+  DisplayName=Trading Schedule Now Is CONTR
+  Domain=bool
+  Type=Private
+  Value=true
+
+Variable tradingSchedulePhaseChange =
+  Description=This timer event will trigger when the Trading Schedule is changing phase. Not neccecarily the same time as the real market phase change.
+  DisplayName=Trading Phase Change
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable trigEnter =
+  Description=This trigger determines when an order should be entered on the market
+  DisplayName=Enter
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoTimeEventEnter", context)
+
+Variable trigger =
+  Description=The name of the currently active trigger (trigEnter, trigJoin, trigMatch or Hide)
+  DisplayName=Trigger
+  Domain=FVolumeTrigger
+  Type=ReadOnly
+  Value=switch(slice, \
+      nil->nil, \
+      default->slice.Trigger)
+
+Variable trigJoin =
+  Description=This trigger determines when an order should be placed on join level
+  DisplayName=Join
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoTimeEventJoin", context)
+
+Variable trigMatch =
+  Description=This trigger determines when an order should be placed on match level
+  DisplayName=Match
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoTimeEventMatch", context)
+
+Variable trigMatchAll =
+  Description=This trigger determines when an order should be placed on match all level
+  DisplayName=MatchAll
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("AlgoTimeEventMatchAll", context)
+
+Variable unplannedAuctionEnd =
+  Description=Exchange specific Extension Value 'marketVolatilityInterruptionLengthInSeconds' determins when auction ends. This timer creates the timer event for that.
+  DisplayName=UnplannedAuctionEnd
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable verificationError =
+  Domain=string
+  Type=Private
+  Value=
+
+Variable verificationFailed =
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable vitalStopTime =
+  Domain=FDateTime
+  Type=ReadOnly
+  Value=algoStopDateTimeInput
+
+Variable volatility =
+  Description=Calculated from historical closing prices (if the adfl attribute is not overridden) and used for optimizing slices and to determine order prices.
+  DisplayName=Historical Volatility
+  Domain=double
+  Type=ReadOnly
+  Value=algoVolatility
+
+Variable volumeDone =
+  Description=The volume that the agent have traded at this time
+  DisplayName=Volume Done
+  Domain=double
+  Type=ReadOnly
+  Value=goalVolume - (baseOrder.Balance + executionPlan.ExternalQuantity)
+
+Variable volumeDoneFromCompletedOrders =
+  Description=The volume that has been traded excluding partial fill from current active order
+  DisplayName=Volume Done From Completed Orders
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable volumeFeedMarketSourceInfo =
+  Description=Input that determines whether the volume pattern (used in optimization) is taken from one or multi market (the multi markets are defined in FExtensionValue ownOrderPreTradeBenchmarkMarkets) and if Turnover volume is calculated using the primary market only or all markets that provide a feed for that security ("all markets" are defined in ownOrderPostTradeBenchmarkMarkets)
+  DisplayName=Volume Feed Market Source
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=
+
+Variable volumeFeedMarketSourceValid =
+  Domain=string
+  Type=ReadOnly
+  Value=switch(volumeFeedMarketSourceInfo, \
+      "Primary Market"->"Home market", \
+      default->"Benchmark markets")
+
+Variable volumePattern =
+  Description=The volume pattern of the order book
+  DisplayName=volumeHistory
+  Type=ReadOnly
+  Value=prePostTradeAnalysis:preTradeVolumePattern
+
+Variable waitMessage =
+  Domain=string
+  Type=ReadOnly
+  Value=switch(algoErrorMessage, \
+      ""->"", \
+      default->"Wait: " + algoErrorMessage)
+
+Variable wouldPriceInfo =
+  Description=When the market passes this price then the agent should start trading very aggressively.
+  DisplayName=Would Price
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+Variable wouldPriceValid =
+  Description=The real time updated would price that is going to be used for all python programming as it takes into account the price limit of the baseorder.
+  Domain=double
+  Type=ReadOnly
+  Value=select((baseOrder.Price < 0) or (wouldPriceInfo == 0), \
+      true->wouldPriceInfo, \
+      false->select(baseOrder.IsBuy, \
+        true->min(algoPriceLimit, wouldPriceInfo), \
+        false->max(algoPriceLimit, wouldPriceInfo)))
+
+Variable wouldQuantityFilled =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+ParameterRule estimatedSlices =
+  Behavior=Enable
+  Expression=object.AutoOptimizeSlicesAndDuration == false
+
+ParameterRule limMaxPriceDiffTrader =
+  Behavior=Enable
+  Expression=(object.LimSlicePrice == 0.0)
+
+ParameterRule limVolumeParticipationTrader =
+  Behavior=Enable
+  Expression=object.LimVolumeParticipationCustomer == 0.0
+
+ParameterRule manualSlices =
+  Behavior=Enable
+  Expression=object.AutoOptimizeSlicesAndDuration == false
+
+ParameterRule manualSlicesNotZero =
+  Behavior=Validate
+  ErrorMessage=Manual slices must be greater than zero
+  Expression=(object.ManualSlices > 0) or (object.AutoOptimizeSlicesAndDuration == true)
+
+ParameterRule priceOffsetEnter =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule priceOffsetJoin =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule priceOffsetMatch =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule refTypeEnter =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule refTypeJoin =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule refTypeMatch =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule startTime =
+  Behavior=Enable
+  Expression=object.AutoOptimizeSlicesAndDuration == false
+
+ParameterRule stopTime =
+  Behavior=Enable
+  Expression=object.AutoOptimizeSlicesAndDuration == false
+
+ParameterRule trigEnter =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule trigJoin =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+ParameterRule trigMatch =
+  Behavior=Enable
+  Expression=object.AutoConfigureOrderPlacement == false
+
+<end>

@@ -1,0 +1,152 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CPI_Bond_information') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CPI_Bond_information' and p.type = 'SQL Query'
+
+Select
+    t.trdnbr
+Into AllTrades
+From
+    trade t
+Where
+        match_filter(t, @Filter{SND_All_Trades;tradefilter.fltid})
+
+Select
+    t.trdnbr,
+    t.trx_trdnbr,
+    p.prfid,
+    t.acquire_day,
+    i.exp_day,
+    i.instype,
+    min(nominal_amount(t,t.acquire_day)) 'Nominal',
+    min((t.premium*100/nominal_amount(t,t.acquire_day))  'Price',
+    min(interest_accrued(t)) 'Int_Accrued',
+    t.premium,
+    l.initial_index_value,
+    min(c.pay_day) 'NextCoupon'
+Into Temp
+From
+    trade t,
+    instrument i,
+    Portfolio p,
+    leg l,
+    cashflow c,
+    AllTrades all
+Where
+        t.trdnbr = all.trdnbr
+    and t.insaddr = i.insaddr
+    and p.prfnbr = t.prfnbr
+    and	i.insaddr *= l.insaddr
+    and l.legnbr *= c.legnbr
+    and i.exp_day >= @Date{today;}
+    and c.pay_day >= @Next_Coupon_From{today;}
+    
+Group by t.trdnbr
+Having min(c.pay_day) ~= '01/01/0000'
+
+Select 
+    t.trdnbr,
+    t.trx_trdnbr,
+    p.prfid, 
+    t.acquire_day,
+    i.exp_day,
+    i.instype,
+    min(nominal_amount(t,t.acquire_day)) 'Nominal',
+    min((t.premium*100/nominal_amount(t,t.acquire_day))  'Price',
+    min(interest_accrued(t)) 'Int_Accrued',
+    t.premium,
+    l.initial_index_value,
+    c.pay_day 'NextCoupon'
+Into Temp
+From
+    trade t,
+    instrument i, 
+    Portfolio p, 
+    leg l,  
+    cashflow c,
+    AllTrades all
+Where
+        t.trdnbr = all.trdnbr
+    and t.insaddr = i.insaddr
+    and p.prfnbr = t.prfnbr
+    and	i.insaddr *= l.insaddr
+    and l.legnbr *= c.legnbr
+    and i.exp_day >= @Date{today;}
+    
+Group by t.trdnbr
+Having min(c.pay_day) = '01/01/0000'
+/*
+Select 
+    t.trdnbr,
+    t.trx_trdnbr,
+    p.prfid, 
+    t.acquire_day,
+    i.exp_day,
+    i.instype,
+    min(nominal_amount(t)) 'Nominal',
+    t.price,
+    min(interest_accrued(t)) 'Int_Accrued',
+    t.premium,
+    l.initial_index_value,
+    c.pay_day 'NextCoupon'
+Into Temp
+From
+    trade t,
+    instrument i, 
+    Portfolio p, 
+    leg l,  
+    cashflow c,
+    AllTrades all
+Where
+        t.trdnbr = all.trdnbr
+    and t.insaddr = i.insaddr
+    and p.prfnbr = t.prfnbr
+    and	i.insaddr *= l.insaddr
+    and l.legnbr *= c.legnbr
+    and i.exp_day < @Date{today;}
+    
+Group by t.trdnbr
+*/
+Select all.trdnbr, t.trdnbr 'trdnbr2'
+into MisingTrades
+From Temp t,
+     AllTrades all
+Where
+    t.trdnbr =* all.trdnbr
+
+Select * From Temp
+
+Union
+
+Select
+    t.trdnbr,
+    t.trx_trdnbr,
+    p.prfid, 
+    t.acquire_day,
+    i.exp_day,
+    i.instype,
+    max(nominal_amount(t,t.acquire_day))                    'Nominal',
+    max((t.premium*100/nominal_amount(t,t.acquire_day))     'Price',
+    max(interest_accrued(t))                                'Int_Accrued',
+    t.premium,
+    l.initial_index_value,
+    max(c.pay_day) 'NextCoupon'
+from
+    MisingTrades MT,
+    trade t,
+    instrument i, 
+    Portfolio p, 
+    leg l,  
+    cashflow c
+where
+        mt.trdnbr2 = ''
+    and t.trdnbr = MT.trdnbr
+    and t.insaddr = i.insaddr
+    and p.prfnbr = t.prfnbr
+    and	i.insaddr *= l.insaddr
+    and l.legnbr *= c.legnbr
+    
+Group by t.trdnbr

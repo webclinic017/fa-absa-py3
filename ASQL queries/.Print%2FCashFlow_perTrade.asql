@@ -1,0 +1,216 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','.Print/CashFlow_perTrade') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = '.Print/CashFlow_perTrade' and p.type = 'SQL Query' 
+/* Standard_Queries:1.0.0 */
+
+/*Name:	.Print/CashFlow
+
+EDIT HISTORY
+
+Date	Who	What
+-------------------------------------------------------
+980416  AGY	Use display_id
+941101	CE	Created
+
+*/
+
+select
+        t.trdnbr                            'Trdnbr',
+/*    	i.insid    	    	    		    'instr',
+    	cf.creat_time	    	    		'c_ctime',
+    	cf.updat_time	    	    		'c_utime',
+    	display_id(i,'creat_usrnbr')   		'c_cuser',
+    	display_id(i,'updat_usrnbr')   		'c_uuser',
+    	i.instype				            'i_type',
+    	cf.cfwnbr  	    	    		    'cashflow',
+    	r.resnbr   	    	    		    'reset',*/
+    	
+    	(l.payleg ? 'Pay' : 'Receive')  	'Pay_Rec',
+        l.legnbr   	    	    		    'Leg Nbr',
+        cf.type 	    	    	        'Type',
+
+    	nominal_amount(t)
+        /*l.nominal_factor *  i.contr_size*/	            'Nominal',
+
+        (cf.type in('Fixed Amount') ? '' : cf.start_day)    'Start Day',
+        (cf.type in('Fixed Amount') ? '' : cf.end_day)      'End Day',
+        (cf.type in('Fixed Amount') ? '' : 
+            days_between(cf.start_day, cf.end_day, 'Act/365'))          'Days',
+        cf.pay_day  	    	    		                            'Pay Day',
+        cf.type = 'Fixed Rate' ? cf.rate : '' 	                        'Rate',
+    
+        (cf.type in('Fixed Amount','Fixed Rate') ? '' : cf.spread )     'Spread',
+
+        (cf.type in('Fixed Amount','Fixed Rate') ? '' : period_rate(cf))'Forward',
+        
+        projected_cf(cf) * t.quantity                                    'Proj',
+        present_value(cf) * t.quantity                                   'PV',
+        display_id(l,'curr') 'Currency'
+        	 
+/*      (cf.fixed_amount * l.nominal_factor 
+        * i.contr_size	)			        'c_fixamt',
+
+
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+	: cf.float_rate_factor )		'c_flfactor',
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+	: cf.float_rate_offset) 		'c_floffset',*/
+	
+
+
+
+from
+    trade t,
+	instrument i,
+	leg l,
+	CashFlow cf
+
+where
+
+
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr  	
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+
+/*
+and t.trdnbr in (
+180082,
+180084,
+180087,
+180089,
+180091,
+180096,
+180103,
+180105,
+180107,
+180113,
+180117,
+180122,
+180124,
+180126,
+180133,
+180143,
+180145,
+180155,
+180159,
+180168,
+180179,
+180184,
+180188,
+180192,
+180194,
+180301,
+180302,
+180351,
+180378,
+180599,
+181118,
+181154,
+182167,
+183486,
+183487,
+198859,
+276671,
+283088,
+283706,
+285482,
+512105,
+540224,
+673296,
+675018,
+675619,
+676056,
+829078)
+
+*/
+
+
+
+order by 1, 6
+/*cf.pay_day*/
+
+
+
+
+
+
+
+/*
+union
+
+
+select
+
+        t.trdnbr                            'trdnbr',
+    	i.insid    	    	    		'instr',
+    	cf.creat_time	    	    		'c_ctime',
+    	cf.updat_time	    	    		'c_utime',
+    	ucfc.userid   	    	    		'c_cuser',
+    	ucfu.userid   	    	    		'c_uuser',
+	i.instype				'i_type',
+
+    	cf.cfwnbr  	    	    		'cashflow',
+    	r.resnbr   	    	    		'reset',
+    	l.legnbr   	    	    		'leg',
+
+	l.type 	    	    	    		'l_type',
+    	(l.payleg ? 'Pay' : 'Receive')  	'pay_rec',
+
+
+    	cf.type	    	    	    		'c_type',
+    	cf.pay_day  	    	    		'c_pay_day',
+
+	(cf.fixed_amount * l.nominal_factor 
+	* i.contr_size	)			'c_fixamt',
+
+    	l.nominal_factor *  i.contr_size	'c_nom_amt',
+	'YES' ? '' : '' 			'c_fixrate',
+
+	'YES' ? '' : '' 			'c_strike',
+
+	'YES' ? '' : '' 			'c_flfactor',
+	'YES' ? '' : '' 			'c_floffset',
+	'YES' ? '' : '' 			'c_spread',
+	'YES' ? '' : '' 			'c_start',
+	'YES' ? '' : '' 			'c_end',
+
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+	: r.type )				'r_type',
+
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+    	: r.day)   				'r_day',
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+    	 : r.value) 				'r_value',
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+	: r.start_day )	    	    		'r_start',
+	(cf.type in('Fixed Amount','Fixed Rate') ? ''
+    	: r.end_day )  	    	    		'r_end'
+
+from
+    trade t,
+	instrument i,
+	leg l,
+	CashFlow cf,
+	Reset r fill,
+    user ucfc fill,	    	
+    user ucfu fill	    	
+
+where
+    t.trdnbr in (@Trdnbr{;*})
+and i.insaddr = t.insaddr   	
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+and	cf.creat_usrnbr = ucfc.usrnbr
+and	cf.updat_usrnbr = ucfu.usrnbr
+and	r.cfwnbr > 0
+and	r.cfwnbr = cf.cfwnbr
+
+order by cf.pay_day
+
+;
+
+*/

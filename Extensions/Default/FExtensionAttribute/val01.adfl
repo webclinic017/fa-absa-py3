@@ -1,0 +1,12 @@
+[Default]FInstrument:val01 = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->object:val01FromYield [yieldValue = theoreticalYieldToMaturity], 
+    true->object:val01FromYield [yieldValue = marketYieldToMaturity]), 
+  false->nil);
+[Default]FInstrumentAndTrades:val01 = instrument :* "val01" [priceSource];
+[Default]FMultiInstrumentAndTrades:val01 = nil;
+[Default]FOption:val01 = select(underlyingType, 
+  "Bond"->double(underlying:val01 [priceSource]) * priceDeltaInstrumentIRD, 
+  default->nil);
+[Default]FOrderBook:val01 = instrument:val01;
+[Default]FPriceAggregate:val01 = instrument:val01;

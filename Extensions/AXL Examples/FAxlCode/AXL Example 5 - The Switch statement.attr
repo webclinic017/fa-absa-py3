@@ -1,0 +1,38 @@
+[AXL Examples]FObject:AXL Example 5 - The Switch statement
+//---------------------------------------------------------------------
+//AXL Example 5 - The Switch statement
+//---------------------------------------------------------------------
+
+//This example shows how to use selectors in AXL.
+//Selectors are, for example, Switch and If statements.
+//In this example we will show how to use the Switch statement.
+
+//main is the name of the main function and main is required for the formula
+//to compile. It is this function that is available to the Data Disposition UI
+//and in this UI the user can assign attributes, values or formulas to the arguments.
+
+//The actual formula is written after the = sign. In this case a call to MyFunction passing X
+//as an argument to the function.
+//The function is terminated by the ; sign.
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Number}
+  ],
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+}
+
+//The Switch statement takes two arguments. The first is the actual switch value.
+//The second argument is a list argument( enclosed by brackets []). This list argument
+//should contain a 'case','action' pair for each 'case' and optionally a final 'default case' action.
+
+main = Switch( Math.Sign(Aggregate.Sum($X)), [-1,'Short',1,'Long', 'No Exposure'] );
+
+
+
+
+...

@@ -1,0 +1,7 @@
+[Default]FInstrument:compoundVolatilityInTheoreticalPrice = select(usesCompoundVolatility, 
+  true->collapse(volatilityInTheoreticalPrice), 
+  false->nil);
+[Default]FInstrumentAndTrades:compoundVolatilityInTheoreticalPrice = select(filterForVolShift, 
+  nil->nil, 
+  default->openInstrumentOrInstrument:compoundVolatilityInTheoreticalPrice [theoreticalPrice, filterForVolShift, priceSource]);
+[Default]FMultiInstrumentAndTrades:compoundVolatilityInTheoreticalPrice = nil;

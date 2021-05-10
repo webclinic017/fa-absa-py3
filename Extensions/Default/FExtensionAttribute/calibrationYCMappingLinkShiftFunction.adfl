@@ -1,0 +1,12 @@
+[Default]FDeposit:calibrationYCMappingLinkShiftFunction = select(isGeneric and (firstLeg.LegType == "Fixed"), 
+  true->"shiftMappingLink", 
+  default->defaultCalibrationYCMappingLinkShiftFunction);
+[Default]FFra:calibrationYCMappingLinkShiftFunction = select(isGeneric, 
+  true->"shiftMappingLink", 
+  default->defaultCalibrationYCMappingLinkShiftFunction);
+[Default]FFreeDefinedCashFlow:calibrationYCMappingLinkShiftFunction = select(count(instrumentCurrencies) > 1, 
+  true->"shiftMappingLinkWithMatchingCurrencyAndForwardPeriod", 
+  default->defaultCalibrationYCMappingLinkShiftFunction);
+[Default]FFuture:calibrationYCMappingLinkShiftFunction = select((settlementPayType == "Future") and (quotationType == "100-rate") and ((underlyingType == "RateIndex") or (underlyingType == "Bill")), 
+  true->"shiftMappingLink", 
+  default->defaultCalibrationYCMappingLinkShiftFunction);

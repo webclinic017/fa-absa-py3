@@ -1,0 +1,5 @@
+[Treasury Pricing and Risk]FInstrumentAndTrades:atmVolatilityTransform = select(atmVol, 
+  nil->nil, 
+  default->instrument:volatilityATMStructureValue [volatilityInformation = atmVol, priceSource, isSplitAllGrouped]);
+[Treasury Pricing and Risk]FMultiInstrumentAndTrades:atmVolatilityTransform = nil;
+[Treasury Pricing and Risk]FTimeBucketAndObject:atmVolatilityTransform = rowInstrumentAndTrades :* "atmMalzVol" [expiryDate := timeBucketDate];

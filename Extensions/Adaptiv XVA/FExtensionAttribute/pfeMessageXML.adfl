@@ -1,0 +1,9 @@
+[Adaptiv XVA]FCreditBalance:pfeMessageXML = AssembleXML(pfeDealsXML, pfeCalculationXML, pfeDealsMarketDataXML);
+[Adaptiv XVA]FInstrumentAndTrades:pfeMessageXML = nil;
+[Adaptiv XVA]FMultiInstrumentAndTrades:pfeMessageXML = shunt(("Credit Entity" == object.GrouperOnLevel) and (nil <> potentialFutureExposureCalculationCurrency), 
+  true->AssembleXML(pfeDealsXML, pfeCalculationXML, pfeDealsMarketDataXML), 
+  false->nil);
+[Adaptiv XVA]FPortfolioInstrumentAndTrades:pfeMessageXML = nil;
+[Adaptiv XVA]FSingleInstrumentAndTrades:pfeMessageXML = shunt(("Credit Balance" == instrument.InsType), 
+  true->AssembleXML(pfeDealsXML, pfeCalculationXML, pfeDealsMarketDataXML), 
+  false->nil);

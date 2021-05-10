@@ -1,0 +1,15 @@
+select 
+    yc.yield_curve_name 'Curve Name',
+    ael_s(p,'DCRM_CDS.getCurveStrip')    'Tenor',
+    s.spread*100                         'Spread'
+from
+    yieldcurve yc,
+    YCattribute attrib,
+    YCSpread s,
+    YieldCurvePoint p
+where
+    yc.seqnbr = attrib.yield_curve_seqnbr
+and yc.seqnbr = p.yield_curve_seqnbr
+and attrib.seqnbr = s.attribute_seqnbr
+and s.point_seqnbr = p.seqnbr
+and yc.yield_curve_name in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name*})

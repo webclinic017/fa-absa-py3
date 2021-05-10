@@ -1,0 +1,4 @@
+[Securities Lending ABSA]FSingleInstrumentAndTrades:feeAccrualDays = (object.Trades.AsArray.At(0)) :* "feeAccrualDays" [profitAndLossStartDate, profitAndLossEndDate];
+[Securities Lending ABSA]FTrade:feeAccrualDays = switch((sl_endDate > profitAndLossStartDate) and (sl_startDate <= profitAndLossEndDate), 
+  true->dateDifference(min(profitAndLossEndDate, sl_endDate), max(profitAndLossStartDate, sl_startDate)), 
+  default->0);

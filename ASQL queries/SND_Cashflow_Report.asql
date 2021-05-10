@@ -1,0 +1,457 @@
+/*------------------------------------------------------------------
+    SND_Cashflow_Report
+
+    Query based on ABSA.CashflowReport
+    
+    This query supplies all cashflows, dividends and payments between a given start date(inclusive) and end date(inclusive).
+
+    History:
+    When: 		Who:		What:
+    2009-07-28	Herman Hoon	Created
+    
+    Date                : 2010-03-04, 2010-04-19, 2010-05-03, 2010-06-08, 2010-07-23, 2011-06-23
+    Purpose             : Only cashflows booked as Additional payments are needed for trades whose status is Terminated
+                          Exclude cashflows where the start date is before the value date of the trade.
+                          Include Fixed Amount cashflows, that were excluded becuase they do not have a start date.
+                          Excludes cashflow type 'Credit Default'. Added External ID and combination trades. 
+                          Include cashflows where the start date is before the value date
+	          Addition of instrument external ids for BOP reporting
+    Department and Desk : PCG SM SND, PCG SM SND, OPS, PCG SM SND, PCG/OPS, OPS
+    Requester           : Dumisani Mkhonza, Dumisani Mkhonza, Christo Davids, Dumisani Mkhonza, Dumi/Christo, Christo Davids
+    Developer           : Herman Hoon, Herman Hoon, Herman Hoon, Tshepo Mabena, Anwar Banoo, Aaeda Salejee
+    CR Number           : 238069, 286241, 299897, 332164, 381355, 690916
+
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','SND_Cashflow_Report') 'Name'
+into  
+    ASQL_LOG_TEMP
+from TextObject p 
+where 
+    p.name = 'SND_Cashflow_Report' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_StartDay{Today}      'StartDay',
+    @2_EndDay{Today}        'EndDay',
+    Today                   'RepDay',
+    @5_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay'
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros		m
+where
+    hc.insid     = m.hcur
+and curr.instype = 'Curr'
+
+
+/*------------------------------------------------------------------
+	List of Trades 
+------------------------------------------------------------------*/
+select
+	t.trdnbr,
+	t.trx_trdnbr 'TransRef',
+    t.time,
+    t.status,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	        'InsType',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype', 
+	t.your_ref                                  'CPRef',										
+	display_id(t, 'acquirer_ptynbr')	        'Desk',
+	nominal_amount(t)	                        'Nominal',
+	display_id(t,'prfnbr')                      'Portfolio',
+    p.type                                      'PartyType',                                        
+	p.ptyid		                                'Cpty',
+	m.RepDay,
+	t.optional_key                              'External_ID',
+	i.extern_id1                                'Ins_External_ID1',
+	i.extern_id2                                'Ins_External_ID2'
+	
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party p,
+	macros m
+where
+    match_filter(t, @3_Filter{SND_All_Trades;tradefilter.fltid}, @4_TrdNbrs{})
+and	i.insaddr = t.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+
+/*------------------------------------------------------------------
+                Combination Trades
+------------------------------------------------------------------*/
+select
+    TRD,
+    to_string(cf.type)                                                                'CFType',
+	cf.pay_day	                                                                      'pay_day',
+    display_id(t,'curr')	                                                          'curr',
+	(projected_cf(cf,,,display_id(l,'curr'))*t.quantity / i.index_factor * cl.weight) 'amount'
+into
+	FinalCF 
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	cashflow cf,
+	leg l,
+	combinationlink cl,
+	macros m
+where
+    t.trdnbr = trd.trdnbr
+and	t.insaddr = i.insaddr
+and l.legnbr = cf.legnbr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = l.insaddr
+and cf.type not in ('Credit Default')
+and t.status ~= 'Terminated'
+and i.instype in ('Combination')
+and cf.pay_day >= m.StartDay
+and cf.pay_day <= m.EndDay
+
+/*------------------------------------------------------------------
+	Premiums 
+------------------------------------------------------------------*/
+
+select
+    TRD,
+    'Premium'	            'CFType',
+	t.value_day	            'pay_day',
+    display_id(t,'curr')	'curr',
+	t.premium	            'amount'
+into
+	FinalCF 
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	macros m
+where
+    t.trdnbr = trd.trdnbr
+and	t.insaddr = i.insaddr
+and	t.premium ~= 0.0
+and t.status ~= 'Terminated'
+and t.value_day >= m.StartDay
+and t.value_day <= m.EndDay
+
+/*------------------------------------------------------------------
+	Fixed Amount Cashflows 
+------------------------------------------------------------------*/
+
+select
+    TRD,
+    to_string(cf.type)	            'CFType',
+	cf.pay_day	                    'pay_day',
+    display_id(l,'curr')	        'curr',
+	projected_cf(cf) * t.quantity	'amount'
+into
+	FinalCF
+from
+	trade t,
+	leg l,
+	cashflow cf,
+	TRD trd,
+	macros m
+where
+    l.insaddr = t.insaddr
+and	l.legnbr  = cf.legnbr
+and	t.trdnbr  = trd.trdnbr
+and cf.type = 'Fixed Amount'
+and	cf.pay_day >= t.value_day
+and t.status ~= 'Terminated'
+and cf.pay_day >= m.StartDay
+and cf.pay_day <= m.EndDay
+
+
+/*------------------------------------------------------------------
+	Non Fixed Amount Cashflows 
+------------------------------------------------------------------*/
+
+select
+    TRD,
+    to_string(cf.type)	            'CFType',
+	cf.pay_day	                    'pay_day',
+    display_id(l,'curr')	        'curr',
+	projected_cf(cf) * t.quantity	'amount'
+into
+	FinalCF
+from
+	trade t,
+	leg l,
+	cashflow cf,
+	TRD trd,
+	macros m
+where
+    l.insaddr = t.insaddr
+and	l.legnbr  = cf.legnbr
+and	t.trdnbr  = trd.trdnbr
+and cf.type not in ('Fixed Amount','Credit Default')
+/*and	cf.start_day >= t.value_day    2010-07-23 Anwar - removed as per Dumi/Christo */
+and t.status ~= 'Terminated'
+and cf.pay_day >= m.StartDay
+and cf.pay_day <= m.EndDay
+
+/*------------------------------------------------------------------
+	End premiums and sec loan fees
+------------------------------------------------------------------*/
+
+select
+    TRD,
+    'End Premium/Sec Loan Fee'	                            'CFType',
+	i.exp_day	                                            'pay_day',
+	display_id(t,'curr')	                                'curr',
+    i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+        t.quantity * projected_cf(i)	                    'amount'
+into
+	FianlCF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	macros m
+where
+    t.trdnbr  = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and t.status ~= 'Terminated'
+and i.exp_day >= m.StartDay
+and i.exp_day <= m.EndDay
+
+/*------------------------------------------------------------------
+	Commod Futures
+------------------------------------------------------------------*/
+
+select
+    TRD,
+	'Commodity Future'	            'CFType',
+	i.exp_day	                    'pay_day',
+	display_id(t,'curr')	        'curr',
+    nominal_amount(t)*t.price*-1	'amount'
+into
+	FinalCF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	macros m
+where
+    t.trdnbr  = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and	i.und_instype = 'Commodity'
+and t.status ~= 'Terminated'
+and i.exp_day >= m.StartDay
+and i.exp_day <= m.EndDay
+
+/*------------------------------------------------------------------
+	Additional Payments
+------------------------------------------------------------------*/
+
+select
+    trd.trdnbr,
+    trd.TransRef,
+    trd.time,
+    trd.status,
+	trd.insid,
+	trd.InsType,
+    trd.MM_Instype, 
+    trd.CPRef,
+	trd.Desk,
+	trd.Nominal,
+	trd.Portfolio,
+	p.type                  'PartyType', 
+	p.ptyid                 'Cpty',
+	m.RepDay,
+	trd.External_ID,
+	trd.Ins_External_ID1,
+	trd.Ins_External_ID2,
+    'Additional Payment'	'CFType',
+	a.payday	            'pay_day',
+    display_id(a,'curr')	'curr',
+	a.amount	            'amount'
+into 
+	FinalCF
+from
+	payment a,
+	TRD trd,
+	party p,
+	macros m
+where
+    a.trdnbr = trd.trdnbr
+and p.ptynbr = a.ptynbr
+and a.payday >= m.StartDay
+and a.payday <= m.EndDay
+
+/*------------------------------------------------------------------
+	Dividend payments
+------------------------------------------------------------------*/
+
+select
+    TRD,
+    'Dividend'		        'CFType',
+	d.day			        'pay_day',
+    display_id(i,'curr')	'curr',
+	d.dividend		        'amount'
+into
+	FinalCF
+from	
+    instrument	i,
+	dividend	d,
+	trade		t,
+	TRD		    trd,
+	macros      m
+where
+	i.insaddr = d.insaddr
+and	d.insaddr = t.insaddr
+and	t.trdnbr  = trd.trdnbr
+and t.status ~= 'Terminated'
+and d.day >= m.StartDay
+and d.day <= m.EndDay
+
+/*------------------------------------------------------------------
+	Select all cashflows from the final table
+------------------------------------------------------------------*/
+
+select
+    'Details'		'Section',
+    fcf,
+    fcf.amount/fx.fxRepDay   'H_Amount_RepDay'
+from
+    FinalCF fcf,
+	fxrates fx
+where    
+    fcf.curr = fx.curr 
+and @6_Show_Trade_Detail{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+union
+
+select
+    'Total by Trade by Curr' 	'Section',
+    fcf.trdnbr,
+    fcf.TransRef,
+    fcf.time,
+    fcf.status,
+    fcf.insid,
+	fcf.InsType,
+    fcf.MM_Instype, 
+    fcf.CPRef,
+	fcf.Desk,
+	fcf.Nominal,
+	fcf.Portfolio,
+	fcf.PartyType, 
+	fcf.Cpty,
+	fcf.RepDay,
+	fcf.External_ID,
+	fcf.Ins_External_ID1,
+	fcf.Ins_External_ID2,
+    fcf.CFType,
+	fcf.pay_day,
+    fcf.curr,
+	sum(fcf.amount),
+    sum(fcf.amount)/fx.fxRepDay   'H_Amount_RepDay'
+    
+from
+    FinalCF fcf,
+	fxrates fx
+where    
+    fcf.curr = fx.curr 
+and	@7_Show_Total_Trade_Curr{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 
+    fcf.trdnbr,fcf.curr   
+   
+union
+
+select
+    'Total by Portfolio by Curr' 	'Section',
+    fcf.trdnbr,
+    fcf.TransRef,
+    fcf.time,
+    fcf.status,
+	fcf.insid,
+	fcf.InsType,
+    fcf.MM_Instype, 
+    fcf.CPRef,
+	fcf.Desk,
+	fcf.Nominal,
+	fcf.Portfolio,
+	fcf.PartyType, 
+	fcf.Cpty,
+	fcf.RepDay,
+	fcf.External_ID,
+	fcf.Ins_External_ID1,
+	fcf.Ins_External_ID2,
+    fcf.CFType,
+	fcf.pay_day,
+    fcf.curr,
+	sum(fcf.amount),
+    sum(fcf.amount)/fx.fxRepDay   'H_Amount_RepDay'
+from
+    FinalCF fcf,
+	fxrates fx
+where    
+    fcf.curr = fx.curr 
+and	@8_Show_Total_Portfolio_Curr{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 
+    fcf.Portfolio,fcf.curr  
+
+union
+
+select
+    'Total by Trade by Cpty by Curr' 	'Section',
+    fcf.trdnbr,
+    fcf.TransRef,
+    fcf.time,
+    fcf.status,
+	fcf.insid,
+	fcf.InsType,
+    fcf.MM_Instype, 
+    fcf.CPRef,
+	fcf.Desk,
+	fcf.Nominal,
+	fcf.Portfolio,
+	fcf.PartyType, 
+	fcf.Cpty,
+	fcf.RepDay,
+	fcf.External_ID,
+	fcf.Ins_External_ID1,
+	fcf.Ins_External_ID2,
+    fcf.CFType,
+	fcf.pay_day,
+    fcf.curr,
+	sum(fcf.amount),
+    sum(fcf.amount)/fx.fxRepDay   'H_Amount_RepDay'
+from
+    FinalCF fcf,
+	fxrates fx
+where    
+    fcf.curr = fx.curr 
+and	@9_Show_Total_Trade_Cpty_Curr{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 
+    fcf.trdnbr,fcf.Cpty,fcf.curr  

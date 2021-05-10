@@ -1,0 +1,16 @@
+select distinct
+ @1_Filter{;tradefilter.fltid}  'filter',
+ used_context_parameter(i,'Yield Curve',0,i.curr) 'DC',
+ used_context_parameter(i,'Repo',0,i.curr) 'Repo',
+ used_context_parameter(i,'Volatility',0,i.curr) 'Vol'
+ 
+
+from
+
+ instrument i,
+ trade t,
+ tradefilter tf
+
+where
+i.insaddr = t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid})

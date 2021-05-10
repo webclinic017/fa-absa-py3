@@ -1,0 +1,16 @@
+[_markit_securities_finance_extensions]FInstrument:secLendMarkitRate = nil;
+[_markit_securities_finance_extensions]FMultiInstrumentAndTrades:secLendMarkitRate = switch(grouper == "Underlying", 
+  true->secLendGetMasterLoan:secLendMarkitRate [priceTypeSetExternally], 
+  default->nil);
+[_markit_securities_finance_extensions]FPortfolioInstrumentAndTrades:secLendMarkitRate = nil;
+[_markit_securities_finance_extensions]FSecurityLoan:secLendMarkitRate = select(secLendMarkitMarket, 
+  default->switch(secLendGetMasterLoan, 
+    default->secLendGetMasterLoan :* "marketPriceFind" [priceSource = "ADS", orderBookMarketSearchOrder = [secLendMarkitMarket], priceFindingMarketSet = true, marketPriceSearchOrder = [priceTypeSetExternally]], 
+    nil->nil), 
+  nil->nil);
+[_markit_securities_finance_extensions]FSingleInstrumentAndTrades:secLendMarkitRate = select(instrument:secLendLoanIsMaster, 
+  true->instrument:secLendMarkitRate [priceTypeSetExternally], 
+  default->nil);
+[_markit_securities_finance_extensions]FStock:secLendMarkitRate = nil;
+[_markit_securities_finance_extensions]FTradeRow:secLendMarkitRate = instrument:secLendMarkitRate [priceTypeSetExternally];
+[_markit_securities_finance_extensions]FUndefinedObject:secLendMarkitRate = nil;

@@ -1,0 +1,20 @@
+#grouping: greek perimeters/price greek perimeters
+#grouping: risk factors/volatility value
+
+[Default]FAbstractReset:volatility = select(cashFlowInformation, 
+  nil->nil, 
+  default->collapse(fixingVolatility));
+[Default]FCashFlow:volatility = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(count(volatilityForCashFlowInformation), 
+    0->nil, 
+    default->(volatilityForCashFlowInformation).Last));
+[Default]FCashFlowInformation:volatility = collapse(volatilityForCashFlowInformation);
+[Default]FCashFlowInstrument:volatility = select(isCallable or isPutable or isAutocallable, 
+  true->collapse(volatilityUnadjusted), 
+  false->nil);
+[Default]FCashFlowMoneyFlow:volatility = cashFlow:volatility;
+[Default]FConvertible:volatility = collapse(volatilityUnadjusted);
+[Default]FInstrument:volatility = select(usesVolatility, 
+  true->collapse(volatilityUnadjusted), 
+  false->0.0);

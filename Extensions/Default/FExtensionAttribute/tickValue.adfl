@@ -1,0 +1,20 @@
+[Default]FBond:tickValue = select(isCouponQuoted, 
+  true->tickValueFromCoupon, 
+  false->tickValueFromPrice);
+[Default]FDeposit:tickValue = tickValueFromCoupon;
+[Default]FFra:tickValue = tickValueFromCoupon;
+[Default]FFuture:tickValue = select(underlyingType, 
+  "Bond"->select(isYieldQuoted, 
+    true->nil, 
+    false->tickValueFromPrice), 
+  "RateIndex"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  "Swap"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  "Deposit"->quotePeriod * contractSize * instrumentTick * 0.01, 
+  default->nil);
+[Default]FInstrument:tickValue = nil;
+[Default]FInstrumentAndTrades:tickValue = instrument :* "tickValue" [priceSource];
+[Default]FMultiInstrumentAndTrades:tickValue = nil;
+[Default]FSwap:tickValue = tickValueFromCoupon;
+[Default]FZeroBond:tickValue = select(isCouponQuoted, 
+  true->tickValueFromCoupon, 
+  false->tickValueFromPrice);

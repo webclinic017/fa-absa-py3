@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FMoneyFlow:nominalExpDate = insType = trade.Instrument.InsType, select(((insType == "BuySellback") or (insType == "Repo/Reverse") or (insType == "SecurityLoan")), 
+  true->select(insType == "BuySellback", 
+    true->trade.Nominal, 
+    default->trade.CollateralAmount) * select(trade.Instrument.ExpiryDate <= object.PayDate, 
+    true->-1, 
+    default->1), 
+  default->nominal);
+[ABSA Specific 4.3]FMoneyFlowAndTrades:nominalExpDate = moneyFlow:nominalExpDate [doSettlementFxScaling];

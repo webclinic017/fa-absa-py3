@@ -1,0 +1,14 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_BOBOConfirmCFD') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_BOBOConfirmCFD' and p.type = 'SQL Query' 
+ 
+  select
+    p.prfid,
+    ael_s(p,'SAEQ_CONFIRM.bobocfds',@Date{})
+from
+    portfolio p
+where
+    p.prfid = @Portfolio{47274_CFD;Portfolio.prfid} 

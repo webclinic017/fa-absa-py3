@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FPayment:ACSSettledDividendAdjustmentAmount = 
+# Return the amount if payment is of type Dividend Adjustment and settled,
+# otherwise return 0.
+shunt(object.Type == "Dividend Adjustment", 
+  true->shunt((object.ValidFrom <= profitAndLossEndDate) and (object.ValidFrom >= profitAndLossStartDate) and (object.PayDay <= profitAndLossEndDate) and (object.PayDay >= profitAndLossStartDate), 
+    true->object.Amount, 
+    default->0), 
+  default->0);
+[ABSA Specific 4.3]FTrade:ACSSettledDividendAdjustmentAmount = 
+# Sum all settled payments of type Dividend Adjustment.
+sumOf(payments :* "ACSSettledDividendAdjustmentAmount");

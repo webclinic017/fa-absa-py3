@@ -1,0 +1,5 @@
+[Default]FInstrument:impliedCouponAfterFirstCall = select((isCallable or isPutable) and not isExpiredFullDay, 
+  false->nil, 
+  true->imply(snoop(shiftCouponAfterFirstCall, impliedCouponNames, flattenAndRemoveDuplicates([instrument, exerciseEvents])), shiftCouponAfterFirstCall, marketPriceOrGoalValue, implyPrecision, 0, 1, implyMaxIterations));
+[Default]FInstrumentAndTrades:impliedCouponAfterFirstCall = instrument :* "impliedCouponAfterFirstCall" [priceSource];
+[Default]FMultiInstrumentAndTrades:impliedCouponAfterFirstCall = nil;

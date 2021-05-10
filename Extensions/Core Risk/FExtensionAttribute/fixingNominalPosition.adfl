@@ -1,0 +1,16 @@
+[Core Risk]FCashFlowInstrument:fixingNominalPosition = riskPosition * fixingNominalValue;
+[Core Risk]FInstrument:fixingNominalPosition = timeBucketsSetExternallyZeroVector;
+[Core Risk]FInstrumentAndTrades:fixingNominalPosition = select(timeBucketsSetExternally, 
+  nil->timeBucketsSetExternallyNilVector, 
+  default->select(fixingShiftValueValid, 
+    true->shunt(isOpenPosition, 
+      true->openInstrument :* "collapse(fixingNominalPosition)" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk], 
+      false->timeBucketsSetExternallyNilVector), 
+    false->timeBucketsSetExternallyNilVector));
+[Core Risk]FLegAndTrades:fixingNominalPosition = timeBucketsSetExternallyNilVector;
+[Core Risk]FMultiInstrumentAndTrades:fixingNominalPosition = select(timeBucketsSetExternally, 
+  nil->timeBucketsSetExternallyNilVector, 
+  default->select(fixingShiftValueValid, 
+    true->sumOf(openInstruments :* "collapse(fixingNominalPosition)" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk]), 
+    false->timeBucketsSetExternallyNilVector));
+[Core Risk]FPortfolioInstrumentAndTrades:fixingNominalPosition = timeBucketsSetExternallyNilVector;

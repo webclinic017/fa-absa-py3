@@ -1,0 +1,7 @@
+[CurrencyETN]FETF:CurrencyETNLinkedEquivalent = select(object.ValuationGrpChlItem.Name, 
+  "CurrencyETN"->CurrencyETNFRNTheor(object, profitAndLossEndDate), 
+  default->nil);
+[CurrencyETN]FInstrument:CurrencyETNLinkedEquivalent = nil;
+[CurrencyETN]FMultiInstrumentAndTrades:CurrencyETNLinkedEquivalent = sumOf((object.Children) :* "CurrencyETNLinkedEquivalent");
+[CurrencyETN]FSingleInstrumentAndTrades:CurrencyETNLinkedEquivalent = profitAndLossPositionDisplay * (instrument :* "CurrencyETNLinkedEquivalent");
+[CurrencyETN]FTradeRow:CurrencyETNLinkedEquivalent = object.Trade.Quantity * CurrencyETNFRNTheor(object.Trade.Instrument, profitAndLossEndDate);

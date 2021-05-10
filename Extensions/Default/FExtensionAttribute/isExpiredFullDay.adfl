@@ -1,0 +1,6 @@
+[Default]FConvertible:isExpiredFullDay = object.IsExpiredFullDayAt(valuationDate, expiryDate);
+[Default]FInstrument:isExpiredFullDay = select(isMultiExercise, 
+  true->object.IsExpiredFullDayAt(0, maxOfAny(expiryDate)), 
+  default->object.IsExpiredFullDayAt(valuationDate, expiryDate));
+[Default]FInstrumentAndTrades:isExpiredFullDay = instrument:isExpiredFullDay;
+[Default]FMultiInstrumentAndTrades:isExpiredFullDay = nil;

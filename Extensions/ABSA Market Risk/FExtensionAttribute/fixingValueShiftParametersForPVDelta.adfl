@@ -1,0 +1,8 @@
+[ABSA Market Risk]FCashFlowInstrument:fixingValueShiftParametersForPVDelta = select(timeBucketsSetExternally, 
+  nil->[[staticFixingLegInformations, fixingShiftValue, smallDate, bigDate]], 
+  default->timeBucketsSetExternally :* "[staticFixingLegInformations, fixingForwardValueEstimate / 100.0 * 1.01, timeBucketShiftStartDate, timeBucketShiftPeakDate]" [staticFixingLegInformations, legsForFixingRiskGroupingReference, isNominalScalingFixingRisk, fixingRiskGroupingReference, legsForFixingRiskGroupingReference]);
+[ABSA Market Risk]FInstrumentAndTrades:fixingValueShiftParametersForPVDelta = fixingRiskGroupingReference :* "fixingValueShiftParametersForPVDelta" [timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk, positionObject, displayCurrency, filterUnit, legsForFixingRiskGroupingReference = instrument :* "legsForFixingRiskGroupingReference" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk]];
+[ABSA Market Risk]FPortfolioInstrumentAndTrades:fixingValueShiftParametersForPVDelta = nil;
+[ABSA Market Risk]FPriceIndex:fixingValueShiftParametersForPVDelta = select(timeBucketsSetExternally, 
+  nil->[[fixingShiftValue, smallDate, bigDate]], 
+  default->timeBucketsSetExternally :* "[fixingForwardValueEstimate / 100.0 * 1.01, timeBucketShiftStartDate, timeBucketShiftPeakDate]" [fixingForwardValueEstimate / 100.0 * 1.01]);

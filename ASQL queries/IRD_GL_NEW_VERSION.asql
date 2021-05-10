@@ -1,0 +1,917 @@
+/*------------------------------------------------------------------
+    coded by = kim
+    last updated = 15 May 2006
+    last updated = 31 May 2006 - amended Instype = 'FRA'
+    last updated = 02 Feb 2007 - Added portfolio MAN_Swap_2
+    last updated = 20 Feb 2007 - Added portfolio IRP_SWAP_PROP
+    last updated = 08 Mar 2007 - Added portfolio MONY 9802
+    last updated = 09 Mar 2007 - Added portfolio DERV5
+    last updated = 19 Mar 2007 - Added portfolio ERM FVH R157
+    last updated = 11 Apr 2007 - Added portfolio HEDGES 1573
+    last updated = 16 Apr 2007 - Added portfolio IRP_0to2_Prop
+    last updated = 15 Jun 2007 - Added portfolio HEDG8
+    last updated = 21 Jun 2007 - Portfolio name change: IRP_SWAP_PROP --> SWAP_PROP
+                                                        LTFX_CCY --> LTFX
+                                                        IRP_CPI --> CPI
+                                                        IRP_PRIME --> PRIME
+    last updated = 18 Sep 2007 - Added portfolio HYBRID_BOND
+    last updated = 02 Oct 2007 - Added portfolio HYBRID_FVTPL
+    last updated = 03 Oct 2007 - Added portfolio GROUP FUNDING HYBRID
+    last updated = 10 Oct 2007 - Added portfolio IRP 2304
+    last updated = 20 Nov 2007 - Added portfolio ERM CFH Equity
+    last updated = 30 Nov 2007 - Added portfolio Swap Flow, Swap Risk
+    last updated = 24 Dec 2007 - Added portfolio MM Rates Trading
+    last updated = 05 Feb 2008 - Added portfolio LTFX_BASIS_PROP EQ_SA_FIVol ARB_RHO_HEDGE
+    last updated = 18 Jul 2008 - Added portfolio ERM_CPI ERM_LTFX
+    last updated = 01 Aug 2008 - Excluded portfolios ERM_LTFX and ERM CFH Equity from cost centre 9830
+    last updated = 08 Dec 2011 - Exclueded trades with counterparty GT Internal Trades and acquirer GT Internal Trades
+    
+    Date                : [2010-05-05],[2010-06-03],[2010-06-10],[2010-06-22],[2010-07-06],[2010-07-22],[08/12/2011]
+    Purpose             : [Add portfolios to the GL.Remove duplicates caused by an incorrect logical condition.Show the LCH PROJECS FOR A/C LIBERTAS CONS counterparty in the Cashbook.],[Added instype IndexLinkedSwap],[Updated to pick up IndexLinkedSwaps for NonErm.],[Added Portfolio Risk Management.],[Added CC mapping for Portfolio Risk Management.],[Corrected portfolio CJ RISK], [Changes made to remove duplicate row, duplication of amounts and restrict the list of portfolios to those used by ABSA Group]
+    Department and Desk : [OPS],[OPS],[OPS],[OPS],[OPS],[OPS], [OPS]
+    Requester           : [Brian Alexander.Nomsa Phologang],[Neill Leith],[Neill Leith],[Neill Leith],[Neill Leith],[Sherona Singh], [Tennille Wilkinson]
+    Developer           : [Herman Hoon],[Willie van der ank],[Willie van der Bank],[Willie van der Bank],[Willie van der Bank],[Willie van der Bank], [Jaysen Naicker],[Tshepo Mabena]
+    CR Number           : [302662],[C329936],[C336650],[C345889],[C362073],[378585], [647114],[845852]
+------------------------------------------------------------------*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','IRD_GL_NEW_VERSION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'IRD_GL_NEW_VERSION' and p.type = 'SQL Query' 
+
+select 
+    t.trdnbr                                                'TrdNo',
+    i.insid                                                 'Instrument',
+    i.instype                                               'Type',
+    (t.optkey1_chlnbr > 0 ?         cl.entry :'' )          'TradeArea' ,
+    p.prfid                                                 'Portfolio',
+    @StartDay                                               'StartDay',
+    @EndDay                                                 'EndDay',
+    'CashFlow'                                              'PayType',
+    sum(projected_cf(cf,,,display_id(l,'curr'))*t.quantity) 'Payment',
+    display_id(l,'curr')                                    'Curr',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+    t.optional_key                                          'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ?     cl.entry :'' )              'TradeKeyEntry1' ,
+    p.assinf                                                'Assign',
+    cf.pay_day                                              'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                     'InsType',
+    i.und_instype                                           'UndInstype',
+    t.trx_trdnbr                                            'TrxTrdnbr',
+    'ERM'                                                   'PortType'
+into 
+    tmp
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    party cp,
+    party pp,
+    portfolio p,
+    choicelist cl
+where
+        i.insaddr = t.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and t.acquirer_ptynbr = pp.ptynbr
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and l.curr = 2
+    and i.instype in ('Cap','CurrSwap','FRA','Floor','Swap','IndexLinkedSwap')
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and cf.pay_day between @StartDay{TODAY} and @EndDay{TODAY}
+    and match_filter(t, @ErmFilter{;tradefilter.fltid*})
+group by t.trdnbr, cf.pay_day 
+
+/*=======================================================================================================================
+Premiums - Cap Floor
+=======================================================================================================================*/
+select
+    t.trdnbr                                                'TrdNo',
+    i.insid                                                 'Instrument',
+    i.instype                                               'Type',
+    (t.optkey1_chlnbr > 0 ?         cl.entry :'' )          'TradeArea' ,
+    p.prfid                                                 'Portfolio',
+    @StartDay                                               'StartDay',
+    @EndDay                                                 'EndDay',
+    'Premium'                                               'PayType',
+    t.premium                                               'Payment',
+    display_id(l,'curr')                                    'Curr',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+    t.optional_key                                          'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                  'TradeKeyEntry1' ,
+    p.assinf                                                'Assign',
+    t.value_Day                                             'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                     'InsType',
+    i.und_instype                                           'UndInstype',
+    t.trx_trdnbr                                            'TrxTrdnbr',
+    'ERM'                                                   'PortType'
+into 
+    tmp
+from
+    trade t,
+    instrument i,
+    leg l,
+    party cp,
+    party pp,
+    portfolio p,
+    choicelist cl
+where
+        i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and t.acquirer_ptynbr = pp.ptynbr
+    and l.curr = 2
+    and i.instype in ('Cap','CurrSwap','FRA','Floor','Swap','IndexLinkedSwap')
+    and t.premium ~= 0.0
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and t.value_day = @StartDay{TODAY}
+    and match_filter(t, @ErmFilter{;tradefilter.fltid*})
+group by t.trdnbr, t.value_day 
+/*=======================================================================================================================
+Premiums - Cap Floor
+=======================================================================================================================*/
+select
+    t.trdnbr                                                'TrdNo',
+    i.insid                                                 'Instrument',
+    i.instype                                               'Type',
+    (t.optkey1_chlnbr > 0 ?         cl.entry :'' )          'TradeArea' ,
+    p.prfid                                                 'Portfolio',
+    @StartDay                                               'StartDay',
+    @EndDay                                                 'EndDay',
+    'Premium'                                               'PayType',
+    t.premium                                               'Payment',
+    display_id(i,'curr')                                    'Curr',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+    t.optional_key                                          'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                  'TradeKeyEntry1',
+    p.assinf                                                'Assign',
+    t.value_Day                                             'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                     'InsType',
+    i.und_instype                                           'UndInstype',
+    t.trx_trdnbr                                            'TrxTrdnbr',
+    'ERM'                                                   'PortType'
+into 
+    tmp
+from
+    trade t,
+    instrument i,
+    party cp,
+    portfolio p,
+    party pp,
+    choicelist cl
+where
+        i.insaddr = t.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and t.acquirer_ptynbr = pp.ptynbr
+    and i.curr = 2
+    and (i.instype = 'Option' and i.und_instype = 'Swap')
+    and t.premium ~= 0.0
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and t.value_day = @StartDay{TODAY}
+    and match_filter(t, @ErmFilter{;tradefilter.fltid*})
+    group by t.trdnbr, t.value_day
+
+
+select
+    t.trdnbr                                                    'TrdNo',
+    i.insid                                                     'Instrument',
+    i.instype                                                   'Type',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                      'TradeArea' ,
+    p.prfid                                                     'Portfolio',
+    @StartDay                                                   'StartDay',
+    @EndDay                                                     'EndDay',
+    'CashFlow'                                                  'PayType',
+    sum(projected_cf(cf,,,display_id(l,'curr'))*t.quantity)     'Payment',
+    display_id(l,'curr')                                        'Curr',
+    display_id(t,'counterparty_ptynbr')                         'Counterparty',
+    t.optional_key                                              'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                      'TradeKeyEntry1' ,
+    /*cl.description                                            'GL_Account',*/
+    p.assinf                                                    'Assign',
+    cf.pay_day                                                  'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                         'InsType',
+    i.und_instype                                               'UndInstype',
+    t.trx_trdnbr                                                'TrxTrdnbr',
+    'NonERM'                                                    'PortType'
+                                                                                            
+into tmp
+
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    party cp,
+    party pp,
+    portfolio p,
+    choicelist cl
+where
+        i.insaddr = t.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and t.acquirer_ptynbr = pp.ptynbr
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and l.curr = 2
+    and i.instype in ('Cap','CurrSwap','FRA','Floor','Swap','IndexLinkedSwap')
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and cf.pay_day between @StartDay{TODAY} and @EndDay{TODAY}
+    and match_filter(t, @NonErmFilter{;tradefilter.fltid*})
+group by t.trdnbr, cf.pay_day
+
+
+/*Premiums - Cap Floor*/
+
+select
+    t.trdnbr                                            'TrdNo',
+    i.insid                                             'Instrument',
+    i.instype                                           'Type',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )              'TradeArea' ,
+    p.prfid                                             'Portfolio',
+    @StartDay                                           'StartDay',
+    @EndDay                                             'EndDay',
+    'Premium'                                           'PayType',
+    t.premium                                           'Payment',
+    display_id(l,'curr')                                'Curr',
+    display_id(t,'counterparty_ptynbr')                 'Counterparty',
+    t.optional_key                                      'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )              'TradeKeyEntry1' ,
+    /*t.premium < 0 ? '193850715' : '291880010'         'GL_Account',*/
+    p.assinf                                            'Assign',
+    t.value_Day                                         'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                 'InsType',
+    i.und_instype                                       'UndInstype',
+    t.trx_trdnbr                                        'TrxTrdnbr',
+    'NonERM'                                            'PortType'
+
+into tmp
+
+from
+    trade t,
+    instrument i,
+    leg l,
+    party cp,
+    party pp,
+    portfolio p,
+    choicelist cl
+    
+where
+        i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and t.acquirer_ptynbr = pp.ptynbr
+    and l.curr = 2
+    and i.instype in ('Cap','CurrSwap','FRA','Floor','Swap','IndexLinkedSwap')
+    and t.premium ~= 0.0
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and t.value_day = @StartDay{TODAY}
+    and match_filter(t, @NonErmFilter{;tradefilter.fltid*})
+group by t.trdnbr, t.value_day
+
+/*Premiums - Swaptions*/
+
+select
+    t.trdnbr                                                'TrdNo',
+    i.insid                                                 'Instrument',
+    i.instype                                               'Type',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                  'TradeArea' ,
+    p.prfid                                                 'Portfolio',
+    @StartDay                                               'StartDay',
+    @EndDay                                                 'EndDay',
+    'Premium'                                               'PayType',
+    t.premium                                               'Payment',
+    display_id(i,'curr')                                    'Curr',
+    display_id(t,'counterparty_ptynbr')                     'Counterparty',
+    t.optional_key                                          'Devon_TRN_ID',
+    (t.optkey1_chlnbr > 0 ? cl.entry :'' )                  'TradeKeyEntry1' ,
+    p.assinf                                                'Assign',
+    t.value_Day                                             'PayDay',
+    ael_s(t,'InstrType.InstrumentType')                     'InsType',
+    i.und_instype                                           'UndInstype',
+    t.trx_trdnbr                                            'TrxTrdnbr',
+    'NonERM'                                                'PortType'
+
+into tmp
+
+from
+    trade t,
+    instrument i,
+    party cp,
+    portfolio p,
+    choicelist cl,
+    party pp
+
+where
+        i.insaddr = t.insaddr
+    and cp.ptynbr = t.counterparty_ptynbr
+    and t.prfnbr = p.prfnbr 
+    and cl.seqnbr =* t.optkey1_chlnbr
+    and t.acquirer_ptynbr = pp.ptynbr
+    and i.curr = 2
+    and (i.instype = 'Option' and i.und_instype = 'Swap')
+    and t.premium ~= 0.0
+    and t.status not in ('Simulated')
+    and cp.ptyid not in ('GT INTERNAL TRADES')
+    and pp.ptyid not in ('GT INTERNAL TRADES')
+    and t.value_day = @StartDay{TODAY}
+    and match_filter(t, @NonErmFilter{;tradefilter.fltid*})
+group by t.trdnbr, t.value_day
+
+/*Derive Linked Trades*/
+
+select distinct 
+    t.trdno                                                  'TrdNo',
+    t.trdno = t.TrxTrdnbr ? 0 :  ''                         'TrxTrdnbr'
+
+into link
+                                                                                
+from tmp t 
+
+/********************/
+
+/*Balance Sheet - Cashbook*/
+/* A/C 1933990196 -3301 */
+
+select
+    t.TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'DT' : 'CT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '193390196 - 3301'                      'GL_Account',
+    t.TrxTrdnbr,
+    'Cashbook'                              'GLType',
+    PortType
+
+into CashBook
+
+from
+
+tmp t, link l
+
+where
+        t.Counterparty not in ('STRUCTURED FINANCE')
+    and t.TrdNo = l.TrdNo
+
+/* A/C 199000225 - 3301 */
+
+select
+    t.TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'DT' : 'CT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '199000225 - 3301'                      'GL_Account',
+    t.TrxTrdnbr,
+    'Cashbook'                              'GLType',
+    PortType
+
+into CashBook
+
+from
+    tmp t,
+    link l
+
+where
+        Counterparty = 'STRUCTURED FINANCE'
+    and Type in ('Swap', 'FRA')
+    and t.TrdNo = l.TrdNo
+    and l.TrxTrdnbr = 0
+
+/*Income Satement*/
+/*Swap  A/C 391600600 */
+
+select
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'CT' : 'DT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '391600600'                             'GL_Account',
+    TrxTrdnbr,
+    'IncomeSatement'                        'GLType',
+    PortType
+
+into Income
+
+from
+    tmp
+
+where
+        Type in ('Swap', 'IndexLinkedSwap') and InsType not in ('PrimeBS', 'AmortisingPrimeBS') 
+    and PortType = 'NonERM'
+
+/*FRA  A/C 391600546 */
+
+select
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'CT' : 'DT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '391600546'                             'GL_Account',
+    TrxTrdnbr,
+    'IncomeSatement'                        'GLType',
+    PortType
+
+into Income
+
+from
+    tmp
+
+where
+        InsType = 'FRA'
+    and PortType = 'NonERM'
+
+/*Caps, Floors, Swaptions A/C 391600511 */
+
+select
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'CT' : 'DT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '391600511'                             'GL_Account',
+    TrxTrdnbr,
+    'IncomeSatement'                        'GLType',
+    PortType
+
+into Income
+
+from
+    tmp
+
+where
+        InsType in ('Cap', 'Floor', 'Option')
+    and PortType = 'NonERM'
+
+/*Basis Swaps, CurrSwaps, Prime Basis Swap - A/C 391600538 */
+
+select
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'CT' : 'DT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    '391600538'                             'GL_Account',
+    TrxTrdnbr,
+    'IncomeSatement'                        'GLType',
+    PortType
+
+into Income
+
+from
+    tmp
+
+where
+        (InsType in ('PrimeBS', 'AmortisingPrimeBS') or Type = 'CurrSwap')
+    and PortType = 'NonERM'
+
+/*ERM ALL Instruments - A/C 393390697 */
+
+select
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    Payment > 0 ? 'CT' : 'DT'               'D_C',
+    Payment > 0 ? Payment : Payment * -1    'Payment',
+    ' 393390697'                            'GL_Account',
+    TrxTrdnbr,
+    'IncomeSatement'                        'GLType',
+    PortType
+
+into Income
+
+from
+    tmp
+
+where
+    PortType = 'ERM'
+
+/*Portfolio CC*/
+
+/*
+select 
+    prfid = 'FGN1' ?                    '0544' :
+    prfid = 'GWR ARBITRAGE' ?           '0544' :
+    prfid = 'STIRT - FRA Trading' ?     '0544' :
+    prfid = 'STIRT - FRA FLO' ?         '0544' :
+    prfid = 'RV FI Options' ?           '0544' :
+    prfid = 'IRD Funding Hybrid' ?      '1571' :
+    prfid = 'IRP 2304' ?                '1572' :
+    prfid = 'ABCAP FIXED LOANS' ?       '1572' :
+    prfid = 'HEDGES 1573'?              '1573' :
+    prfid = 'NLD FAIR VALUE NOTES' ?    '1574' :
+    prfid = 'STIRT_IRS_TRADING_MHARVEY' ? '2770' :
+    prfid = 'HYBRID_BOND' ?             '2793' :
+    prfid = 'HYBRID_FVTPL' ?            '2793' :
+    prfid = 'IRD FAIR VALUE NOTES' ?    '2793' :
+    prfid = 'GROUP FUNDING HYBRID' ?    '2794' :
+    prfid = 'Portfolio Risk Management' ? '2796' :
+    prfid = 'NR Risk' ?                 '2797' :
+    prfid = 'MM Rates Trading' ?        '2869' :
+    prfid = 'Funding Fair Value Other' ? '2968' :
+    prfid = 'Conduit Trading' ?         '2969' :
+    prfid = 'CDS_HFT' ?                 '4533' :
+    prfid = 'SWAP_PROP' ?               '88009804' :
+    prfid = 'MONY 9802' ?               '9802' :
+    prfid = 'CJ RISK' ?                 '9802' :
+    prfid = 'ERM_IRP' ?                 '9804' :
+    prfid = 'SWAPS' ?                   '9804' :
+    prfid = 'IRP_STRUCT' ?              '9804' :
+    prfid = 'LTFX' ?                    '9804' :
+    prfid = 'IRD_PROP_2' ?              '9804' :
+    prfid = 'IRP_PROPRIETARY' ?         '9804' :
+    prfid = 'PRIME' ?                   '9804' :
+    prfid = 'MAN_Swap' ?                '9804' :
+    prfid = 'MAN_Swap_2' ?              '9804' :
+    prfid = 'CPI' ?                     '9804' :
+    prfid = 'IRP_STRUCT_CT' ?           '9804' :
+    prfid = 'DERV5' ?                   '9804' :
+    prfid = 'IRP_0 TO 2 YEARS' ?        '9804' :
+    prfid = 'IRP_0to2_Prop' ?           '9804' :
+    prfid = 'Swap Flow' ?               '9804' :
+    prfid = 'Swap Risk' ?               '9804' :
+    prfid = 'LTFX_BASIS_PROP' ?         '9804' :
+    prfid = 'ERM_CPI' ?                 '9804' :
+    prfid = 'ERM_LTFX' ?                '9804' :
+    prfid = 'Swap Flow' ?               '9804' :
+    prfid = 'PT_IRS' ?                  '9804' :
+    prfid = 'Swap Risk_6' ?             '9804' :
+    prfid = 'GK_SWAPS' ?                '9804' :
+    prfid = 'RAJ - FRA Trading' ?       '9804' :
+    prfid = 'PRIME_2' ?                 '9804' :
+    prfid = 'PRIME_2' ?                 '9804' :
+    prfid = 'AB_Prop_Other' ?           '9807' :
+    prfid = 'NLDR' ?                    '9807' :
+    prfid = 'JN_IRSwaps' ?              '9807' :
+    prfid = 'JN_IR_Termin' ?            '9807' :
+    prfid = 'NLDO_Zweli' ?              '9807' :
+    prfid = 'HEDG8' ?                   '9807' :
+    prfid = 'NLDO' ?                    '9807' :
+    prfid = 'NLDO_ERM' ?                '9807' :
+    prfid = 'ERM FVH R157' ?            '9830' :
+    prfid = 'ERM CFH Equity' ?          '9830' :
+    prfid = 'FGN' ?                     '9832' :
+    prfid 'CC',
+    prfid, 
+    prfnbr, 
+    compound
+
+into 
+    tmpPort
+from 
+    Portfolio
+where
+    prfid in (
+    'IRD Funding Hybrid' ,
+    'ERM_IRP' ,
+    'SWAPS' ,
+    'IRP_STRUCT' ,
+    'LTFX' ,
+    'IRD_PROP_2' ,
+    'IRP_PROPRIETARY' ,
+    'NLDO' ,
+    'NLDO_ERM' ,
+    'FGN1' ,
+    'GWR ARBITRAGE',
+    'PRIME',
+    'MAN_Swap',
+    'MAN_Swap_2',
+    'FGN' ,
+    'CPI' ,
+    'IRP_STRUCT_CT' ,
+    'IRP 2304' ,
+    'STIRT - FRA Trading',
+    'IRP_0 TO 2 YEARS' ,
+    'CDS_HFT',
+    'SWAP_PROP',
+    'MONY 9802',
+    'DERV5',
+    'ERM FVH R157',
+    'HEDGES 1573',
+    'IRP_0to2_Prop',
+    'HEDG8',
+    'HYBRID_BOND',
+    'HYBRID_FVTPL',
+    'GROUP FUNDING HYBRID',
+    'ERM CFH Equity',
+    'Swap Flow',
+    'Swap Risk',
+    'MM Rates Trading',
+    'LTFX_BASIS_PROP',
+    'ERM_CPI',
+    'ERM_LTFX',
+    'Swap Flow',
+    'PT_IRS',
+    'NLDO_Zweli',
+    'NLD FAIR VALUE NOTES',
+    'ABCAP FIXED LOANS',
+    'IRD FAIR VALUE NOTES',
+    'STIRT_IRS_TRADING_MHARVEY',
+    'Conduit Trading',
+    'NLDR',
+    'JN_IRSwaps',
+    'JN_IR_Termin',
+    'Swap Risk_6',
+    'NR Risk',
+    'GK_SWAPS',
+    'RAJ - FRA Trading',
+    'PRIME_2',
+    'STIRT - FRA FLO',
+    'RV FI Options',
+    'AB_Prop_Other',
+    'PRIME_2',
+    'Funding Fair Value Other',
+    'CJ RISK',
+    'Portfolio Risk Management')
+
+select 
+    '9830' 'CC',
+    prfid, 
+    prfnbr, 
+    compound
+
+into tmpPort
+
+from
+    Portfolio
+
+where
+        prfid like '%ERM%'
+    and prfid not in ('ERM_IRP', 'NLDO_ERM','ERM_LTFX','ERM CFH Equity')
+*/
+
+
+select 
+    '9830' 'CC',
+    prfid, 
+    prfnbr, 
+    compound
+
+into tmpPort
+
+from
+    Portfolio
+
+where
+        
+    prfid  in (
+'ERM FVH LA',
+'ERM FVH R157',
+'ERM FVH R186',
+'ERM CFH',
+'ERM CFH Equity',
+'ERM EFV RF',
+'ERM CFH NSBB',
+'ERM EFV Fund',
+'ERM EFV FunZ',
+'ERM FVH FL',
+'ERM CFH Funding Desk',
+'ERM EFV PF',
+'ERM FVH Senior Debt',
+'ERM FVH Sub-ordinated Debt',
+'ERM EFV LA'
+)
+
+
+select distinct
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    p.CC,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    D_C,
+    Payment,
+    GL_Account,
+    TrxTrdnbr,
+    GLType,
+    PortType
+
+into all
+
+from
+    Cashbook c,
+    tmpPort p
+    
+where
+        c.portfolio = p.prfid
+
+select distinct
+    TrdNo,
+    Instrument,
+    Type,
+    TradeArea,
+    Portfolio,
+    p.CC,
+    StartDay,
+    EndDay,
+    PayType,
+    Curr,
+    Counterparty,
+    Devon_TRN_ID,
+    TradeKeyEntry1,
+    Assign,
+    PayDay,
+    InsType,
+    UndInstype,
+    D_C,
+    Payment,
+    GL_Account,
+    TrxTrdnbr,
+    GLType,
+    PortType
+
+into all
+
+from
+    Income c,
+    tmpPort p
+    
+where
+        c.portfolio = p.prfid
+
+select
+    'Cashbook',
+    TradeArea,
+    GL_Account,
+    Assign,
+    D_C,
+    PayType,
+    Payment,
+    TrdNo,
+    Counterparty,
+    p.CC,
+    InsType
+
+from 
+    Cashbook c,
+    tmpPort p
+where
+        c.portfolio = p.prfid
+
+union
+
+select
+    'IncomeStatement',
+    TradeArea,
+    GL_Account,
+    Assign,
+    D_C,
+    PayType,
+    Payment,
+    TrdNo,
+    Counterparty,
+    p.CC,
+    InsType
+
+from
+    Income c,
+    tmpPort p
+    
+where
+        c.portfolio = p.prfid
+
+union
+
+select 
+    'TOTAL',
+    TradeArea,
+    GL_Account,
+    Assign,
+    D_C,
+    PayType,
+    sum(Payment),
+    TrdNo,
+    Counterparty,
+    CC,
+    InsType
+
+from all
+
+group by D_C

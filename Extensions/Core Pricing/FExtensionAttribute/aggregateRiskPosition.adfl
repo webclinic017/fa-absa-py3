@@ -1,0 +1,5 @@
+[Core Pricing]FCashFlowInstrument:aggregateRiskPosition = double(riskPositionBase * normalizedNominalValue) * timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);
+[Core Pricing]FInstrument:aggregateRiskPosition = double(riskPositionBase * normalizeRiskPositionBaseFactor) * timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);
+[Core Pricing]FInstrumentAndTrades:aggregateRiskPosition = nil;
+[Core Pricing]FMultiInstrumentAndTrades:aggregateRiskPosition = sumOf(instruments :* "aggregateRiskPosition" [positionObject, displayCurrency, filterUnit]);
+[Core Pricing]FSingleInstrumentAndTrades:aggregateRiskPosition = instrument :* "aggregateRiskPosition" [positionObject, displayCurrency, filterUnit];

@@ -1,0 +1,6 @@
+[Prime Services]FSingleInstrumentAndTrades:inceptionFundingNonDeposit = select(allFundingPortfolios, 
+  true->select(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_FundingCalculations", context).CalculateFunding(cfdUnderlying, fundingInstruments, smallDate, profitAndLossEndDate, validTradesInPosition, true), 
+    nil->"Not implemented", 
+    default->py("PS_FundingCalculations", context).CalculateFunding(instrument, fundingInstruments, smallDate, profitAndLossEndDate, validTradesInPosition, true)), 
+  false->0);

@@ -1,0 +1,104 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candice exception2') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candice exception2' and p.type = 'SQL Query' 
+ 
+  select     
+    display_id(cl, 'context_seqnbr')               'context',
+    mapping_type,    
+    display_id(cl, 'group_chlnbr')                  'ValGroup',
+    display_id(cl, 'insaddr')                       'insid',
+    type     'type',                   
+    cl.name   'name',    
+    display_id(cl, 'curr')                          'Curr',
+    cl.updat_time                                   'time',
+    u.name                                          'uname',
+    cl.updat_usrnbr                                 'user'
+
+into cltemp
+from
+    ContextLink cl,
+    user u
+where
+    cl.updat_time=@StartDay{TODAY}
+    and u.usrnbr = cl.updat_usrnbr
+/************************************************************************************/
+select distinct
+    ch.updat_time 'choicetime',
+    ch.updat_usrnbr 'choiceuser',
+    ch.entry 'choiceentry',
+    ch.list 'choicelist',
+    u.name 'choicename'             
+into chtemp
+from
+    choicelist ch,
+    user u
+where ch.updat_time=@StartDay{TODAY}
+      and u.usrnbr=ch.updat_usrnbr
+      
+/************************************************************************************/
+select distinct
+cl.context,
+cl.mapping_type,    
+cl.ValGroup,
+cl.insid,
+cl.type,
+cl.name,    
+cl.Curr,
+cl.time,
+cl.uname,
+cl.user,
+ch.choicetime,
+ch.choiceuser,
+ch.choiceentry,
+ch.choicelist,
+ch.choicename
+from 
+cltemp cl,
+chtemp ch
+where  cl.time=*ch.choicetime
+      
+      
+      
+      
+      
+      
+/************************************************************************************
+select distinct
+    yc.updat_time,       
+    yc.updat_usrnbr,
+    yc.yield_curve_name,
+    yc.yield_curve_type,
+    yc.underlying_yield_curve_seqnbr,
+    yc.interpolation_type,
+    yc.estimation_type,
+    yc.attribute_type,
+    yc.storage_calc_type,
+    yc.storage_daycount,
+    yc.storage_rate_type,
+    yc.ir_format,
+    yc.pay_day_method,
+    u.name
+into yctemp
+from
+    yieldcurve yc,
+    user u
+where yc.updat_time>=@StartDay{TODAY}
+      and u.usrnbr=yc.updat_usrnbr
+/**********************************************************************************
+Select distinct
+    ycp.updat_time,
+    ycp.updat_usrnbr,
+    ycp.yield_curve_seqnbr,
+    ycp.date_period.count,
+    ycp.date_period.unit,
+    u.name
+into ycptemp
+from 
+   yieldcurvepoint ycp,
+    user u
+where ycp.updat_time>=@StartDay{TODAY}
+      and u.usrnbr=ycp.updat_usrnbr*/
+

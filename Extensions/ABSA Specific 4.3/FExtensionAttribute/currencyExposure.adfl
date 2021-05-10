@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrument:currencyExposure = select(currencyExposureCurrency, 
+  nil->0, 
+  default->sumOf((currencyZAR:discountCurve).DiscountValue(py("CurrencyExposure", context).GetZarCurrencyExposure(tradesInPosition, currencyExposureCurrency, profitAndLossEndDate), profitAndLossEndDate)).Number);
+[ABSA Specific 4.3]FInstrumentAndTrades:currencyExposure = instrument :* "currencyExposure" [positionObject, currencyExposureCurrency];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:currencyExposure = sumOf(instruments :* "currencyExposure" [positionObject, currencyExposureCurrency]);

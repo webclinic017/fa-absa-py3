@@ -1,0 +1,42 @@
+/*
+    Purpose             : Identify a aggregate trade for a given archive trade number
+    Department and Desk : Ops - capital markets bonds
+    Requester           : SM IT
+    Developer           : Anil Parbhoo
+    CR Number           : CHNG0003396841
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Aggregate_Trade_Given_Archive') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Aggregate_Trade_Given_Archive' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+i.insid,
+i.instype,
+t.trdnbr,
+t.status,
+t.Quantity,
+t.quantity*i.contr_size'Nominal',
+display_id(t, 'prfnbr')'Portfolio',
+party.ptyid'counterparty',
+t.aggregate_trdnbr
+
+from
+
+trade t,
+instrument i,
+party party
+
+where
+
+i.insaddr = t.insaddr
+and t.trdnbr = @Archive_Trade{55247417;}
+and t.counterparty_ptynbr = party.ptynbr

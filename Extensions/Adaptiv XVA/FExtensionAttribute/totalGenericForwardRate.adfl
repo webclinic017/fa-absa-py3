@@ -1,0 +1,7 @@
+[Adaptiv XVA]FCashFlow:totalGenericForwardRate = select(cashFlowInformation:legIsGenericZeroCouponFixed, 
+  true->cashFlowInformation :* "totalFloatRate" [legInformation, totalFixedRate := opaque(dividedByHundred(double(instrument:theoreticalPrice)))], 
+  default->select(instrument:quotationType, 
+    "Coupon"->cashFlowInformation :* "totalGenericForwardRate" [forwardRate := opaque(dividedByHundred(double(instrument:theoreticalPrice)))], 
+    "Spread"->cashFlowInformation :* "totalGenericForwardRate" [spreadForGenericForwardRate := opaque(double(instrument:parCoupon)), legInformationOrNil = legInformation], 
+    default->0.0));
+[Adaptiv XVA]FCashFlowInformation:totalGenericForwardRate = forwardRate + spreadForGenericForwardRate;

@@ -1,0 +1,7 @@
+[Default]FSecurityMoneyFlow:nominalOrContractSize = select(security.IsSecurity and security.IsCashFlowInstrument, 
+  true->select(security.RedemptionType, 
+    "Without Nom Change"->security:contractSize, 
+    default->security :* "nominal" [forwardValueDate = acquireDayOrSpotDate]), 
+  default->select(security:isPhysicalQuotation, 
+    true->security:contractSizeInQuotation, 
+    false->security :* "nominal" [forwardValueDate = acquireDayOrSpotDate]));

@@ -1,0 +1,15 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:localDeltaHedge = select(children.Size > 0, 
+  true->sumOf((children) :* "localDeltaHedge.Number"), 
+  false->0.0);
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:localDeltaHedge = select(children.Size > 0, 
+  true->sumOf((children) :* "localDeltaHedge.Number"), 
+  false->0.0);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:localDeltaHedge = select(instrument:inLocalDeltaHedgeFilter or instrument:isDivFut or instrument:isExpired or instrument:isDivSwap, 
+  true->value(0.0), 
+  false->select(instrument:isTRS, 
+    true->shunt(instrument:TRSUnderlyingSameAsHedgeIns, 
+      true->instrument:payReceiveFactor * riskPositionDisplay / 10, 
+      false->shunt(priceDeltaHedgeAlternativeChosen:isIndex, 
+        true->instrument:payReceiveFactor * (underlying:marketPrice * theoreticalValueFxRates / priceDeltaHedgeAlternativeChosen:marketPrice) * riskPosition / 10, 
+        false->(priceDeltaPercent / priceDeltaPercentForHedge) / 10)), 
+    default->(priceDeltaPercent / priceDeltaPercentForHedge) / 10));

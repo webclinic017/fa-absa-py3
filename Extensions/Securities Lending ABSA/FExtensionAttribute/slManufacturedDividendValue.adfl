@@ -1,0 +1,9 @@
+[Securities Lending ABSA]FInstrument:slManufacturedDividendValue = shunt(hasDividendsInForecast, 
+  true->switch(slLDTPlusFiveStockPosition > 0, 
+    true->(slLDTPlusFiveStockPosition - min(slLDTPlusFiveStockPosition, max(slLDTPlusFiveStockPosition + slLDTPlusFiveLoanPosition, 0))) * slDividendFactorSum, 
+    false->slLDTPlusFiveStockPosition * slDividendFactorSum), 
+  default->0);
+[Securities Lending ABSA]FInstrumentAndTrades:slManufacturedDividendValue = sumOf(instrument :* "slManufacturedDividendValue" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slManufacturedDividendValue = sumOf(instruments :* "slManufacturedDividendValue" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:slManufacturedDividendValue = nil;
+[Securities Lending ABSA]FTradeRow:slManufacturedDividendValue = sumOf(instrument :* "slManufacturedDividendValue" [tradesInPosition = [trade], profitAndLossStartDate, profitAndLossEndDate]);

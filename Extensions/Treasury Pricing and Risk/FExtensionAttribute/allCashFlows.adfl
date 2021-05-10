@@ -1,0 +1,3 @@
+[Treasury Pricing and Risk]FLeg:allCashFlows = select(instrument:cashFlowProjectedFromModelCall, 
+  true->valuesInType(instrument :* "theoreticalModelCashFlowProjectedValue", cashFlows :* "object.StorageId", false).Flatten.SortByProperty("DateTime", true), 
+  default->staticLegInformation.ProjectedCashFlow(valuationDate, projectedPaymentDate, legInformation, roundingInformation));

@@ -1,0 +1,111 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SANLD_TRADE_SELECTION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SANLD_TRADE_SELECTION' and p.type = 'SQL Query' 
+
+/*Added base & quoted currencies*/
+
+select
+	t.optional_key	                                                        'FENICS_NO',
+	t.trdnbr	                                                            'FRONT_NO',
+	i.instype	                                                            'INSTRUMENT',
+	u.insid                                                                 'BASECURR',
+	display_id(i,'curr')                                                    'QUOTEDCURR',
+	display_id(t,'prfnbr')	                                                'PORTFOLIO',
+	display_id(t,'counterparty_ptynbr')	                                    'COUNTERPARTY',
+	time_to_day(t.time)	                                                    'TRADE_DATE',
+	i.exp_day		                                                        'EXPIRY_DATE',
+	days_between(@Date{},(date_add_banking_day(i.exp_day,,0)),'Act/365')    'DAYS_TO_EXPIRY',
+	t.status		                                                        'TRADE_STATUS',
+	t.acquire_day		                                                    'ACQUIRE_DATE'
+	
+into temp
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u
+	
+where
+	t.insaddr = i.insaddr
+and i.und_insaddr = u.insaddr
+and	i.instype in (@Instruments{;instrument.instype*})
+and	time_to_day(t.creat_time) >= @Date{}
+and	display_id(t,'prfnbr') in (@Portfolio{;portfolio.prfid*})
+and	t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+
+  
+select
+    ''  'TEXT',
+    t.FENICS_NO,
+	t.FRONT_NO,
+	t.INSTRUMENT,
+	t.BASECURR,
+	t.QUOTEDCURR,
+	t.PORTFOLIO,
+	t.COUNTERPARTY,
+	t.TRADE_DATE,
+	t.EXPIRY_DATE,
+	t.DAYS_TO_EXPIRY,
+	t.TRADE_STATUS,
+	t.ACQUIRE_DATE
+	
+from
+    temp t
+    
+order by 1 
+
+union
+
+select
+    'One Day Option'  'TEXT',
+    t.FENICS_NO,
+	t.FRONT_NO,
+	t.INSTRUMENT,
+	t.BASECURR,
+	t.QUOTEDCURR,
+	t.PORTFOLIO,
+	t.COUNTERPARTY,
+	t.TRADE_DATE,
+	t.EXPIRY_DATE,
+	t.DAYS_TO_EXPIRY,
+	t.TRADE_STATUS,
+	t.ACQUIRE_DATE
+
+from 
+    temp t
+
+where 
+    t.INSTRUMENT = 'Option'
+and t.ACQUIRE_DATE = @Date{}
+and t.DAYS_TO_EXPIRY = 1
+order by 1
+
+union
+
+select
+    'Same Day FxSwap'  'TEXT',
+    t.FENICS_NO,
+	t.FRONT_NO,
+	t.INSTRUMENT,
+	t.BASECURR,
+	t.QUOTEDCURR,
+	t.PORTFOLIO,
+	t.COUNTERPARTY,
+	t.TRADE_DATE,
+	t.EXPIRY_DATE,
+	t.DAYS_TO_EXPIRY,
+	t.TRADE_STATUS,
+	t.ACQUIRE_DATE
+
+from 
+    temp t
+
+where 
+    t.INSTRUMENT = 'FxSwap'
+and t.ACQUIRE_DATE = @Date{}
+and t.DAYS_TO_EXPIRY = 0
+order by 1
+

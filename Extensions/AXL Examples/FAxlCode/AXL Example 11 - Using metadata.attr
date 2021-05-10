@@ -1,0 +1,110 @@
+[AXL Examples]FObject:AXL Example 11 - Using metadata
+//---------------------------------------------------------------------
+//AXL Example 11 - Using metadata
+//---------------------------------------------------------------------
+
+//This example shows how use metadata that will decide how the
+//formula will be presented in the Data Disposition GUI.
+
+//Each metadata part is declared as a key in the dictionary preceeding the function.
+//The available keys are:
+//"DisplayInformation", "DisplayInformationBlueprint" and "Defaults".
+//Each key is a dictionary of its own declaring various properties.
+//The "DisplayInformation" and "DisplayInformationBlueprint" key values can consist of one or more of the following:
+
+//DisplayInformation:
+//{
+//   Label:'MyLabel',
+//   GroupLabel:'MyGroup',
+//   Description:'MyDescription
+//}
+
+//The "DisplayInformationBlueprint" has the ability to declare strings that will use
+//parts(Label, GroupLabel, Description) of the parameters that will be inserted once shown in
+//the Data Disposition GUI. For instance:
+
+//DisplayInformationBlueprint:
+//{
+//  Label:'{X.Label}',
+//  Description:'Summarizes {X.Label} * {Y.Label}'
+//}
+//If the chosen value for X is Strike Price and Y is a scale factor of 10.0 the result in the GUI would be:
+//Label: Strike Price
+//Description: Summarizes Amount * 10.0
+//Please note that this "parameterization" of the strings are only available in the "DisplayInformationBlueprint".
+
+//The "Defaults" key declares properties that will be used by default in the GUI. Currently there is only one
+//setting available "SuggestedFormatter". The "SuggestedFormatter" is a dictionary of its own and can consist
+//of either the "Formatter" or "UseFormatterFromParameter" keys. Shown below:
+//Defaults:
+//{
+//  SuggestedFormatter:
+//  {
+//     Formatter:'Imprecise'
+//  }
+//}
+//or
+
+//Defaults:
+//{
+//  SuggestedFormatter:
+//  {
+//     UseFormatterFromParameter:X
+//  }
+//}
+
+
+//In addition to this, each declared parameter can have a "DisplayInformation" key as well.
+//The strings in this "DisplayInformation" will be shown for each parameter in the GUI
+
+//Try using this example formula in the Data Disposition GUI to see it in action.
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Double,
+      DisplayInformation:
+      {
+        Label:'Table Value',
+        Description:'A table value to be scaled' //Will be shown as a tooltip
+      }
+    },
+    {
+      Name:Y,
+      Type:Double,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+        Label:'Scale Factor',
+        Description:'The factor to scale by' //Will be shown as a tooltip
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'AXL Example 11 - Scale Factor',
+    GroupLabel:'AXL Examples',
+    Description:'Summarizes a value and scales it with a scale factor'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'Sum of {X.Label} * {Y.Label}',
+    Description:'Summarizes {X.Label} and scales it by {Y.Label}'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'Imprecise'
+    }
+  }
+}
+main = Aggregate.Sum($X) + $Y;
+
+
+
+
+
+...

@@ -1,0 +1,8 @@
+[SA-CCR (Beta)]FFxRate:saccrPositiveSumMarkToMarketValues = select(saccrAssetClassDefined, 
+  true->discountAndFilterCurrency(ccrPositiveMarkToMarketValuesFx, discountAndConvertToBaseForwardFXConversionMoneyMarketCurve, discountAndConvertToBaseDate, filterUnit), 
+  false->ccrZero);
+[SA-CCR (Beta)]FInstrument:saccrPositiveSumMarkToMarketValues = select(saccrAssetClassDefined, 
+  true->denominatedValueOrBasket(max(markToMarketValues, baseDateZero)), 
+  false->ccrZero);
+[SA-CCR (Beta)]FInstrumentAndTrades:saccrPositiveSumMarkToMarketValues = openInstrument :* "saccrPositiveSumMarkToMarketValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, useMarkToMarketPriceToday, useFallbackToTheoreticalValues, profitAndLossParameters, filterUnit, groupingSpotDiscountDate, plSpotGroupingReference, profitAndLossFXRateDate, accountingParameters, tradedPortfolio, forwardFXConversionCurvesIgnoreDiscType, forwardFXConversionFXRatesIgnoreDiscType, displayCurrency];
+[SA-CCR (Beta)]FMultiInstrumentAndTrades:saccrPositiveSumMarkToMarketValues = sumOf(openInstruments :* "saccrPositiveSumMarkToMarketValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, useMarkToMarketPriceToday, useFallbackToTheoreticalValues, profitAndLossParameters, filterUnit, groupingSpotDiscountDate, plSpotGroupingReference, profitAndLossFXRateDate, accountingParameters, tradedPortfolio, forwardFXConversionCurvesIgnoreDiscType, forwardFXConversionFXRatesIgnoreDiscType, displayCurrency, forwardFXConversionCurrencySymbol := displayCurrencySymbol]);

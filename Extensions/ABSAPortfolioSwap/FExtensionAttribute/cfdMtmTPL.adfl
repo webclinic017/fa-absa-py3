@@ -1,0 +1,10 @@
+[ABSAPortfolioSwap]FInstrument:cfdMtmTPL = object :* "plZero" [displayCurrency];
+[ABSAPortfolioSwap]FLeg:cfdMtmTPL = switch(legDescription, 
+  "Mtm"->object :* "tPL" [positionObject], 
+  default->object :* "plZero" [displayCurrency]);
+[ABSAPortfolioSwap]FLegAndTrades:cfdMtmTPL = leg :* "cfdMtmTPL";
+[ABSAPortfolioSwap]FMultiInstrumentAndTrades:cfdMtmTPL = sumOf(instruments :* "cfdMtmTPL" [positionObject, displayCurrency]);
+[ABSAPortfolioSwap]FPortfolioSwap:cfdMtmTPL = switch(legs == [], 
+  true->object :* "plZero" [displayCurrency], 
+  false->sumOf(legs :* "cfdMtmTPL" [positionObject, displayCurrency]));
+[ABSAPortfolioSwap]FSingleInstrumentAndTrades:cfdMtmTPL = instrument :* "cfdMtmTPL" [positionObject, displayCurrency];

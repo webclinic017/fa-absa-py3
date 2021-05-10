@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FCombInstrMap:priceSpeedPercentValuesInstrument = select(count(priceGreekRiskFactorNodes) > 0, 
+  true->timeDistributionFactor * instrument :* "priceSpeedPercentValuesInstrument" [doSplitAll, priceSource, priceGreekExcludeVolatility, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors] * weight * instrument:contractSize * fxLegToInstrumentOnLegSpotDay, 
+  false->instrumentSpotZero);
+[ABSA Greeks 4.3]FCombination:priceSpeedPercentValuesInstrument = select(splitCombination and (count(priceGreekRiskFactorNodes) > 0), 
+  true->sumOf((instrumentMaps) :* "priceSpeedPercentValuesInstrument" [doSplitAll, priceSource, priceGreekExcludeVolatility, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors]) / combinationDivisionFactor, 
+  false->spotHandlingZero);
+[ABSA Greeks 4.3]FInstrument:priceSpeedPercentValuesInstrument = select(count(priceGreekRiskFactorNodes) > 0, 
+  true->differential(priceGammaPriceGreekRiskFactorsShiftedUp, priceGammaValuesInstrumentForPriceShift, 1, valuationModelSpecificRelativePriceShift * 100) * square((normalizeUnitMultiplicationIgnoreDateTime(priceGreekRiskFactorsUnfiltered, [1], currency, ) / 100)), 
+  false->spotHandlingZero);

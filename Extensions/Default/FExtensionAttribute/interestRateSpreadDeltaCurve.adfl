@@ -1,0 +1,3 @@
+[Default]FInstrumentAndTrades:interestRateSpreadDeltaCurve = select(interestRateSpreadDeltaCurveAndBucketsSetExternally == nil, 
+  true->nil, 
+  false->differential(shift(interestRateSpreadDeltaCurveBaseValue, snoop(interestRateSpreadDeltaCurveBaseValue, yieldCurveRiskFactorNames, interestRateSpreadDeltaCurveFilter), shiftCurveParRateFromCurve interestRateSpreadDeltaCurveShiftParameters), interestRateSpreadDeltaCurveBaseValue));

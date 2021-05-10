@@ -1,0 +1,8 @@
+[StructuredProductsDealPackage]FExoticEvent:spTrfTargetAccrual = select(instrument:spStructureType, 
+  "Target Pivot Forward"->select(spTrfPivotRate <= spTrfFixingValue, 
+    true->maxOf([0, -object:spTrfTargetAccrualCalc [strikeToUse = spTrfStrike2]]), 
+    false->maxOf([0, object:spTrfTargetAccrualCalc [strikeToUse = double(instrument:strikeValueModel)]])), 
+  default->switch(instrument.OptionTypeIsCall, 
+    true->maxOf([0, object:spTrfTargetAccrualCalc [strikeToUse = double(instrument:strikeValueModel)]]), 
+    default->maxOf([0, -object:spTrfTargetAccrualCalc [strikeToUse = double(instrument:strikeValueModel)]])));
+[StructuredProductsDealPackage]FInstrument:spTrfTargetAccrual = spHistoricalTrfExpiryEvents :* "spTrfTargetAccrual";

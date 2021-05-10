@@ -1,0 +1,15 @@
+[Prime Services]FCombInstrMapAndTrades:dailyExecutionFee = nil;
+[Prime Services]FInstrumentAndTrades:dailyExecutionFee = sumOf(children :* "dailyExecutionFee");
+[Prime Services]FLegAndTrades:dailyExecutionFee = nil;
+[Prime Services]FSingleInstrumentAndTrades:dailyExecutionFee = switch(allFundingPortfolios, 
+  true->switch(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_FundingCalculations", context).CalculateFee(cfdUnderlying, fundingInstruments, "ExecutionFee", isGeneralPortfolio, oneDayBeforeEndDate, profitAndLossEndDate), 
+    nil->"Not implemented", 
+    default->py("PS_TradeFees", context).ReturnTotalFee(tradesInPosition.AsArray, oneDayBeforeEndDate, profitAndLossEndDate)), 
+  false->0);
+[Prime Services]FTrade:dailyExecutionFee = switch(isFundingPortfolio and tradeOrCreateDateToday and (tradeDate <= profitAndLossEndDate) and (object.Status <> "Void"), 
+  true->switch(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_new_fees", context).execution_fee_off_tree(object), 
+    default->py("PS_TradeFees", context).ReturnTradeFee(object)), 
+  false->0);
+[Prime Services]FTradeRow:dailyExecutionFee = trade :* "dailyExecutionFee";

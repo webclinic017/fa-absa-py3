@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_Bond_OptionDailyTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_Bond_OptionDailyTrades' and p.type = 'SQL Query' 
+/*
+
+reflect the bond option trades captured on a given date
+
+
+
+*/
+
+
+
+select
+
+t.trdnbr,
+t.status,
+i.insid,
+ui.insid'bond',
+t.time,
+t.premium
+
+from
+
+trade t,
+instrument i,
+instrument ui
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.und_insaddr=ui.insaddr
+and i.instype='option'
+and ui.instype='bond'
+and time_to_day(t.creat_time)=@Trade_Date{Today;}

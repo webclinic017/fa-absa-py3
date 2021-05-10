@@ -1,0 +1,6 @@
+[Core Risk]FHedgeTotalRiskRow:interestRateDelta = instrumentsToHedge :* "interestRateDelta" [displayCurrency, timeBucketsSetExternally, yieldCurveRiskFactorNames, globalDiscountingType] + hedgeInstruments :* "interestRateDelta" [displayCurrency, timeBucketsSetExternally, yieldCurveRiskFactorNames, globalDiscountingType];
+[Core Risk]FInstrumentAndTrades:interestRateDelta = differential(interestRateTheoreticalValueUp, theoreticalValueForInterestRateDelta, abs(fixedYieldShift) / 0.0001);
+[Core Risk]FPriceAggregate:interestRateDelta = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "interestRateDelta");
+[Core Risk]FTimeBucketAndObject:interestRateDelta = differential(interestRateDeltaShifted, rowObjectTheoreticalValueForInterestRateDelta, abs(fixedYieldShift) / 0.0001);

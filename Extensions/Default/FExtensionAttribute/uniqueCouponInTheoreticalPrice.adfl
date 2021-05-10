@@ -1,0 +1,10 @@
+[Default]FInstrument:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter);
+[Default]FInstrumentAndTrades:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter, lotIndex);
+[Default]FLeg:uniqueCouponInTheoreticalPrice = select(isGenericCouponOrSpreadQuoted and not isFixedLeg, 
+  true->nil, 
+  false->snoop01(instrument:theoreticalPrice, instrument:uniqueCouponName, uniqueCouponOrSpreadInTheoreticalPriceFilter));
+[Default]FLegAndTrades:uniqueCouponInTheoreticalPrice = leg:uniqueCouponInTheoreticalPrice;
+[Default]FMultiInstrumentAndTrades:uniqueCouponInTheoreticalPrice = nil;
+[Default]FOrderBook:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, "uniqueCoupon", instrument:uniqueCouponOrSpreadInTheoreticalPriceFilter);
+[Default]FPriceAggregate:uniqueCouponInTheoreticalPrice = priceFeed:uniqueCouponInTheoreticalPrice;
+[Default]FPriceFeed:uniqueCouponInTheoreticalPrice = snoop01(theoreticalPrice, "uniqueCoupon", instrument:uniqueCouponOrSpreadInTheoreticalPriceFilter);

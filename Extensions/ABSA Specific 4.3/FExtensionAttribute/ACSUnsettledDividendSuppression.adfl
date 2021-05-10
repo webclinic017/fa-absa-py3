@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ACSUnsettledDividendSuppression = emptyListToZero(sumOf((tradesInPosition.Filter(voidAndSimulatedFilter)) :* "ACSUnsettledDividendSuppression"));
+[ABSA Specific 4.3]FPayment:ACSUnsettledDividendSuppression = shunt(object.Type, 
+  "Dividend Suppression"->shunt((object.ValidFrom <= profitAndLossEndDate) and (object.PayDay > profitAndLossEndDate), 
+    true->object.Amount, 
+    default->0), 
+  default->0);
+[ABSA Specific 4.3]FTrade:ACSUnsettledDividendSuppression = emptyListToZero(sumOf((object.Payments) :* "ACSUnsettledDividendSuppression"));

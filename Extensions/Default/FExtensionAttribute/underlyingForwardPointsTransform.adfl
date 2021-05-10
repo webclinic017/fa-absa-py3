@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingForwardPointsTransform = select(isFinite(underlyingForwardValueDifferenceAtForwardValuationDate), 
+  false->nil, 
+  true->underlyingForForwardPoints:quoteConversionToQuote [quoteConversionUnitValue = underlyingForwardValueDifferenceAtForwardValuationDate, quoteConversionQuotation = underlyingForwardPointsQuotation, priceSource, isSplitAllGrouped]) * forwardPointsContractScalingFactor;
+[Default]FInstrumentAndTrades:underlyingForwardPointsTransform = select(isValidForForwardPoints, 
+  true->openInstrumentOrInstrument:underlyingForwardPointsTransform [theoreticalPrice], 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:underlyingForwardPointsTransform = nil;

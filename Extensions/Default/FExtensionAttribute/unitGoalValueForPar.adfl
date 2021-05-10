@@ -1,0 +1,11 @@
+[Default]FCap:unitGoalValueForPar = nil;
+[Default]FFloor:unitGoalValueForPar = nil;
+[Default]FFreeDefinedCashFlow:unitGoalValueForPar = select((numberOfPayLegs > 0) and (numberOfReceiveLegs > 0), 
+  true->0, 
+  false->select(maxOf(legs :* "nominalAtEnd"), 
+    false->0, 
+    true->100.0));
+[Default]FInstrument:unitGoalValueForPar = select(object.IsOnBalanceSheet, 
+  true->100.0, 
+  false->0.0);
+[Default]FSecurityLoan:unitGoalValueForPar = 0.0;

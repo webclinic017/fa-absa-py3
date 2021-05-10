@@ -1,0 +1,8 @@
+[Profit and Loss]FInstrument:profitAndLossDisplayDate = select(plSpotGroupingReference == nil, 
+  true->valuationDate, 
+  false->plSpotGroupingReference.SpotDate(valuationDate));
+[Profit and Loss]FInstrumentAndTrades:profitAndLossDisplayDate = select(useGroupingSpot, 
+  true->select(plSpotGroupingReference, 
+    nil->valuationDate, 
+    default->plSpotGroupingReference.SpotDate(valuationDate)), 
+  false->valuationDate);

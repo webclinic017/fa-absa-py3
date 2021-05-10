@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:volatilityStructureInTheoreticalPriceTransform = select(volatilityStructureInTheoreticalPriceObject, 
+  nil->nil, 
+  default->select(useATMVolAsVolatility, 
+    true->delta(referenceInstrumentForVolatility:referenceATMVol [volatilityInformation = volatilityStructureInTheoreticalPriceObject, priceSource, isSplitAllGrouped], volatilityStructureInTheoreticalPrice), 
+    false->delta(referenceInstrumentForVolatility:volatilityStructureValue [volatilityInformation = volatilityStructureInTheoreticalPriceObject, priceSource, isSplitAllGrouped, volatilityStrikePrice = referenceInstrumentForVolatility:volatilityStrikePriceCompoAdjusted, spotDelta = isSpotSettlement], volatilityStructureInTheoreticalPrice)));
+[Core Pricing]FInstrumentAndTrades:volatilityStructureInTheoreticalPriceTransform = openInstrumentOrInstrument:volatilityStructureInTheoreticalPriceTransform [theoreticalPrice, priceSource, isSplitAllGrouped];
+[Core Pricing]FMultiInstrumentAndTrades:volatilityStructureInTheoreticalPriceTransform = nil;
+[Core Pricing]FPriceAggregate:volatilityStructureInTheoreticalPriceTransform = instrument:volatilityStructureInTheoreticalPriceTransform [theoreticalPrice, priceSource, isSplitAllGrouped];
+[Core Pricing]FTradeRow:volatilityStructureInTheoreticalPriceTransform = equivalentInstrument:volatilityStructureInTheoreticalPriceTransform [theoreticalPrice, priceSource, isSplitAllGrouped];
+[Core Pricing]FVolatilityPoint:volatilityStructureInTheoreticalPriceTransform = delta(volatilityStructureValue, volatilityStructureInTheoreticalPrice);

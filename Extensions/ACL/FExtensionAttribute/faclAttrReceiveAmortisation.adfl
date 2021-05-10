@@ -1,0 +1,8 @@
+[ACL]FCurrencySwap:faclAttrReceiveAmortisation = select(faclReceiveLeg, 
+  nil->nil, 
+  default->faclReceiveLeg :* "faclAmortisation" [faclTradeQuantity]);
+[ACL]FInstrument:faclAttrReceiveAmortisation = nil;
+[ACL]FTrade:faclAttrReceiveAmortisation = select(faclTradeNominal > 0, 
+  true->instrument :* "faclAttrReceiveAmortisation" [faclTradeQuantity = faclTradeNominal], 
+  false->instrument :* "faclAttrPayAmortisation" [faclTradeQuantity = faclTradeNominal]);
+[ACL]FTradeRow:faclAttrReceiveAmortisation = faclAttrScalingFactor * trade:faclAttrReceiveAmortisation;

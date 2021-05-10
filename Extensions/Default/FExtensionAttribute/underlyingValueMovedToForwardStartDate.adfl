@@ -1,0 +1,8 @@
+[Default]FOption:underlyingValueMovedToForwardStartDate = select(isMultiUnderlyingValued, 
+  true->underlyingBasketValueMovedToForwardStartDate, 
+  false->select(isQuanto, 
+    true->underlying :* "forwardValueAsUnderlyingQuanto" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate := forwardStartDateTimeForUnderlyingValue, quantoSpread = quantoSpreadForwardStart, forwardValueDividendData, useSpotProxy = true], 
+    false->underlying :* "forwardValue" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate := forwardStartDateTimeForUnderlyingValue, , forwardValueDividendData, useSpotProxy = true]));
+[Default]FVolatilityFuture:underlyingValueMovedToForwardStartDate = select(isQuanto, 
+  true->underlying :* "forwardValueAsUnderlyingQuanto" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate := forwardStartDateTimeForUnderlyingValue, quantoSpread = quantoSpreadForwardStart, forwardValueDividendData, useSpotProxy = true], 
+  false->underlying :* "forwardValue" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate := forwardStartDateTimeForUnderlyingValue, , forwardValueDividendData, useSpotProxy = true]);

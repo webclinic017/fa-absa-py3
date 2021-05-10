@@ -1,0 +1,105 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','eagle_bc') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'eagle_bc' and p.type = 'SQL Query' 
+ 
+  select
+distinct
+
+t.trdnbr
+
+into trad
+
+from
+
+trade t, instrument i, leg l, party cp
+where i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and i.instype = 'Swap'
+and t.status not in ('Simulated', 'terminated', 'Void')
+and years_between(l.start_day, i.exp_day, 'Act/365') >= 3
+and cp.ptynbr = t.counterparty_ptynbr
+and i.exp_day >= TODAY
+/* add trade filter */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+
+
+select
+distinct
+t.trdnbr,
+years_between(l.start_day, i.exp_day, 'Act/365') >= 3 ?
+date_add_delta(l.start_day, 0, , 3) : l.start_day           'start_day',
+i.exp_day,
+round(years_between(date_add_delta(l.start_day, 0, , 3),i.exp_day ,'Act/365')) 'NYrs',
+c.cfwnbr
+
+into temp
+
+from
+
+trade t, instrument i, leg l, cashflow c, trad tt, party cp
+where i.insaddr = t.insaddr
+and tt.trdnbr = t.trdnbr
+and i.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and i.instype = 'Swap'
+/*and t.trdnbr in (180103, 965932)*/
+/*and t.status not in ('Simulated', 'terminated', 'Void')*/
+and i.exp_day >= TODAY
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+and cp.ptynbr = t.counterparty_ptynbr
+/* add trade filter */
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+
+
+select
+u1.trdnbr,
+u1.cfwnbr,
+count(u2.cfwnbr)-1 'Count',
+u1.NYrs,
+u1.start_day,
+u1.exp_day
+into tmp
+
+from
+
+temp u1,
+temp u2
+
+where u1.cfwnbr < u2.cfwnbr
+and u1.trdnbr = u2.trdnbr
+
+group by 1, 2
+ 
+
+select 
+trdnbr                              'SOURCE_TRADE_ID',
+count + 1                               'BREAKCLAUSE_ID',
+'MUTUAL'                            'EXERCISING_PARTY',
+'D'                                 'BREAKCLAUSE_TYPE',
+ael_s(,'Eagle_Date.CDate',date_add_delta(start_day,0, , count)) 'PAYMENT_DATE',
+
+
+convert('time', start_day, '%Y%m%d') 'FIRSTBREAK_DATE',
+
+''                                  'COMMENTS',
+'N'                                 'EXERCISED_FLAG'
+
+
+from tmp
+
+where count between 0 and NYrs
+
+order by 1,3

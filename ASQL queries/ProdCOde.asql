@@ -1,0 +1,149 @@
+/*----------------------------------------------------------------------------------------------
+#  Name      : SAGEN_BrokerageQuery
+#  Purpose   : Displays Broker Fees
+#
+#  Changes
+#
+#  Developer : Kim Madeley
+#  Purpose   : Add in broker fees at trade level
+#  Date      : 28-06-2010
+#  Department and Desk : MO
+#  Requester           : Miguel Da Silva
+#  CR Number           : 355403
+-----------------------------------------------------------------------------------------------*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAGEN_BrokerageQuery') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_BrokerageQuery' and p.type = 'SQL Query' 
+
+
+/*New code added 28-06-2010*/
+select  'YES'? t.trdnbr : '' 'Trade_Number',
+        'YES'? time_to_day(t.time): '' 'Trade_Date',
+        u.userid 'Trader',
+        pf.prfid 'Portfolio',
+        p.ptyid 'Broker',
+        t.fee 'Broker_Fee',
+        'YES'? t.value_day: '' 'Pay_Day',
+        to_string(i.instype) 'Instrument'
+        
+into tempa      
+from    trade t,
+        instrument i,
+        party p,
+        user u,
+        portfolio pf
+where
+match_filter(t,@Filter{;TradeFilter.fltid})
+and i.insaddr = t.insaddr
+and p.ptynbr = t.broker_ptynbr
+and t.broker_ptynbr ~= 0
+and add_info(t,'CCPmiddleware_id') ~= ''
+and t.optional_key like 'MW%'
+and t.fee ~= 0.00
+and time_to_day(t.time) between @start_date{} and @end_date{Yesterday;} 
+and u.usrnbr =* t.trader_usrnbr
+and t.prfnbr *= pf.prfnbr
+order by 5
+
+
+/*New code End*/
+
+
+
+
+select  'YES'? t.trdnbr : '' 'Trade_Number',
+        'YES'? time_to_day(t.time): '' 'Trade_Date',
+        u.userid 'Trader',
+        pf.prfid 'Portfolio',
+        p.ptyid 'Broker',
+        py.amount 'Broker_Fee',
+        'YES'? py.payday: '' 'Pay_Day',
+        to_string(i.instype) 'Instrument'
+        
+into tempa      
+from    trade t,
+        instrument i,
+        party p,
+        payment py,
+        user u,
+        portfolio pf
+where
+match_filter(t,@Filter{;TradeFilter.fltid})
+and i.insaddr = t.insaddr
+and p.ptynbr = t.broker_ptynbr
+and py.trdnbr *= t.trdnbr
+and py.type = 'Broker Fee'
+and time_to_day(t.time) between @start_date{} and @end_date{Yesterday;} 
+and u.usrnbr =* t.trader_usrnbr
+and t.prfnbr *= pf.prfnbr
+order by 5
+
+
+select *
+from tempa
+
+union
+
+select  'TOTAL BY BROKER' 'Trade_Number',
+        '' 'Trade_Date',
+        '' 'Trader',
+        '' 'Portfolio',
+        t.Broker,
+        sum(t.Broker_Fee) 'Total',
+        '' 'Pay_Day',
+        '' 'Instrument'
+        
+
+from tempa t
+group by t.Broker
+
+union
+
+select  'TOTAL BY PORTFOLIO' 'Trade_Number',
+        '' 'Trade_Date',
+        '' 'Trader',
+        t.Portfolio 'Portfolio',
+        '' 'Broker',
+        sum(t.Broker_Fee) 'Total',
+        '' 'Pay_Day',
+        '' 'Instrument'
+        
+
+from tempa t
+group by t.Portfolio
+ 
+union
+
+select  'TOTAL BY PORTFOLIO & BROKER' 'Trade_Number',
+        '' 'Trade_Date',
+        '' 'Trader',
+        t.Portfolio 'Portfolio',
+        t.Broker 'Broker',
+        sum(t.Broker_Fee) 'Total',
+        '' 'Pay_Day',
+        '' 'Instrument'
+        
+
+from tempa t
+group by t.Broker, t.Portfolio
+
+union
+
+select  'TOTAL BY PRODUCT & BROKER' 'Trade_Number',
+        '' 'Trade_Date',
+        '' 'Trader',
+        '' 'Portfolio',
+        t.Broker 'Broker',
+        sum(t.Broker_Fee) 'Total',
+        '' 'Pay_Day',
+        t.Instrument 'Instrument'
+        
+
+from tempa t
+group by t.Broker, t.Instrument
+  

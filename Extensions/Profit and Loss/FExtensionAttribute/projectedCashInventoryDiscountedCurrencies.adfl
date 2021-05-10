@@ -1,0 +1,9 @@
+[Profit and Loss]FCombInstrMapAndTrades:projectedCashInventoryDiscountedCurrencies = currenciesForVectorColumnNil;
+[Profit and Loss]FDeliverableLinkAndTrades:projectedCashInventoryDiscountedCurrencies = currenciesForVectorColumnNil;
+[Profit and Loss]FInstrumentAndTrades:projectedCashInventoryDiscountedCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->convertToCurrency(projectedCashInventoryNonNormalized, displayCurrencyFXRatesForProjectedCashInventory, displayCurrenciesForProjectedCashInventory, currenciesForVectorColumn));
+[Profit and Loss]FLegAndTrades:projectedCashInventoryDiscountedCurrencies = currenciesForVectorColumnNil;
+[Profit and Loss]FTimeBucketAndObject:projectedCashInventoryDiscountedCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->scenarioaxisarray(rowInstrumentAndTrades:projectedCashInventoryDiscountedCurrencies [currenciesForVectorColumn, useFxBaseCurrency, includeInceptionCash, profitAndLossSeparateHistorical := true], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>, <"timeDistributionDateRule", , "fixedvariant", "CashLadderDate">)[timeBucketCollectionIndex]);

@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:PtflioTradeBuySell = maxOf(tradesInPosition :* "PtflioTradeBuySell");
+[ABSA Specific 4.3]FTrade:PtflioTradeBuySell = select(object.Nominal > 0, 
+  true->"Buy", 
+  default->"Sell");
+[ABSA Specific 4.3]FTradeRow:PtflioTradeBuySell = select(trade.Nominal > 0, 
+  true->"Buy", 
+  default->"Sell");

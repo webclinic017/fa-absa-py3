@@ -1,0 +1,11 @@
+[Default]QuoteAndHedgeBasketSpread:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Default]QuoteAndHedgeDeltaNeutral:quoteLegPotentialPrice = quoteLegCalculatedPrice;
+[Default]QuoteAndHedgePriceSpread:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Default]QuoteAndHedgeRightIssue:quoteLegPotentialPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->max(delta(hedgeLegLimitPriceForPotentialQuantity, quoteAndHedgePriceSpread) * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, 0.0), 
+  default->max(delta(hedgeLegLimitPriceForPotentialQuantity * fxRateFromHedgeToQuote / hedgePerQuotePriceRatio, quoteAndHedgePriceSpread), 0.0));
+[Default]QuoteAndHedgeTotalPrice:quoteLegPotentialPrice = quoteAndHedgeTotalPrice - hedgeLegLimitPriceForPotentialQuantity;

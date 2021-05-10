@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FCurrency:fxSubType = trade :* "fxSubType";
+[ABSA Specific 4.3]FInstrument:fxSubType = nil;
+[ABSA Specific 4.3]FTrade:fxSubType = select(object.IsFxForward, 
+  true->"Forward", 
+  false->select(object.IsFxSwap, 
+    true->"Swap", 
+    false->select(object.IsFxSpot, 
+      true->"Spot", 
+      false->"Cash Payment")));
+[ABSA Specific 4.3]FTradeRow:fxSubType = (trade.Instrument) :* "fxSubType" [trade];

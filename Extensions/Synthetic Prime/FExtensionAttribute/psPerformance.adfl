@@ -1,0 +1,9 @@
+[Synthetic Prime]FCombInstrMapAndTrades:psPerformance = nil;
+[Synthetic Prime]FInstrument:psPerformance = sumOf(psPerformanceLegs :* "psTPL" [profitAndLossParameters, calculateTradeEffectInPosition, profitAndLossStartDate, profitAndLossEndDate, valuationSystemDate, profitAndLossTodayIsHistorical, psPortSwap]);
+[Synthetic Prime]FInstrumentAndTrades:psPerformance = shunt(psSyntheticColumnsApplicableForRow, 
+  true->convertToCurrency(instrument:psPerformance [psPortSwap], psLiveFXRates, displayCurrencySymbol, filterUnit), 
+  false->nil);
+[Synthetic Prime]FLegAndTrades:psPerformance = nil;
+[Synthetic Prime]FMultiInstrumentAndTrades:psPerformance = shunt(psSyntheticColumnsApplicableForRow, 
+  true->convertToCurrency(sumOf(instruments :* "psPerformance" [psPortSwap]), psLiveFXRates, displayCurrencySymbol, filterUnit), 
+  false->nil);

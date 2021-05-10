@@ -1,0 +1,10 @@
+[Default]FInstrument:underlyingForwardRateTargetNode = select(underlyingForwardValueFromInterestComponent, 
+  true->"underlyingForwardRate", 
+  false->select(underlying, 
+    default->select(underlyingValueType, 
+      "IRF Option"->"underlyingForwardValueModel", 
+      "Swap Future"->"underlyingForwardParRate", 
+      "Swaption"->"underlyingForwardValueModel", 
+      "Zero Coupon Fix"->"underlyingForwardValueModel", 
+      default->nil), 
+    nil->nil));

@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:dailyProvision = sumOf(children :* "dailyProvision");
+[Prime Services]FSingleInstrumentAndTrades:dailyProvision = select(allFundingPortfolios and isProvisionInstrument, 
+  true->py("Provision", context).calculate_provision_start_end(tradesInPosition, instrument, fundingInstruments, businessDayBeforePnLEndDate, profitAndLossEndDate, "Daily"), 
+  false->0);

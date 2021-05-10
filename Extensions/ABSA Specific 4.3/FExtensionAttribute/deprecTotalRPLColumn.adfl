@@ -1,0 +1,17 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:deprecTotalRPLColumn = sumOf(children :* "deprecTotalRPLColumn");
+[ABSA Specific 4.3]FPriceIndex:deprecTotalRPLColumn = interpolatedIndexPriceAtDate;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:deprecTotalRPLColumn = (convertToCurrency(object :* "profitAndLossValues.DepreciatedAmount" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1);
+[ABSA Specific 4.3]FTradeRow:deprecTotalRPLColumn = shunt((premium == nil) and (trade.tradeDate == today), 
+  true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+  false->shunt(trade:tradeDate <= profitAndLossEndDate, 
+    true->select(instrument.InsType, 
+      "Bill"->(convertToCurrency(object :* "profitAndLossValues.DepreciatedAmount" [select(object.Parent, 
+        nil->tradeSetUsedInProfitandLoss, 
+        default->tradeSetUsedInProfitandLoss = object.Parent.Position.TradesIn(instrument, trade.Portfolio)), profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1), 
+      "IndexLinkedBond"->denominatedvalue(trade.Nominal * ((0.01 * cleanPrice) - (sumOf((instrument:firstFixedLeg.InflationScalingRef) :* "deprecTotalRPLColumn" [valuationDate = select(trade.HedgeTrade, 
+        nil->trade.ValueDay, 
+        default->trade.HedgeTrade.ValueDay)]).Number / instrument:firstFixedLeg.InflationBaseValue)), instrument.Currency, , ), 
+      default->(convertToCurrency(object :* "profitAndLossValues.DepreciatedAmount" [select(object.Parent, 
+        nil->tradeSetUsedInProfitandLoss, 
+        default->tradeSetUsedInProfitandLoss = object.Parent.Position.TradesIn(instrument, trade.Portfolio)), profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1)), 
+    false->denominatedvalue(0.0, object.Trade.Currency, , )));

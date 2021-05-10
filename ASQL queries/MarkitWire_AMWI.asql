@@ -1,0 +1,58 @@
+/*
+**************Developments******************
+
+Purpose               : Ops/TCU require a report that gives them a view to all trades booked via markitwire
+Department and Desk   : OPS/TCU
+Requester             : Shamila Thomas
+Developer             : Arthur Grace
+CR Number             : CHNG0002978127
+
+********************************************
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MarkitWire_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MarkitWire_AMWI' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr 'Trade Nbr', 
+    add_info(t, 'MarkitWire') 'MW Key',
+    add_info(t, 'CCPmiddleware_id') 'ccp Key',
+    add_info(t, 'CCPmiddleware_versi') 'ccp Key',
+    i.exp_Day 'Expiry',
+    i.insid 'Ins ID',
+    i.instype 'Type',
+    t.status 'Status',
+    t.value_day 'Effective',
+    display_id(i, 'curr')    'Currency',
+    nominal_amount(t) 'Nominal',
+    display_id(t, 'acquirer_ptynbr') 'Acquirer',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    u.userid 'Trader',
+    t.time  'Trade Date',
+    t.acquire_day   'Acquire Date',
+    t.value_day 'Value Date'
+from
+    trade t, 
+    instrument i, 
+    user u,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais
+where 
+    i.insaddr = t.insaddr
+and ai.recaddr = t.trdnbr
+and ai.addinf_specnbr = ais.specnbr
+and ais.field_name = 'CCPmiddleware_id'
+and ai.value ~= ''
+and t.trader_usrnbr = u.usrnbr
+and ((@4_Trader{All;user.userid} = 'All') or 
+    (u.userid in (@4_Trader{All;user.userid})))
+and (i.instype in (@3_Instype{Swap;'Swap','FRA', 'CurrSwap'*}))
+and t.time >= @1_StartDay{Yesterday;}
+and t.time <= @2_EndDay{Today;}
+
+order by 
+    t.trdnbr

@@ -1,0 +1,7 @@
+[Default]FMalzVolatilityStructure:malzDomesticCurve = select(malzInstrumentPair <> nil, 
+  true->select(malzInstrumentPair.Cid, 
+    "Precious Metal Pair"->malzDomesticCurrency:discountCurve, 
+    default->malzDomesticCurrency:fxDiscountCurve), 
+  default->select(referenceInstrument <> nil, 
+    true->referenceInstrumentCurrency:discountCurve, 
+    default->nil));

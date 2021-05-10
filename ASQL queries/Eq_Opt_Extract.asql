@@ -1,0 +1,336 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Eq_Opt_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Eq_Opt_Extract' and p.type = 'SQL Query' 
+
+
+
+/*** Non - Asian Options ***/
+select 
+
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	time_to_day(t.time)					'DealDate',
+	i.exp_day				'Expiry_Date',
+	display_id(t,'insaddr')			'Instrument',
+/*	i.instype				'InstrumentType',*/
+	i.instype = 'Ins_Option' ? 'Option' : i.instype 'InstrumentType',
+	display_id(i,'und_insaddr')		'Underlying',
+	i.und_instype = 'Stock' ? 'Stock' : i.und_instype	'UnderlyingType',
+/*	i.und_instype 				'UnderlyingType',*/
+	i.strike_price				'Strike_Price',
+	i.contr_size				'Contract_Size',
+	used_vol(t)				'Market_Volatility',
+	t.quantity < 0 ?'S':'B'			'Buy/Sell',
+	i.call_option = 'No' ? 'P':'C'		'Put/Call',
+	t.quantity < 0 ? -1 * t.quantity : t.quantity				'Number_of_Contracts',
+	@Date{TODAY}				'DATA_DATE',
+	t.text1					'Principal',
+	/*display_id(pr,'owner_prfnbr')	'Portfolio',*/
+	display_id(pr,'owner_prfnbr') = '0319' ? display_id(t,'prfnbr'): display_id(pr,'owner_prfnbr')	'Portfolio',	
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	(i.und_instype = 'Stock') ? add_info(ii,'DividendYield') : (i.und_instype = 'EquityIndex')? add_info(ii,'DividendYield'):(i.und_instype = 'Future/Forward') ? add_info(iii,'DividendYield') : add_info(i,'DividendYield')		'DividendYield',
+	0					'DividendAmount',
+	0					'DividendDate',
+
+/* $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Greeks $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ */
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Delta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')
+		: (i.instype = 'Future/Forward' or i.instype = 'Stock') ? 1.0
+		: i.insid like '%Cliquet%' ? delta_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')*/ 0.00	'Delta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Gamma')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? gamma_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')*/0.00		'Gamma',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Vega')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? vega(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')*/	0.00	'Vega',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Theta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? theta(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')*/ 0.00		'Theta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Rho')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: (i.instype = 'Future/Forward' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? risk(i,'Rho',,,,,,0,'3m','6m','9m','1y','2y','3y','4y','5y')
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Rho')*/ 0.00		'Rho',
+
+	/*i.instype = 'Stock' ? 0
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Spot Rate')*/ 0.00 'Risk_free_rate',
+	/*i.instype = 'Stock' ? 1
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Discount')*/ 0.00 'Discount_factor',
+
+	i.instype = 'Stock' ? mtm_price(t,@Date,display_id(i,'curr'),0,0)
+		: used_und_price(i)                              	'Underlying_Price',
+		
+    	i.exercise_type                                         'Exercise_Type',
+    	i.digital                                               'Digital',
+        used_context_parameter(i, 'volatility',0,i.curr)        'vol'
+
+	
+into
+	tempeq
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	party cp,
+	portfoliolink pr,
+	yieldcurve yc,
+    Instrument c
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and t.counterparty_ptynbr = cp.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','Equity Deriv','Equity_OTC','Metals Desk')
+	and display_id(pr,'owner_prfnbr') not in ('9923')
+	and yc.yield_curve_name = 'ZAR-SWAP'
+	and i.instype = 'Option'
+	and time_to_day(t.time) <= @Date
+	and i.exp_day > @Date
+	and t.prfnbr = pr.member_prfnbr
+	and i.und_instype ~= 'Curr'
+    /*and i.insid not like '%ASIA%'*/
+    and i.exotic_type in ('None')
+    and i.curr = c.insaddr
+    
+   
+  
+    
+
+/*** Asian Options ***/
+select 
+
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	time_to_day(t.time)					'DealDate',
+	i.exp_day				'Expiry_Date',
+	display_id(t,'insaddr') like '%ASIA%' ? display_id(t,'insaddr') : ael_s(,'SAGEN_str_functions.concat',display_id(t,'insaddr'),'/','ASIA')			'Instrument',
+/*	i.instype				'InstrumentType',*/
+	i.instype = 'Ins_Option' ? 'Option' : i.instype 'InstrumentType',
+	display_id(i,'und_insaddr')		'Underlying',
+	i.und_instype = 'Stock' ? 'Stock' : i.und_instype	'UnderlyingType',
+/*	i.und_instype 				'UnderlyingType',*/
+	i.strike_price				'Strike_Price',
+	i.contr_size				'Contract_Size',
+	used_vol(t)				'Market_Volatility',
+	t.quantity < 0 ?'S':'B'			'Buy/Sell',
+	i.call_option = 'No' ? 'P':'C'		'Put/Call',
+	t.quantity < 0 ? -1 * t.quantity : t.quantity				'Number_of_Contracts',
+	@Date{TODAY}				'DATA_DATE',
+	t.text1					'Principal',
+	display_id(pr,'owner_prfnbr')	'Portfolio',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	(i.und_instype = 'Stock') ? add_info(ii,'DividendYield') : (i.und_instype = 'EquityIndex')? add_info(ii,'DividendYield'):(i.und_instype = 'Future/Forward') ? add_info(iii,'DividendYield') : add_info(i,'DividendYield')		'DividendYield',
+	0					'DividendAmount',
+	0					'DividendDate',
+
+/* $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Greeks $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ */
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Delta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')
+		: (i.instype = 'Future/Forward' or i.instype = 'Stock') ? 1.0
+		: i.insid like '%Cliquet%' ? delta_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')*/ 0.00		'Delta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Gamma')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? gamma_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')*/ 0.00		'Gamma',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Vega')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? vega(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')*/	0.00	'Vega',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Theta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? theta(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')*/ 0.00		'Theta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Rho')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: (i.instype = 'Future/Forward' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? risk(i,'Rho',,,,,,0,'3m','6m','9m','1y','2y','3y','4y','5y')
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Rho')*/ 0.00		'Rho',
+
+	/*i.instype = 'Stock' ? 0
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Spot Rate')*/ 0.00  'Risk_free_rate',
+	/*i.instype = 'Stock' ? 1
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Discount')*/ 0.00 'Discount_factor',
+
+	i.instype = 'Stock' ? mtm_price(t,@Date,display_id(i,'curr'),0,0)
+		: used_und_price(i)                              	'Underlying_Price',
+		
+    	i.exercise_type                                         'Exercise_Type',
+    	i.digital                                               'Digital',
+        used_context_parameter(i, 'volatility',0,i.curr)        'vol'
+	
+into
+	tempeq
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	party cp,
+	portfoliolink pr,
+	yieldcurve yc,
+	exotic exo,
+    instrument c
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and t.counterparty_ptynbr = cp.ptynbr
+	and yc.yield_curve_name = 'ZAR-SWAP'
+	and i.instype = 'Option'
+	and time_to_day(t.time) <= @Date
+	and i.exp_day > @Date
+	and t.prfnbr = pr.member_prfnbr
+	and i.und_instype ~= 'Curr'
+	and i.insaddr = exo.insaddr
+	and exo.average_method_type not in ('None')
+    and i.curr = c.insaddr
+    
+	
+	
+	
+	
+	
+/*** For Options with underlyings as Combination instuments on Non Linear Derivs portfolio ***/
+select 
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	time_to_day(t.time)					'DealDate',
+	i.exp_day				'Expiry_Date',
+	display_id(t,'insaddr')			'Instrument',
+/*	i.instype				'InstrumentType',*/
+	i.instype = 'Ins_Option' ? 'Option' : i.instype 'InstrumentType',
+	display_id(i,'und_insaddr')		'Underlying',
+	i.und_instype = 'Stock' ? 'Stock' : i.und_instype	'UnderlyingType',
+/*	i.und_instype 				'UnderlyingType',*/
+	i.strike_price				'Strike_Price',
+	i.contr_size				'Contract_Size',
+	used_vol(t)				'Market_Volatility',
+	t.quantity < 0 ?'S':'B'			'Buy/Sell',
+	i.call_option = 'No' ? 'P':'C'		'Put/Call',
+	t.quantity < 0 ? -1 * t.quantity : t.quantity				'Number_of_Contracts',
+	@Date{TODAY}				'DATA_DATE',
+	t.text1					'Principal',
+	display_id(t,'prfnbr')	'Portfolio',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	(i.und_instype = 'Stock') ? add_info(ii,'DividendYield') : (i.und_instype = 'EquityIndex')? add_info(ii,'DividendYield'):(i.und_instype = 'Future/Forward') ? add_info(iii,'DividendYield') : add_info(i,'DividendYield')		'DividendYield',
+	0					'DividendAmount',
+	0					'DividendDate',
+
+/* $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Greeks $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ */
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Delta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')
+		: (i.instype = 'Future/Forward' or i.instype = 'Stock') ? 1.0
+		: i.insid like '%Cliquet%' ? delta_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Delta')*/ 0.00		'Delta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Gamma')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? gamma_explicit(i,,2,,)
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Gamma')*/ 0.00		'Gamma',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Vega')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? vega(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Vega')*/	0.00	'Vega',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Theta')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? theta(i) / i.contr_size
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Theta')*/ 0.00		'Theta',
+
+	/*(i.instype = 'Option' and i.insid like '%ASIA%') ? ael_f(i, 'Asian_Vorst.SQL_Greeks', 'Rho')
+		: (i.instype = 'Option' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: (i.instype = 'Future/Forward' and cp.ptyid2 like '%SAFEX%') ? 0.0
+		: i.instype = 'Future/Forward' ? 0.0
+		: i.insid like '%Cliquet%' ? risk(i,'Rho',,,,,,0,'3m','6m','9m','1y','2y','3y','4y','5y')
+		: ael_f(i, 'FC/Eq/OptDiv.SQL_Greeks', 'Rho')*/ 0.00		'Rho',
+
+	/*i.instype = 'Stock' ? 0
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Spot Rate')*/ 0.00  'Risk_free_rate',
+	/*i.instype = 'Stock' ? 1
+	     : yc_rate(yc,@Date,i.exp_day,'Annual Comp','Act/365','Discount')*/ 0.00 'Discount_factor',
+
+	i.instype = 'Stock' ? mtm_price(t,@Date,display_id(i,'curr'),0,0)
+		: used_und_price(i)                              	'Underlying_Price',
+		
+    	i.exercise_type                                         'Exercise_Type',
+    	i.digital                                               'Digital',
+        used_context_parameter(i, 'volatility',0,i.curr)        'vol'
+	
+into
+	tempeq
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	party cp,
+	portfoliolink pr,
+	yieldcurve yc,
+	instrument c
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and t.counterparty_ptynbr = cp.ptynbr
+	and p.ptyid in ('Non Linear Deriv','NLD DESK')
+	and yc.yield_curve_name = 'ZAR-SWAP'
+	and i.instype = 'Option'
+	and time_to_day(t.time) <= @Date
+	and i.exp_day > @Date
+	and t.prfnbr = pr.member_prfnbr
+	and i.und_instype = 'Combination'
+	and i.und_instype ~= 'Curr'
+    and i.exotic_type in ('None') 
+    and i.curr = c.insaddr
+
+    
+    	
+
+
+
+
+select * from tempeq

@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:cashValueBreakDate = select(cashValueBreakDateChoice, 
+  "Today"->valuationDate, 
+  "Report Date"->select(valuesOnSpot, 
+    true->instrumentSpotOrStartDate, 
+    false->select("Accounting Date" == instrumentReportDate, 
+      true->accountingInclusionDate, 
+      false->valuationDate)), 
+  default->valuationOrSpotDate);

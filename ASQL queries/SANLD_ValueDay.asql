@@ -1,0 +1,14 @@
+/* SANLD_ValueDay: last updated on Tue Jan 22 09:34:32 2008. Extracted by Stowaway on 18/08/2009.*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_ValueDay') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_ValueDay' and p.type = 'SQL Query' 
+select
+	t.trdnbr,
+	t.value_day
+from
+	trade t
+where
+	match_filter(t,@Filter{;Tradefilter.fltid})

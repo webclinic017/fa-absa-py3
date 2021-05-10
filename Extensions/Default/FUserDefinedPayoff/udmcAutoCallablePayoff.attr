@@ -1,0 +1,83 @@
+[Default]FObject:udmcAutoCallablePayoff
+#----------------------------------------
+# PAYOFF EXPRESSION
+# AutoCallable Payoff
+#
+# INTERPRETATION
+# Scenario 1: If S/S0 > callableBarrier on any observation date, the contract pays 1 plus a rebate for each passed fixing;
+# Scenario 2: If scenario 1 does not occur and if St/S0 < putBarrier on the final observation date, the contract pays St/S0;
+# Scenario 3: If neither scenario 1 nor scenario 2 occurs, the contract pays 1;
+#
+# DEFINITION
+# S: Underlying spot price;
+# S0: Underlying spot price on the initial 'Price Fixing';
+# St: Underlying spot price on the final 'Price Fixing';
+# callableBarrier: Relative barrier value, 'Barrier' field in the Barrier Exotics tab;
+# putBarrier: Relative barrier value, '2nd Barrier' field in the Barrier Exotics tab;
+# rebate: Coupon to be paid out when called, 'Rebate' field in the Barrier Exotics tab;
+# 'Price Fixing' exotic events should be specified.
+#----------------------------------------
+
+#PARAMETERS
+param matrix(double) timeSteps;
+param double rebate;
+param double callableBarrier;
+param double putBarrier;
+param int barrierIsHit;
+param int isQuanto;
+param double fixFXRate;
+
+
+#LOCAL VARIABLES
+int tMax = length(timeSteps);
+int t = 0;
+int terminationDate = 0;
+double value = 0.0;
+double rebatePct = rebate / 100.0;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+#PROCESS
+process matrix(double) S;
+
+#MAIN LOOP
+terminationDate = -1 + barrierIsHit;
+value = 1.0 - barrierIsHit;
+for t = 1 to tMax
+{
+    if(terminationDate < 0)
+    {
+        if(S[t] > (callableBarrier * S[0]))
+        {
+            terminationDate = t;
+            value = 1.0 + (t * rebatePct);
+        };
+    };
+};
+if(terminationDate < 0)
+{
+    if(S[tMax-1] < (putBarrier * S[0]))
+    {
+        value = S[tMax-1] / S[0];
+    };
+    terminationDate = tMax - 1; 
+};
+
+# CASHFLOWS
+cashFlow(terminationDate, fx * value);
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# timeSteps: One row, the number of columns is equal to the number of observation dates. Contains the time data of the underlying instrument; 
+# rebate: Value defined in 'Rebate' field in Barrier Exotics tab; 
+# barrierIsHit: Value 1 or 0, dependent on if the 'Crossed Status' in Barrier Exotics tab is 'Confirmed' or not;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# tMax: Number of observation dates;
+# terminationDate: The first date where scenario 1 has occurred. Alternatively, if scenario 1 has not occurred, the expiry date.
+# ------------------------------------------
+
+...

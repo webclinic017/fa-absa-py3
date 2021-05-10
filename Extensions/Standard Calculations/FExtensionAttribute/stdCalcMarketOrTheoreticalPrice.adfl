@@ -1,0 +1,6 @@
+[Standard Calculations]FInstrumentAndTrades:stdCalcMarketOrTheoreticalPrice = select(instrument:mtmFromFeed, 
+  true->shunt(isFinite(markToMarketDefaultPrice), 
+    false->stdCalcTheoreticalPriceForMarkToMarket, 
+    true->markToMarketDefaultPrice), 
+  false->stdCalcTheoreticalPriceForMarkToMarket);
+[Standard Calculations]FMultiInstrumentAndTrades:stdCalcMarketOrTheoreticalPrice = nil;

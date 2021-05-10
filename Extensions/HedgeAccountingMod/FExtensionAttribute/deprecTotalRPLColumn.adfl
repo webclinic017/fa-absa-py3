@@ -1,0 +1,19 @@
+[HedgeAccountingMod]FInstrumentAndTrades:deprecTotalRPLColumn = sumOf(children :* "deprecTotalRPLColumn");
+[HedgeAccountingMod]FPriceIndex:deprecTotalRPLColumn = interpolatedIndexPriceAtDate;
+[HedgeAccountingMod]FSingleInstrumentAndTrades:deprecTotalRPLColumn = (convertToCurrency(object :* "profitAndLossValues.DepreciatedAmount" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput = instrument:deprecEndDate], profitAndLossEndFXRates, displayCurrencySymbol, filterUnit)) * (-1);
+[HedgeAccountingMod]FTradeRow:deprecTotalRPLColumn = shunt((premium == nil) and (trade:tradeDate == today), 
+  true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+  false->shunt(trade:tradeDate <= profitAndLossEndDate, 
+    default->denominatedvalue(0.0, object.Trade.Currency, , ), 
+    true->select(instrument.InsType, 
+      default->defaultDeprecTotalRPLColumn, 
+      "IndexLinkedBond"->denominatedvalue(trade.Nominal * ((0.01 * cleanPrice) - (sumOf((instrument:firstFixedLeg.InflationScalingRef) :* "deprecTotalRPLColumn" [valuationDate = select(trade.HedgeTrade, 
+        nil->trade.ValueDay, 
+        default->trade.HedgeTrade.ValueDay)]).Number / instrument:firstFixedLeg.InflationBaseValue)), instrument.Currency, , ), 
+      "IndexLinkedSwap"->select(usedInHedge, 
+        default->defaultDeprecTotalRPLColumn, 
+        true->select(trade.DealPackage, 
+          nil->defaultDeprecTotalRPLColumn, 
+          default->denominatedvalue(bondTrade.Nominal * ((0.01 * bondTrade:cleanPrice) - (sumOf((instrument:firstFixedLeg.InflationScalingRef) :* "deprecTotalRPLColumn" [valuationDate = select(bondTrade.HedgeTrade, 
+            nil->bondTrade.ValueDay, 
+            default->bondTrade.HedgeTrade.ValueDay)]).Number / instrument:firstFixedLeg.InflationBaseValue)), instrument.Currency, , ))))));

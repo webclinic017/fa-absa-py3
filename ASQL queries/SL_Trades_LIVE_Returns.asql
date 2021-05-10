@@ -1,0 +1,68 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Trades_LIVE_Returns') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Trades_LIVE_Returns' and p.type = 'SQL Query' 
+ 
+  /* update_method=1 */
+SELECT 
+    t.insaddr,
+    t.counterparty_ptynbr,
+    SUM(t.quantity) 'Quantity',
+    t.price,
+    t.fee,
+    add_info(t,'AllocatedDesk')   'AllocatedTo'  
+
+INTO Temp
+   
+from
+    trade t,
+    portfolio p 
+    
+where
+    p.prfid = @Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void')
+GROUP BY 1,2,4,5
+
+SELECT 
+    insaddr,
+    counterparty_ptynbr,
+    price,
+    fee,
+    AllocatedTo
+
+INTO CombinedTotals
+
+FROM Temp 
+
+WHERE Quantity ~= 0.00
+
+select
+    t.trdnbr,
+    t.price,
+    t.quantity,
+    t.time,
+    t.fee,
+    display_id(t,'counterparty_ptynbr'),
+    display_id(t,'insaddr'),
+    display_id(t,'acquirer_ptynbr'),
+    date_add_banking_day(t.acquire_day,'ZAR',1)     'Settlementdate',
+    add_info(t,'AllocatedDesk')   'AllocatedTo'
+from
+    trade t,
+    portfolio p,
+    CombinedTotals CT
+    
+where
+    p.prfid = @Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void')
+and CT.insaddr = t.insaddr
+and CT.counterparty_ptynbr = T.counterparty_ptynbr
+and CT.price = t.price
+and CT.fee = t.fee
+/*and display_id(t,'counterparty_ptynbr') = 'HSBC 1'*/
+order by 6,7,4
+/*SELECT * FROM CombinedTotals*/

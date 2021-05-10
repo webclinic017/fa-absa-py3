@@ -1,0 +1,9 @@
+[Pegasus]FInstrumentAndTrades:ddmUnDeprecTXNCCY = select(((trade.Status == "BO Confirmed") or (trade.Status == "FO Confirmed") or (trade.Status == "BO-BO Confirmed")) and not (instrument:isExpired) and isHedgeInsFilter, 
+  true->(object :* "deprecRemainingRPLColumnHedgeRef" [displayCurrency = ddmCurrency, positionObject]) * (object :* "ddmGetFxRate" [ddmFromCurrency = firstOf(tradesInPosition).Instrument.Currency, ddmToCurrency = ddmCurrency, positionObject]).Number, 
+  default->0);
+[Pegasus]FLegAndTrades:ddmUnDeprecTXNCCY = select(((trade.Status == "BO Confirmed") or (trade.Status == "FO Confirmed") or (trade.Status == "BO-BO Confirmed")) and not (instrument:isExpired) and isHedgeInsFilter, 
+  true->(object :* "deprecRemainingRPLColumnHedgeRef" [displayCurrency = ddmCurrency, positionObject]) * (object :* "ddmGetFxRate" [ddmFromCurrency = firstOf(tradesInPosition.AsList).Instrument.Currency, ddmToCurrency = ddmCurrency, positionObject]).Number, 
+  default->0);
+[Pegasus]FMultiInstrumentAndTrades:ddmUnDeprecTXNCCY = 
+# Upgrade - which instrument should be used
+nil;

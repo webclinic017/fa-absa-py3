@@ -1,0 +1,9 @@
+[Default]FAbstractReset:volatility2 = select(cashFlowInformation, 
+  nil->nil, 
+  default->collapse(spreadFixingVolatility));
+[Default]FCashFlow:volatility2 = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(count(volatility2ForCashFlowInformation), 
+    0->nil, 
+    default->(volatility2ForCashFlowInformation).Last));
+[Default]FCashFlowInformation:volatility2 = collapse(volatility2ForCashFlowInformation);

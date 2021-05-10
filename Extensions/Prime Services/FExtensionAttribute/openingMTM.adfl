@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:openingMTM = shunt(children.IsEmpty, 
+  false->sumOf(children :* "openingMTM"), 
+  default->0);
+[Prime Services]FSingleInstrumentAndTrades:openingMTM = select(instrumentType, 
+  "CFD"->profitAndLossPositionDisplayStart.Number * openingPrice.Number * instrument:contractSizeMultiplier * instrument:quotationFactor, 
+  default->assetMarkToMarketValueStart.Number);

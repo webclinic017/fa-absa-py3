@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:startValueForForwardValueCalculationDate = select(startValueForForwardValueCalculationDateOverride, 
+  nil->select(isMultiCurrencyInstrument, 
+    true->flattenAndRemoveDuplicates(date(startValueForForwardCalculationCore)), 
+    false->date(startValueForForwardCalculationCore)), 
+  default->startValueForForwardValueCalculationDateOverride);

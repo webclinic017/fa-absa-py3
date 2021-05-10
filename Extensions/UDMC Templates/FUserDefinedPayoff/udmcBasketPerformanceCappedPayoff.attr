@@ -1,0 +1,36 @@
+[UDMC Templates]FObject:udmcBasketPerformanceCappedPayoff
+# ----------------------------------------
+# PAYOFF EXPRESSION
+# ----------------------------------------
+# PARAMETERS
+param matrix(double) weights;
+param double cap;
+param int nAsset;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+int t = 0; int n = 0; int tMax = 0;
+double temp = 0.0;
+double perfB = 0.0;
+double optionValue = 0.0;
+matrix(double) perfS = S;
+
+# MAIN LOOP
+perfB = 0.0; tMax = cols(S);
+for t = 1 to tMax
+{
+        perfS = S[:,t]./S[:,0];
+        for n = 0 to nAsset-1
+        {
+                temp = max(0,min(1+cap,perfS[n]));
+                perfB = perfB + temp*weights[n];
+        };
+};
+optionValue = 1+perfB/(tMax-1);
+
+# CASHFLOW
+cashFlow(0, optionValue);
+
+...

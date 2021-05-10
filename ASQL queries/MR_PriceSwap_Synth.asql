@@ -1,0 +1,52 @@
+/*
+
+Purpose                 :[Market Risk feed files],[To model a Price Swap as an asian option in order to get the correct average value (float leg) and a swap fixed leg]
+Department and Desk     :[IT],[MR]
+Requester:              :Jacqueline Calitz
+Developer               :Heinrich Cronje
+CR Number               :XXXXXX
+
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_PriceSwap_Synth') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_PriceSwap_Synth' and p.type = 'SQL Query' 
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_PriceSwap_Synth.OpenFile',@1_path{'f:\'},@2_FileName{'MR_PriceSwap_Synth.csv'},@3_PositionName{'MR_PriceSwap_Synth_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select 
+    'Write File' 'Process', 
+    ael_s(i,'MR_PriceSwap_Synth.Write',@1_path{'f:\'},@2_FileName{'MR_PriceSwap_Synth.csv'},@3_PositionName{'MR_PriceSwap_Synth_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+    Instrument i,  
+    Leg l
+Where i.insaddr = l.insaddr
+And (i.exp_day = 0 or i.exp_day > Today)
+And l.end_day > Today
+And i.instype = 'PriceSwap'
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

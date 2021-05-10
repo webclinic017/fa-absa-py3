@@ -1,0 +1,8 @@
+[Prime Services]FInstrument:profitAndLossValuesOpenValue = shunt(isCFDPSwap, 
+  true->sumOf(legs :* "profitAndLossValuesOpenValue" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]), 
+  default->profitAndLossValues.OpenValue);
+[Prime Services]FLeg:profitAndLossValuesOpenValue = shunt(isCFDPSwap, 
+  true->object.getPSwapOpenValue(longTimeAgo, valuationDate, object.Oid), 
+  default->profitAndLossValues.OpenValue);
+[Prime Services]FLegAndTrades:profitAndLossValuesOpenValue = leg :* "profitAndLossValuesOpenValue" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, profitAndLossValues];
+[Prime Services]FSingleInstrumentAndTrades:profitAndLossValuesOpenValue = instrument :* "profitAndLossValuesOpenValue" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];

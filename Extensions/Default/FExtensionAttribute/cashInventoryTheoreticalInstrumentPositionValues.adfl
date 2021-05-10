@@ -1,0 +1,16 @@
+[Default]FBuySellBack:cashInventoryTheoreticalInstrumentPositionValues = theoreticalInstrumentPositionValues;
+[Default]FCashFlowInstrument:cashInventoryTheoreticalInstrumentPositionValues = cashInventoryTheoreticalPositionValuesNoOptionality;
+[Default]FCombInstrMap:cashInventoryTheoreticalInstrumentPositionValues = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->valuationInstrument :* "cashInventoryTheoreticalInstrumentPositionValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities = (positionTradeQuantities * weight), isReciprocal, currencyPairDomesticCurrency = combination:currency, currencyPairForeignCurrency = valuationInstrument:foreignCurrency]);
+[Default]FCombination:cashInventoryTheoreticalInstrumentPositionValues = shunt[priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities](splitCombination, 
+  true->sumOf(instrumentMaps :* "cashInventoryTheoreticalInstrumentPositionValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities]) / underlyingOrSelf.Factor, 
+  false->instrumentSpotZero);
+[Default]FFuture:cashInventoryTheoreticalInstrumentPositionValues = select((payType == "Future") or (object.SettlementType == "Cash") or isFXDerivative, 
+  true->theoreticalInstrumentPositionValues, 
+  false->instrumentSpotZero);
+[Default]FFxRate:cashInventoryTheoreticalInstrumentPositionValues = theoreticalInstrumentPositionValues;
+[Default]FInstrument:cashInventoryTheoreticalInstrumentPositionValues = instrumentSpotZero;
+[Default]FOdf:cashInventoryTheoreticalInstrumentPositionValues = theoreticalModelCashFlowProjected * riskPositionBase;
+[Default]FPreciousMetalRate:cashInventoryTheoreticalInstrumentPositionValues = preciousMetalFlowsApportinedInBasket;
+[Default]FSecurityLoan:cashInventoryTheoreticalInstrumentPositionValues = cashInventoryTheoreticalPositionValuesNoOptionality + preciousMetalFlowsApportinedInBasket;

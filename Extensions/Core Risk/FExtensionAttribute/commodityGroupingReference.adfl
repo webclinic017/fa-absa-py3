@@ -1,0 +1,6 @@
+[Core Risk]FInstrumentAndTrades:commodityGroupingReference = parentCommodityGroupingReference;
+[Core Risk]FMultiInstrumentAndTrades:commodityGroupingReference = select(groupingReference, 
+  nil->parentCommodityGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCommodityRiskInformation"), 
+    true->groupingReference, 
+    false->parentCommodityGroupingReference));

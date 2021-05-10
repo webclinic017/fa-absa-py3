@@ -1,0 +1,23 @@
+[Default]FBuySellBack:legInformations = underlying:legInformations [priceSource];
+[Default]FCashFlowInstrument:legInformations = legs :* "legInformation" [priceSource, doSplitAll, ctdFactor];
+[Default]FCfd:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource], 
+  false->nil);
+[Default]FCombInstrMap:legInformations = instrument:legInformations [priceSource];
+[Default]FCombination:legInformations = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "legInformations" [priceSource]), 
+  false->nil);
+[Default]FDerivative:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource], 
+  false->nil);
+[Default]FFuture:legInformations = select(needsLegInformation, 
+  true->underlying:legInformations [priceSource, ctdFactor], 
+  false->nil);
+[Default]FInstrument:legInformations = nil;
+[Default]FInstrumentAndTrades:legInformations = instrument:legInformations;
+[Default]FInstrumentMoneyFlow:legInformations = instrument:legInformations;
+[Default]FLeg:legInformations = object:legInformation [instrument:priceSource, instrument:ctdFactor];
+[Default]FLegAndTrades:legInformations = leg:legInformations;
+[Default]FOrderBook:legInformations = instrument:legInformations;
+[Default]FPriceFeed:legInformations = instrument:legInformations;
+[Default]FQuoteController:legInformations = instrument:legInformations;

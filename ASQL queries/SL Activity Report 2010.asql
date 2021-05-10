@@ -1,0 +1,71 @@
+/*-----------------------------------------------------------------------------
+PROJECT                 :  Security Borrowing and Lending
+PURPOSE                 :  Provide trade details on security loans booked between a specified start
+                           and end date
+DEPATMENT AND DESK      :  Prime Services, Securities Lending
+REQUESTER               :  Linda Breytenbach
+DEVELOPER               :  Francois Truter
+CR NUMBER               :  243997
+-----------------------------------------------------------------------------*/
+
+select 
+    ael_i(p,'ASQL_log','SL Activity Report 2010') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SL Activity Report 2010' and p.type = 'SQL Query' 
+
+SELECT  AdditionalInfo.recaddr,
+        AdditionalInfo.value
+INTO    BdaAccountName  
+FROM    AdditionalInfo,
+        AdditionalInfoSpec
+WHERE   AdditionalInfo.addinf_specnbr = AdditionalInfoSpec.specnbr
+AND     AdditionalInfoSpec.field_name = 'BDA_AccountName'
+
+SELECT  Trade.trdnbr 'Trade Number',
+        Portfolio.prfid 'Portfolio',
+        Underlying.insid 'Share Code',
+        Trade.quantity / Instrument.ref_price * Instrument.contr_size / Quotation.quotation_factor 'Share Quantity',
+        OriginalInstrument.ref_price * Quotation.quotation_factor 'Original Loan Price',
+        Leg.fixed_rate 'Fee Rate',
+        add_info(CounterParty,'BDA_AccountName') 'Account Name',
+        Counterparty.ptyid 'Counterparty Name',
+        OriginalTrade.your_ref 'Counterparty Reference'
+FROM    Trade,
+        Trade OriginalTrade,
+        Instrument,
+        Instrument OriginalInstrument,
+        Leg,
+        Portfolio,
+        Instrument Underlying,
+        Quotation,
+        Party Counterparty,
+        BdaAccountName
+WHERE   
+        /*INNER JOIN OriginalTrade*/
+        Trade.contract_trdnbr = OriginalTrade.trdnbr
+        /*INNER JOIN Instrument*/
+AND     Trade.insaddr = Instrument.insaddr
+        /*INNER JOIN OriginalInstrument*/
+AND     OriginalTrade.insaddr = OriginalInstrument.insaddr
+        /*INNER JOIN Leg*/
+AND     Instrument.insaddr = Leg.insaddr
+        /*INNER JOIN Portfolio*/
+AND     Trade.prfnbr = Portfolio.prfnbr
+        /*INNER JOIN Underlying*/
+AND     Instrument.und_insaddr = Underlying.insaddr
+        /*INNER JOIN Counterparty*/
+AND     Trade.counterparty_ptynbr = Counterparty.ptynbr
+        /*LEFT OUTER JOIN BdaAccountName*/
+AND     CounterParty.ptynbr *= BdaAccountName.recaddr
+        /*INNER JOIN Quotation*/
+AND     Underlying.quotation_seqnbr = Quotation.seqnbr
+        /*Filter*/
+AND     Instrument.instype = 'SecurityLoan'
+AND     time_to_day(Trade.time) >= @From{}
+AND     time_to_day(Trade.time) <= @To{}
+AND     Portfolio.prfid in (@Portfolio{;Portfolio.prfid*})
+ORDER BY    
+        Counterparty.ptyid,
+        Underlying.insid
+

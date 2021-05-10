@@ -1,0 +1,21 @@
+[Default]FCashFlowInstrument:riskPositionSubLedger = select(count(legs) > 1, 
+  true->nil, 
+  default->legs :* "riskPositionSubLedger" [includeAllTrades, profitAndLossEndDate, tradesInPosition]);
+[Default]FCombInstrMapAndTrades:riskPositionSubLedger = tradedInstrument :* "riskPositionSubLedger" [profitAndLossEndDate, tradesInPosition] * combinationInstrumentMapFactor;
+[Default]FDeliverableLinkAndTrades:riskPositionSubLedger = tradedInstrument :* "riskPositionSubLedger" [profitAndLossEndDate, tradesInPosition] * combinationInstrumentMapFactor;
+[Default]FFund:riskPositionSubLedger = object.TradeQuantity(tradesInRiskPositions, profitAndLossEndDate, tradeStatusInclusionMaskDefault);
+[Default]FInstrument:riskPositionSubLedger = switch(object.IsExpiredAt(profitAndLossEndDate), 
+  true->switch(profitAndLossEndDate == reportingExpiryDate, 
+    true->riskPosition, 
+    false->0), 
+  false->riskPosition);
+[Default]FInstrumentRate:riskPositionSubLedger = switch(profitAndLossEndDate <= singleTradePosition.ValueDay, 
+  true->singleTradePosition.Quantity, 
+  false->0);
+[Default]FLeg:riskPositionSubLedger = select(object.PayLeg, 
+  true->-1.0, 
+  false->1.0) * switch(profitAndLossEndDate <= object.EndDate, 
+  true->instrument :* "riskPosition" [includeAllTrades, profitAndLossEndDate, tradesInPosition], 
+  false->0);
+[Default]FLegAndTrades:riskPositionSubLedger = leg :* "riskPositionSubLedger" [profitAndLossEndDate, tradesInPosition] * combinationInstrumentMapFactor;
+[Default]FTradeRow:riskPositionSubLedger = instrument :* "riskPositionSubLedger" [includeAllTrades, profitAndLossEndDate, singleTradePosition];

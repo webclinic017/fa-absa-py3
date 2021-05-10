@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FCashFlow:currentProjectedCashFlow = shunt((object.StartDate <= valuationDate) and (valuationDate < object.EndDate) and isFloatOrFixedRate, 
+  true->cashFlowInformation:projectedCashFlow [legInformation, roundingInformation, unRoundedProjectedCashFlow], 
+  false->nil);
+[ABSA Specific 4.3]FCashFlowInstrument:currentProjectedCashFlow = select(currentProjectedCashFlowValues.Size > 0, 
+  true->currentProjectedCashFlowValues.First, 
+  false->0);

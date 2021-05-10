@@ -1,0 +1,109 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Bond_Option_Premiums') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Bond_Option_Premiums' and p.type = 'SQL Query' 
+/*
+
+name = Bond_Option_Premiums
+
+coded by AP
+
+last updated = 1 april 2003
+
+2004-07-23 split premiums received from premiums paid
+
+2005-04-06 change the default date to 2005-04-01
+
+*/
+
+
+
+select
+s.srdnbr,
+date_add_banking_day(@PremFrom{2006-01-01; },,0)'from',
+date_add_banking_day(@PremTo{Today; },,0)'to'
+
+
+into
+temp
+
+from
+serverdata s
+
+/*-------------------------------*/
+
+select
+i.insid 'Instrument',
+p.prfid,
+'YES' ? t.trdnbr : '' 'TrdNbr',
+'YES' ? time_to_day(t.time) : '' 'Deal Date',
+'YES' ? t.value_day : '''Value_day',
+t.premium>=0 ? t.premium : 0.00 'Premium Received',
+t.premium<0 ? t.premium : 0.00 'Premium Paid',
+'YES' ? i.exp_day : '''exp_day'
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+
+where
+i.instype='Option'
+and i.und_instype='Bond'
+and i.insaddr=t.insaddr
+
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Simulated')
+/*and p.prfid=@Portfolio{ ;portfolio.prfid}*/
+
+and t.time>=tt.from
+and t.time<=tt.to
+
+
+
+
+order by 8,5 /*i.exp_day,t.value_day*/
+
+UNION
+
+select
+'Portfolio Total',
+p.prfid,
+' ',
+' ',
+' ',
+sum(t.premium>=0 ? t.premium : 0.00) 'Premium Received',
+sum(t.premium<0 ? t.premium : 0.00) 'Premium Paid',
+
+
+' '
+
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+
+where
+i.instype='Option'
+and i.und_instype='Bond'
+and i.insaddr=t.insaddr
+
+and t.prfnbr=p.prfnbr
+and t.status not in('Void','Simulated')
+/*and p.prfid=@Portfolio{ ;portfolio.prfid}*/
+
+and t.time>=tt.from
+and t.time<=tt.to
+
+
+
+group by p.prfid
+

@@ -1,0 +1,16 @@
+[Profit and Loss]FBuySellBack:cashInventoryTheoreticalInstrumentPositionValues = theoreticalInstrumentPositionValues;
+[Profit and Loss]FCashFlowInstrument:cashInventoryTheoreticalInstrumentPositionValues = cashInventoryTheoreticalPositionValuesNoOptionality;
+[Profit and Loss]FCombInstrMap:cashInventoryTheoreticalInstrumentPositionValues = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->valuationInstrument :* "cashInventoryTheoreticalInstrumentPositionValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities = (positionTradeQuantities * weight), isReciprocal, currencyPairDomesticCurrency = combination:currency, currencyPairForeignCurrency = valuationInstrument:foreignCurrency]);
+[Profit and Loss]FCombination:cashInventoryTheoreticalInstrumentPositionValues = shunt[priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities](splitCombination, 
+  true->sumOf(instrumentMaps :* "cashInventoryTheoreticalInstrumentPositionValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities]) / underlyingOrSelf.Factor, 
+  false->instrumentSpotZero);
+[Profit and Loss]FFuture:cashInventoryTheoreticalInstrumentPositionValues = select((payType == "Future") or (object.SettlementType == "Cash") or isFXDerivative, 
+  true->theoreticalInstrumentPositionValues, 
+  false->instrumentSpotZero);
+[Profit and Loss]FFxRate:cashInventoryTheoreticalInstrumentPositionValues = theoreticalInstrumentPositionValues;
+[Profit and Loss]FInstrument:cashInventoryTheoreticalInstrumentPositionValues = instrumentSpotZero;
+[Profit and Loss]FOdf:cashInventoryTheoreticalInstrumentPositionValues = theoreticalModelCashFlowProjected * riskPositionBase;
+[Profit and Loss]FPreciousMetalRate:cashInventoryTheoreticalInstrumentPositionValues = preciousMetalFlowsApportinedInBasket;
+[Profit and Loss]FSecurityLoan:cashInventoryTheoreticalInstrumentPositionValues = cashInventoryTheoreticalPositionValuesNoOptionality + preciousMetalFlowsApportinedInBasket;

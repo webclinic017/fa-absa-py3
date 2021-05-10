@@ -1,0 +1,61 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_R153_Split_Bonds') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_R153_Split_Bonds' and p.type = 'SQL Query' 
+
+/*
+coded by ap
+July 08 - query to reflect the spred betwwen the R153 and its split bonds
+from the last price table - used before intraday calculation of the ZAR-Bonds curve
+*/
+
+SELECT
+
+i.insid,
+party.ptyid,
+p.day,
+p.settle'R153',
+p.updat_time
+
+into temp
+
+from
+instrument i,
+lastprice p,
+party party
+
+where
+i.insaddr=p.insaddr
+and i.insid in ('ZAR/R153')
+and party.ptynbr=p.ptynbr
+and party.ptyid='SPOT'
+
+order by p.updat_time
+
+
+/*------------*/
+
+SELECT
+
+i.insid,
+party.ptyid,
+p.day,
+p.settle'yield',
+(p.settle-tt.R153)*100'spred_from_R153',
+p.updat_time
+
+from
+instrument i,
+lastprice p,
+party party,
+temp tt
+
+where
+i.insaddr=p.insaddr
+and i.insid in ('ZAR/R154','ZAR/R155','ZAR/R008','ZAR/R157','ZAR/R153')
+and party.ptynbr=p.ptynbr
+and party.ptyid='SPOT'
+
+order by p.updat_time

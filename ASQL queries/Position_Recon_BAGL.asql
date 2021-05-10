@@ -1,0 +1,44 @@
+select
+    trd.trdnbr
+from
+    Trade trd,
+    Instrument i fill,
+    Instrument und fill,
+    Party Acquirer
+where
+        i.insaddr = trd.insaddr
+    and und.insaddr = i.und_insaddr
+    and match_portfolio(trd, 'BAGL')
+    and Acquirer.ptynbr *= trd.acquirer_ptynbr
+    and trd.status not in ('Simulated','Void','Terminated')
+    /*SPECIFIC EXCLUSIONS BIGEN HERE */
+    AND
+    (
+        (
+            trd.acquire_day <= Today
+            and (i.exp_day >= Tomorrow or i.exp_day = '0000-01-01')
+            and i.instype in ('Bond','FRN','Bill','Zero','IndexLinkedBond','SecurityLoan','Repo/Reverse','BuySellback')
+        )
+        OR
+        (
+            i.instype = 'BasketRepo/Reverse'
+            and trd.acquire_day <= Today
+            and (trd.re_acquire_day >= Tomorrow or trd.re_acquire_day = '0000-01-01')
+        )
+        OR
+        (
+            trd.category = 'Collateral'
+            and trd.acquire_day <= Today
+            and (trd.re_acquire_day >= Tomorrow or trd.re_acquire_day = '0000-01-01')
+        )
+    )
+    AND
+    (
+        i.insid not like '%PASSTHROUGH%' and  i.insid not like '%PASS-THROUGH%' and  i.insid not like '%PASSTH%'
+        and i.insid not like'%LOAN%' and i.insid not like'%Loan%'
+    )
+    AND
+    (
+        i.extern_id2 not like '%PASSTHROUGH%' and i.extern_id2 not like '%PASS-THROUGH%' and i.extern_id2 not like ' %PASSTH%'
+        and i.extern_id2 not like '%LOAN%' and i.extern_id2 not like '%UNLISTED%'
+    )

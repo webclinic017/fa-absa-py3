@@ -1,0 +1,134 @@
+/*------------------------------------------------------------------
+    DCRM_CT_CreditRisk
+
+    This query calculates the credit risk associated with a credit trade.
+    The result is used in the DCRM Hedge Feeds.
+
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_CreditRisk') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_CreditRisk' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})               'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	CDS Data
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    cr.issuer_ptynbr,
+    ael_s(i,'DCRM_CDS.getCreditCurve')         'CreditCurve'
+into 
+    getCreditCurves
+from    
+    trade t,
+    instrument i,
+    leg l,
+    instrument cr,
+    macros   m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and l.type = 'Credit Default'
+and i.exp_day >= m.ValueDate
+
+and i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and l.credit_ref = cr.insaddr
+
+/*------------------------------------------------------------------
+    CLN DATA - Combinations on CDS
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    cr.issuer_ptynbr,
+    ael_s(und,'DCRM_CDS.getCreditCurve')         'CreditCurve'
+into 
+    getCreditCurves
+from
+    trade t,     
+    instrument i,
+    instrument und,
+    CombinationLink cl,
+    leg l,
+    instrument cr,
+    yieldcurve yc,
+    macros   m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and und.exp_day >= m.ValueDate
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and l.type = 'Credit Default'
+
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and und.insaddr = l.insaddr
+and l.credit_ref = cr.insaddr
+
+
+/*------------------------------------------------------------------
+	Final Table
+------------------------------------------------------------------*/
+select
+    gc.trdnbr                                                                               'TradeID',
+    add_info(iss,'BarCap_Eagle_SDSID')                                                      'SDSID',
+    ael_s(p,'DCRM_CDS.getCurveStrip')                                                       'Tenor',
+    ael_f(,'DCRM_CDS.credspread_delta_shift',yc.yield_curve_name,0.0001,gc.trdnbr,iss.ptyid,ael_s(p,'DCRM_CDS.getCurveStripLower'))   'CR01'
+into
+    final
+from    
+    getCreditCurves gc,
+    yieldcurve yc,
+    YCAttribute attrib,
+    YCSpread s,
+    YieldCurvePoint p,
+    party    iss
+where
+    gc.CreditCurve = yc.yield_curve_name
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.seqnbr = s.attribute_seqnbr
+and yc.seqnbr = p.yield_curve_seqnbr
+and s.point_seqnbr = p.seqnbr
+and attrib.issuer_ptynbr = gc.issuer_ptynbr
+and gc.issuer_ptynbr = iss.ptynbr
+
+
+/*------------------------------------------------------------------
+	Exclude 0D Tenors
+------------------------------------------------------------------*/
+select
+    *
+from
+    final f
+where
+    f.Tenor ~= '0D'

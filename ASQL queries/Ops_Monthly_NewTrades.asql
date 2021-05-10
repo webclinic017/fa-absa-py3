@@ -1,0 +1,54 @@
+/*------------------------------------------------------------------
+    Ops_Monthly_NewTrades
+    
+    This query selects the number of new trades between a start and end date (inclusive). 
+    The number of trades are then grouped by Desk, Product and PartyType.
+    
+    Date		Who		What
+    2009-08-17  	Anwar Banoo 	Created
+    Date:        
+------------------------------------------------------------------*/
+
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','Ops_Monthly_NewTrades') 'Name'
+into  
+    ASQL_LOG_TEMP
+from TextObject p where 
+    p.name = 'Ops_Monthly_NewTrades' and p.type = 'SQL Query' 
+    
+select
+	display_id(t,'acquirer_ptynbr')       'Desk',
+    i.instype                             'instype',
+    t.status                              'status',
+    p.type                                'type',
+    count(t)                              'count'
+into 
+    temp
+from
+	trade 		t,
+	instrument 	i,
+    party p	
+where
+    t.status ~= 'Simulated' 
+and i.insaddr = t.insaddr
+and t.time >= to_date(@1_StartDay{FirstDayOfMonth})
+and t.time <= to_date(@2_EndDay{Today})
+and p.ptynbr = t.counterparty_ptynbr
+group by
+    1,2,3,4
+    
+select 
+    tm.Desk    'Desk',
+    tm.instype 'Product',
+    tm.status  'TradeStatus',
+    tm.type    'PartyType',
+    tm.count   'NumberOfTrades'
+from
+    temp tm
+order by
+    1, 2, 3, 4

@@ -1,0 +1,6 @@
+[Core Cash Flow Pricing]FAbstractReset:unRoundedProjectedCashFlow = projectedCashFlow(cashFlowInformation, legInformation, leg:roundingInformation, valuationDate, valuationDate, false);
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:unRoundedProjectedCashFlow = select(cashFlowIsGenericForForwardRate, 
+  true->projectedCashFlowFromParQuote(cashFlowInformation, legInformation, roundingInformation, opaque(double(instrument:parCoupon)), replaceFixedRate, valuationDate, acquireDayOrSpotDate, useCleanContributionForCashFlow), 
+  false->select(needsLegInformationForProjected, 
+    true->projectedCashFlow(cashFlowInformation, legInformation, roundingInformation, valuationDate, acquireDayOrSpotDate, useCleanContributionForCashFlow), 
+    false->projectedCashFlow(cashFlowInformation, nil, roundingInformation, valuationDate, acquireDayOrSpotDate, useCleanContributionForCashFlow)));

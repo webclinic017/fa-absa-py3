@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FTradeRow:trademargin = select(count(trade.Instrument.Legs) == 1, 
+  true->shunt(legType == "Float", 
+    true->floatSpread - (100 * parSpread), 
+    default->(fixedRate - parRateClean.Number) * 100), 
+  default->nil);

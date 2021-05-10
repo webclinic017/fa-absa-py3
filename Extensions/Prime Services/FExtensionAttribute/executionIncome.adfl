@@ -1,0 +1,7 @@
+[Prime Services]FInstrumentAndTrades:executionIncome = sumOf(children :* "executionIncome");
+[Prime Services]FSingleInstrumentAndTrades:executionIncome = switch(instrumentType, 
+  "Stock"->-1 * dateRangeExecutionFee, 
+  "ETF"->-1 * dateRangeExecutionFee, 
+  "Bond"->-1 * dateRangeExecutionFee, 
+  "BuySellBack"->1 * dateRangeExecutionFee, 
+  default->0);

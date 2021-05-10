@@ -1,0 +1,6 @@
+[Fixed Income Market Making]FQuoteController:effectiveBidDriverValue = proposedSpreadData :* "effectiveBidDriverValue" [qQuoteContext, qOffsetController = qMultiQuoteController];
+[Fixed Income Market Making]FQuoteSetting:effectiveBidDriverValue = shunt(proposedQuoteDriverBid, 
+  "Offset"->shunt(qOffsetSettings, 
+    nil->proposedDriverValueBid, 
+    default->proposedDriverValueBid + (qOffsetSettings :* "effectiveBidDriverValue" [qQuoteContext])), 
+  default->proposedDriverValueBid);

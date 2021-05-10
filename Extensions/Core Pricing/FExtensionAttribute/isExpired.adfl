@@ -1,0 +1,7 @@
+[Core Pricing]FCashFlowDerivativeInstrument:isExpired = object.IsExpiredAt(valuationDateTime, expiryDateTime);
+[Core Pricing]FDerivative:isExpired = select(isMultiExercise, 
+  true->not exerciseEventsExist, 
+  false->object.IsExpiredAt(valuationDateTime, expiryDateTime));
+[Core Pricing]FInstrument:isExpired = select(exerciseEventsExist, 
+  true->object.IsExpiredAt(valuationDateTime, maxOf(arrayAny(expiryDateTime))), 
+  default->isExpiredNonCallable);

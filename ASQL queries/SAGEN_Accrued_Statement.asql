@@ -1,0 +1,147 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Accrued_Statement') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Accrued_Statement' and p.type = 'SQL Query' 
+/* New Accrued Interest Accounting entries Report by Andries Brink
+
+Function:
+
+This report aims to simplify the generation of generic accounting 
+entries for most classes of interest bearing instruments. It breaks 
+Entries into Capital Value (Clean Value throughout), Accrued Interest
+and accrued Capital Value (Essentially to account for the pull to 
+par effect of the instruments.)  
+
+Version 1: 	07 July 2005			
+
+2007-02-07  Heinrich Cronje         Changed where clause so that every trade between
+                                    selected dates are retrieved
+                                
+2009-08-13  Willie van der Bank     Changed date criteria to use t.time field. Also removed unused columns.
+
+*/
+
+select
+	@2_Date_Today{today}					            'today',
+	@3_Date_YE{Year_End}					            'Year_End',
+	@7_Trade_Dates{Custom_Dates;'All','Custom_Dates'}   'Trade_Dates'
+
+into
+	dates
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select 
+t.trdnbr,
+t.value_day,
+i.exp_day,
+nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+nominal_amount(t, d.Year_End)					'YearEndNominal',
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+(nominal_amount(t, t.value_day) + 
+(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+display_id(t, 'counterparty_ptynbr')			'Counterparty',
+l.fixed_rate		'InsRate',
+accumulated_cash(t, d.today)		'Acc_Cash_Today'
+
+into
+	temp
+from
+	instrument i,
+	trade t,
+	leg l,
+	dates d,
+	Party p
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and match_filter(t, @4_Filter{Sylvia Bo or Bo-Bo Confirmed;tradefilter.fltid}, @6_TrdNos{})
+and time_to_day(t.time) <= d.today
+and time_to_day(t.time) >= d.Year_End
+and	t.counterparty_ptynbr = p.ptynbr
+and	('All' IN (@1_CounterParty{All;Party.ptyid}) 
+or 	p.ptyid IN (@1_CounterParty{All;Party.ptyid}))
+and d.Trade_Dates = 'Custom_Dates'
+
+select 
+t.trdnbr,
+t.value_day,
+i.exp_day,
+nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+nominal_amount(t, d.Year_End)					'YearEndNominal',
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+(nominal_amount(t, t.value_day) + 
+(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+display_id(t, 'counterparty_ptynbr')			'Counterparty',
+l.fixed_rate		'InsRate',
+accumulated_cash(t, d.today)		'Acc_Cash_Today'
+
+into
+	temp
+from
+	instrument i,
+	trade t,
+	leg l,
+	dates d,
+	Party p
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and match_filter(t, @4_Filter{Sylvia Bo or Bo-Bo Confirmed;tradefilter.fltid}, @6_TrdNos{})
+and time_to_day(t.time) <= d.today
+and i.exp_day >= d.Year_End
+/*and time_to_day(t.time) >= d.Year_End*/
+and	t.counterparty_ptynbr = p.ptynbr
+and	('All' IN (@1_CounterParty{All;Party.ptyid}) 
+or 	p.ptyid IN (@1_CounterParty{All;Party.ptyid}))
+and d.Trade_Dates = 'All'
+
+select
+    tt.Counterparty,
+    t.trdnbr,
+    t.status,
+    i.insid			'Instrument',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    (tt.Prem_Disc_Value_day - (tt.Daily_Pull_to_Par * tt.AccIntDays) - tt.AccInt_Incep)*-1   'Accrued_Disc_Bal',
+    tt.YearEndNominal,
+    tt.value_day,
+    tt.exp_day,
+    tt.InsRate,
+    tt.Acc_Cash_Today
+into final
+from
+    instrument i,
+    trade t,
+    temp tt,
+    dates d,
+    party p
+
+where
+        i.insaddr = t.insaddr
+    and t.trdnbr = tt.trdnbr
+    and t.counterparty_ptynbr = p.ptynbr
+
+Select
+    *
+From
+    final f
+Where
+        'All' in (@5_MM_Instype{All;'All'})
+        
+Union
+
+Select
+    *
+From
+    final f
+Where
+        'All' not in (@5_MM_Instype{All;'All'})
+    and f.MM_instype in (@5_MM_Instype{All;'All'})

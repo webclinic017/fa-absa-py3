@@ -1,0 +1,35 @@
+[OperationsViewerAxlFormulas]FObject:Cash Received Today
+{
+}
+
+isValueDayToday = Compare.IsEqual(&'value_day', DateTime.Today());
+
+{
+}
+
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+
+receivedToday = If(And(&'settledCashExtAttr', And(@isValueDayToday(), @isAmountPositive())), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Received Today',
+    GroupLabel:'Cash',
+    Description:'Total settled cash with value day equal to today and positive amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@receivedToday()), AttributeDimensions = AttributeList(['curr']));
+
+...

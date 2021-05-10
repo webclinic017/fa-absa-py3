@@ -1,0 +1,23 @@
+[Adaptiv XVA]FCashFlowInstrument:adaptivBaseValuationInstrument = shunt(isValidForCva(instrument, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->valuationDateZero);
+[Adaptiv XVA]FCashFlowMoneyFlow:adaptivBaseValuationInstrument = select(isValidProjectedMoneyFlowDate, 
+  true->instrument:adaptivBaseValuationInstrument [singleTradePosition, specificCashFlowInformation = cashFlowInformation], 
+  false->spotHandlingZero);
+[Adaptiv XVA]FCommodity:adaptivBaseValuationInstrument = shunt(isValidForCva(object, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->nil);
+[Adaptiv XVA]FFuture:adaptivBaseValuationInstrument = shunt(isValidForCva(object, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->nil);
+[Adaptiv XVA]FFxRate:adaptivBaseValuationInstrument = shunt(isValidForCva(object, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->valuationDateZero);
+[Adaptiv XVA]FInstrument:adaptivBaseValuationInstrument = nil;
+[Adaptiv XVA]FMoneyFlow:adaptivBaseValuationInstrument = nil;
+[Adaptiv XVA]FOption:adaptivBaseValuationInstrument = shunt(isValidForCva(object, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->nil);
+[Adaptiv XVA]FStock:adaptivBaseValuationInstrument = shunt(isValidForCva(instrument, cvaIsOpenPosition), 
+  true->parseBaseValuationResult(baseValuationCalculation, currency, valuationDate)["Base Valuation"], 
+  default->nil);

@@ -1,0 +1,9 @@
+[Convertible Pricing And Risk]FCashFlowInstrument:bondOnlyYieldToMaturity = select(ytmCalculationValid, 
+  true->shunt(isFinite(bondOnlyUnitValueCleanForImpliedCalculations), 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYield, "yield"), theoreticalInstrumentSpotValueCleanFromYield, bondOnlyUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations), 
+    false->nil), 
+  false->nil);
+[Convertible Pricing And Risk]FInstrument:bondOnlyYieldToMaturity = nil;
+[Convertible Pricing And Risk]FInstrumentAndTrades:bondOnlyYieldToMaturity = instrument:bondOnlyYieldToMaturity;
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:bondOnlyYieldToMaturity = nil;
+[Convertible Pricing And Risk]FPriceAggregate:bondOnlyYieldToMaturity = instrument:bondOnlyYieldToMaturity;

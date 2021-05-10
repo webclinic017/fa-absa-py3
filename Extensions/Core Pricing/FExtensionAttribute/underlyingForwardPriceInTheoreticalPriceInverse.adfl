@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:underlyingForwardPriceInTheoreticalPriceInverse = select(underlyingForwardPriceFromForwardValueProvider, 
+  false->underlyingForwardRateInTheoreticalPriceInverseDateAdjusted, 
+  true->select(providerIsTarget, 
+    true->impliedConstantScalingProvider, 
+    false->impliedForeignRateFromTargetUnderlyingForwardPrice));
+[Core Pricing]FInstrumentAndTrades:underlyingForwardPriceInTheoreticalPriceInverse = openInstrumentOrInstrument:underlyingForwardPriceInTheoreticalPriceInverse [theoreticalPrice, usePerUnitQuotation, underlyingForwardPriceInTheoreticalPriceInverseVariable];
+[Core Pricing]FPriceAggregate:underlyingForwardPriceInTheoreticalPriceInverse = instrument:underlyingForwardPriceInTheoreticalPriceInverse [theoreticalPrice, usePerUnitQuotation, underlyingForwardPriceInTheoreticalPriceInverseVariable];

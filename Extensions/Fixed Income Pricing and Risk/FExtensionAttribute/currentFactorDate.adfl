@@ -1,0 +1,7 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:currentFactorDate = select(isSingleLegInstrument, 
+  true->firstLeg :* "currentFactorDate", 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:currentFactorDate = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:currentFactorDate = instrument:currentFactorDate;
+[Fixed Income Pricing and Risk]FLeg:currentFactorDate = currentFactorDate(legInformation, staticLegInformation, valuationSystemDate);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:currentFactorDate = nil;

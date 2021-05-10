@@ -1,0 +1,29 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Resets_Fixed') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Resets_Fixed' and p.type = 'SQL Query' 
+select
+	
+	@Date{Yesterday;}'Reset Date',
+	r.type,
+	(avg(r.value))'Average_Value_Reset_Type',
+	fr.insid	'FloatReference'
+from
+	instrument	i,
+	instrument	fr,
+	trade	t,
+	leg	l,
+	reset	r
+where
+	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	fr.insaddr = l.float_rate
+and	r.legnbr = l.legnbr
+and	r.day = @Date{Yesterday;}
+and t.status in ('BO Confirmed','FO Confirmed','BO-BO Confirmed')
+
+group by fr.insid, r.type
+
+order by fr.insid	

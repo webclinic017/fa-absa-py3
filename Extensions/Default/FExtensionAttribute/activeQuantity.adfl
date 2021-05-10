@@ -1,0 +1,5 @@
+[Default]FOrderHandler:activeQuantity = activeOrderQuantity;
+[Default]FOwnOrder:activeQuantity = balance;
+[Default]PortfolioHedger:activeQuantity = switch(orderHandlers.IsEmpty, 
+  true->0, 
+  false->sumOf(orderHandlers :* "activeOrderQuantity"));

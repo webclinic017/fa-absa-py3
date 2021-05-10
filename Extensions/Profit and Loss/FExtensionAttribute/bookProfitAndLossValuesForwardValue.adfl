@@ -1,0 +1,6 @@
+[Profit and Loss]FInstrument:bookProfitAndLossValuesForwardValue = select(tradePremiumPartOfInstrument, 
+  false->denominatedbasket([]), 
+  true->profitAndLossValues.TradeForwardValue - profitAndLossValues.ForwardInterestSettled);
+[Profit and Loss]FInstrumentAndTrades:bookProfitAndLossValuesForwardValue = instrument:bookProfitAndLossValuesForwardValue [calculateTradeEffectInPosition, plSpotGroupingReference, positionObject, profitAndLossParameters, valuationBaseDateTimeInput];
+[Profit and Loss]FMultiInstrumentAndTrades:bookProfitAndLossValuesForwardValue = sumOf(instruments :* "bookProfitAndLossValuesForwardValue" [calculateTradeEffectInPosition, plSpotGroupingReference, positionObject, profitAndLossParameters, valuationBaseDateTimeInput]);
+[Profit and Loss]FTradeRow:bookProfitAndLossValuesForwardValue = instrument:bookProfitAndLossValuesForwardValue [calculateTradeEffectInPosition, includeAllTrades, singleTradePosition, taxLotPositionObject, tradeSetUsedInProfitandLoss, plSpotGroupingReference, profitAndLossParameters, valuationBaseDateTimeInput];

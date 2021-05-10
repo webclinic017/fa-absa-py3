@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FOrderBook:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying.IsKindOf("FCombination") and (count(underlyingPriceNodeInTheoreticalPrice) > 1), 
+  nil->false);
+[Equity Pricing and Risk]FPriceFeed:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying:isCombination and (underlyingPriceNodeCount > 1), 
+  nil->false);
+[Equity Pricing and Risk]FTradingInterface:underlyingIsValuedFromLegs = select(underlying, 
+  default->underlying:isCombination and (underlyingPriceNodeCount > 1), 
+  nil->false);

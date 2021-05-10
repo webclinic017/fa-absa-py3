@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:projectedRiskflows = select(currencySplitGroupingValue, 
+  nil->nil, 
+  default->denominatedvalue(stripDateTimePart(valuesInUnit(object:projectedRiskflowsCurrencyPairCalculation [currenciesForVectorColumn = [currencySplitGroupingValue]], currencySplitGroupingValue, false))));
+[Default]FPortfolioInstrumentAndTrades:projectedRiskflows = nil;
+[Default]FTimeBucketAndObject:projectedRiskflows = select(currencySplitGroupingValue, 
+  nil->nil, 
+  default->denominatedvalue(stripDateTimePart(valuesInUnit(rowObject:projectedRiskflowsPerCurrencyBuckets [timeApportionmentTypeSelected, currenciesForVectorColumn = [currencySplitGroupingValue], timeBucketsSetExternally = timeBucketCollection], currencySplitGroupingValue, false)))[timeBucketCollectionIndex]);

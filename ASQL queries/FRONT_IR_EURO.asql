@@ -1,0 +1,53 @@
+/* 2009-07-22 bs changed for 4.3 */
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_IR_EURO') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_IR_EURO' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+
+    Purpose             : This query supplies all EuroDollar futures trades.
+    Department and Desk : Market Risk - Fixed Income
+    Requester           : Rishaan Ramnarain
+    CR Number           : 491661
+    History		        : 
+                        2010/11/11 - added the condition to exclude trades with underlying type 'Stock' or 'Equity Index'
+
+------------------------------------------------------------------*/
+
+select	
+	t.trdnbr                                    'Deal Ref',
+	time_to_day(t.time)                         'Deal Date',
+	display_id(t, 'counterparty_ptynbr')        'Counter Party',
+	display_id(t,'trader_usrnbr')               'Dealer',
+	i.instype = 'Future/Forward' ? 'FUT' : ''   'Contract Type',
+	display_id(t,'prfnbr')                      'Profit Centre',
+	display_id(i,'curr')                        'Ccy',
+	date_add_banking_day(i.exp_day,display_id(i,'curr'),i.pay_day_offset) 'Interest Start Date',
+	date_add_banking_day(bankday_adjust(date_add_delta(i.exp_day,0,3,0),display_id(i,'curr'),'Following'),display_id(i,'curr'),i.pay_day_offset) 'Intrest End Date',
+	abs(t.quantity*i.contr_size)                'Notional',
+	t.price                                     'Deal Rate',
+	t.quantity < 0 ? 'SELL' : 'BUY'             'Buy_Sell',
+	1.0 /*projected_cf(t)*/				        'MtM_USD',
+	1.0 /*projected_cf(t)*tp.USD*/		        'MtM_ZAR',
+	1.0 /*projected_cf(t)*/				        'MtM_CCY',
+	TODAY                                       'DATE_LAST_UPDATED',
+	'not in Devon'                              'Dartnumber',
+	t.optional_key                              'Dev Ref' 
+from
+	instrument i,
+	trade t,
+	instrument und,
+	party p
+where
+	t.insaddr = i.insaddr
+    and	i.instype = 'Future/Forward'
+    and	t.status not in ('Simulated', 'Terminated', 'Void')
+    and	und.insaddr = i.und_insaddr
+    and t.acquirer_ptynbr = p.ptynbr
+    and	p.ptyid in ('Swaps Desk','IRP_FX Desk','FOREX DESK','FOREX DEALERS','AFRICA DESK','IRD DESK','Money Market Desk')
+    and	i.exp_day > TODAY
+    and i.und_instype not in ('Stock','EquityIndex')

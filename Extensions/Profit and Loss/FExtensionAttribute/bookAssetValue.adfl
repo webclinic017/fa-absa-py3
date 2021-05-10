@@ -1,0 +1,8 @@
+[Profit and Loss]FCombInstrMapAndTrades:bookAssetValue = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:bookAssetValue = nil;
+[Profit and Loss]FInstrumentAndTrades:bookAssetValue = select(bookNotDefined, 
+  true->nil, 
+  false->select(needsValueAtCostAdjustment, 
+    true->bookAssetValueCalculation + valueAtCostBookAssetValueAdjustment, 
+    false->bookAssetValueCalculation));
+[Profit and Loss]FLegAndTrades:bookAssetValue = nil;

@@ -1,0 +1,19 @@
+/* update_method=0 */
+/*
+Written for FTF-241
+*/
+
+SELECT
+    t.trdnbr
+FROM
+    trade t,
+    portfolio p,
+	instrument i
+WHERE
+    p.prfnbr = t.prfnbr
+AND i.insaddr = t.insaddr
+AND p.prfid IN ('HEDGES 1573','Shariah Hedges 1573')              
+AND (t.status NOT IN ('Terminated','Void')
+OR  (t.updat_time > date_add_delta(FIRSTDAYOFYEAR, -1, 0)))
+AND i.exp_day  >= date_add_delta(TODAY, 0,-2,0)
+AND t.status ~= 'Simulated'

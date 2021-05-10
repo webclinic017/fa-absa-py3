@@ -1,0 +1,20 @@
+[Equity Pricing and Risk]FBuySellBack:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCashFlowDerivativeInstrument:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlyingOrSelf :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCfd:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = marketSpotValueAsUnderlying;
+[Equity Pricing and Risk]FCombInstrMap:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = instrument :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCombination:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->select(generateMapDividends, 
+    false->marketSpotValueAsUnderlying, 
+    true->nil), 
+  default->nil);
+[Equity Pricing and Risk]FConvertible:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCreditIndex:dividendForecastMarketValues = nil;
+[Equity Pricing and Risk]FDepositaryReceipt:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = marketSpotValueAsUnderlying;
+[Equity Pricing and Risk]FDerivative:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FETF:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = marketSpotValueAsUnderlying;
+[Equity Pricing and Risk]FFxRate:dividendForecastMarketValues = nil;
+[Equity Pricing and Risk]FInstrument:dividendForecastMarketValues = nil;
+[Equity Pricing and Risk]FLeg:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = select(useDividendForecast, 
+  true->creditReference :* "dividendForecastMarketValues" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource], 
+  false->nil);
+[Equity Pricing and Risk]FStock:dividendForecastMarketValues[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = marketSpotValueAsUnderlying;

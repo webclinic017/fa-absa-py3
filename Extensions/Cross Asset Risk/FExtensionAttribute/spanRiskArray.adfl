@@ -1,0 +1,5 @@
+[Cross Asset Risk]FInstrument:spanRiskArray = select(isCalculatedTheoretically, 
+  true->select(isIRDPriceDeltaSensitive, 
+    true->spanInterestRateUnitRiskArray, 
+    false->spanEqCoFXUnitRiskArray), 
+  false->denominatedvalue(spanPriceShiftArray, nil, nil, valuationDate)) * (-contractSize);

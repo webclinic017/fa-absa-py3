@@ -1,0 +1,20 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CurrSwap_Spot_Days') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CurrSwap_Spot_Days' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr,
+    i.instype,
+    time_to_day(t.creat_time) 'Creat_time',
+    ael_s(t,'GM_Spot_Days.Spot_Offset')
+from
+    trade t,
+    instrument i
+where
+    t.insaddr= i.insaddr
+    and i.instype in ('CurrSwap')
+    and time_to_day(t.creat_time) = today
+    and i.spot_banking_days_offset ~= 0

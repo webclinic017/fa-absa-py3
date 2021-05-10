@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FBuySellBack:collateralMarkToMarketZarValueEnd = select(instrument:underlying.InsType == "FRN", 
+  true->underlyingSpotValueBESA * (quantityOfUnderlying * underlying:contractSize) * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number, 
+  default->instrument:collateralMarkToMarketValueCalculation.Number * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number);
+[ABSA Specific 4.3]FRepo:collateralMarkToMarketZarValueEnd = select(instrument:underlying.InsType == "FRN", 
+  true->underlyingSpotValueBESA * (quantityOfUnderlying * underlying:contractSize) * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number, 
+  default->instrument:collateralMarkToMarketValueCalculation.Number * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number);
+[ABSA Specific 4.3]FSecurityLoan:collateralMarkToMarketZarValueEnd = select(instrument:underlying.InsType == "FRN", 
+  true->underlyingSpotValueBESA * (quantityOfUnderlying * underlying:contractSize) * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number, 
+  default->instrument:collateralMarkToMarketValueCalculation.Number * double(instrument:underlyingCurrency :* "fxForwardRate" [fxToCurrency = currencyZAR]).Number);

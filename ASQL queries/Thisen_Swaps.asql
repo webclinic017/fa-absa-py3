@@ -1,0 +1,30 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Thisen_Swaps') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Thisen_Swaps' and p.type = 'SQL Query' 
+
+
+
+select
+
+i.insid, t.trdnbr, nominal_amount(t),present_value(t), l.fixed_rate, display_id(t,'counterparty_ptynbr')
+
+from
+
+instrument i,
+trade t,
+leg l
+
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and i.instype in ('Swap','IndexLinkedSwap')
+/*and nominal_amount(t) = -26200000*/
+and i.exp_day = '2012-01-12'
+/*and display_id(t,'counterparty_ptynbr') like '%PRES%'*/
+and l.type = 'Fixed'
+and l.fixed_rate = 8.28

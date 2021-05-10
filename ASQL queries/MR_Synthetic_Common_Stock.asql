@@ -1,0 +1,61 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+CR Number             :617732 
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Synthetic_Common_Stock.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+select l.index_ref
+into temp
+
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+        i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('TotalReturnSwap')     
+    and ir.instype in ('Stock','Bond','IndexLinkedBond')
+    
+group by 1
+
+
+
+
+select 
+    'Write File' 'Process',
+    ael_s(i,'MR_Synthetic_Common_Stock.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+    Into
+    macro
+from Instrument i,
+    temp t
+Where i.insaddr = t.index_ref
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

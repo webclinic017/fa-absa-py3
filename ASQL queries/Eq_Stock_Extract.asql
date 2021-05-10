@@ -1,0 +1,109 @@
+/* Usage code for this ASQL */
+
+select
+ael_i(p,'ASQL_log','Eq_Stock_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Eq_Stock_Extract' and p.type = 'SQL Query' 
+/*
+
+        Updated By: Aaeda Salejee     2005/05/05   Added Issuer as the last column
+        Updated By: Rishaan Ramnarain 2010/07/21   Added more acquirer names
+        
+        Purpose:                Exclude instruments by Hardcoding their insids.
+        Department and Desk:    Market Risk
+        Requester:              Rishaan Ramnarain
+        Developer:              Heinrich Cronje
+        CF Number:              395285
+
+*/
+
+select 
+        t.trdnbr                                                                                                    'TradeNumber',
+        display_id(t,'trader_usrnbr')                                                                               'Trader',
+        display_id(t,'counterparty_ptynbr')                                                                         'Counterparty',
+        time_to_day(t.time)                                                                                         'DealDate',
+        display_id(t,'insaddr')                                                                                     'Instrument',
+        i.instype = 'Stock' ? 'Stock' : i.instype                                                                   'InstrumentType',
+        t.price                                                                                                     'Strike',
+        t.quantity < 0 ?'S':'B'                                                                                     'Buy/Sell',
+        t.quantity < 0 ? (t.quantity * -1) : t.quantity                                                             'Number of Contracts',
+        @Date{TODAY}                                                                                                'DATA_DATE',
+        t.text1                                                                                                     'Principal',
+        display_id(pr,'owner_prfnbr')                                                                               'Portfolio',
+        display_id(t,'prfnbr')                                                                                      'SubPortFolio',   
+        mtm_price(t,@Date,display_id(i,'curr'),0,0)                                                                 'MTM',
+        (add_info(i,'DividendYield') = '' or add_info(i,'DividendYield') = '0')? 0 : add_info(i,'DividendYield')    'DividendYield',
+        0                                                                                                           'DividendAmount',
+        0                                                                                                           'DividendDate'  ,
+        display_id(i,'issuer_ptynbr')                                                                               'Issuer'
+
+from 
+        instrument i,
+        trade t,
+        party p,
+        portfoliolink pr,
+        Portfolio parent_p
+
+where 
+        t.insaddr = i.insaddr
+        and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+        and t.acquirer_ptynbr = p.ptynbr
+        and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','FMAINTENANCE','Equity Deriv','Equity_OTC','Gold Desk','JSE', 'EQUITY DERIVATIVES', 'PRIME SERVICES DESK', 'Credit Derivs', 'Metals Desk', 'ETN ISSUANCE', 'Agris Desk') 
+        and p.ptyid not in ('278366 ELN Basket','47050 FINI Hedge','47308 ALSI NO 1 A/C') 
+        and display_id(t,'prfnbr') not in ('278366 ELN Basket','47050 FINI Hedge','47308 ALSI NO 1 A/C') 
+        and i.instype = 'Stock'
+        and i.instype ~= 'Option'
+        /* and display_id(t,'prfnbr') not like '%47399%'*/
+        and t.prfnbr = pr.member_prfnbr
+        and time_to_day(t.time) <= @Date
+        and parent_p.prfnbr = pr.owner_prfnbr
+        and parent_p.prfid not in ('Barclays DMA Trades', 'SECURITIES LENDING')             
+        /*and i.exp_day >= @Date*/
+        /*and i.und_insaddr *= ii.insaddr*/
+        and i.insid not in ('ZAR/ALBI_TEST','ZAR/ALBI_TEST_Next','ZAR/ALBI_TEST_Previous','ZAR/DONOTUSE_eRAFI','ZAR/GOVI_TEST','ZAR/GOVI_TEST_Next','ZAR/GOVI_TEST_Previous','ZAR/PROJ_GOLD')
+       
+union
+
+
+
+/*** Eq Index ***/
+select 
+        t.trdnbr                                                                                                    'TradeNumber',
+        display_id(t,'trader_usrnbr')                                                                               'Trader',
+        display_id(t,'counterparty_ptynbr')                                                                         'Counterparty',
+        time_to_day(t.time)                                                                                         'DealDate',
+        display_id(t,'insaddr')                                                                                     'Instrument',
+        i.instype = 'Stock' ? 'Stock' : i.instype                                                                   'InstrumentType',
+        t.price                                                                                                     'Strike',
+        t.quantity < 0 ?'S':'B'                                                                                     'Buy/Sell',
+        t.quantity < 0 ? (t.quantity * -1) : t.quantity                                                             'Number of Contracts',
+        @Date{TODAY}                                                                                                'DATA_DATE',
+        t.text1                                                                                                     'Principal',
+        display_id(pr,'owner_prfnbr')                                                                               'Portfolio',
+        display_id(t,'prfnbr')                                                                                      'SubPortFolio',               
+        mtm_price(t,@Date,display_id(i,'curr'),0,0)                                                                 'MTM',
+        (add_info(i,'DividendYield') = '' or add_info(i,'DividendYield') = '0')? 0 : add_info(i,'DividendYield')    'DividendYield',
+        0                                                                                                           'DividendAmount',
+        0                                                                                                           'DividendDate',
+        display_id(i,'issuer_ptynbr')                                                                               'Issuer'
+
+from 
+        instrument i,
+        trade t,
+        party p,
+        portfoliolink pr
+
+where 
+        t.insaddr = i.insaddr
+        and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+        and t.acquirer_ptynbr = p.ptynbr
+        /*  and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','FMAINTENANCE','Equity Deriv','Equity_OTC','Gold Desk') */
+        and i.instype = 'EquityIndex'
+        and t.prfnbr = pr.member_prfnbr
+        and time_to_day(t.time) <= @Date
+        and p.ptyid not in ('278366 ELN Basket','47050 FINI Hedge','47308 ALSI NO 1 A/C') 
+        and display_id(t,'prfnbr') not in ('278366 ELN Basket','47050 FINI Hedge','47308 ALSI NO 1 A/C') 
+        /*and i.exp_day >= @Date*/
+        /*and i.und_insaddr *= ii.insaddr*/ 
+        and i.insid not in ('ZAR/ALBI_TEST','ZAR/ALBI_TEST_Next','ZAR/ALBI_TEST_Previous','ZAR/DONOTUSE_eRAFI','ZAR/GOVI_TEST','ZAR/GOVI_TEST_Next','ZAR/GOVI_TEST_Previous','ZAR/PROJ_GOLD')

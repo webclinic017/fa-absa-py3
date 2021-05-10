@@ -1,0 +1,25 @@
+[Default]FBuySellBack:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Default]FCashFlowDerivativeInstrument:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlyingOrSelf :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Default]FCfd:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Default]FCombInstrMap:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = instrument :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy];
+[Default]FCombination:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->select(generateMapDividends, 
+    false->forwardValueProvider, 
+    true->nil), 
+  default->nil);
+[Default]FConvertible:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Default]FCreditIndex:dividendForecastForwardValueProvider = nil;
+[Default]FDepositaryReceipt:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Default]FDerivative:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy = true];
+[Default]FETF:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Default]FEquityIndex:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->select(generateMapDividends, 
+    false->forwardValueProvider, 
+    true->nil), 
+  default->nil);
+[Default]FFxRate:dividendForecastForwardValueProvider = nil;
+[Default]FInstrument:dividendForecastForwardValueProvider = nil;
+[Default]FLeg:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = select(useDividendForecast, 
+  true->creditReference :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource], 
+  false->nil);
+[Default]FStock:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = forwardValueProvider;

@@ -1,0 +1,76 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FXSwapConvert') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FXSwapConvert' and p.type = 'SQL Query'
+
+/*
+Description
+This code calls the AEL FXSwapConvert. It converts all the FX Swaps specified in the filter to future/forward trades.
+
+Date            Who                     What
+01/10/2009      Willie van der Bank     Created
+*/
+
+select
+    t.trdnbr,
+    t.insaddr
+into trades
+from
+    trade t
+where
+        match_filter(t, @1_Filter{willie FXSwapTrades;tradefilter.fltid})
+        
+select
+    t.trdnbr,
+    cur.insid           'Curr',
+    projected_cf(cf)    'Amount'
+into pay
+from
+    instrument cur,
+    leg l,
+    cashflow cf,
+    trades t
+where
+        t.insaddr = l.insaddr
+    and l.payleg = 'Yes'
+    and cf.legnbr = l.legnbr
+    and l.curr = cur.insaddr
+    
+select
+    t.trdnbr,
+    cur.insid           'Curr',
+    projected_cf(cf)    'Amount'
+into rec
+from
+    instrument cur,
+    leg l,
+    cashflow cf,
+    trades t
+where
+        t.insaddr = l.insaddr
+    and l.payleg = 'No'
+    and cf.legnbr = l.legnbr
+    and l.curr = cur.insaddr
+
+select
+    p.trdnbr,
+    p.Curr              'pCur',
+    p.Amount            'pAmount',
+    r.Curr              'rCur',
+    r.Amount            'rAmount'
+into final
+from
+    pay p,
+    rec r
+where
+        p.trdnbr = r.trdnbr
+
+select
+    f.trdnbr,
+    ael_s(,'FXSwapConvert.doFXSwapConvert',f.trdnbr,'') 'Result'
+from
+    final f
+where
+        not (f.pCur = 'ZAR' and f.rCur = 'USD')

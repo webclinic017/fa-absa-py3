@@ -1,0 +1,21 @@
+
+select 
+	to_string(yp.date_period.count, convert('string', yp.date_period.unit, 1)) 'Maturity',
+    ael_d(yp, 'dirk_utils.sprd_point_maturity') 'MaturityDate',
+	ycs.spread 'Spread',
+	'Spread' 'Type'
+	
+from
+	YieldCurve yc, 
+	YieldCurvePoint yp,
+	YCSpread ycs
+	
+where
+	yc.yield_curve_name = @CurveName{'USD-SWAP-SPREAD(50bps)';yieldcurve.yield_curve_name}
+and 
+	yp.yield_curve_seqnbr = yc.seqnbr
+and
+    ycs.point_seqnbr = yp.seqnbr
+
+order by
+	2

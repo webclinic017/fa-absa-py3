@@ -1,0 +1,20 @@
+[Equity Pricing and Risk]FCertificate:underlyingValueQuantoBasketInstrument = select(baseValuationOnUnderlyingComponents, 
+  true->select(isQuanto, 
+    true->underlying:theoreticalSpotValueFromComponentMarketOrTheoreticalValueFixFx, 
+    false->underlying:theoreticalSpotValueFromComponentMarketOrTheoreticalValue), 
+  default->nil);
+[Equity Pricing and Risk]FConvertible:underlyingValueQuantoBasketInstrument = select(underlying:isCombination, 
+  true->underlyingValue, 
+  false->nil);
+[Equity Pricing and Risk]FDerivative:underlyingValueQuantoBasketInstrument = select(underlying:isCombination, 
+  true->select(baseValuationOnUnderlyingComponents and isQuanto, 
+    true->underlying:theoreticalSpotValueFromComponentMarketOrTheoreticalValueFixFx, 
+    false->underlying:theoreticalSpotValueFromComponentMarketOrTheoreticalValue), 
+  default->nil);
+[Equity Pricing and Risk]FInstrument:underlyingValueQuantoBasketInstrument = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:underlyingValueQuantoBasketInstrument = instrument :* "underlyingValueQuantoBasketInstrument" [isSplitAllGrouped, priceSource = portfolioPriceSource];
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:underlyingValueQuantoBasketInstrument = nil;
+[Equity Pricing and Risk]FPriceAggregate:underlyingValueQuantoBasketInstrument = instrument :* "underlyingValueQuantoBasketInstrument";
+[Equity Pricing and Risk]FTotalReturnSwap:underlyingValueQuantoBasketInstrument = select(underlying:isCombination, 
+  true->underlyingValue, 
+  false->nil);

@@ -1,0 +1,16 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:carry = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:carry = nil;
+[Profit and Loss]FInstrumentAndTrades:carry = select(isCashGrouping, 
+  true->collapse(cashCarry), 
+  default->collapse(assetCarry));
+[Profit and Loss]FMultiInstrumentAndTrades:carry = select(isCashGrouping, 
+  true->collapse(cashCarry), 
+  default->select(isAssetGrouping, 
+    true->collapse(assetCarry), 
+    default->collapse(cashAssetCarry)));
+[Profit and Loss]FPortfolioInstrumentAndTrades:carry = collapse(cashAssetCarry);
+[Profit and Loss]FPriceAggregate:carry = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "carry");

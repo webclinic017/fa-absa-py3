@@ -1,0 +1,5 @@
+[Equity Market Making]FQuoteController:qUndBidPrice = select(quoteUnderlying, 
+  nil->nil, 
+  default->select(underlyingIsValuedFromLegs, 
+    true->setDateTimePart(convertToCurrency(qCalculatedUnderlyingBidPrice, (underlying:instrumentCurrencies) :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency], currencySymbol), instrumentSpotDate), 
+    default->collapse(qCalculatedUnderlyingBidPrice)));

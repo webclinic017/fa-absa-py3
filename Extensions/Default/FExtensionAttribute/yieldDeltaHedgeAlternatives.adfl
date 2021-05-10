@@ -1,0 +1,6 @@
+[Default]FDerivative:yieldDeltaHedgeAlternatives = addArrays(arrayAny(underlying), addArrays(arrayAny(instrument), yieldHedgePageInstruments));
+[Default]FInstrument:yieldDeltaHedgeAlternatives = addArrays(arrayAny(instrument), yieldHedgePageInstruments);
+[Default]FInstrumentAndTrades:yieldDeltaHedgeAlternatives = instrument:yieldDeltaHedgeAlternatives;
+[Default]FMultiInstrumentAndTrades:yieldDeltaHedgeAlternatives = select(instrumentGroupingReference, 
+  nil->yieldHedgePageInstruments, 
+  default->instrumentGroupingReference:yieldDeltaHedgeAlternatives);

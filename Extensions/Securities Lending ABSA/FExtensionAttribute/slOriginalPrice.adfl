@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slOriginalPrice = select(sl_instype, 
+  "SecurityLoan"->(object.Trades.AsList.At(0)) :* "slOriginalPrice", 
+  default->nil);
+[Securities Lending ABSA]FTrade:slOriginalPrice = object.Contract.RefPrice;
+[Securities Lending ABSA]FTradeRow:slOriginalPrice = trade:slOriginalPrice;

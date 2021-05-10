@@ -1,0 +1,54 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Benchmark_deltas_AS') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Benchmark_deltas_AS' and p.type = 'SQL Query' 
+ 
+  /* 
+    ================================================================
+    asql used to calc benchmark deltas
+    done by simulating a 1bp bump on benchmarks for given curve
+    Dirk Strauss    14-Sept-2007
+    ================================================================
+*/
+
+select
+    TODAY                                   'RepDate',
+    @02_Filter{Dirk_tmp;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    ins.insaddr,
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat'
+    
+into
+    temp
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and ins.insid = 'ZAR-JIBAR-1M'
+/*order by 3, 5*/
+
+
+
+
+
+select
+    t.RepDate,
+    t.filter,
+    t.yc,
+    t.bm,
+    t.mat,
+    ael_f(ins, 'dirk_utils.bm_delta', t.filter, t.yc)                'pv01'
+from
+    temp t,
+    instrument ins
+where
+    t.insaddr = ins.insaddr
+    and t.mat < to_date(@03_EndDate{BIGDATE;})
+order by 3, 5

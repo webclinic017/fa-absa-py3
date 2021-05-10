@@ -1,0 +1,15 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeDedesignationPayment = sumOf(children :* "hedgeDedesignationPayment");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeDedesignationPayment = sumOf(children :* "hedgeDedesignationPayment");
+[HedgeAccountingMod]FTradeRow:hedgeDedesignationPayment = switch(object.OriginalTrade.DealPackage, 
+  nil->denominatedvalue(0, displayCurrencySymbol, , ), 
+  default->switch(usedInHedge, 
+    default->denominatedvalue(0, displayCurrencySymbol, , ), 
+    true->switch(getContainClosingTradeCheck(object.OriginalTrade.DealPackage), 
+      true->switch(hedgeDedesignationPaymentTotalAmount == 0, 
+        true->switch(isExternalTrade or isHedgeClosingTrade, 
+          true->deprecRPLColumn, 
+          default->denominatedvalue(0, displayCurrencySymbol, , )), 
+        default->switch(isHedgeClosingTrade, 
+          true->getHedgeDedesignationPayment(object.Trade), 
+          default->denominatedvalue(0, displayCurrencySymbol, , ))), 
+      default->denominatedvalue(0, displayCurrencySymbol, , ))));

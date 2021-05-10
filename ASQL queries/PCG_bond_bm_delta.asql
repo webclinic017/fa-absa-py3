@@ -1,0 +1,85 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_bond_bm_delta') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_bond_bm_delta' and p.type = 'SQL Query' 
+ 
+  
+/* 
+    ================================================================
+    asql used to calc benchmark deltas for bonds
+    done by simulating a 1bp bump on bond yield
+    Dirk Strauss    14-Sept-2007
+    ================================================================
+*/
+
+select
+    ins.insid,
+    ins.exp_day
+into
+    inslst_a
+from
+    instrument ins,
+    trade trd
+where
+    match_filter(trd, @01_Filter{;tradefilter.fltid}, )
+    and ins.insaddr = trd.insaddr
+    and ins.instype in ('Bond', 'IndexLinkedBond')
+    and ins.exp_day >= TODAY
+    
+select
+    und.insid,
+    und.exp_day
+into
+    inslst_a
+from
+    instrument ins,
+    instrument und,
+    trade trd
+where
+    match_filter(trd, @01_Filter{;tradefilter.fltid}, )
+    and ins.insaddr = trd.insaddr
+    and ins.und_insaddr = und.insaddr    
+    and und.instype in ('Bond', 'IndexLinkedBond')
+    and ins.exp_day >= TODAY
+
+select distinct
+    insid
+into
+    inslst
+from 
+    inslst_a
+
+select 
+    TODAY           'RepDate',
+    @01_Filter{;tradefilter.fltid}      'Filter',
+    ins.insid, 
+    ins.exp_day,
+    ael_f(ins, 'dirk_utils.Bond_BM_delta_acm', @01_Filter{;tradefilter.fltid})              'PV01',
+    ael_f(ins, 'dirk_utils.Bond_BM_delta_ins')              'PV01_bnd',
+    ins.contr_size
+into
+    temp
+from 
+    inslst,
+    instrument ins
+where
+    ins.insid = inslst.insid    
+order by
+    ins.exp_day
+    
+select 
+    RepDate,
+    Filter,
+    insid,
+    exp_day,
+    PV01,
+    PV01_bnd,
+    contr_size,
+    PV01 / PV01_bnd * contr_size                'implied_pos'
+from
+    temp
+order by
+    exp_day
+    

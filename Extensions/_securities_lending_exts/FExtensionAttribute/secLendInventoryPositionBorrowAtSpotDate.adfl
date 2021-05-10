@@ -1,0 +1,10 @@
+[_securities_lending_exts]FInstrument:secLendInventoryPositionBorrowAtSpotDate = switch(secLendInventoryPositionAtSpotDate > 0, 
+  true->secLendInventoryPositionAtSpotDate, 
+  default->nil);
+[_securities_lending_exts]FInstrumentAndTrades:secLendInventoryPositionBorrowAtSpotDate = switch(secLendGetInventoryPositionBorrowAtSpotDate.IsNumber, 
+  true->secLendGetInventoryPositionBorrowAtSpotDate, 
+  default->nil);
+[_securities_lending_exts]FMultiInstrumentAndTrades:secLendInventoryPositionBorrowAtSpotDate = switch((secLendSumInventoryPositionBorrowAtSpotDate.IsNumber) and (grouper == "Underlying"), 
+  true->secLendSumInventoryPositionBorrowAtSpotDate, 
+  default->nil);
+[_securities_lending_exts]FPortfolioInstrumentAndTrades:secLendInventoryPositionBorrowAtSpotDate = nil;

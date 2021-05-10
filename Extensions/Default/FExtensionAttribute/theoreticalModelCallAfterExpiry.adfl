@@ -1,0 +1,7 @@
+[Default]FInstrument:theoreticalModelCallAfterExpiry = select(valuationModelDescription.Includes("afterExpiryValuation") and useAfterExpiryValuation, 
+  true->select(isMultiExercise, 
+    false->theoreticalModelDescriptionAfterExpiryValuation, 
+    true->shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor](isSettled, 
+      false->theoreticalModelDescriptionAfterExpiryValuation, 
+      true->theoreticalModelCallZeroValue)), 
+  false->theoreticalModelCallZeroValue);

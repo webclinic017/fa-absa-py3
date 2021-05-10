@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FFuture:currenciesOfInstrument = select(object.AdditionalInfo.CBOT_Reference, 
+  nil->instrumentCurrencies.AsSet, 
+  default->instrumentCurrencies.AsSet.AddAll([getObject("FInstrument", object.AdditionalInfo.CBOT_Reference).Currency]));
+[ABSA Specific 4.3]FInstrument:currenciesOfInstrument = instrumentCurrencies;
+[ABSA Specific 4.3]FPriceSwap:currenciesOfInstrument = select(firstLeg.FloatRateReference, 
+  nil->instrumentCurrencies, 
+  default->instrumentCurrencies.AsSet.AddAll([firstLeg.FloatRateReference.Currency]));
+[ABSA Specific 4.3]FTotalReturnSwap:currenciesOfInstrument = instrumentCurrencies.AsSet.AddAll((object.Legs.Filter(legFilter)) :* "indexRef.Currency");
+[ABSA Specific 4.3]FTradeRow:currenciesOfInstrument = (object.Instrument) :* "currenciesOfInstrument";

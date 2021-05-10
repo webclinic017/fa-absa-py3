@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:instrumentGroupingReferenceRow = nil;
+[Core Pricing]FMultiInstrumentAndTrades:instrumentGroupingReferenceRow = select(groupingReference, 
+  nil->nil, 
+  default->select(groupingReference.IsKindOf("FInstrument") and not groupingReference.IsKindOf("FCurrency"), 
+    true->groupingReference, 
+    false->nil));
+[Core Pricing]FPortfolioInstrumentAndTrades:instrumentGroupingReferenceRow = nil;
+[Core Pricing]FSingleInstrumentAndTrades:instrumentGroupingReferenceRow = nil;
+[Core Pricing]FTradeRow:instrumentGroupingReferenceRow = nil;

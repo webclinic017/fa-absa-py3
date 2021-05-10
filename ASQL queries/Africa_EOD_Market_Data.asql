@@ -1,0 +1,22 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Africa_EOD_Market_Data') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Africa_EOD_Market_Data' and p.type = 'SQL Query' 
+
+
+select
+yc.yield_curve_name 'Yield Curve',
+i.insid 'Benchmark',
+display_id(i,'curr') 'Benchmark currency',
+used_price(i) 'Benchmark price'
+
+from YieldCurve yc,
+Benchmark bm,
+Instrument i
+
+where
+bm.yield_curve_seqnbr = yc.seqnbr
+and bm.instrument = i.insaddr
+and yc.yield_curve_name in ('ZAR-SWAP','CHF-SWAP','BWP-GOVI-ME','CAD-DEPO','EUR-SWAP','GBP-SWAP','JPY-SWAP','KES-GOVI-ME','USD-SWAP','ZMK-GOVI-ME')

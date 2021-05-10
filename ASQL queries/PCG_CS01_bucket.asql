@@ -1,0 +1,47 @@
+/* LJ 31 Jul 08, copy of MR_CS01_bucket*/
+
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_CS01_bucket') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_CS01_bucket' and p.type = 'SQL Query' 
+
+select
+    TODAY                                                                     'RepDate',
+    @02_Filter{CredDer_All;tradefilter.fltid}                            'filter',
+    yc.yield_curve_name                                                      'yc2',
+    display_id(attrib, 'issuer_ptynbr')                                      'Party',
+    p.date_period.count,
+    p.date_period.unit,
+/*  ael_d(ins, 'dw_test.bm_maturity')    'mat',*/
+    ael_f(yc, 'dw_utils_bucket.credspread_delta_shift',
+        to_double(@04_CS01_Shift_Size{0.0001}),
+        @02_Filter{CredDer_All;tradefilter.fltid},
+        yc.yield_curve_name,display_id(attrib, 'issuer_ptynbr'),p.date_period.count,p.date_period.unit)                'cs01',
+    ael_f(yc, 'dw_utils_bucket.credspread_deltapct_shift',
+        to_double(@05_CS1pct_Shift_Size{1.01}),
+        @02_Filter{CredDer_All;tradefilter.fltid},
+        yc.yield_curve_name,display_id(attrib, 'issuer_ptynbr'),p.date_period.count,p.date_period.unit)                'cs1%',
+    date_add_delta(@Date{today}, 0, 0, date_period.count)                      'End Date',
+        s.spread * 100                                                          'spread'
+                                                            
+    
+from
+    yieldcurve yc,
+    YCAttribute attrib,
+    YCSpread s,
+    YieldCurvePoint p
+    
+where
+    yc.yield_curve_name  in (@01_YieldCurve{CDIssuerCurve_HR;yieldcurve.yield_curve_name *})
+    and     yc.seqnbr = attrib.yield_curve_seqnbr
+    /*and display_id(attrib, 'issuer_ptynbr')  = 'STANDARD BANK SA'*/
+    and  display_id(attrib, 'issuer_ptynbr') not in ('S A Goverment','S A GOVERNMENT CDS ISSUER')
+    /*and ael_d(ins, 'dw_test.bm_maturity') < to_date(@03_EndDate{BIGDATE;})*/
+    and attrib.seqnbr = s.attribute_seqnbr
+    and yc.seqnbr = p.yield_curve_seqnbr
+    and point_seqnbr = p.seqnbr
+order by 3

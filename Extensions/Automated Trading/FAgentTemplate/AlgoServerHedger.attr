@@ -1,0 +1,264 @@
+[Automated Trading]FObject:AlgoServerHedger
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=AlgoServerHedger
+  EditPermission=System
+  Granularity=100
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TraceLog=1000
+  TradingEnabled=No
+
+State Error =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterStop
+  OnExit=<none>
+  SuperState=<none>
+
+State MonitorServer =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State PrepareServer =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Start =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterStart
+  OnExit=<none>
+  SuperState=<none>
+
+State Stop =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterStop
+  OnExit=<none>
+  SuperState=<none>
+
+State UpdateError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State UpdateServer =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+Transitions =
+  agentCannotBeStarted=Start -> agentCannotBeStarted / <none> -> Error
+  fatalError=UpdateError -> fatalError / LogError -> Error
+  notFatalError=UpdateError -> notFatalError / LogError -> UpdateServer
+  serverAgentError=MonitorServer -> serverAgentError / OnServerAgentError -> Error
+  serverAgentStopped=MonitorServer -> serverAgentStopped / <none> -> Stop
+  serverAgentStopped2=PrepareServer -> serverAgentStopped / <none> -> Stop
+  serverConnected=Start -> serverReady / CreateAndStartServerAgent -> PrepareServer
+  startError=PrepareServer -> serverAgentError / OnServerAgentError -> Error
+  startServer=PrepareServer -> serverAgentStarted / UpdateCurrentVectors -> MonitorServer
+  startServerAgentFailed=PrepareServer -> updateError / OnStartServerAgentFailed -> Error
+  updateError=UpdateServer -> updateError / GetErrorAndClearPendingUpdates -> UpdateError
+  updatePriceVectors=MonitorServer -> updatePriceVectors / GetAndUpdateVectors -> UpdateServer
+  updateServerParameters=MonitorServer -> updateServerParameters / GetAndUpdateParameters -> UpdateServer
+  updateSuccessful=UpdateServer -> updateSuccessful / UpdateCurrentVectors -> MonitorServer
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+
+Conditions =
+  agentCannotBeStarted=not agentCanBeStarted
+  fatalError=switch(currentError.Severity, \
+      "Fatal"->true, \
+      "Warning"->true, \
+      default->false)
+  notFatalError=not fatalError
+  serverAgentError=serverAgent.HasError
+  serverAgentStarted=serverAgent.IsRunning
+  serverAgentStopped=serverAgent.IsStopped
+  serverConnected=algoServer.IsAvailable
+  serverHasError=serverAgent.HasErrors
+  serverReady=serverConnected and (algoServerStrategy <> nil) and (not underlyingPricesInvalid) and agentCanBeStarted
+  underlyingPricesInvalid=(algoServerHedgerUnderlyingPrices.Size <> 9) or not hedgeOrderBook.PriceFeed.IsValidPrice(algoServerHedgerUnderlyingPrices.CurrentPrice)
+  updateComplete=(not serverAgent.IsPending) and (commandCompletion.NbrOfPendingCommands == 0)
+  updateError=not commandCompletion.Errors.IsEmpty
+  updatePriceVectors=(not underlyingPricesInvalid) and ((not currentTheoreticalPrices.IsEqual(algoServerHedgerTheoreticalPrices)) or (not currentUnderlyingPrices.IsEqual(algoServerHedgerUnderlyingPrices)))
+  updateServerHedgeAccount=switch(hedgeAccount, \
+      ""->(serverAgent.AccountId <> nil), \
+      default->(serverAgent.AccountId <> hedgeAccount))
+  updateServerHedgeReference=switch(hedgeReference, \
+      ""->(serverAgent.Reference <> nil), \
+      default->(serverAgent.Reference <> hedgeReference))
+  updateServerParameters=updateServerHedgeAccount or updateServerHedgeReference or (serverAgent.MinimumQuantity <> minimumQuantity) or (serverAgent.CalculationType <> calculationType) or (serverAgent.ReferencePrice <> referencePrice) or (serverAgent.Aggressive_Order_Part <> aggressivePart) or (serverAgent.TickOffset <> tickOffset) or ((smartTradingStrategy <> nil) and (serverAgent.SMARTTradingStrategy <> smartTradingStrategy))
+  updateSuccessful=updateComplete and commandCompletion.Errors.IsEmpty
+
+Actions =
+  ClearPendingTheorPrices=nil => pendingTheoreticalPrices
+  ClearPendingUndPrices=nil => pendingUnderlyingPrices
+  CreateAlgoServerAgent=!CreateAlgoServerAgent
+  GetError=commandCompletion.Errors.RemoveAt(0) => currentError
+  GetTheorPrices=algoServerHedgerTheoreticalPrices => pendingTheoreticalPrices
+  GetUndPrices=algoServerHedgerUnderlyingPrices => pendingUnderlyingPrices
+  LogError=!LogError
+  OnEnterStart=!OnEnterStart
+  OnEnterStop=!OnEnterStop
+  OnServerAgentError=!OnServerAgentError
+  OnStartServerAgentFailed=!OnStartServerAgentFailed
+  UpdateCurrentVectors=!UpdateCurrentVectors
+  UpdateParameters=!UpdateParameters
+  UpdateVectors=!UpdateVectors
+
+ActionLists =
+  CreateAndStartServerAgent=GetPriceVectors, CreateAlgoServerAgent
+  GetAndUpdateParameters=GetPriceVectors, UpdateParameters
+  GetAndUpdateVectors=GetPriceVectors, UpdateVectors
+  GetErrorAndClearPendingUpdates=GetError, ClearPendingTheorPrices, ClearPendingUndPrices
+  GetPriceVectors=GetTheorPrices, GetUndPrices
+
+Variable agentCanBeStarted =
+  Description=will be set to false if agent validation fails before startup
+  Domain=bool
+  Type=Private
+  Value=true
+
+Variable aggressivePart =
+  DisplayName=Aggressive Part
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAggressiveOrderPart
+
+Variable algoServer =
+  Domain=FAlgoServer
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable algoServerStrategy =
+  Description=The algo server strategy
+  Domain=FAlgoServerStrategy
+  Type=ReadOnly
+  Value=algoServer.Strategies.Strategy("Auto Hedge Strategy")
+
+Variable calculationType =
+  Description=The underlying calculation type
+  DisplayName=Calculation Type
+  Domain=int
+  Type=ReadOnly
+  Value=switch(trading.PriceFeed.SelectedPrice(nil).StringKey, \
+      "EquilibriumPrice"->1, \
+      "LastPriceIfWithinSpread"->2, \
+      "SpreadAveragePrice"->3, \
+      "AverageBidPrice"->4, \
+      "AverageAskPrice"->5, \
+      "LastPrice"->6, \
+      "ClosePrice"->7, \
+      default->2)
+
+Variable commandCompletion =
+  Domain=FAlgoServerCommandCompletion
+  Type=ReadOnly
+  Value=serverAgent.CommandCompletion
+
+Variable currentError =
+  Domain=FAlgoServerError
+  Type=Private
+  Value=nil
+
+Variable currentTheoreticalPrices =
+  Domain=FDenominatedValueArray
+  Type=Private
+  Value=
+
+Variable currentUnderlyingPrices =
+  Domain=FUnderlyingPriceArray
+  Type=Private
+  Value=
+
+Variable hedgeAccount =
+  DisplayName=Account
+  Domain=string
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerAccount
+
+Variable hedgeOrderBook =
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTradingInterface
+
+Variable hedgeReference =
+  DisplayName=Reference
+  Domain=string
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerReference
+
+Variable minimumQuantity =
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerMinRoundLots * quoteController:qLot
+
+Variable pendingTheoreticalPrices =
+  Domain=FDenominatedValueArray
+  Type=Private
+  Value=
+
+Variable pendingUnderlyingPrices =
+  Domain=FUnderlyingPriceArray
+  Type=Private
+  Value=
+
+Variable quoteController =
+  Domain=FQuoteController
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable referencePrice =
+  Description=The hedge reference price
+  DisplayName=Reference Price
+  Domain=string
+  Type=ReadOnly
+  Value=switch(quoteController:automaticHedgerPriceType, \
+      "Match All"->"MatchAll", \
+      default->quoteController:automaticHedgerPriceType)
+
+Variable serverAgent =
+  Domain=FAlgoServerAgentProxy
+  Type=Private
+  Value=nil
+
+Variable smartTradingStrategy =
+  DisplayName=SMART Strategy
+  Domain=FAlgoTradingStrategy
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTradingStrategy
+
+Variable tickOffset =
+  DisplayName=Tick Offset
+  Domain=int
+  Type=ReadOnly
+  Value=quoteController:automaticHedgerTickOffset
+
+Variable trading =
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=quoteController.TradingInterface
+
+<end>

@@ -1,0 +1,7 @@
+[CFDLimits]FMultiInstrumentAndTrades:PortfolioProfitLossPeriodPositi = select(grouper, 
+  "Trade: SubPrf"->parent:PortfolioProfitLossPeriodPositi, 
+  default->acm.GetDefaultValueEx(object, "PortfolioProfitLossPeriodPositi", context, "FInstrumentAndTrades"));
+[CFDLimits]FPortfolioInstrumentAndTrades:PortfolioProfitLossPeriodPositi = nil;
+[CFDLimits]FSingleInstrumentAndTrades:PortfolioProfitLossPeriodPositi = switch(acm.GetDefaultValueEx(object, "PortfolioProfitLossPeriodPositi", context, "FInstrumentAndTrades") == nan, 
+  true->0.0, 
+  false->acm.GetDefaultValueEx(object, "PortfolioProfitLossPeriodPositi", context, "FInstrumentAndTrades"));

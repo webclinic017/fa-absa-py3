@@ -1,0 +1,7 @@
+[RUSSIAN 4.3]FInstrument:undMovement = shunt(priceStart == 0, 
+  true->0, 
+  false->(priceEnd - priceStart) / priceStart);
+[RUSSIAN 4.3]FMultiInstrumentAndTrades:undMovement = shunt(sumOf(unSettledInstrumentsNonZero :* "undMovement" [positionObject, priceSource = portfolioPriceSource]) == 0, 
+  true->0, 
+  default->firstOf(unSettledInstrumentsNonZero :* "undMovement" [positionObject, priceSource = portfolioPriceSource]));
+[RUSSIAN 4.3]FSingleInstrumentAndTrades:undMovement = instrumentGroupingReference :* "undMovement" [positionObject, priceSource = portfolioPriceSource];

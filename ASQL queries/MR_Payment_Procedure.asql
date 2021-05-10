@@ -1,0 +1,132 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Payment_Procedure') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Payment_Procedure' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Payment_Procedure.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Payment_Procedure.csv'},@3_PositionName{'MR_Payment_Procedure_Position.csv'})                'BuildConfirmation'
+Into
+    Macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+
+select l.index_ref 'ref'
+into temp
+
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+        (i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('TotalReturnSwap')     
+    and ir.instype in ('Stock','EquityIndex','Bond','ETF'))
+    or(i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('IndexLinkedSwap','IndexLinkedBond','Bond'))    
+
+group by 1
+
+
+select l.inf_scal_ref 'ref'
+into temp
+
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+        (i.insaddr = l.insaddr
+    and l.inf_scal_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('TotalReturnSwap')     
+    and ir.instype in ('IndexLinkedBond','ETF'))
+    or(i.insaddr = l.insaddr
+    and l.inf_scal_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('IndexLinkedSwap','IndexLinkedBond','IndexLinkedBond'))    
+
+group by 1
+
+
+select l.index_ref 'ref'
+into temp
+
+from
+    instrument i,
+    instrument ir,
+   leg l
+where
+        (i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('TotalReturnSwap')     
+    and ir.instype in ('IndexLinkedBond','ETF'))
+    or(i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('IndexLinkedSwap','IndexLinkedBond','IndexLinkedBond'))    
+
+group by 1
+
+
+select 
+    'Write File' 'Process',
+    ael_s(i,'MR_Payment_Procedure.Write',@1_path{'f:\'},@2_FileName{'MR_Payment_Procedure.csv'},@3_PositionName{'MR_Payment_Procedure_Position.csv'})                'BuildConfirmation'
+    Into
+    macro
+from Instrument i,
+    temp t
+Where i.insaddr = t.ref
+
+Select to_string(display_id(ll,'curr'),display_id(lr,'curr')) 'currpair'
+into Currtemp
+from 
+instrument i,
+Leg ll,
+Leg lr
+where i.insaddr = ll.insaddr
+and i.insaddr = lr.insaddr
+and ll.is_locked = 'Yes'
+and lr.is_locked = 'No'
+and i.instype = 'CurrSwap'
+group by 1
+
+select 
+    'Write File' 'Process',
+    ael_s(,'MR_Payment_Procedure.Write2',@1_path{'f:\'},@2_FileName{'MR_Payment_Procedure.csv'},@3_PositionName{'MR_Payment_Procedure_Position.csv'},currpair)                'BuildConfirmation'
+    Into
+    macro
+from Currtemp
+
+Select
+    'Close File'    'Process', 
+    'Successful'     'BuildConfirmation'
+Into
+    Macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

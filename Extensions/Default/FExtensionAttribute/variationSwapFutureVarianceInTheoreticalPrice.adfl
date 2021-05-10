@@ -1,0 +1,21 @@
+[Default]FInstrumentAndTrades:variationSwapFutureVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  true->select(variationSwapNExpectedFutureFixings > 0, 
+    true->select(isVarianceSwap, 
+      true->select(instrument:isForwardStartingVariationSwap, 
+        true->double(theoreticalPriceAsVariance), 
+        false->(double(theoreticalPriceAsVariance) - double(variationSwapHistoricalVarianceInTheoreticalPrice) * variationSwapNHistoricalPriceFixings / variationSwapNExpectedTotalFixings) * variationSwapNExpectedTotalFixings / variationSwapNExpectedFutureFixings), 
+      false->pow(shiftHistoricalVarianceZero, 2)), 
+    false->0.0), 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:variationSwapFutureVarianceInTheoreticalPrice = nil;
+[Default]FOrderBook:variationSwapFutureVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  true->select(variationSwapNExpectedFutureFixings > 0, 
+    true->(double(theoreticalPriceAsVariance) - double(variationSwapHistoricalVarianceInTheoreticalPrice) * variationSwapNHistoricalPriceFixings / variationSwapNExpectedTotalFixings) * variationSwapNExpectedTotalFixings / variationSwapNExpectedFutureFixings, 
+    false->0.0), 
+  false->nil);
+[Default]FPriceAggregate:variationSwapFutureVarianceInTheoreticalPrice = priceFeed:variationSwapFutureVarianceInTheoreticalPrice;
+[Default]FPriceFeed:variationSwapFutureVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  true->select(variationSwapNExpectedFutureFixings > 0, 
+    true->(double(theoreticalPriceAsVariance) - double(variationSwapHistoricalVarianceInTheoreticalPrice) * variationSwapNHistoricalPriceFixings / variationSwapNExpectedTotalFixings) * variationSwapNExpectedTotalFixings / variationSwapNExpectedFutureFixings, 
+    false->0.0), 
+  false->nil);

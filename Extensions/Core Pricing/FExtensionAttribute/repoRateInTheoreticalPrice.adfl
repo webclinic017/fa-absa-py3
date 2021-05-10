@@ -1,0 +1,7 @@
+[Core Pricing]FInstrumentAndTrades:repoRateInTheoreticalPrice = select(isSettled, 
+  true->nil, 
+  false->select(repoRateInTheoreticalPriceIfExists, 
+    nil->repoRateForForwardValue, 
+    default->select(countAny(repoRateInTheoreticalPriceIfExists), 
+      1->repoRateInTheoreticalPriceIfExists, 
+      default->repoRateForForwardValue)));

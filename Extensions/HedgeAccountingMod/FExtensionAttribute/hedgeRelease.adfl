@@ -1,0 +1,5 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRelease = sumOf(children :* "hedgeRelease_singleCurr");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRelease = sumOf(children :* "hedgeRelease_singleCurr");
+[HedgeAccountingMod]FTradeRow:hedgeRelease = switch(isCashFlowHR and isExternalTrade, 
+  true->carry, 
+  default->denominatedvalue(0.0, displayCurrency, , ));

@@ -1,0 +1,71 @@
+select
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+        ins.exp_period.unit = 'Years' ?  to_int(days_between(@day1{;}, date_add_delta(@day1{;}, 0, 0, ins.exp_period.count), 'Act/365'))
+    : ins.exp_period.unit = 'Months' ? to_int(days_between(@day1{;}, date_add_delta(@day1{;}, 0, ins.exp_period.count,0), 'Act/365'))
+    : ins.exp_period.unit = 'Days' ? to_int(days_between(@day1{;}, date_add_delta(@day1{;},  ins.exp_period.count, 0,0), 'Act/365'))
+    : ins.exp_period.unit = 'Weeks' ? to_int(days_between(@day1{;}, date_add_delta(@day1{;},  ins.exp_period.count*7, 0,0), 'Act/365'))
+    : to_int(days_between(@day1{;}, date_add_delta(@day1{;}, 0, 0, ins.exp_period.count), 'Act/365')) 'DaysInPeriod',
+    p.last                                  '1stDay'
+
+into temp1
+    
+  
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p,
+    party pt
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and pt.ptynbr = p.ptynbr 
+    and ins.insaddr = p.insaddr
+    and p.day = @day1{;}
+    and pt.ptyid = 'SPOT'
+    
+/*'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''*/    
+select
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+        ins.exp_period.unit = 'Years' ?  to_int(days_between(@day2{;}, date_add_delta(@day2{;}, 0, 0, ins.exp_period.count), 'Act/365'))
+    : ins.exp_period.unit = 'Months' ? to_int(days_between(@day2{;}, date_add_delta(@day2{;}, 0, ins.exp_period.count,0), 'Act/365'))
+    : ins.exp_period.unit = 'Days' ? to_int(days_between(@day2{;}, date_add_delta(@day2{;},  ins.exp_period.count, 0,0), 'Act/365'))
+    : ins.exp_period.unit = 'Weeks' ? to_int(days_between(@day2{;}, date_add_delta(@day2{;},  ins.exp_period.count*7, 0,0), 'Act/365'))
+    : to_int(days_between(@day2{;}, date_add_delta(@day2{;}, 0, 0, ins.exp_period.count), 'Act/365')) 'DaysInPeriod',
+    p.last                                  '2ndDay'
+
+into temp2
+    
+  
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins,
+    price p,
+    party pt
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    and pt.ptynbr = p.ptynbr 
+    and ins.insaddr = p.insaddr
+    and p.day = @day2{;}
+    and pt.ptyid = 'SPOT' 
+ /*''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''*/
+select 
+    t1.yc                     'yc',
+    t1.bm                     'bm',
+    t1.DaysInPeriod,
+    t1.1stDay                 '1stDay ',
+    t2.2ndDay                 '2ndDay',
+    (t1.1stDay - t2.2ndDay)*100     'Bp Difference'   
+from
+    temp1   t1,
+    temp2   t2
+where
+    t1.bm = t2.bm
+    
+order by 3

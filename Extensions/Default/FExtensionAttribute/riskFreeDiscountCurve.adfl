@@ -1,0 +1,19 @@
+[Default]FCashFlow:riskFreeDiscountCurve = leg:riskFreeDiscountCurve;
+[Default]FCashFlowMoneyFlow:riskFreeDiscountCurve = leg:riskFreeDiscountCurve;
+[Default]FInstrument:riskFreeDiscountCurve = select(isCredit, 
+  true->select(object.HasExplicitRiskFreeCurve, 
+    true->mappedRiskFreeDiscountLink :* "riskFreeDiscountCurve" [hasExplicitRiskFreeCurve := true], 
+    false->mappedCreditLink :* "riskFreeDiscountCurve"), 
+  false->mappedDiscountLink :* "riskFreeDiscountCurve");
+[Default]FInstrumentAndTrades:riskFreeDiscountCurve = instrument:riskFreeDiscountCurve;
+[Default]FIrCurveInformation:riskFreeDiscountCurve = riskFreeDiscountIrCurveInformation;
+[Default]FLeg:riskFreeDiscountCurve = select(isCredit, 
+  true->select(object.HasExplicitRiskFreeCurve, 
+    true->mappedRiskFreeDiscountLink :* "riskFreeDiscountCurve" [hasExplicitRiskFreeCurve := true], 
+    false->mappedCreditLink :* "riskFreeDiscountCurve"), 
+  false->mappedDiscountLink :* "riskFreeDiscountCurve");
+[Default]FLegAndTrades:riskFreeDiscountCurve = leg:riskFreeDiscountCurve;
+[Default]FMappingLink:riskFreeDiscountCurve = select(hasExplicitRiskFreeCurve, 
+  true->explicitRiskFreeDiscountCurveHierarchy, 
+  false->riskFreeDiscountCurveHierarchy);
+[Default]FYieldCurveHierarchy:riskFreeDiscountCurve = riskFreeYieldCurveComponent :* "riskFreeDiscountIrCurveInformation" [component = underlyingComponent, hasExplicitRiskFreeCurve];

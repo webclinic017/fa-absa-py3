@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:startValueForForwardCalculationCore[priceSource, doSplitAll, discountingType, includeEmbeddedOption] = collapse(theoreticalOrMarketInstrumentValue);
+[Default]FCombination:startValueForForwardCalculationCore[priceSource, doSplitAll, underlyingFutureObservationDate, discountingType, forwardPriceDate, forwardValueDate] = select(startValueForForwardCalculationCombinationNeedsConversion, 
+  false->collapse(startValueForForwardCalculationCombination), 
+  true->convertToCurrencyValidateDates(startValueForForwardCalculationCombination, startValueForForwardCalculationCombinationCurrencies :* "fxForwardRate" [discountingType, fxForwardDate = startValueForForwardCalculationCombinationDates, fxToCurrency := currency], currencySymbol));
+[Default]FDepositaryReceipt:startValueForForwardCalculationCore[priceSource, doSplitAll, discountingType] = collapse(theoreticalOrMarketInstrumentValue);
+[Default]FDerivative:startValueForForwardCalculationCore[priceSource, doSplitAll, discountingType] = collapse(theoreticalOrMarketInstrumentValue);
+[Default]FFxRate:startValueForForwardCalculationCore[priceSource, discountingType] = object:underlyingValueFX [fxSpotRateForValuationDateRate = theoreticalOrMarketInstrumentValue, discountingType];
+[Default]FInstrument:startValueForForwardCalculationCore[priceSource, doSplitAll, underlyingFutureObservationDate, discountingType] = collapse(theoreticalOrMarketInstrumentValue);
+[Default]FRollingSchedule:startValueForForwardCalculationCore[priceSource, doSplitAll, discountingType, forwardPriceDate] = collapse(theoreticalOrMarketInstrumentValue);

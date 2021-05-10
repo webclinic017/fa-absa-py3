@@ -1,0 +1,21 @@
+[Core Cash Flow Pricing]FAbstractReset:nominalFactor = select(object.ResetType, 
+  "Return"->leg:fixingInstrument :* "nominalFactor" [forwardPriceDate := object.Day], 
+  "Aggregate Return"->leg:fixingInstrument :* "nominalFactor" [forwardPriceDate := object.Day], 
+  default->indexReference :* "nominalFactor" [forwardPriceDate := object.Day]);
+[Core Cash Flow Pricing]FCashFlowInstrument:nominalFactor = nominalFactor(legInformations, staticLegInformations, forwardValueDate);
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:nominalFactor = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(cashFlow.NeedsLegInformationForNominal, 
+    true->cashFlowInformation :* "nominal" [legInformation, valuationDate, doSettlementFxScaling], 
+    false->denominatedvalue(leg:legNominalFactor * cashFlow.NominalFactor, currency, , object.PayDate)));
+[Core Cash Flow Pricing]FCurrency:nominalFactor = 1.0;
+[Core Cash Flow Pricing]FCurrencySwap:nominalFactor = insPayLeg:nominalFactor [forwardValueDate];
+[Core Cash Flow Pricing]FInstrument:nominalFactor = 1.0;
+[Core Cash Flow Pricing]FInstrumentAndTrades:nominalFactor = instrument:nominalFactor;
+[Core Cash Flow Pricing]FLeg:nominalFactor = staticLegInformation.NominalFactor(forwardValueDate, legInformation);
+[Core Cash Flow Pricing]FLegAndTrades:nominalFactor = leg:nominalFactor;
+[Core Cash Flow Pricing]FMoneyFlow:nominalFactor = instrument:nominalFactor [doSettlementFxScaling];
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:nominalFactor = moneyFlow:nominalFactor [doSettlementFxScaling];
+[Core Cash Flow Pricing]FMultiMoneyFlowAndTrades:nominalFactor = nil;
+[Core Cash Flow Pricing]FPortfolioSwap:nominalFactor = sumOf(legs :* "nominalFactor" [forwardValueDate, doSettlementFxScaling]);
+[Core Cash Flow Pricing]FResetMoneyFlow:nominalFactor = nil;

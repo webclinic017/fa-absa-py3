@@ -1,0 +1,61 @@
+[UDMC Templates]FObject:udmcAutoCallableContinuousPayoff
+#----------------------------------------
+# PAYOFF EXPRESSION
+#----------------------------------------
+
+#PARAMETERS
+param matrix(double) isInitialFixing;
+param matrix(double) timeSteps;
+param double rebate;
+param double callableBarrier;
+param double strike; 
+param double lowerStrike;
+
+#LOCAL VARIABLES
+#Note that the putBarrier parameter is defined in terms of the strike price
+# The strike is in turn defined in terms of the initial stock price
+int t = 0; int coupons = 0; int knockInTrue = 0;
+int terminationDate = 0; int tMax = length(timeSteps);
+double value = 0.0; double rebatePct = rebate / 100.0; double lostIncome = 0.0;
+double putBarrier = strike; double knockInFactor = 0.0;
+
+#PROCESS
+process matrix(double) S;
+
+#MAIN LOOP
+terminationDate = -1; value = 1.0; coupons = 0; knockInTrue = 0; lostIncome = 0.0;  knockInFactor = putBarrier/S[0];
+
+for t=1 to tMax
+{
+        if(terminationDate<0)
+        {
+                if(isInitialFixing[t]==1)
+                {
+                        coupons=coupons+1;
+                        if(S[t]>(callableBarrier*S[0]))
+                        {
+                                terminationDate=t;
+                                value = 1.0+(coupons*rebatePct);
+                        };
+                };
+                if(S[t] <= putBarrier)
+                {
+                        knockInTrue = 1;
+                };
+        };
+};
+
+if(terminationDate < 0)
+{
+    if(knockInTrue)
+    {
+        lostIncome = min(lowerStrike, 1 - S[-1]/S[0]);
+        value = value-lostIncome;
+        value = max(knockInFactor,value);
+        };
+};
+
+#CASHFLOWS
+cashFlow(0,value);
+
+...

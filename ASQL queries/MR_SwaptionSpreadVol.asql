@@ -1,0 +1,22 @@
+select
+    TODAY                                   'RepDate',
+    vol.vol_name,
+    vol.vol_type,
+    ael_s(pnt, 'dirk_utils.vol_point_expiry_str')              'exp',
+    ael_d(pnt, 'dirk_utils.vol_point_expiry')                  'exp_dte',
+    ael_s(pnt, 'dirk_utils.vol_point_maturity_str')              'mat',
+    ael_d(pnt, 'dirk_utils.vol_point_maturity')                  'mat_dte',    
+    pnt.strike,
+    pnt.volatility
+    
+
+from
+    volatility vol,
+    VolPoint pnt
+where
+    vol.seqnbr = vol_seqnbr
+    and vol_type = 'Benchmark Spread Call/Put'
+    and vol_name = (@01_Vol{;volatility.vol_name where vol_type = 'Benchmark Spread Call/Put'})
+    and ael_d(pnt, 'dirk_utils.vol_point_expiry') < to_date(@03_BumpToExpDate{BIGDATE;})
+    and ael_d(pnt, 'dirk_utils.vol_point_maturity') < to_date(@04_BumpToMatDate{BIGDATE;})
+    and pnt.call = 'Yes'

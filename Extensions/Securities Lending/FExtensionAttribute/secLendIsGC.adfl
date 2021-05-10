@@ -1,0 +1,16 @@
+[Securities Lending]FInstrument:secLendIsGC = select(object.AdditionalInfo.SL_IsSpecial, 
+  true->false, 
+  default->true);
+[Securities Lending]FMultiInstrumentAndTrades:secLendIsGC = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendIsGC));
+[Securities Lending]FOrderBook:secLendIsGC = instrument:secLendIsGC;
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendIsGC = nil;
+[Securities Lending]FPriceLevelRow:secLendIsGC = instrument:secLendIsGC;
+[Securities Lending]FSecurityLoan:secLendIsGC = underlying:secLendIsGC;
+[Securities Lending]FSingleInstrumentAndTrades:secLendIsGC = instrument :* "secLendIsGC";
+[Securities Lending]FTrade:secLendIsGC = instrument:secLendIsGC;
+[Securities Lending]FTradeRow:secLendIsGC = trade:secLendIsGC;
+[Securities Lending]FUndefinedObject:secLendIsGC = nil;

@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:isCall = select(isMultiExercise, 
+  true->exerciseEvents.IsCall, 
+  false->select(isOptionOnInterestRateFuture, 
+    true->object.IRFOptionIsCall, 
+    false->object.IsCall));
+[Core Pricing]FOdf:isCall = object.OptionTypeIsCall;

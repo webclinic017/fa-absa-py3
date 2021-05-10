@@ -1,0 +1,44 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+select ael_i(p,'ASQL_log','SAGEN_User_Review') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_User_Review' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Date                : 2020-01-10
+    Purpose             : Report showing Front Arena licence status
+    Department and Desk : Markets business and Markets IT
+    Requester           : Marsha de Wet and Jochem Melis
+    Developer           : Bhavnisha Sarawan
+    CR Number           : 
+------------------------------------------------------------------*/
+select
+    u.license_type      'LicenseTypeNbr',
+    l.name              'LicenseType',
+    l.nbr_of_licenses   'NbrOfLicenses',
+    count(u.userid)     'ActualUsers'
+into
+    temp
+    
+from
+    LicenseType l,
+    User u
+where
+    u.license_type = l.seqnbr
+and u.inactive = 'No'
+group by 1
+
+select
+    t.LicenseTypeNbr,
+    t.LicenseType,
+    t.NbrOfLicenses,
+    t.ActualUsers,
+    t.NbrOfLicenses = 999999 ? 'Unlimited' : t.NbrOfLicenses - t.ActualUsers  'LicencesAvailable',
+    t.ActualUsers >= t.NbrOfLicenses ? 'Red'
+        : t.ActualUsers >= (t.NbrOfLicenses-5) ? 'Amber'
+        : t.ActualUsers < (t.NbrOfLicenses-5) ? 'Green'
+        : 'None' 'RAG'
+from
+    temp t
+order by 5

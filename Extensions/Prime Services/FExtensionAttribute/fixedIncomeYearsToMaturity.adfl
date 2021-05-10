@@ -1,0 +1,6 @@
+[Prime Services]FInstrument:fixedIncomeYearsToMaturity = select(isWarehousingInstrument, 
+  true->yearsBetween(profitAndLossEndDate, fixedIncomeMaturityDate, "Act/365", currency.Calendar), 
+  false->nil);
+[Prime Services]FSingleInstrumentAndTrades:fixedIncomeYearsToMaturity = instrument :* "fixedIncomeYearsToMaturity";
+[Prime Services]FTrade:fixedIncomeYearsToMaturity = instrument :* "fixedIncomeYearsToMaturity";
+[Prime Services]FTradeRow:fixedIncomeYearsToMaturity = trade :* "fixedIncomeYearsToMaturity";

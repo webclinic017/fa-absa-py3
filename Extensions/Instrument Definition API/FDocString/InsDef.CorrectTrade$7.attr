@@ -1,0 +1,64 @@
+[Instrument Definition API]FMethod:InsDef.CorrectTrade$7
+This method is used when correcting a trade in a similar way as when the trade
+action is ran from the instrument definition windows.
+
+Similar UI scenario:
+
+1. Open an existing trade in an instrument definition window 
+2. Open the Correct Trade creation dialog (Actions > Trade > Actions > Correct Trade) 
+3. Modify the correting trade as appropriate
+4. Fill the Free Text field the reason for the correction
+5. Press Correct
+
+@param
+The trade to correct
+
+@param
+Reason for the correction. The original text (Free Text 1) will be overriden
+
+@param
+Optional additional free text applied to the trade to correct. The original text (Free Text 2) will be overriden
+
+@param
+Parameters that should be set on the correcting trade. By default, the trade will look identical to an instrument when the instrument is opened in the instrument definition window. Parameters are specified using methods and method chains that can be reached from the FInstrumentLogicDecorator. When a value is set, it will behave as when setting the value in the instrument definition window, which means that all side effects that occur when setting the value will occur here as well.
+
+@param
+An object holding answers to questions. When saving from the instrument definition window, these questions are answered in pop ups.
+
+@param
+A callback that will be run before commiting the instrument. See example for the CreateTrade method on how to use it.
+
+@param
+A callback that will be run if the commit fails. This callback is used to roll back changes that were made in the 'preCommitBlock'
+
+@return
+The saved corrected trade if save is successful. Exceptions will be raised if the save is not successful.
+
+Example::
+
+	ins = acm.InsDef.CreateInstrument('Deposit')
+	tParams = acm.FOrderedDictionary()
+	tParams['Quantity'] = 100.0
+	tParams['Acquirer'] = 'Acquirer A'
+	tParams['Counterparty'] = 'Counterparty A'
+	tParams['Portfolio'] = 'Portfolio A'
+	tParams['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade(ins, tParams)
+
+
+	ctParams = acm.FOrderedDictionary()
+	ctParams['TradeTime'] = '20180902'
+	ctParams['ValueDay'] = '20180801'
+
+	answers = acm.FCreateTradeAnswers()
+	answers.TradeTimeAfterValueDay('ok')
+
+	reason1 = 'A reason for correcting the trade'
+
+	correcting = acm.InsDef.CorrectTrade(
+		 trade,
+		 reason1,
+		 parameters = ctParams,
+		 answers = answers
+	)
+...

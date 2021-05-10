@@ -1,0 +1,117 @@
+/* update_method=1 */
+/* ******************  ASQL USAGE LOG  *********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAGEN_User_Profile_Review') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_User_Profile_Review' and p.type = 'SQL Query' 
+
+
+
+
+/*------------------------------------------------------------------
+    Date                : 2010-03-09
+    Purpose             : Shows User and Group access
+    Department and Desk : FA System Admin
+    Requester           : Rod Jardine
+    Developer           : Aaeda Salejee
+    CR Number           : 247110
+------------------------------------------------------------------*/
+ 
+  select
+    'User'                                  'Section',
+    u.userid                                'UserID',
+    u.name                                  'Name',
+    u.userid                                'ID',
+    org.orgid                               'Organisation',
+    g.grpid                                 'Group',
+    p.profid                                'Profile',
+    p.description                           'ProfileDescription',
+    add_info(u, 'PasswordResetDate')        'PasswordResetDate'
+    /*c.type                                  'ComponentType',
+    c.compname                              'ComponentName'*/
+    /*profc.allow_write,
+    profc.allow_create,*/
+    
+into
+    UserAccess
+    
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    UserProfileLink upl,
+    UserProfile p/*,
+    ProfileComponent profc,
+    Component c*/
+
+where
+    /*u.userid = @User{ABAW339;User.userid}
+and */u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and u.usrnbr = upl.usrnbr
+and p.profnbr = upl.profnbr
+/*and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr*/
+
+
+
+
+
+
+
+select
+    'Group'                                 'Section',   
+    u.userid                                'UserID',                              
+    u.name                                  'Name',
+    g.grpid                                 'ID',
+    org.orgid                               'Organisation',
+    g.description                           'Group',
+    p.profid                                'Profile',
+    p.description                           'ProfileDescription',
+    ''                                      'PasswordResetDate'
+    /*c.type                                  'ComponentType',
+    c.compname                              'ComponentName'*/
+    /*profc2.allow_write,
+    profc2.allow_create*/   
+
+into
+    UserAccess
+
+    
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    GroupProfileLink gpl,
+    UserProfile p
+    /*ProfileComponent profc,
+    Component c*/
+
+where
+    /*u.userid = @User{ABAW339;User.userid}
+and */u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and g.grpnbr = gpl.grpnbr
+and gpl.profnbr = p.profnbr
+/*and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr*/
+
+
+
+
+select
+    t.Section,   
+    t.UserID,
+    t.Name,
+    t.ID,
+    t.Organisation,
+    t.Group,
+    t.Profile,
+    t.ProfileDescription,
+    t.PasswordResetDate
+    
+from
+    UserAccess t
+    
+/*order by 2*/

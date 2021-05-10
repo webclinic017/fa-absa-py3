@@ -1,0 +1,7 @@
+[Default]FBuySellBack:marketSpotValuesForProfitAndLoss = shunt(isExpired and (not object.IsSettledAt(valuationBaseDateNoFuture)), 
+  true->couponIncomeForProfitAndLoss, 
+  false->marketSpotValuesForProfitAndLossPriceType);
+[Default]FFxRate:marketSpotValuesForProfitAndLoss = select(isReciprocal, 
+  true->denominatedvalue(1.0, domesticCurrency, nil, currencyPairSpotDate), 
+  false->denominatedvalue(1.0, foreignCurrency, nil, currencyPairSpotDate));
+[Default]FInstrument:marketSpotValuesForProfitAndLoss = collapse(marketSpotValuesForProfitAndLossPriceType);

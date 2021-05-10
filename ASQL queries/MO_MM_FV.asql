@@ -1,0 +1,55 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_MM_FV') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_MM_FV' and p.type = 'SQL Query' 
+
+
+
+
+select
+
+today   'Date',
+p.prfid 'Portfolio',
+sum(mtm_value_fo(t,today,,,,,))  'MTM Value',
+sum(cash_balance(t,today,today,,,,)) 'Cash'
+
+
+from
+trade   t,
+instrument i,
+portfolio p
+
+where
+match_filter(t,@1_Filter{MO_Eq_Structures_New;tradefilter.fltid},)
+and p.prfnbr = t.prfnbr
+and i.insaddr = t.insaddr
+and t.status not in ('Void','Simulated')
+
+group by 2
+
+union
+
+select
+
+today 'Date',
+'Total' 'Portfolio',
+sum(mtm_value_fo(t,today,,,,,))  'MTM Value',
+sum(cash_balance(t,today,today,,,,)) 'Cash'
+
+
+from
+trade   t,
+instrument i,
+portfolio p
+
+
+where
+match_filter(t,@1_Filter{MO_Eq_Structures_New;tradefilter.fltid},)
+and p.prfnbr = t.prfnbr
+and i.insaddr = t.insaddr
+and t.status not in ('Void','Simulated')
+
+group by 1

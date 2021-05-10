@@ -1,0 +1,96 @@
+/*
+ *   Purpose: SAOPS_CA_Bond_Recon
+ *   Department and Desk: OPS
+ *   Requester: Linda Breytenbach
+ *   Developer: Pavel Saparov, Godfrey Dire
+ *   CR Number: CHNG0001259980, CHNG0001969262, CHNG0002080398, CHNG0002041781
+ *   Purpose: Bond Cash Reconciliation - Automatation. Currently on Excel / Manual.
+ *           Develop bond cash reconciliation of theoretical cash from Front Arena vs. Bank statement.
+ *   	    Exclude two portfolios (JOB7 and JOB15)
+ *   	    To include the following:	* Bill, MM Instype = TB, ISIN ZAM,
+ *   								    * CD, Funding Instype = NCD,
+ *   								    * FRN, ISIN ZAM, and
+ *   								    * Debentures
+ *   	    and exclude Acquirer "SECURITY LENDINGS DESK" and Portfolio "LIABILITIES 2474"
+ *
+ *   Limitations : Since this ASQL is associated with TF, we cannot use `match_portfolio` func and temp tables.
+ 
+ Date        	Changed by          	CR              	Description      
+ 13/08/2015  	Lawrence Mucheka    	CHNG0003038330  	Accommodate Cash Payment instrument
+ 29/12/2015     Paseka Motsoeneng				Exclusion of non-ZAR trades.
+ */
+ 
+select
+    t.trdnbr
+from
+    Trade t,
+    Instrument i,
+    Instrument und,
+    Instrument curr,
+    Portfolio p,
+    Party ctpy,
+    Party acq
+where
+    t.curr = curr.insaddr
+    and curr.insid = 'ZAR'
+    and t.insaddr = i.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.und_insaddr *= und.insaddr
+    and t.counterparty_ptynbr = ctpy.ptynbr
+    and t.acquirer_ptynbr = acq.ptynbr
+    and ctpy.ptyid ~= 'JSE'
+    and acq.ptyid ~= 'SECURITY LENDINGS DESK'
+    /*
+        Comment: Left join t.optkey1_chlnbr *= cl.seqnbr is not working properly!
+        ``display_id`` function is also not playing nicely with related ``optkey1_chlnbr``
+        conditions ``or display_id(t, 'optkey1_chlnbr') = ''`` is required to make the query work properly!
+        other possibility is to use ``t.optkey1_chlnbr ~= 629``
+    */
+    and (display_id(t, 'optkey1_chlnbr') ~= 'SPECIAL_FINANCE' or display_id(t, 'optkey1_chlnbr') = '')
+    and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+    and (t.value_day >= date_add_delta(TODAY, -15, 0, 0) or i.exp_day >= date_add_delta(TODAY, -15, 0, 0))
+    and (
+            (
+                    i.instype in ('BuySellback', 'Repo/Reverse', 'SecurityLoan')
+                and und.instype in ('Bond', 'IndexLinkedBond', 'FRN')
+                and und.insid like 'ZAR%'
+                and und.isin like 'ZAG%'
+            )
+        or
+            (
+                i.instype in ('Bond', 'IndexLinkedBond') and i.insid like 'ZAR%'
+            )
+        or
+            (
+                i.instype = 'FRN' and (i.isin like 'ZAG%' or i.isin like 'ZAM%')
+            )
+        or
+            (
+                i.instype = 'Bill'
+                and (
+                           add_info(t, 'MM_Instype') = 'TB' and i.isin like 'ZAM%'
+                        or add_info(t, 'MM_Instype') like '%Debenture'
+                )
+            )
+        or
+            (
+                i.instype = 'CD' and add_info(t, 'Funding Instype') = 'NCD'
+            )
+        or
+            (
+                i.instype = 'Curr' and i.curr = t.curr
+            )
+    )
+    /* Include ABSA BANK LTD */
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ABSA BANK LTD') = 1
+        /* Exclude some exceptions */
+        and ((ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GROUP TREASURY') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS BANKING') = 0
+        /*and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS TRADING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PM Portfolio Management') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ALCH') = 0 */
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'SECURITIES LENDING') = 0
+        and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', '7268_Prime Services') = 0)
+            or (t.mirror_trdnbr is not null))
+    /* Exclude specific physical portfolios */
+    and p.prfid not in ('JOB7', 'JOB15', 'LIABILITIES 2474')

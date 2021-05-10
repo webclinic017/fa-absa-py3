@@ -1,0 +1,13 @@
+[ABSK411]FDerivative:priceDeltaHedgeAlternativeChosen = underlying:priceDeltaHedgeAlternativeChosen;
+[ABSK411]FInstrument:priceDeltaHedgeAlternativeChosen = var(defaultHedgeInstrument, "FInstrument");
+[ABSK411]FInstrumentAndTrades:priceDeltaHedgeAlternativeChosen = select(hedgeAlternativeLevel, 
+  "Portfolio"->parent:priceDeltaHedgeAlternativeChosen, 
+  "Sheets"->py("HedgeChoice", context).portfolioHedgeAlternatives(portfolioName, nil, nilObject:priceDeltaHedgeAlternativeChosen), 
+  default->instrument:priceDeltaHedgeAlternativeChosen);
+[ABSK411]FMultiInstrumentAndTrades:priceDeltaHedgeAlternativeChosen = select(hedgeAlternativeLevel, 
+  "Portfolio"->firstPriceDeltaHedgeAlternative, 
+  "Sheets"->py("HedgeChoice", context).portfolioHedgeAlternatives(portfolioName, nil, nilObject:priceDeltaHedgeAlternativeChosen), 
+  default->select(instrumentGroupingReference, 
+    nil->var(priceDeltaHedgeAlternatives.First, "FInstrument"), 
+    default->instrumentGroupingReference:priceDeltaHedgeAlternativeChosen));
+[ABSK411]FUndefinedObject:priceDeltaHedgeAlternativeChosen = ref(hedgePageInstruments.First);

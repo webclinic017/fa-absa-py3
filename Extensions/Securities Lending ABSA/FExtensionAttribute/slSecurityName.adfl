@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrument:slSecurityName = object.Security.Name.Split("/").At(1);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slSecurityName = instrument :* "slSecurityName";
+[Securities Lending ABSA]FTrade:slSecurityName = select(instrument.InsType, 
+  "Deposit"->"Cash", 
+  default->instrument:slSecurityName);
+[Securities Lending ABSA]FTradeRow:slSecurityName = trade :* "slSecurityName";

@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:fundingInsType = select(instrument:trade.AdditionalInfo.Funding_Instype, 
+  ""->select(instrument:trade.AdditionalInfo.MM_Instype, 
+    ""->instrument:trade.AdditionalInfo.Instype, 
+    default->instrument:trade.AdditionalInfo.MM_Instype), 
+  default->instrument:trade.AdditionalInfo.Funding_Instype);
+[ABSA Specific 4.3]FTradeRow:fundingInsType = select(trade.AdditionalInfo.Funding_Instype, 
+  ""->select(trade.AdditionalInfo.MM_Instype, 
+    ""->trade.AdditionalInfo.Instype, 
+    default->trade.AdditionalInfo.MM_Instype), 
+  default->trade.AdditionalInfo.Funding_Instype);

@@ -1,0 +1,21 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_util_get_brokers') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_util_get_brokers' and p.type = 'SQL Query' 
+ 
+  select 
+    trdnbr,
+    display_id(trd, 'broker_ptynbr')             'broker'
+into
+    temp
+from
+    trade trd
+where
+    match_filter(trd, @3_Filter{;tradefilter.fltid}, )
+
+select distinct
+    broker
+from
+    temp

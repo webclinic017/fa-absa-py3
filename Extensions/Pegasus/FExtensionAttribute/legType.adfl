@@ -1,0 +1,9 @@
+[Pegasus]FTradeRow:legType = shunt(count(trade.Instrument.Legs), 
+  1->trade.Instrument.Legs.At(0).LegType, 
+  2->shunt(trade.Instrument.Legs.At(0).LegType == trade.Instrument.Legs.At(1).LegType, 
+    true->trade.Instrument.Legs.At(0).LegType, 
+    default->nil), 
+  3->shunt((trade.Instrument.Legs.At(0).LegType == trade.Instrument.Legs.At(1).LegType) and (trade.Instrument.Legs.At(1).LegType == trade.Instrument.Legs.At(2).LegType), 
+    true->trade.Instrument.Legs.At(0).LegType, 
+    default->nil), 
+  default->nil);

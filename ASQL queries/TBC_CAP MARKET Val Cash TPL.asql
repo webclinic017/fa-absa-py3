@@ -1,0 +1,46 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_CAP MARKET Val Cash TPL') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_CAP MARKET Val Cash TPL' and p.type = 'SQL Query' 
+ 
+  select
+t.trdnbr,
+i.instype,
+i.insid,
+i.start_day'inst start',
+t.value_day 'trd valueday',
+i.exp_day,
+
+display_id(t,'prfnbr') 'Portfolio',
+
+
+
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')   'Cash Start',
+accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None')     'Cash End',
+accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None')  - 
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')   'Cash change',
+
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1)                  'Val Start',
+mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)                    'Val End',
+mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)  - 
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1)                  'Val change',
+
+(accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None') - 
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')) +
+(mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)  - 
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1))                 'tpl'
+
+
+
+from 
+trade t,
+instrument i
+
+where 
+i.insaddr = t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Void','Terminated','Simulated')
+and i.exp_day > @3_StartDate{2006-12-31}
+

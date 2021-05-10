@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:underlyingSpotPriceAsUnderlyingOnExpiryDayForAfterExpiryValuation = shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor](underlyingMtMPriceSourceExpiry.PriceExists and (datetime(underlyingMtMPriceSourceExpiryAdjusted) == expiryDate), 
+  true->underlyingMtMPriceSourceExpiryAdjusted * fxUnderlyingToStrikeExpiry, 
+  false->shunt(hasExpiryToday, 
+    true->underlying :* "spotPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency], 
+    false->nan));

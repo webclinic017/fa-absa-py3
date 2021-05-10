@@ -1,0 +1,21 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_CURVES_EXTRACT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_CURVES_EXTRACT' and p.type = 'SQL Query' 
+select
+	yc.yield_curve_name	'Name',
+	max(t.time)		'LastTraded',
+	yc.creat_time		'Created',
+	yc.updat_time		'Updated',
+	TODAY			'BusinessDay'
+from
+	trade t,
+	yieldcurve yc,
+	instrument i
+where
+	yc.yield_curve_name = ael_s(i,'getYCName')
+and	t.insaddr = i.insaddr
+and	(i.exp_day >= today or i.exp_day = '0000-01-01')
+group by 1

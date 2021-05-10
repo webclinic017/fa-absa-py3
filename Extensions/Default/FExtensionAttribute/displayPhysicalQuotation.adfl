@@ -1,0 +1,14 @@
+[Default]FInstrument:displayPhysicalQuotation = quotation;
+[Default]FInstrumentAndTrades:displayPhysicalQuotation = instrument:displayPhysicalQuotation;
+[Default]FMultiInstrumentAndTrades:displayPhysicalQuotation = shunt(1 == count(priceCurvesInTheoreticalValue), 
+  true->priceCurvesInTheoreticalValue.Quotation, 
+  false->shunt(nil == commonBaseCurve(priceCurvesInTheoreticalValue, true), 
+    true->nil, 
+    false->commonBaseCurve(priceCurvesInTheoreticalValue, true).Quotation));
+[Default]FSingleInstrumentAndTrades:displayPhysicalQuotation = select(isCommodityIndexDerivative, 
+  true->select(instrumentGroupingReference, 
+    nil->select(commodityGroupingReferenceInstrument, 
+      nil->commodityIndexReference, 
+      default->commodityGroupingReferenceInstrument), 
+    default->instrumentGroupingReference), 
+  false->instrument).Quotation;

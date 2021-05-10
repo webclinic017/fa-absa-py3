@@ -1,0 +1,20 @@
+select
+    TODAY                                   'RepDate',
+    yc.yield_curve_name                     'yc',
+    ins.insid                           'bm',
+    ael_d(ins, 'dirk_utils.bm_maturity')    'mat',
+    ael_d(ins, 'dirk_utils.bm_maturity') <= date_add_delta(TODAY, 10, 3, 0) ? '0-3m' : (date_add_delta(TODAY, 10, 3, 0) < ael_d(ins, 'dirk_utils.bm_maturity') and ael_d(ins, 'dirk_utils.bm_maturity') <= date_add_delta(TODAY, 10, 0, 2) ) ? '3m-2y' : (date_add_delta(TODAY, 10, 0, 2) < ael_d(ins, 'dirk_utils.bm_maturity') and ael_d(ins, 'dirk_utils.bm_maturity') <= date_add_delta(TODAY, 10, 0, 10) ) ? '2y-10y': (date_add_delta(TODAY, 10, 0, 10) < ael_d(ins, 'dirk_utils.bm_maturity') and ael_d(ins, 'dirk_utils.bm_maturity') <= date_add_delta(TODAY, 10, 0, 30) ) ? '10y-30y' : ael_d(ins, 'dirk_utils.bm_maturity') > date_add_delta(TODAY, 10, 0, 30) ? '30+': 'N/A'    'Area'
+   
+
+
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+    /*and ins.insid = 'ZAR-JIBAR-1M'*/
+    and ael_d(ins, 'dirk_utils.bm_maturity') < to_date(@03_EndDate{BIGDATE;})
+order by 2, 4    

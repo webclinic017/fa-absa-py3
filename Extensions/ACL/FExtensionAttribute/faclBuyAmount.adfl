@@ -1,0 +1,11 @@
+[ACL]FCurrency:faclBuyAmount = select(faclTradeObject.Quantity >= 0, 
+  true->faclTradeObject.Quantity * object.ContractSize, 
+  false->faclTradeObject.Premium);
+[ACL]FFuture:faclBuyAmount = select(faclTradeObject.Quantity >= 0, 
+  true->faclTradeObject.Quantity, 
+  false->faclTradeObject.Quantity * faclTradeObject:faclAttrExchangeRate);
+[ACL]FInstrument:faclBuyAmount = nil;
+[ACL]FOdf:faclBuyAmount = select(object :* "faclAttrIsBuy" [faclTradeObject], 
+  true->faclTradeObject.Quantity, 
+  false->faclTradeObject.Quantity * faclTradeObject:faclAttrExchangeRate);
+[ACL]FTrade:faclBuyAmount = instrument :* "faclBuyAmount" [faclTradeObject = object];

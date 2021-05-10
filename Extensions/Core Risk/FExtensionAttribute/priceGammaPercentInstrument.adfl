@@ -1,0 +1,5 @@
+[Core Risk]FInstrumentAndTrades:priceGammaPercentInstrument = convertToCurrency(select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceGammaPercentValuesIRD [isSplitAllGrouped, priceSource], 
+  false->openInstrumentOrInstrument :* "priceGammaPercentValuesInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement] * combinationInstrumentMapFactorForPriceGreeks), instrument:priceGreekFxRates, instrument:currencySymbol, filterUnit);
+[Core Risk]FMultiInstrumentAndTrades:priceGammaPercentInstrument = nil;
+[Core Risk]FPriceAggregate:priceGammaPercentInstrument = instrument :* "priceGammaPercentValuesInstrument" [priceSource];

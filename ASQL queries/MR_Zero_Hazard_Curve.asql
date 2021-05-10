@@ -1,0 +1,60 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+2015-09-07              :Chris Human, http://abcap-jira/browse/MINT-363
+'''
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Zero_Hazard_Curve.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Zero_Hazard_Curve.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Zero_Hazard_Curve.Write',@1_path,@2_FileName)     'BuildConfirmation'
+Into
+    macro
+from    
+    Context c,
+    ContextLink cl,
+    YieldCurve yc,
+    Choicelist chl
+where  
+    c.name = 'ACMB Global'
+    and c.seqnbr = cl.context_seqnbr
+    and cl.name = yc.yield_curve_name
+    and cl.mapping_type in ('Val Group')
+    and yc.yield_curve_type not in ('Benchmark')
+    and yc.ir_format in ('Hazard Rate Curve')
+    and chl.seqnbr = cl.group_chlnbr
+    and chl.entry in ('CRT_HR_DG', 'AC_GLOBAL_CD')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select 
+	* 
+From 
+	Macro
+Where 
+	Process In ('Create File','Close File')
+
+
+

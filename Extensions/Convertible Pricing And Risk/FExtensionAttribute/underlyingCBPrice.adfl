@@ -1,0 +1,12 @@
+[Convertible Pricing And Risk]FInstrument:underlyingCBPrice = snoop01(theoreticalPrice, "spotPriceAsUnderlying");
+[Convertible Pricing And Risk]FInstrumentAndTrades:underlyingCBPrice = select((nil == snoop01(theoreticalPrice, "spotPriceAsUnderlying")) or instrument:baseValuationOnUnderlyingComponents, 
+  true->select(nil == underlying, 
+    true->underlyingPriceGivenNoUnderlying, 
+    false->select(underlying:valuationModelHandlesCallable, 
+      true->nil, 
+      false->snoop01(instrument :* "underlyingSpotPriceAsUnderlying" [priceSource, isSplitAllGrouped], "spotPriceAsUnderlying"))), 
+  false->snoop01(theoreticalPrice, "spotPriceAsUnderlying"));
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:underlyingCBPrice = nil;
+[Convertible Pricing And Risk]FOrderBook:underlyingCBPrice = snoop01(theoreticalPrice, "spotPriceAsUnderlying");
+[Convertible Pricing And Risk]FPriceAggregate:underlyingCBPrice = priceFeed:underlyingCBPrice [priceSource];
+[Convertible Pricing And Risk]FPriceFeed:underlyingCBPrice = snoop01(theoreticalPrice, "spotPriceAsUnderlying");

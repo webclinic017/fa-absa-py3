@@ -1,0 +1,283 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Committed_Capital') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Committed_Capital' and p.type = 'SQL Query' 
+/*
+Name  date           Change
+Anil  2002-02-13     use the function forward_ytm() only from T+4 and not for T+1 and T+2
+                     for T+1, T+2 use is made of the spot yield to calculate the MtM as in the convention for T+3
+
+Anil  2002-03-06    set up parameters to extract trade details (other than rfr) for a different system date
+
+Anil  2002-03-11    enable 'quick and dirty' for determining a forward_ytm() in the case of indexed linked linked bonds
+
+Andries Brink 2003 03 20 Converted report to create accounting entries for not settled bond trades
+Debbie Osler 2003-03-31 inserted where-clause to exclude all settled trades
+			ReportDay is taken to be = t
+Aaeda Waja 2004 01 20  Call No : 55939 (b)
+		       previously called : AndriesCommittedCapital
+
+Panos Prodromou	2004-03-15
+Call 54066
+Also amendments as follows in mail to Hardus Jacobs from Hans Ellis (orginally Colette de Villiers)
+dated 15 March 2004:
+Replace Dirty MtM with Interest Accrued
+PL_Incep: difference between CleanMtM and Committed Capital.
+Committed Capital: Positive if purchase, negative if sell
+Add a column Int_incep: difference between IntMtM and CommittedInt
+
+
+------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@ReportDate{TODAY})				'RepDay',
+	@Totals{'Yes';'Yes','No'}				'Totals'
+
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+
+
+/*--------- set up T+3  ------------ */
+
+select
+s.srdnbr,
+date_add_banking_day(m.RepDay,,3) 	'vdate',
+date_add_banking_day(m.RepDay,,-1)  	'PrevRepDay'
+
+into
+temp
+
+from
+serverdata s,
+macros m
+
+/*-------------- not settled trades allocated to temp table -------------- */
+
+select
+m.RepDay 			'Today',
+m.Totals			'Totals',
+display_id(t,'optkey1_chlnbr') 	'TradeArea',
+display_id(t,'prfnbr')		'Port',
+time_to_day(t.time)			'DealDate',
+'YES' ? i.extern_id1 : '' 	'Bond',
+'YES' ? t.trdnbr : '' 		'Trdnbr',
+display_id(t,'counterparty_ptynbr')		'Ptyid',
+
+(t.quantity*1000000)		'Nom',
+
+t.value_day			'Settle',
+
+t.price				'Yield_Trade',
+
+t.premium 			'Premium',
+
+t.value_day=i.exp_day ? t.quantity*1000000 : 
+	clean_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity	'CommittedCapital',
+t.value_day=i.exp_day ? t.quantity*-1000000 : 
+	dirty_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity*-1	'DueforSettlement',
+(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	dirty_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity) - (t.value_day=i.exp_day ? t.quantity*1000000 : clean_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity) 'CommittedInt',
+
+
+mtm_price(i,m.RepDay)	'MtM_Yield',
+
+t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity) 'CleanMtM',
+t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity) 'DirtyMtM',
+
+(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity))-(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity)) 'IntMtM',
+
+(t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity))-
+(t.value_day=i.exp_day ? t.quantity*1000000 : clean_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity) 'Clean_PL_Incep',
+
+
+((t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity))-(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,m.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,m.RepDay) : forward_ytm(i,m.RepDay)) : mtm_price(i,m.RepDay)))*10000*t.quantity)) )-((t.value_day=i.exp_day ? t.quantity*1000000 : 
+	dirty_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity) - (t.value_day=i.exp_day ? t.quantity*1000000 : clean_from_yield(i,m.RepDay,,,t.price)*10000*t.quantity))	'Int_Incep',
+
+clean_from_yield(i,t.value_day,,,t.price)*10000 * t.quantity		'Clean_Valuedate',
+interest_accrued(i,time_to_day(t.time),t.value_day) * t.quantity						'Accrued_Valuedate'
+
+into summary
+
+
+from
+
+
+yieldcurve yc,
+instrument i,
+trade t,
+temp tt,
+macros m
+
+
+where
+match_filter(t,@Tradefilter{;tradefilter.fltid})
+and i.insaddr=t.insaddr
+and i.instype in ('Bond','IndexLinkedBond')	/*99*/
+and yc.yield_curve_name='ZAR_Bond_Repo_YC'
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+
+and t.value_day > date_add_banking_day(m.RepDay,'ZAR',0)
+and t.time <= m.RepDay
+
+/*Show all unsettled trades*/
+
+/*and t.creat_time<=time_to_day(m.RepDay)*/
+
+
+order by 2,5,10 /*c.entry,i.extern_id1,t.value_day*/
+
+/*------------------ Select trades from temp table ------------*/
+
+
+select
+
+s.Trdnbr,
+s.DealDate,
+s.Port,
+s.TradeArea,
+s.Ptyid,
+s.Nom,
+s.Today,
+s.Bond,
+s.Settle,
+s.premium,
+s.Clean_Valuedate,
+s.Accrued_Valuedate,
+s.Yield_Trade,
+s.DueforSettlement,
+s.CommittedCapital,
+s.CommittedInt,
+S.MtM_Yield,
+s.DirtyMtM,
+s.CleanMtM,
+s.IntMtM,
+/*'' 'PL_Incep'*/
+(s.Clean_Pl_Incep >= 0 ? s.Clean_Pl_Incep : -1*s.Clean_Pl_Incep) 'PL_Incep',
+s.Int_Incep
+/*sum(s.Clean_PL_ON)*/
+
+from
+summary s
+
+
+
+union
+
+select
+
+'Bond/TA' /*s.Trdnbr*/,
+max(s.DealDate) 'DealDate' ,
+''/*s.Port*/,
+s.TradeArea,
+s.Ptyid,
+sum(s.Nom),
+s.Today,
+s.Bond,
+max(s.Settle) 'Settle',
+sum(s.premium),
+sum(s.Clean_Valuedate),
+sum(s.Accrued_Valuedate),
+s.Yield_Trade,
+sum(s.DueforSettlement),
+sum(s.CommittedCapital),
+sum(s.CommittedInt),
+S.MtM_Yield,
+sum(s.DirtyMtM),
+sum(s.CleanMtM),
+sum(s.IntMtM),
+sum(s.Clean_Pl_Incep >= 0 ? s.Clean_Pl_Incep : -1*s.Clean_Pl_Incep)	'PL_Incep',
+sum(s.Int_Incep)
+
+
+from summary s
+
+where s.Totals in ('Yes','yes','YES','y','Y')
+
+group by 4,8 /*c.entry , i.extern_id*/
+
+
+union
+
+select
+
+'TA' 			/*s.Trdnbr*/,
+max(s.DealDate) 'DealDate',
+''			/*s.Port*/,
+s.TradeArea,
+s.Ptyid,
+sum(s.Nom),
+s.Today,
+s.Bond,
+max(s.Settle) 'Settle',
+sum(s.premium),
+sum(s.Clean_Valuedate),
+sum(s.Accrued_Valuedate),
+s.Yield_Trade,
+sum(s.DueforSettlement),
+sum(s.CommittedCapital),
+sum(s.CommittedInt),
+S.MtM_Yield,
+sum(s.CleanMtM),
+sum(s.DirtyMtM),
+sum(s.IntMtM),
+sum(s.Clean_Pl_Incep >= 0 ? s.Clean_Pl_Incep : -1*s.Clean_Pl_Incep)	'PL_Incep',
+sum(s.Int_Incep)
+/*sum(s.Clean_PL_ON)*/
+
+
+from summary s
+
+where s.Totals in ('Yes','yes','YES','y','Y')
+
+group by 4 /*c.entry */
+
+
+union
+
+select
+
+'Total' /*s.Trdnbr*/,
+max(s.DealDate) 'DealDate',
+''/*s.Port*/,
+s.TradeArea,
+s.Ptyid,
+sum(s.Nom),
+s.Today,
+s.Bond,
+max(s.Settle) 'Settle',
+sum(s.premium),
+sum(s.Clean_Valuedate),
+sum(s.Accrued_Valuedate),
+s.Yield_Trade,
+sum(s.DueforSettlement),
+sum(s.CommittedCapital),
+sum(s.CommittedInt),
+S.MtM_Yield,
+sum(s.DirtyMtM),
+sum(s.CleanMtM),
+sum(s.IntMtM),
+sum(s.Clean_Pl_Incep >= 0 ? s.Clean_Pl_Incep : -1*s.Clean_Pl_Incep)	'PL_Incep',
+sum(s.Int_Incep)
+/*sum(s.Clean_PL_ON)*/
+
+
+from summary s
+
+where s.Totals in ('Yes','yes','YES','y','Y')
+
+group by 7 /*Today */

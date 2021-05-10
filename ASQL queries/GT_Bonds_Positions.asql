@@ -1,0 +1,143 @@
+
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Bonds_Positions') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Bonds_Positions' and p.type = 'SQL Query' 
+
+/*
+coded by ap
+
+query based on historical values
+
+bond details as per macro defined trade filter
+plus R205 and R199
+
+July 2008 - based on historical rates but
+macro allows to chose the market type between 'SPOT' and 'SPOT_BESA'
+
+*/
+
+
+Select
+to_date(@position_date{Yesterday;})'date',
+i.insid,
+t.trdnbr,
+
+t.value_day'settlement',
+(t.quantity*1000000)'nominal',
+i.instype='FRN' ? 0 : p.settle'MtM_Yield',
+
+t.value_day=i.exp_day ? t.quantity*-1000000 : 
+i.instype='FRN' ? present_value(t) : dirty_from_yield(i,@position_date{Yesterday;},,,p.settle)*10000*t.quantity*-1'Dirty_MtM',
+i.instype='FRN' ? present_value(t) : dirty_from_yield(i,@position_date{Yesterday;},,,p.settle+1)*10000*t.quantity*-1'Dirty_MtM_100BPS',
+display_id(t,'prfnbr')'portfolio',
+'Yes' ? cp.ptyid : '' 'market'
+
+into temp
+
+from
+
+instrument i,
+trade t,
+price p ,
+party cp 
+
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{;TradeFilter.fltid})
+and i.exp_day>to_date(@position_date{Yesterday;})
+and t.value_day<=to_date(@position_date{Yesterday;})
+and (i.instype in ('bond','IndexLinkedBond')
+or i.insid in ('ZAR/R205','ZAR/R199'))
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.insaddr=p.insaddr
+and p.ptynbr=cp.ptynbr
+and cp.ptyid=@Market{;'SPOT','SPOT_BESA'}
+and p.day=(@position_date{Yesterday;})
+
+/*----------FRN into temp table----------------*/
+
+Select
+to_date(@position_date{Yesterday;})'date',
+i.insid,
+t.trdnbr,
+
+t.value_day'settlement',
+(t.quantity*1000000)'nominal',
+0.0 'MtM_Yield',
+
+t.value_day=i.exp_day ? t.quantity*-1000000 : 
+ present_value(t,@position_date{Yesterday;}) 'Dirty_MtM',
+present_value(t,@position_date{Yesterday;}) 'Dirty_MtM_100BPS',
+display_id(t,'prfnbr')'portfolio',
+'' 'market'
+
+into temp
+
+from
+
+instrument i,
+trade t
+
+
+where
+
+i.insaddr=t.insaddr
+and match_filter(t,@filter{;TradeFilter.fltid})
+and i.exp_day>to_date(@position_date{Yesterday;})
+and t.value_day<=to_date(@position_date{Yesterday;})
+and i.insid in ('ZAR/R205','ZAR/R199')
+
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+
+
+
+/*--------select from temp---*/
+
+
+select
+t.date,
+t.insid,
+'Yes' ? t.trdnbr : '''trdnbr',
+'Yes' ? t.settlement : '' 'settlement',
+t.nominal,
+t.MtM_Yield,
+
+t.Dirty_MtM,
+t.Dirty_MtM_100BPS,
+'Yes' ? t.portfolio : '''portfolio',
+t.market
+
+from temp t
+
+order by t.insid,4/*t.settlement*/
+
+union
+
+select
+t.date,
+t.insid,
+'' /*t.trdnbr*/,
+'' /*t.settlement*/,
+sum(t.nominal),
+t.MtM_Yield,
+
+sum(t.Dirty_MtM),
+sum(t.Dirty_MtM_100BPS),
+'instrument Total' /*t.portfolio*/,
+t.market
+
+from temp t
+
+group by t.insid
+
+order by t.insid
+

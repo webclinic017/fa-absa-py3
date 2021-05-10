@@ -1,0 +1,6 @@
+[Default]FFuture:relativePriceShiftAdjustmentFactor = select(isFutureOnNotional, 
+  true->1.0 / ctdFactor, 
+  false->1.0);
+[Default]FInstrument:relativePriceShiftAdjustmentFactor = select(isSwaption, 
+  true->underlying :* "nonCouponPriceAdjustmentFactor" [forwardPriceDate := expiryDate], 
+  false->1.0);

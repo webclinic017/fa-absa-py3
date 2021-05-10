@@ -1,0 +1,22 @@
+select
+    TODAY                                   'RepDate',
+    vol.vol_name,
+    vol.vol_type,
+    ael_s(ins, 'dirk_utils.vol_bm_exp', 0)              'exp',
+    ael_d(ins, 'dirk_utils.vol_bm_exp', 1)                  'exp_dte',
+    ael_s(ins, 'dirk_utils.vol_bm_mat', 0)              'mat',
+    ael_d(ins, 'dirk_utils.vol_bm_mat', 1)                  'mat_dte',    
+    ael_f(ins, 'dirk_utils.vol_bm_strike')              'strike',
+    pnt.volatility
+from
+    volatility vol,
+    VolPoint pnt,
+    instrument ins    
+where
+    vol.seqnbr = vol_seqnbr
+    and pnt.insaddr = ins.insaddr
+    and vol_type = 'Benchmark Call/Put'
+    and vol_name = (@01_Vol{;volatility.vol_name where vol_type = 'Benchmark Call/Put'})
+    and ael_d(ins, 'dirk_utils.vol_bm_exp', 1) < to_date(@03_BumpToExpDate{BIGDATE;})
+    and ael_d(ins, 'dirk_utils.vol_bm_mat', 1) < to_date(@04_BumpToMatDate{BIGDATE;})
+    and ins.call_option = 'Yes'

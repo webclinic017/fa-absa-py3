@@ -1,0 +1,7 @@
+[Securities Lending]FMultiInstrumentAndTrades:inventoryPositionAndCounterpartyExposure = select(timeBucketsSetExternally, 
+  nil->nil, 
+  default->select(grouper == "Counterparty", 
+    default->timeBucketsSetExternallyZeroPosition, 
+    true->switch(exposureMarginPerCounterparty > 0 and not (count(inventoryPositionOpenInstruments) == 0), 
+      true->min(exposureMarginPositionPerCounterparty, inventoryPosition), 
+      default->timeBucketsSetExternallyZeroPosition)));

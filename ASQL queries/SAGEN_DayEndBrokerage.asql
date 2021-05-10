@@ -1,0 +1,18 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_DayEndBrokerage') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_DayEndBrokerage' and p.type = 'SQL Query' 
+
+
+/*-----------------------------------------
+	Add brokerage payments	
+-------------------------------------------*/
+select
+	ael_s(,'SAGEN_Brokerage.CalcBrokerage')			'ok'
+from
+	serverdata s
+where
+	s.srdnbr > 0
+

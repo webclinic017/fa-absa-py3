@@ -1,0 +1,8 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:yieldToMaturitySpread = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    true->marketYieldToMaturity - dividedByHundred(theoreticalYieldToMaturityRiskFreeDouble), 
+    false->nil), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:yieldToMaturitySpread = 0.0;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:yieldToMaturitySpread = instrument:yieldToMaturitySpread;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:yieldToMaturitySpread = nil;

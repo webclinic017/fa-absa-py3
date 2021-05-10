@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slReportingQuantity = sumOf(children :* "slReportingQuantity");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slReportingQuantity = sumOf(tradesInPosition :* "slReportingQuantity");
+[Securities Lending ABSA]FTrade:slReportingQuantity = select(instrument.InsType, 
+  "Deposit"->depositBalance[hideZeroPositionsChoice], 
+  default->sl_quantity);
+[Securities Lending ABSA]FTradeRow:slReportingQuantity = trade :* "slReportingQuantity";

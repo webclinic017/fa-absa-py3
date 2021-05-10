@@ -1,0 +1,7 @@
+[Default]FOption:asianUsedAveragePriceDates = select(isAsian, 
+  true->select(isOptionValuedAsPureSingle, 
+    true->datetime(asianAveragePriceEvents), 
+    false->select(mappedModelIsBasketAsSingleUnderlying and (not asianBasketAsSingleHasPriceEventsDefinedOnComponents), 
+      true->datetime(asianAveragePriceEvents), 
+      false->datetime(asianBasketAveragePriceEvents[0]))), 
+  false->nil);

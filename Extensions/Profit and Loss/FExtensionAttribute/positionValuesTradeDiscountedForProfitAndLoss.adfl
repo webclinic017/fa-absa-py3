@@ -1,0 +1,8 @@
+[Profit and Loss]FInstrument:positionValuesTradeDiscountedForProfitAndLoss = select(discountPositionValuesTrade, 
+  true->object:discountAndConvertToBaseForProfitLoss [filterUnit, valuationBaseDateTimeInput, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = positionValuesTradeForProfitAndLoss, valuesOnSpotOverride], 
+  false->positionValuesTradeForProfitAndLoss);
+[Profit and Loss]FInstrumentAndTrades:positionValuesTradeDiscountedForProfitAndLoss = openInstrument :* "collapse(positionValuesTradeDiscountedForProfitAndLoss)" [valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, discountPositionValuesTrade];
+[Profit and Loss]FMultiInstrumentAndTrades:positionValuesTradeDiscountedForProfitAndLoss = sumOf(openInstruments :* "collapse(positionValuesTradeDiscountedForProfitAndLoss)" [valuesOnSpotOverride, valuationBaseDateTimeInput, positionObject, plSpotGroupingReference, discountPositionValuesTrade]);
+[Profit and Loss]FTradeRow:positionValuesTradeDiscountedForProfitAndLoss = shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, discountPositionValuesTrade](isOpenPosition, 
+  true->instrument :* "collapse(positionValuesTradeDiscountedForProfitAndLoss)" [valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, includeAllTrades, discountPositionValuesTrade, positionObject, profitAndLossParameters], 
+  false->spotHandlingZero);

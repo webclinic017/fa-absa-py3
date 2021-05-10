@@ -1,0 +1,7 @@
+#grouping: risk factors/volatility value
+
+[Equity Pricing and Risk]FInstrument:spotOrForwardStartVolatility = switch((isForwardStarting and useForwardVolatility), 
+  true->forwardStartVolatility, 
+  false->select(useCompoAdjustmentForVolatility, 
+    true->spotToExpiryVolatilityCompoAdjusted, 
+    false->spotToExpiryVolatility));

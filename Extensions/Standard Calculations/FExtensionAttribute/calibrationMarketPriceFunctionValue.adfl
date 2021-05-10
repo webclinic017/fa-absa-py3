@@ -1,0 +1,7 @@
+[Standard Calculations]FInstrumentAndTrades:calibrationMarketPriceFunctionValue = select(instrument.IsVolatilityQuoted, 
+  true->shunt(volatilityInformation.BenchmarkPriceIsSpreadVol, 
+    true->calibrationMarketPriceFunctionValueForSpreadInstrument, 
+    false->calibrationMarketPriceFunctionValueForVolatilityQuotedInstrument), 
+  false->theoreticalPrice);
+[Standard Calculations]FOrderBook:calibrationMarketPriceFunctionValue = theoreticalPrice;
+[Standard Calculations]FPriceLevelRow:calibrationMarketPriceFunctionValue = theoreticalPrice;

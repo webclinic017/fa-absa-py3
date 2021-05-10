@@ -1,0 +1,104 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Stocks_and_Warrants_MTM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Stocks_and_Warrants_MTM' and p.type = 'SQL Query' 
+
+/*
+Purpose:                    [Created to retrieve the Instrument, number of contracts and portfolio to do a recon
+                            with a JSE file in the ael called: Stock_Recon];[Added files for MTM, Price and Premium. Seperate from SAEQ_Stocks_and_Warrants 
+                            which does the recon.];[Updated. Removed hard coding of Acquirer.];[Updated to include ETFs]
+Department and Desk:        [];[];[OPS];[OPS]
+Requester:                  [];[];[Lucas Varnavides];[Lucas Varnavides]
+Developer:                  [Heinrich Cronje];[Jaysen Naicker];[Willie van der Bank];[Willie van der Bank]
+CR Number:                  [2007-04-05];[2009-01-30];[C301440 2010-05-11];[C423828 2010-09-07]
+*/
+
+/*Stock*/
+select 
+	display_id(t,'insaddr')		'Instrument',
+    sum(t.quantity)			'Number_of_Contracts',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	mtm_price(t,@Date{YESTERDAY},'ZAR',0,0) 	'MTM',
+	sum(t.price) 'Price', 
+	sum(t.premium) 'Premium',
+	/*'Stock' 'File',*/
+	i.instype = 'Stock' ? 'Stock' : 'ETF' 'File',
+	date_add_banking_day(@Date{YESTERDAY},'ZAR',0)	'DATA_DATE'
+into
+    temp
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+        t.insaddr = i.insaddr
+	and match_filter(t, @1_Filter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	/*and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','FMAINTENANCE','Equity Deriv','Equity_OTC') */
+	/*and ('All' in (@Acquirer{All;}) or p.ptyid in (@Acquirer{;Party.ptyid*}) or '' in (@Acquirer{All;}))*/
+	and display_id(pr,'owner_prfnbr') not in ('9923' , 'Eq expired trades')
+	and display_id(pr,'owner_prfnbr') ~= 'Warrants'
+	/*and i.instype = 'Stock'
+	and i.instype ~= 'Option'*/
+	and t.prfnbr = pr.member_prfnbr
+	and time_to_day(t.time) <= @Date
+
+group by 3, 1, 4
+
+
+/*Warrant*/
+
+select 
+	display_id(t,'insaddr')		'Instrument',
+	sum(t.quantity)			'Number_of_Contracts',
+	display_id(t,'prfnbr')		'SubPortFolio',
+    mtm_price(t,@Date{YESTERDAY},'ZAR',0,0) 	'MTM',
+	sum(t.price) 'Price', 
+	sum(t.premium) 'Premium',	
+    'Warrant' 'File',
+	date_add_banking_day(@Date{YESTERDAY},'ZAR',0)	'DATA_DATE'
+into
+    temp
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+        t.insaddr = i.insaddr
+	and match_filter(t, @1_Filter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	/*and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk', 'FMAINTENANCE', 'Equity Deriv','Equity_OTC') */
+	/*and ('All' in (@Acquirer{All;}) or p.ptyid in (@Acquirer{;Party.ptyid*}) or '' in (@Acquirer{All;}))*/
+	and display_id(pr,'owner_prfnbr') not in ('9923' , 'Eq expired trades')
+	and display_id(pr,'owner_prfnbr') = 'Warrants'
+	/*and i.instype = 'Stock'
+	and i.instype ~= 'Option'*/
+	and t.prfnbr = pr.member_prfnbr
+	and time_to_day(t.time) <= @Date
+	
+group by 3, 1, 4
+
+
+
+select 
+    te.Instrument,
+    sum(te.Number_of_Contracts),
+    te.SubPortFolio,
+    te.File,
+    te.DATA_DATE,
+    te.MTM ,
+    sum(te.Premium) 'Premium',
+    sum(te.price) 'Price'
+from
+    temp te
+where
+    abs(te.Number_of_Contracts) > 0
+    
+group by 3,1,6
+order by 3,1

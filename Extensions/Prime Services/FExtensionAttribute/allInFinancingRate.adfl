@@ -1,0 +1,6 @@
+[Prime Services]FMultiInstrumentAndTrades:allInFinancingRate = select(isExpiredOrClosedOut, 
+  true->select(firstChildInstrument:isOvernightSpreadInstrument, 
+    true->firstChild:allInFinancingRate, 
+    false->nil), 
+  false->nil);
+[Prime Services]FSingleInstrumentAndTrades:allInFinancingRate = overnightBaseRate + overnightSpread + shortPremiumRate;

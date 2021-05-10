@@ -1,0 +1,20 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Exception_Context') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_Context' and p.type = 'SQL Query' 
+ 
+  select     
+    'Context'               'Object',
+    display_id(cl, 'context_seqnbr')                'Context',
+    cl.mapping_type                                 'Mapping',
+    display_id(cl, 'group_chlnbr')                  'ValGroup',
+    display_id(cl, 'insaddr')                       'InstrumentId',
+    cl.type                                         'Type',                   
+    cl.name                                         'Name', 
+    display_id(cl,'prfnbr')                         'Portfolio',
+    display_id(cl, 'curr')                          'Curr'
+from
+    ContextLink cl
+order by 1,2,3

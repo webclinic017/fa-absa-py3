@@ -1,0 +1,8 @@
+[Default]FCashFlowDerivativeInstrument:settlementDate = object.SettlementDate;
+[Default]FDerivative:settlementDate[exerciseEvents] = select(exerciseEventsExist, 
+  true->exerciseEvents.SettlementDate, 
+  false->object.SettlementDate);
+[Default]FExerciseEvent:settlementDate = object.SettlementDate;
+[Default]FInstrument:settlementDate[exerciseEvents] = select(exerciseEventsExist, 
+  true->exerciseEvents.SettlementDate, 
+  false->collapse(instrumentSpotDate));

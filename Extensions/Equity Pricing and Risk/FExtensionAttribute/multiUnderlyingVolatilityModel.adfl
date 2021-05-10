@@ -1,0 +1,12 @@
+#grouping: greek perimeters/price greek perimeters
+#grouping: risk factors/volatility value
+
+[Equity Pricing and Risk]FInstrument:multiUnderlyingVolatilityModel = select(isForwardStart, 
+  true->shunt(isForwardStarting, 
+    true->select(useForwardVolatility, 
+      true->multiUnderlyingForwardStartVolatility, 
+      false->multiUnderlyingSpotToExpiryVolatility), 
+    false->select(isPerformancePayoff, 
+      true->multiUnderlyingPerformanceVolatility, 
+      false->multiUnderlyingVolatility)), 
+  false->multiUnderlyingVolatility);

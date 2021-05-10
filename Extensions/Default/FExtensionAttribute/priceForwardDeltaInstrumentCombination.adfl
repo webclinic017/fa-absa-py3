@@ -1,0 +1,5 @@
+[Default]FCombination:priceForwardDeltaInstrumentCombination = select(splitCombination, 
+  true->select(priceGreekRiskFactorNodeCount == 1, 
+    true->sumOf((instrumentMaps) :* "priceForwardDeltaInstrumentCore" [doSplitAll, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, useGreekBetaFactors]) / combinationDivisionFactor, 
+    false->denominatedValueZero), 
+  false->collapse(priceForwardDeltaInstrumentCore));

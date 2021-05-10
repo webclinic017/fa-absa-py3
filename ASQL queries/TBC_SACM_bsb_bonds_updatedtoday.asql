@@ -1,0 +1,122 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_bsb_bonds_updatedtoday') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_bsb_bonds_updatedtoday' and p.type = 'SQL Query' 
+
+
+select
+
+t.trdnbr,
+t.status,
+i.extern_id1'Bond',
+t.price'Yield',
+mtm_price(i,@date{Today;})'MtM',
+abs(t.price-mtm_price(i,@date{Today;}))*100'Bps_Diff',
+t.value_day'date1',
+t.updat_time,
+t.creat_time,
+i.instype,
+time_to_day(t.time)'time',
+party.ptyid'CP',
+party.hostid='DRA' ? ' ' : party.hostid'hostid',
+i.insid,
+t.optional_key,
+u.name
+
+
+into temp
+
+from
+trade t,
+instrument i,
+user u,
+party party
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('IndexLinkedBond','bond')
+and time_to_day(t.updat_time)=@date{Today;}
+and time_to_day(t.creat_time)~=@date{Today;}
+and t.creat_usrnbr=u.usrnbr
+and t.counterparty_ptynbr=party.ptynbr
+
+
+order by t.status desc, t.updat_time desc
+
+
+/*----Bsb and Repos --*/
+
+select
+
+t.trdnbr,
+t.status,
+ui.extern_id1'Bond',
+t.price'Yield',
+mtm_price(ui,@date{Today;})'MtM',
+abs(t.price-mtm_price(ui,@date{Today;}))*100'Bps_Diff',
+t.value_day'date1',
+t.updat_time,
+t.creat_time,
+i.instype,
+time_to_day(t.time)'time',
+party.ptyid'CP',
+party.hostid='DRA' ? ' ' : party.hostid'hostid',
+i.insid,
+t.optional_key,
+u.name
+
+
+into temp
+
+
+from
+trade t,
+instrument i,
+user u,
+party party,
+instrument ui
+
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and time_to_day(t.updat_time)=@date{Today;}
+and time_to_day(t.creat_time)~=@date{Today;}
+
+and t.creat_usrnbr=u.usrnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+
+order by t.status desc, t.updat_time desc
+
+
+
+Select
+
+t.trdnbr,
+t.status,
+t.Bond,
+t.Yield,
+t.MtM,
+t.Bps_Diff,
+t.date1,
+t.updat_time,
+t.creat_time,
+t.instype,
+t.time,
+t.CP,
+t.hostid,
+t.insid,
+t.optional_key,
+t.name
+
+from temp t
+
+order by t.status desc, t.updat_time desc

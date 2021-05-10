@@ -1,0 +1,119 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Position_New') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Position_New' and p.type = 'SQL Query' 
+
+
+/* Get current VAT rate */
+select 
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'VAT_RATE'))      'VAT'
+into constant
+from serverdata s
+where s.srdnbr > 0
+
+ 
+select 
+    i.insid,
+    pt.ptyid                'CP',
+    sum(t.value_day <= date_add_banking_day(@Date{},'ZAR',-3) ? t.quantity : 0)         'PositionT_2',
+    sum(t.value_day <= date_add_banking_day(@Date{},'ZAR',-2) ? t.quantity : 0)         'PositionT_1',
+    sum(t.value_day <= date_add_banking_day(@Date{},'ZAR',-1) ? t.quantity : 0)         'PositionT',
+    sum(t.value_day <= date_add_banking_day(@Date{},'ZAR',0) ? t.quantity : 0)         'PositionTp1',
+    display_id(t,'prfnbr')  'Portfolio',
+    /*t.fee   'Fee INCL VAT',*/
+    add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '' ? (t.fee/c.VAT) : (add_info(t,'VAT')= 'MIN FEE' ? 0 : t.fee) 'Fee_EXCL_VAT',
+    t.price,
+    t.price*t.quantity  'Value',
+    sum(add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '' ? (t.fee/c.VAT * t.quantity * t.price) : (add_info(t,'VAT')= 'MIN FEE' ? t.fee/c.VAT : t.fee * t.quantity * t.price))              'Lending_Fee_EXCL_VAT',
+    sum(add_info(t,'VAT')= 'MIN FEE'? (t.fee - (t.fee/c.VAT)) : (t.fee * t.quantity * t.price) - (add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '' ? (t.fee/c.VAT * t.quantity * t.price) : t.fee * t.quantity * t.price))  'VAT',
+    /*sum(t.fee * t.quantity * t.price)                       'Lending Fee INCL VAT',*/
+    add_info(t,'VAT')= 'FULL' or add_info(t,'VAT')= '' ? (t.fee/c.VAT * t.price) : t.fee * t.price                                 'Lending_Factor',
+    t.fee   'Fee_INCL_VAT'
+into 
+    temp
+from
+    trade t,
+    instrument i,
+    portfolio p,
+    party pt,
+    constant c
+where
+    i.instype = 'Stock'
+and i.insaddr = t.insaddr
+and p.prfid = @Portfolio{;Portfolio.prfid}
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = pt.ptynbr
+and pt.ptyid in (@Counterparty{;Party.ptyid;*})
+and t.value_day <= @Date{}
+and t.status not in ('Simulated','Void')
+
+select
+    'Detail'        'Section',
+    insid,
+    CP,
+    sum(PositionT_2)        'PositionT-2',
+    sum(PositionT_1)        'PositionT-1',
+    sum(PositionT)          'PositionT',
+    sum(PositionTp1)        'PositionT+1',
+    Portfolio,
+    Fee_EXCL_VAT,
+    price,
+    sum(Value)                  'Value',
+    sum(Lending_Fee_EXCL_VAT)   'Lending_Fee_EXCL_VAT',
+    sum(VAT)                    'VAT',
+    Lending_Factor,
+    Fee_INCL_VAT
+from
+    temp
+where 
+    @Detail{;'Yes','No'} = 'Yes'
+group by 
+    2,3,9,10
+
+UNION
+
+select
+    'Total Per Ins'        'Section',
+    insid,
+    CP,
+    sum(PositionT_2)        'PositionT-2',
+    sum(PositionT_1)        'PositionT-1',
+    sum(PositionT)          'PositionT',
+    sum(PositionTp1)        'PositionT+1',
+    Portfolio,
+    Fee_EXCL_VAT,
+    price,
+    sum(Value)                  'Value',
+    sum(Lending_Fee_EXCL_VAT)   'Lending_Fee_EXCL_VAT',
+    sum(VAT)                    'VAT',
+    Lending_Factor,
+    Fee_INCL_VAT
+from
+    temp
+group by 
+    2
+    
+UNION
+
+select
+    'Total Per Ins and Fee'        'Section',
+    insid,
+    CP,
+    sum(PositionT_2)            'PositionT-2',
+    sum(PositionT_1)            'PositionT-1',
+    sum(PositionT)              'PositionT',
+    sum(PositionTp1)            'PositionT+1',
+    Portfolio,
+    Fee_EXCL_VAT,
+    price,
+    sum(Value)                  'Value',
+    sum(Lending_Fee_EXCL_VAT)   'Lending_Fee_EXCL_VAT',
+    sum(VAT)                    'VAT',
+    Lending_Factor,
+    Fee_INCL_VAT
+from
+    temp
+group by 
+    2,15

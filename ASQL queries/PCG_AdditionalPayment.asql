@@ -1,0 +1,92 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_AdditionalPayment') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_AdditionalPayment' and p.type = 'SQL Query' 
+
+/* List of trades */
+select
+	t.trdnbr,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	display_id(t, 'counterparty_ptynbr')		'Cpty',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	t.time,
+	display_id(t,'prfnbr')  'Portfolio'
+
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi
+where
+match_filter(t, @Filter{;tradefilter.fltid})
+and i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@Instype{}))
+
+/* Additional payments */
+select
+	a.payday	'day',
+	a.amount	'amount',
+	display_id(a,'curr')	'curr',
+	a.type	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	a.trdnbr,
+	display_id(a, 'ptynbr') 'AddPaymentCnpty',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'CounterParty',
+	trd.status,
+	trd.time,
+	trd.portfolio
+into 
+	CF
+from
+	payment a,
+	TRD trd
+where
+	a.trdnbr = trd.trdnbr
+	
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	c.day > to_date(@1_StartDay{Yesterday;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	/*0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',*/
+	c.amount > 0 ? 'B' : 'S'  'Buy_Sell',
+	c.amount	'Amount',
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.AddPaymentCnpty,
+	c.CounterParty,
+	c.status,
+	c.time,
+	c.portfolio
+
+from
+	CF c
+where
+	/*c.curr in (@3_Currency{All;instrument.insid* where instype = 'Curr'})*/
+c.day <= @2_EndDay{Today;}
+and	c.day >= @1_StartDay{Yesterday;}
+and	@5_Show_TradeDetail{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+/*group by 1,8,7,2,9*/

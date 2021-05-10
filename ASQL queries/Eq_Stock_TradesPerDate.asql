@@ -1,0 +1,150 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Eq_Stock_TradesPerDate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Eq_Stock_TradesPerDate' and p.type = 'SQL Query' 
+
+
+select 
+	t.trdnbr							            'TradeNumber',
+	t.optional_key                                  'ParentId',
+	display_id(t,'trader_usrnbr')					'Trader',
+	display_id(t,'counterparty_ptynbr')				'Counterparty',
+	time_to_day(t.time)						        'DealDate',
+	display_id(t,'insaddr')						    'Instrument',
+	i.instype							            'InstrumentType',
+	i.contr_size							        'Contract_Size',
+	t.price								            'Traded_Price',
+	t.quantity < 0 ?'S':'B'						    'Buy_Sell',
+ 	i.instype = 'Future/Forward' 
+        ? 1.0
+		: delta_explicit(t)                         'Delta',
+
+	i.instype = 'Stock' 
+        ? mtm_price(t,@Date,'ZAR',0,0)
+		: 0                             	        'MtM_Price', 
+
+	i.instype = 'Stock' 
+        ? mtm_price(t,@Date,'ZAR',0,0) * .01				
+		: 0 				                        'MtM_Price_ZAR',
+
+  	(i.instype = 'Stock' 
+        ? mtm_price(t,@Date,'ZAR',0,0) * .01				
+		: 0) * t.quantity * i.contr_size            'Net_Delta_ZAR',
+		
+    1.0									            'number_of_trades',
+
+	t.premium							            'Premium',
+	t.quantity 							            'Number_of_Contracts',                 	
+	@Date{TODAY}							        'DATA_DATE',
+	display_id(pr,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')						    'SubPortFolio'	
+
+into
+	temp	
+	
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+
+where 
+	t.insaddr = i.insaddr
+and match_filter(t,@Filter{;Tradefilter.fltid})
+and t.acquirer_ptynbr = p.ptynbr
+/*and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','Equity Deriv','Equity_OTC')*/
+and time_to_day(t.time) = @Date
+and t.prfnbr = pr.member_prfnbr
+and i.instype = 'Stock'
+    
+    
+
+
+
+select
+	t.TradeNumber,
+	t.ParentId,
+	t.Trader,
+	t.Counterparty,
+	t.DealDate,
+	t.Instrument,
+	t.InstrumentType,
+	t.Traded_Price,
+	t.Buy_Sell,
+	t.MtM_Price,
+	t.MtM_Price_ZAR,
+	t.Number_of_Contracts,
+ 	t.Delta,
+    t.Net_Delta_ZAR,
+	t.Premium,
+	t.DATA_DATE,
+	t.Portfolio,
+	t.SubPortFolio,
+	t.number_of_trades
+
+from
+	temp t
+
+
+union
+
+
+select
+	t.TradeNumber,
+	t.ParentId,
+	t.Trader,
+	t.Counterparty,
+	t.DealDate,
+	t.Instrument,
+	t.InstrumentType,
+	t.Traded_Price,
+	t.Buy_Sell,
+	t.MtM_Price,
+	t.MtM_Price_ZAR,
+	t.Number_of_Contracts,
+ 	t.Delta,
+    sum(t.Net_Delta_ZAR),
+	t.Premium,
+	t.DATA_DATE,
+	t.Portfolio,
+	t.SubPortFolio,
+	sum(t.number_of_trades)								
+
+from
+	temp t
+
+group by 
+    t.InstrumentType
+
+
+union
+
+
+select
+	t.TradeNumber,
+	t.ParentId,
+	t.Trader,
+	t.Counterparty,
+	t.DealDate,
+	t.Instrument,
+	t.InstrumentType,
+	t.Traded_Price,
+	t.Buy_Sell,
+	t.MtM_Price,
+	t.MtM_Price_ZAR,
+	t.Number_of_Contracts,
+ 	t.Delta,
+    sum(t.Net_Delta_ZAR),
+	t.Premium,
+	t.DATA_DATE,
+	t.Portfolio,
+	t.SubPortFolio,
+	sum(t.number_of_trades)								
+
+from
+	temp t
+
+group by 
+    t.DATA_DATE

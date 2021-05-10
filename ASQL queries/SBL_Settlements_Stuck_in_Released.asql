@@ -1,0 +1,26 @@
+/* update_method=1 */
+/*
+    Project: SBL onto FA
+    Purpose: Settlements stuck in Released for more than 6 minutes
+    Developer: Libor Svoboda
+*/
+select
+    max(sc.updat_time < NOW ? NOW : sc.updat_time) 'max_updat_time'
+into
+    connections
+from 
+    serverconnections sc
+where
+    sc.status = 1
+
+
+select
+    s.seqnbr
+from
+    settlement s,
+    connections c
+where
+    s.status = 'Released'
+and s.acquirer_ptyid = 'SECURITY LENDINGS DESK'
+and s.type in ('Security Nominal', 'End Security')
+and s.updat_time < c.max_updat_time - 6*60

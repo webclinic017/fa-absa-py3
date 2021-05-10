@@ -1,0 +1,39 @@
+[OperationsViewerAxlFormulas]FObject:Security Vault Position
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isSecurityDvPNominalRedemption = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+}
+ownIssues = Aggregate.Sum(If(And(And(@isTradePrimaryIssuance(), @isSecurityDvPNominalRedemption()), And(@isSettledDaySet(), @isAmountNegative())), &'amount', 0.0));
+
+{
+  DisplayInformation:
+  {
+    Label:'Vault Position',
+    GroupLabel:'Security',
+    Description:'Security remaining in the Vault, that is, Total issue size minus IssueOutstanding.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Unique(&['sec_insaddr','total_issued']) + @ownIssues();
+
+...

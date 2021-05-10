@@ -1,0 +1,7 @@
+[Default]FInstrument:theoreticalOrMarketInstrumentValue = select(valuationBasedOnMarkToMarketPrice, 
+  false->theoreticalOrMarketOrPriceBaseInstrumentValue, 
+  true->theoreticalOrMarketOrMarkToMarketInstrumentValue);
+[Default]FInstrumentAndTrades:theoreticalOrMarketInstrumentValue = select(isExpiredFullDay, 
+  true->instrumentSpotDateZero, 
+  false->instrument :* "theoreticalOrMarketInstrumentValue" [priceSource, isSplitAllGrouped]);
+[Default]FMultiInstrumentAndTrades:theoreticalOrMarketInstrumentValue = nil;

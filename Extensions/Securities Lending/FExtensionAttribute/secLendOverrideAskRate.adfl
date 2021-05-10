@@ -1,0 +1,13 @@
+[Securities Lending]FInstrument:secLendOverrideAskRate = nil;
+[Securities Lending]FInstrumentAndTrades:secLendOverrideAskRate = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->secLendGetMasterLoan:secLendOverrideAskRate);
+[Securities Lending]FMultiInstrumentAndTrades:secLendOverrideAskRate = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->secLendGetMasterLoan:secLendOverrideAskRate);
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendOverrideAskRate = nil;
+[Securities Lending]FSecurityLoan:secLendOverrideAskRate = select(secLendMarkitMarket, 
+  nil->nil, 
+  default->select(secLendLoanIsMaster, 
+    default->nil, 
+    true->secLendGetMasterLoan:marketPriceAsk [orderBookMarketSearchOrder = [secLendRateOverrideMarket], priceFindingMarketSet = true, priceFindingIsCorrectDay = true]));

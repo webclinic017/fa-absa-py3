@@ -1,0 +1,5 @@
+[Securities Lending]FInstrument:secLendNominalValues = discountAndFilterCurrency(abs(collapse(secLendNominalValuesUndiscounted)), discountAndConvertToBaseDiscountCurves, discountAndConvertToBaseDate, filterUnit);
+[Securities Lending]FInstrumentAndTrades:secLendNominalValues = openInstrument :* "collapse(secLendNominalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate];
+[Securities Lending]FLegAndTrades:secLendNominalValues = instrument :* "secLendNominalValues" [priceSource, isSplitAllGrouped, includeAllTrades, valuesOnSpotOverride, positionObject, tradesInPosition, legs, filterUnit, groupingSpotDiscountDate];
+[Securities Lending]FMultiInstrumentAndTrades:secLendNominalValues = sumOf(openInstruments :* "collapse(secLendNominalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate]);
+[Securities Lending]FTradeRow:secLendNominalValues = openInstrument :* "secLendNominalValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, positionObject, groupingSpotDiscountDate];

@@ -1,0 +1,8 @@
+[Prime Services]FSingleInstrumentAndTrades:corporateActionPayDay = switch(corporateActionType, 
+  "Coupon"->py("PS_CorporateActions", context).GetPayDay(instrument, profitAndLossEndDate), 
+  "Dividend"->switch(instrument:primeDividends <> nil, 
+    true->switch(instrument:primeDividends.IsKindOf("FDividend"), 
+      true->instrument:primeDividends.PayDay, 
+      default->(instrument:primeDividends :* "object.PayDay")), 
+    default->nil), 
+  default->nil);

@@ -1,0 +1,51 @@
+/*
+Purpose                 :[Market Risk feed files],[Added Log information]
+Department and Desk     :[IT],[Market Risk]
+Requester:              :[Natalie Austin],[Susan Kruger]
+Developer               :[Douglas Finkel / Henk Nel],[Willie van der Bank]
+CR Number               :[264536],[802084 (21/10/2011)]
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_CapFloor') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_CapFloor' and p.type = 'SQL Query'
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_CapFloor.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_CapFloor.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i
+where
+    /* Basic filtering conditions */
+        (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Cap','Floor')   
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

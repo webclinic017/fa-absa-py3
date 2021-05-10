@@ -1,0 +1,6 @@
+[Default]FQuoteContext:positionLimitMonitoredValue = switch(positionLimitDataSource, 
+  nil->0.0, 
+  default->switch(positionLimitDataSource.Value, 
+    nil->0.0, 
+    default->positionLimitDataSource.Value));
+[Default]FQuoteController:positionLimitMonitoredValue = qQuoteContext:positionLimitMonitoredValue [qPortfolioInstrument := instrument];

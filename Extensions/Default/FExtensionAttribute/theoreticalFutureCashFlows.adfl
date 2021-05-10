@@ -1,0 +1,6 @@
+[Default]FCombInstrMapAndTrades:theoreticalFutureCashFlows = sumOf(instrument :* "theoreticalFutureInstrumentCashFlows" [positionObject, tradesInPosition, priceSource, isSplitAllGrouped]) * weight / combination.Factor;
+[Default]FDeliverableLinkAndTrades:theoreticalFutureCashFlows = nil;
+[Default]FInstrumentAndTrades:theoreticalFutureCashFlows = sumOf(openInstruments :* "collapse(theoreticalFutureInstrumentCashFlows)" [positionObject, priceSource, isSplitAllGrouped]) + positionProjectedPayments;
+[Default]FLegAndTrades:theoreticalFutureCashFlows = sumOf(leg :* "theoreticalFutureLegCashFlows" [positionObject, tradesInPosition, priceSource, isSplitAllGrouped]);
+[Default]FSingleInstrumentAndTrades:theoreticalFutureCashFlows = sumOf(instrument :* "theoreticalFutureInstrumentCashFlows" [positionObject, priceSource, isSplitAllGrouped]) + positionProjectedPayments;
+[Default]FTradeRow:theoreticalFutureCashFlows = sumOf(instrument :* "theoreticalFutureInstrumentCashFlows" [singleTradePosition, priceSource, isSplitAllGrouped, includeAllTrades]) + positionProjectedPayments;

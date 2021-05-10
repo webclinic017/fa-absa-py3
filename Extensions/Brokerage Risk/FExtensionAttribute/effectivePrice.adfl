@@ -1,0 +1,7 @@
+[Brokerage Risk]FCurrency:effectivePrice = nil;
+[Brokerage Risk]FInstrument:effectivePrice = switch(collateralPosition <> 0, 
+  true->shunt(priceCapCondition == nil, 
+    true->theoreticalOrMarketPrice, 
+    false->min(priceCap, theoreticalOrMarketPrice)), 
+  default->nil);
+[Brokerage Risk]FSingleInstrumentAndTrades:effectivePrice = convertToCurrency(instrument:effectivePrice [portfolio, positionObject], portfolioFxRates, displayCurrencySymbol, filterUnit);

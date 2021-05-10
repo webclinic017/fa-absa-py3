@@ -1,0 +1,22 @@
+/* update_method=0 */
+select
+    t.trdnbr,
+    t.creat_time,
+    t.value_day,
+    t.status,
+    ael_i(,'FXCashIssues_HC.updateFXCashTrades', t.trdnbr)  'Updated'
+from
+    trade t,
+    instrument i,
+    party a
+where
+        t.insaddr = i.insaddr
+    and i.instype = 'Curr'
+    and t.disc_type_chlnbr ~= '3726'
+    and t.acquirer_ptynbr = a.ptynbr
+    and a.ptyid = 'MIDAS DUAL KEY'
+    and t.status not in ('Void')
+    and t.value_day >= today
+    and t.trdnbr not in (43335356,43335354,39271467,43335355,43335353,39271466,44622976,44622975,43335612,43725878)
+
+

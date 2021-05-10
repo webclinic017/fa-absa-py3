@@ -1,0 +1,33 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_IROptions_BenchmarkStrike') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_IROptions_BenchmarkStrike' and p.type = 'SQL Query' 
+
+
+select
+	@Date{today}							'Date',
+	@Currency{ZAR; instrument.instype where instype = 'Curr'}	'Currency',
+	@Instype{Both; 'Cap', 'Floor'}					'Instype'
+into	
+	temp
+
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+
+
+select
+	t.Date,
+	t.Currency,
+	t.Instype,
+	ael_s(,'RELFWD_RFWD.ASQL_call',t.Instype, t.Currency)	'ael'
+
+from
+	temp t
+

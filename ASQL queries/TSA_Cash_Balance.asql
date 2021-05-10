@@ -1,0 +1,34 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TSA_Cash_Balance') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TSA_Cash_Balance' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+ Macros
+------------------------------------------------------------------*/
+
+
+select
+    TODAY                                   'RepDate',
+    @1_Filter{;tradefilter.fltid}           'Tradefilter',
+    c.insid                                 'curr',
+    sum(accumulated_cash(t, to_date(@3_EndDate{today}), c.insid, 2, 0, , 1, 'None'))     'cash'
+    
+from
+    trade  t,
+    instrument i,
+    instrument u,
+    instrument c
+
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid})    
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated', 'Internal')
+and t.insaddr = i.insaddr
+and i.und_insaddr *= u.insaddr
+and c.instype = 'Curr'
+and currency_included(t, c.insid) = 1
+
+group by 3

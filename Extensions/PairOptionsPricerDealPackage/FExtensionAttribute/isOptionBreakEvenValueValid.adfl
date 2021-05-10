@@ -1,0 +1,5 @@
+[PairOptionsPricerDealPackage]FInstrumentAndTrades:isOptionBreakEvenValueValid = select(isFinite(theoreticalInstrumentSpotValueForPriceInStrikeCurrency) and ((1 == countAny(theoreticalInstrumentSpotValueForPriceInStrikeCurrency)) or (isBidAskPriced and (2 == countAny(theoreticalInstrumentSpotValueForPriceInStrikeCurrency)))) and (1 == countAny(strikeValueForBreakEvenValue)) and not instrument:isAsian and not instrument:isForwardStarting, 
+  false->false, 
+  true->select(optionCallOrPutFactor, 
+    default->true, 
+    nil->false));

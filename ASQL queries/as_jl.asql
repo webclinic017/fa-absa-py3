@@ -1,0 +1,28 @@
+select
+    t.trdnbr,
+    t.creat_time,
+    t.time,
+    i.insid,
+    i.exp_day,
+    t.status,
+    l.start_day,
+    display_id(l, 'curr')       'Leg curr',
+    display_id(i, 'curr')       'Ins curr',
+    display_id(t, 'curr')       'Trade curr',
+    nominal_amount(c),
+    c.type,    
+    c.pay_day
+    
+    
+from
+    Trade t,
+    Instrument i,
+    Leg l,
+    Cashflow c
+    
+where
+    t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and l.legnbr = c.legnbr
+and i.instype = 'FxSwap'
+and time_to_day(t.creat_time) >= today

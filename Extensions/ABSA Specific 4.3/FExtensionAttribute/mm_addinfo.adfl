@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FTrade:mm_addinfo = select(object.AdditionalInfo.Funding_Instype == nil, 
+  false->object.AdditionalInfo.Funding_Instype, 
+  true->select(object.AdditionalInfo.MM_Instype == nil, 
+    false->object.AdditionalInfo.MM_Instype, 
+    true->select(object.AdditionalInfo.Instype == nil, 
+      false->object.AdditionalInfo.Instype)), 
+  default->nil);
+[ABSA Specific 4.3]FTradeRow:mm_addinfo = trade:mm_addinfo;

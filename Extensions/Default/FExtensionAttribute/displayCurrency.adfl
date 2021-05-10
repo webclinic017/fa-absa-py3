@@ -1,0 +1,37 @@
+[Default]FCommonObject:displayCurrency = currency;
+[Default]FCurrencyPair:displayCurrency = select(sweepCurrency, 
+  nil->domesticCurrency, 
+  default->sweepCurrency);
+[Default]FCurrencySwap:displayCurrency = select(currencyPair, 
+  nil->currency, 
+  default->currencyPair.Currency2);
+[Default]FFxRate:displayCurrency = select(fxCashPositionChoice, 
+  "Accounting Curr"->accountingCurrency, 
+  default->currency);
+[Default]FGroupingOrder:displayCurrency = defaultOrderCurrency;
+[Default]FHedgeTotalRiskRow:displayCurrency = select(pLCurrencyOverride, 
+  nil->displayCurrencyObject :* "displayCurrency", 
+  default->pLCurrencyOverride);
+[Default]FInstrumentAndTrades:displayCurrency = select(pLCurrencyOverride, 
+  nil->displayCurrencyObject :* "displayCurrency", 
+  default->pLCurrencyOverride);
+[Default]FOption:displayCurrency = select(isFXOption, 
+  true->strikeCurrency, 
+  false->currency);
+[Default]FOrderBook:displayCurrency = currency;
+[Default]FOrderProcessTypeOrder:displayCurrency = defaultOrderCurrency;
+[Default]FOrderProgram:displayCurrency = defaultOrderCurrency;
+[Default]FOwnOrder:displayCurrency = switch(selectedOrderDisplayCurrency, 
+  "Default Order Currency"->defaultOrderCurrency, 
+  "Order Currency"->currency);
+[Default]FPriceAggregate:displayCurrency = select(pLCurrencyOverride, 
+  nil->instrumentCurrency, 
+  default->pLCurrencyOverride);
+[Default]FTimeBucketAndObject:displayCurrency = rowInstrumentAndTrades:displayCurrency [aggregateCurrencyChoice, fixedCurrency, positionCurrencyChoice];
+[Default]FTradeRow:displayCurrency = select(pLCurrencyOverride, 
+  nil->select(parameterizedCurrency, 
+    nil->select(instrument:fxCashPositionChoice, 
+      "Accounting Curr"->accountingCurrency, 
+      default->displayCurrencyObject :* "displayCurrency"), 
+    default->parameterizedCurrency), 
+  default->pLCurrencyOverride);

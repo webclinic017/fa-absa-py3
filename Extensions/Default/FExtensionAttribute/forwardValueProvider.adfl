@@ -1,0 +1,7 @@
+[Default]FCurrency:forwardValueProvider = fxRateInstrumentForForwardValuation :* "forwardValueProvider" [startValueForForwardValueCalculation, discountingType, forwardValuationInInstrumentCurrency, exposeForwardValueProviderTargets, priceSource];
+[Default]FDepositaryReceipt:forwardValueProvider = underlying :* "forwardValueProvider" [startValueForForwardValueCalculation, discountingType, forwardValuationInInstrumentCurrency, calculationCurrency, priceSource, doSplitAll, exposeForwardValueProviderTargets, useSpotProxy];
+[Default]FFxRate:forwardValueProvider = select(isReciprocal, 
+  true->inverseValueModelProvider, 
+  false->collapse(forwardValueProviderTargetBase));
+[Default]FInstrument:forwardValueProvider = collapse(forwardValueProviderTargetBase);
+[Default]FPriceIndex:forwardValueProvider = throwError("No forwardValueProvider implementation exists for FPriceIndex");

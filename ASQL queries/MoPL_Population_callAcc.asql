@@ -1,0 +1,38 @@
+/*
+Report used for recon between MoPL and Front
+Department and Desk     : IT Pricing and Risk BTB/PCG
+Requester               : Matthew Stephanou/Dirk Strauss
+Developer               : Bhavnisha Sarawan
+CR Number               : C568686
+*/
+
+/* Usage code for this ASQL */
+
+select
+    ael_i(p,'ASQL_log','MoPL_Population_callAcc') 'Name' 
+into  
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where 
+    p.name = 'MoPL_Population_callAcc' and p.type = 'SQL Query'
+
+ 
+
+select 
+    t.trdnbr
+from 
+    AdditionalInfoSpec ais, 
+    AdditionalInfo ai, 
+    Portfolio p,
+    trade t,
+    instrument i
+where 
+    ais.field_name = 'MoPL_Population'
+and ai.addinf_specnbr = ais.specnbr 
+and ai.value = 'Yes'
+and p.prfnbr = ai.recaddr
+and t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void', 'Simulated')
+and (i.open_end='Open End' and i.instype = 'Deposit' and add_info(t,'Funding Instype') not in ('Call I/Div', 'Call I/Div SARB', 'Call I/Div DTI'))

@@ -1,0 +1,65 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 707888
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003404656   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-444
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_CDS_Synthetic') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_CDS_Synthetic' and p.type = 'SQL Query'
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_CDS_Synthetic.OpenFile',@1_path{'f:\'},@2_FileName{'MR_CDS_Synthetic.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+	
+select i.insaddr, round(sum(ccf.nominal_factor),2) 'CD_Nominal', round(sum(pcf.nominal_factor),2) 'Fix_Nominal'
+into Temp
+from instrument i, leg pl, cashflow pcf, leg cl, cashflow ccf
+where i.instype = 'CreditDefaultSwap'
+and i.insaddr = pl.insaddr
+and pl.legnbr = pcf.legnbr
+and i.insaddr = cl.insaddr
+and cl.legnbr = ccf.legnbr
+and pl.type = 'Credit Default'
+and (i.exp_day = 0 or i.exp_day > Today)
+and not(cl.type = 'Credit Default')
+Group by 1
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_CDS_Synthetic.Write',@1_path{'f:\'},@2_FileName{'MR_CDS_Synthetic.csv'})	'BuildConfirmation'
+Into
+    Macro
+from Temp T, instrument i
+where T.insaddr = i.insaddr
+and not (T.CD_Nominal = T.Fix_Nominal)
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

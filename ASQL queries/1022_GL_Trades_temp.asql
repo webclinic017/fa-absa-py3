@@ -1,0 +1,11 @@
+/* update_method=0 */
+select distinct
+    t.trdnbr
+from
+    trade t,
+    portfolio p
+where
+    t.prfnbr = p.prfnbr
+and t.status not in ('Simulated', 'Void')
+and p.prfid not like 'Simulate%'
+and ael_i(t, 'midasSettlement.is_midas_settled') = 1

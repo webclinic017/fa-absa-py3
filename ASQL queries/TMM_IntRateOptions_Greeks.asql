@@ -1,0 +1,238 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TMM_IntRateOptions_Greeks') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TMM_IntRateOptions_Greeks' and p.type = 'SQL Query'
+
+/*S. van der Straaten 2006-01-31
+INTEREST RATE OPTIONS GREEKS*/
+
+/*S. van der Straaten 2006-04-04
+Add trade status*/
+
+
+/***FRAS***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Leg l
+	
+where
+	i.insaddr = t.insaddr
+and 	t.insaddr = l.insaddr
+and	i.instype = 'FRA'
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+and days_between(today, l.start_day, 'Act/365') > 0
+
+
+
+/***SWAPS***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Leg l
+	
+where
+	i.insaddr = t.insaddr
+and 	t.insaddr = l.insaddr
+and	l.type = 'Fixed'
+and	i.instype = 'Swap'
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+
+
+
+/***CAPS & FLOORS***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp
+
+from
+	Trade t,
+	Instrument i,
+	Leg l
+		
+where
+	i.insaddr = t.insaddr
+and	t.insaddr = l.insaddr
+and	i.instype in ('Cap', 'Floor')
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+
+
+
+/***OPTIONS***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i
+			
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Option'
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+
+
+
+/***COMBINATIONS***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+	
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	instrument und,
+	CombinationLink cl,
+	Party party,
+    Lastprice p,
+    Instrument c
+				
+where
+	i.insaddr = t.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and	i.instype = 'Combination'
+and und.instype = 'Option'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and	t.status not in ('Simulated','Void','Terminated')
+and	match_filter(t,@Filter{'TMM_All'})
+and	und.exp_day > today
+
+
+
+/***FREEDEFCFS - Barclays Price***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Party party,
+    Lastprice p,
+    Instrument c
+			
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'FreeDefCF'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+
+
+
+/***FREEDEFCFS - Absa Price***/
+
+select
+	display_id(t,'prfnbr')	'Portfolio',
+	delta_implicit(t)		'DeltaPVBP',
+	gamma_implicit(t)		'GammaPVBP',
+	vega(t)					'Vega',
+	theta(t)				'Theta'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Party party,
+    Lastprice p,
+    Instrument c
+			
+where
+		i.insaddr = t.insaddr
+and	i.instype = 'FreeDefCF'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='internal'
+and	match_filter(t,@Filter{'TMM_All'})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+
+
+select
+	tt.Portfolio,
+	sum(DeltaPVBP)      'Delta',
+	sum(GammaPVBP)      'Gamma',
+	sum(Vega)           'Vega',      
+	sum(Theta)          'Theta'
+from
+	temp tt
+group by 1

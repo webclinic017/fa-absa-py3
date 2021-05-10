@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FInstrument:ACSDividendDivPayDay = switch(hasDividendsInForecast, 
+  true->dividendForecast.PayDays(profitAndLossStartDate, profitAndLossEndDate).At(dividendForecast.Count(profitAndLossStartDate, profitAndLossEndDate) - 1), 
+  false->nil);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:ACSDividendDivPayDay = instrumentGroupingReference:ACSDividendDivPayDay;
+[ABSA Specific 4.3]FSecurityLoan:ACSDividendDivPayDay = underlying:ACSDividendDivPayDay;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:ACSDividendDivPayDay = instrument:ACSDividendDivPayDay;
+[ABSA Specific 4.3]FTrade:ACSDividendDivPayDay = instrument:ACSDividendDivPayDay;
+[ABSA Specific 4.3]FTradeRow:ACSDividendDivPayDay = instrument:ACSDividendDivPayDay;
+[ABSA Specific 4.3]FUndefinedObject:ACSDividendDivPayDay = nil;

@@ -1,0 +1,29 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_New_Party') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_New_Party' and p.type = 'SQL Query' 
+
+
+
+    
+    
+select
+	p.ptyid                             'Counterparty',
+	p.fullname                          'FullName',
+	p.type                              'PartyType',
+    display_id(p, 'business_status_chlnbr') 'BusinessStatus',
+	add_info(p, 'Standard')             'Standard',
+	p.creat_time                        'CreateDate',
+	u.name                              'CreatedBy'
+
+from
+	Party p,
+    User u
+    
+
+where
+    p.creat_time >= @FromTime{yesterday}
+and p.creat_time <= @ToTime{today}
+and p.creat_usrnbr = u.usrnbr

@@ -1,0 +1,54 @@
+/*------------------------------------------------------------------
+    FX_CurrFutures_YieldXCode
+
+    This query returns the YieldX Code that is stored in the 
+    extern_id1 field for all Currency Futures.
+
+    Department and Desk : FX Desk
+    Requester           : Michelle Kluever
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2011-03-24  608459       Herman Hoon	Created
+    2011-04-12  624321       Herman Hoon    Add the pay day offset field
+    2011-06-08  679096       Herman Hoon    Add the SettlementDate column
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','FX_CurrFutures_YieldXCode') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'FX_CurrFutures_YieldXCode' and p.type = 'SQL Query' 
+
+
+select 
+    ui.insid 'currency1', 
+    sc.insid 'currency2',
+    i.insid, 
+    i.instype, 
+    i.contr_size, 
+    i.settlement, 
+    i.exp_day,
+    i.strike_price , 
+    display_id(i,'strike_curr') 'strike_curr',
+    i.pay_day_offset,
+    i.pay_offset_method,
+    date_add_banking_day(i.exp_day,'ZAR',i.pay_day_offset) 'SettlementDate',
+    i.extern_id1
+from 
+    instrument i,
+    instrument ui,
+    instrument sc
+where 
+    i.und_insaddr = ui.insaddr
+and i.curr = sc.insaddr
+and i.instype = 'Future/Forward'
+and i.und_instype = 'Curr'
+and i.paytype = 'Future'

@@ -1,0 +1,76 @@
+select 
+    divstream.insaddr 'insaddr',
+    display_id(divstream,'insaddr') 'underlying',
+    divest.ex_div_day 'exdiv',
+    divest.dividend 'divval',
+    divest.pay_day 'payday',
+    ael_s(divest, 'SAEQ_DivType.CalibrateDivTypes') 'description'
+into
+    tmpDivEstTable
+from
+    dividendestimate divest,
+    dividendstream divstream
+where
+    divest.stream_seqnbr = divstream.seqnbr 
+and (divest.description not in ('Yield', 'A'))
+and divest.ex_div_day > today
+
+select
+    tmpDivEst.insaddr,
+    tmpDivEst.underlying
+into
+    RelevantInsTable
+from
+    tmpDivEstTable tmpDivEst
+where
+    tmpDivEst.description ~= 'Special'
+group by
+    1
+
+select 
+    display_id(div,'insaddr') 'underlying',
+    div.ex_div_day 'exdiv',
+    div.dividend 'divval',
+    div.pay_day 'payday',
+    ael_s(div, 'SAEQ_DivType.CalibrateDivTypes') 'description'
+
+into
+    tmpDivTable
+
+from
+    Dividend div,
+    RelevantInsTable RelevantIns,
+    Instrument i
+
+where
+    div.insaddr = RelevantIns.insaddr and 
+    i.insaddr = RelevantIns.insaddr
+
+select
+    tmpDiv.underlying   'Underlying',
+    tmpDiv.exdiv    'ExDivDay',
+    tmpDiv.divval*100 'Dividend',
+    tmpDiv.payday   'PayDay',
+    tmpDiv.description  'DivType'
+
+from tmpDivTable tmpDiv
+
+where
+    tmpDiv.description ~= 'Special'
+
+union
+
+select
+    tmpDiv.underlying   'Underlying',
+    tmpDiv.exdiv    'ExDivDay',
+    tmpDiv.divval*100 'Dividend',
+    tmpDiv.payday   'PayDay',
+    tmpDiv.description  'DivType'
+
+from tmpDivEstTable tmpDiv
+
+where
+    tmpDiv.description ~= 'Special'
+
+order by
+    1

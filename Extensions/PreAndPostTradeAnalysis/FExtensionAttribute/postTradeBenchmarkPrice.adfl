@@ -1,0 +1,9 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:postTradeBenchmarkPrice = nil;
+[PreAndPostTradeAnalysis]FOrderProgram:postTradeBenchmarkPrice = nil;
+[PreAndPostTradeAnalysis]FOwnOrder:postTradeBenchmarkPrice = nil;
+[PreAndPostTradeAnalysis]FSalesOrder:postTradeBenchmarkPrice = switch(postTradeBenchmarkPriceType, 
+  "Arrival price"->arrivalPrice, 
+  "VWAP"->periodVWAP, 
+  "User defined"->denominatedvalue(object.UserDefinedBenchmarkPrice, currency, , ), 
+  "Close Price"->denominatedvalue(priceFeed:marketPriceLast, currency, , ), 
+  default->nan);

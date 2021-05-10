@@ -1,0 +1,79 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_SAMM_Advice_Note') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_SAMM_Advice_Note' and p.type = 'SQL Query' 
+/*
+Query	:	SAMM_Advice_Note
+Purpose	:	Confirmation Advice
+Logic	:	Straightforward
+History	:
+	2003-11-21 - Russel Webber - Created
+	2005-12-27 - Aaeda Salejee - Added ProductId
+	2007-03-08 - Heinrich Cronje - Added YieldRate
+	2007-11-06 - Neil Retief - Changed the yield rate calculation to get the value from the discount rate
+*/
+
+
+select
+	add_info(t, 'MM_Instype')					'ProductName',
+	i.insid								'ProductId',
+	t.trdnbr							'ReferenceNumber',
+	cp.ptyid							'CPCode',
+	c.fullname							'CPFullName',
+	c.address							'CPAddLine1',
+	c.address2							'CPAddLine2',
+	c.city								'CPCity',
+	c.country							'CPCountry',
+	c.zipcode							'CPZipCode',
+	c.telephone							'CPTelephone',
+	t.quantity > 0
+		? 'PURCHASED'
+		: 'SOLD'						'BoughtSold',
+
+	t.quantity > 0
+		? 'from'
+		: 'to'							'FromTo',
+	p.fullname							'IssuedBy',
+	t.value_day							'ValueDate',
+	i.exp_day							'MaturityDate',
+	days_between(t.value_day, i.exp_day, 'Act/365')			'Tenor',
+	t.price								'DiscountRate',
+	add_info(t, 'MM_Instype') = 'NCD'
+		? (to_double(add_info(t, 'MM_Original_Nominal'))
+			+ t.premium)
+		: (i.contr_size * t.quantity
+			+ t.premium)					'DiscountAmount',
+
+	to_double(add_info(t, 'MM_Original_Nominal'))			'Nominal',
+	i.contr_size * t.quantity					'MaturityValue',
+	t.premium + t.fee						'ConsiderationAmount',
+	t.fee								'BrokersCommission',
+	display_id(t, 'prfnbr')						'ProfitCentre',
+	/*(((abs(to_double(add_info(t, 'MM_Original_Nominal'))) - abs(t.premium))/abs(t.premium))*(365/(i.exp_day - t.value_day)))*100 'YieldRate'*/
+	(t.price/100) / (1-((t.price/100)*((i.exp_day - t.value_day)/365))) * 100   'YieldRate'
+from
+	trade		t,
+	instrument	i,
+	leg		l,
+	party		cp,
+	party		p,
+	contact		c
+	
+where
+	i.insaddr = t.insaddr
+and	l.insaddr = i.insaddr
+and	p.ptynbr =  i.issuer_ptynbr
+and	cp.ptynbr = c.ptynbr
+and	i.instype in ('Bill', 'Deposit', 'FRN')
+and	t.counterparty_ptynbr = cp.ptynbr
+/*and	t.trdnbr = @TrdNbr{}*/
+
+and	(
+	time_to_day(t.time) = @Date{Today}
+and	(	
+	fit_filter(t, @TradeFilter{;tradefilter.fltid})
+or	cp.ptyid = @Counterparty{;party.ptyid where type = 'Counterparty'}
+	)
+or	t.trdnbr = @TradeNumber{0})

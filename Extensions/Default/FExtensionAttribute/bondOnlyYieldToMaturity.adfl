@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:bondOnlyYieldToMaturity = select(ytmCalculationValid, 
+  true->shunt(isFinite(bondOnlyUnitValueCleanForImpliedCalculations), 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYield, "yield"), theoreticalInstrumentSpotValueCleanFromYield, bondOnlyUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations), 
+    false->nil), 
+  false->nil);
+[Default]FInstrument:bondOnlyYieldToMaturity = nil;
+[Default]FInstrumentAndTrades:bondOnlyYieldToMaturity = instrument:bondOnlyYieldToMaturity;
+[Default]FMultiInstrumentAndTrades:bondOnlyYieldToMaturity = nil;
+[Default]FPriceAggregate:bondOnlyYieldToMaturity = instrument:bondOnlyYieldToMaturity;

@@ -1,0 +1,9 @@
+#grouping: risk factors
+
+[Equity Pricing and Risk]FInstrument:cliquetDividends = select(dividendForecast, 
+  nil->[], 
+  default->select(baseValuationOnUnderlyingComponents, 
+    true->select(basketMomentMatchingUseDividendYield, 
+      true->[], 
+      false->basketAggregateDiscreteDividends), 
+    false->object:dividendForecastDividends [dividendSensitivityEndDate := expiryDateTime, dividendSensitivityStartDate = valuationDate, calculationCurrency, doSplitAll, repoCurve = underlyingRepoCurve, priceSource, underlyingFutureObservationDate]));

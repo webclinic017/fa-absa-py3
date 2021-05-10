@@ -1,0 +1,21 @@
+select
+    p.prfid,
+    i.instype 'InstType',
+    u.instype 'UndInstType'  
+from
+
+    trade t,
+    portfolio p,
+    instrument i,
+    instrument u
+where
+    t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+/*and i.exp_day >= today*/
+and i.und_insaddr *= u.insaddr
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and match_filter(t,@Filter{;Tradefilter.fltid})
+
+group by 1,2,3
+
+order by 1

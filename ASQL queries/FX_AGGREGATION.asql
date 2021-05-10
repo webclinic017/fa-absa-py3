@@ -1,0 +1,10 @@
+select
+    t.trdnbr
+from
+    Trade t,
+    Instrument i
+where
+    t.insaddr = i.insaddr
+    and i.instype = 'Curr'
+    and t.status not in ('Simulated', 'Void', 'Reserved')
+    and t.insaddr ~= t.curr

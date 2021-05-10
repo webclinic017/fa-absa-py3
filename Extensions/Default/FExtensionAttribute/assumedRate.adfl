@@ -1,0 +1,8 @@
+[Default]FAssetMortgageBackedSecurity:assumedRate = select(firstNonFixedLeg, 
+  nil->nil, 
+  default->firstNonFixedLeg:assumedRate [priceSource]);
+[Default]FFrn:assumedRate = firstNonFixedLeg:assumedRate [priceSource];
+[Default]FInstrument:assumedRate = nil;
+[Default]FLeg:assumedRate = select(fixingInstrument, 
+  nil->nil, 
+  default->0.01 * fixingInstrument:marketPriceOrTheoreticalPrice [priceSource]);

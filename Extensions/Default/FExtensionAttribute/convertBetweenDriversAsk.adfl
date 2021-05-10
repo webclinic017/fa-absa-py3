@@ -1,0 +1,5 @@
+[Default]FQuoteController:convertBetweenDriversAsk = shunt(fromDriverAsk, 
+  "Offset"->switch(fromDriverAsk == proposedQuoteDriverAsk, 
+    true->fromDriverValueAsk, 
+    false->driverSignIfBidSpread * (object:driverToDriver [bidOrAskDriver = "Ask", toDriver = proposedQuoteDriverAsk, fromDriver = qOffsetRootDriverAsk, fromValue = qOffsetAccumulatedDriverValueAsk + fromDriverValueAsk])), 
+  default->driverSignIfBidSpread * (object:driverToDriver [bidOrAskDriver = "Ask", toDriver = proposedQuoteDriverAsk, fromDriver = fromDriverAsk, fromValue = fromDriverValueAsk]));

@@ -1,0 +1,5 @@
+[Default]FInstrument:domesticRateForForwardCalculation = select(forwardValueProviderTargetBase:isInterestProvider, 
+  false->nil, 
+  true->select(isReciprocal, 
+    true->ForeignRate(normalFxRateProvider, forwardValuationDate, "Continuous", "Act/365", nil), 
+    false->DomesticRate(forwardValueProviderTargetBase, forwardValuationDate, "Continuous", "Act/365", nil)));

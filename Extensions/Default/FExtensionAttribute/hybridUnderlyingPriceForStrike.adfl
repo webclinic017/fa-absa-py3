@@ -1,0 +1,10 @@
+[Default]FCap:hybridUnderlyingPriceForStrike = switch(0 == count(underlyingPriceForStrike), 
+  true->nanDV, 
+  false->underlyingPriceForStrike);
+[Default]FFloor:hybridUnderlyingPriceForStrike = switch(0 == count(underlyingPriceForStrike), 
+  true->nanDV, 
+  false->underlyingPriceForStrike);
+[Default]FInstrument:hybridUnderlyingPriceForStrike = select(nil == underlying, 
+  true->nanDV, 
+  false->underlyingPriceForStrike);
+[Default]FInstrumentAndTrades:hybridUnderlyingPriceForStrike = instrument:hybridUnderlyingPriceForStrike;

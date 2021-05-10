@@ -1,0 +1,11 @@
+[Securities Lending ABSA]FInstrument:slTrueSDSID = select((object.Trades.At(0)) :* "slTrueSDSID", 
+  nil->(object.Trades.At(1)) :* "slTrueSDSID", 
+  default->select(py("sl_functions", context).sl_is_sl_party((object.Trades.At(0)) :* "slTrueSDSID"), 
+    true->(object.Trades.At(0)) :* "slTrueSDSID", 
+    false->(object.Trades.At(1)) :* "slTrueSDSID"));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTrueSDSID = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.BarCap_SMS_LE_SDSID), 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTrueSDSID = instrument:slTrueSDSID;
+[Securities Lending ABSA]FTrade:slTrueSDSID = true_counterparty.AdditionalInfo.BarCap_SMS_LE_SDSID;
+[Securities Lending ABSA]FTradeRow:slTrueSDSID = trade:slTrueSDSID;

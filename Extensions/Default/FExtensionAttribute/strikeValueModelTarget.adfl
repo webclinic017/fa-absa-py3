@@ -1,0 +1,8 @@
+[Default]FConvertible:strikeValueModelTarget = collapse(strikeValue);
+[Default]FInstrument:strikeValueModelTarget = select(useUnderlyingAdjustmentFactor, 
+  true->underlyingAdjustmentFactor * strikeValue, 
+  false->select(isPerformancePayoff and isMultiUnderlyingValued, 
+    true->multiUnderlyingStrikeValueForwardStartPerformance, 
+    false->select(isForwardStarting, 
+      true->collapse(strikeValueForwardStart), 
+      false->collapse(strikeValue))));

@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:dateRangeProvision = sumOf(children :* "dateRangeProvision");
+[Prime Services]FSingleInstrumentAndTrades:dateRangeProvision = shunt(allFundingPortfolios and isProvisionInstrument, 
+  true->py("PS_Provision", context).GetProvision(instrument, fundingInstruments, profitAndLossEndDate) - py("PS_Provision", context).GetProvision(instrument, fundingInstruments, profitAndLossStartDate), 
+  false->0);

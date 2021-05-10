@@ -1,0 +1,38 @@
+/*------------------------------------------------------------------
+    DCRM_BusinessLine
+
+    This query returns all the distinct portfolios used in the DCRM filters.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_BusinessLine') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_BusinessLine' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	DATA
+------------------------------------------------------------------*/
+select distinct
+    p.prfid 'BusinessLine'
+from
+    trade t,
+    portfolio p
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and t.prfnbr = p.prfnbr

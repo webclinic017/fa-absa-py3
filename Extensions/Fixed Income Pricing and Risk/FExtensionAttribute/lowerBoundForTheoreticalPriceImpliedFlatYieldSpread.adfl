@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FBond:lowerBoundForTheoreticalPriceImpliedFlatYieldSpread = select(isCallable, 
+  true->select((theoreticalPrice < theoreticalPriceRiskFree) or almostZero(theoreticalPrice - theoreticalPriceRiskFree, 1e-08), 
+    true->0.0, 
+    default->-theoreticalYieldToMaturityRiskFreeNoCall), 
+  default->lowerBoundForTheoreticalPriceImpliedFlatYieldSpreadDefault);
+[Fixed Income Pricing and Risk]FInstrument:lowerBoundForTheoreticalPriceImpliedFlatYieldSpread = lowerBoundForTheoreticalPriceImpliedFlatYieldSpreadDefault;

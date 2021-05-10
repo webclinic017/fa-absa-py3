@@ -1,0 +1,48 @@
+[OperationsViewerAxlFormulas]FObject:Security Issue Outstanding
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isSecurityDvPNominalRedemption = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+ownIssues = Aggregate.Sum(If(And(And(@isTradePrimaryIssuance(), @isSecurityDvPNominalRedemption()), And(@isSettledDaySet(), @isAmountNegative())), &'amount', 0.0));
+
+{
+}
+cancelOwnIssues = Aggregate.Sum(If(And(And(@isTradePrimaryIssuance(), @isSecurityDvPNominalRedemption()), And(@isSettledDaySet(), @isAmountPositive())), &'amount', 0.0));
+
+{
+  DisplayInformation:
+  {
+    Label:'Issue Outstanding',
+    GroupLabel:'Security',
+    Description:'Settled security settlements that are related to trades with Primary Issuance = Yes.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = 0.0 - (@ownIssues() + @cancelOwnIssues());
+
+
+...

@@ -1,0 +1,9 @@
+#grouping: risk factors/market price
+#grouping: risk factors/market price all
+#grouping: risk factors/market price all ex vol movements
+#grouping: risk factors/market price ex vol movements
+
+[Default]FFuture:interpolatedPriceFromPriceCurve = ref(select(payType, 
+  "Future"->setDateTimePart(ProviderValue(priceCurveCurrencyModelProvider, payDate, priceCurve.CurrencySymbol), instrumentSpotDate), 
+  default->ProviderValue(priceCurveCurrencyModelProvider, priceCurveDate, priceCurve.CurrencySymbol)), object);
+[Default]FInstrument:interpolatedPriceFromPriceCurve = ref(ProviderValue(priceCurveCurrencyModelProvider, priceCurveDate, priceCurve.CurrencySymbol), object);

@@ -1,0 +1,128 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','caps_floors_new_trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'caps_floors_new_trades' and p.type = 'SQL Query' 
+
+
+/*
+Purpose                       :  details of existing caps/floors and new instruments/trades for SE adjustment 
+                                 where existing trades were voided
+Department and Desk           :  IRD desk
+Requester                     :  Parin Gokaldas
+CR number                     :  abitfa-1729 
+Developer                     :  Anil Parbhoo
+*/
+
+
+
+
+select
+Today 'Date',
+et.trdnbr 'existing trade',
+ei.insid 'existing ins',
+to_string(et.status) 'existing trade status',
+ep.prfid 'existing portfolio',
+nt.trdnbr 'new trade number',
+nt.Status 'new trade status',
+np.prfid 'new portfolio',
+nt.text2 'new trade text2',
+nt.text1 'new trade text1',
+ni.insid 'New Ins',
+ni.instype 'New instype',
+present_value(nt) 'new trade pv',
+(ei.Exp_day - today)/365 'years to expiry'
+
+
+
+from
+
+trade et,
+instrument ei,
+trade nt,
+instrument ni,
+portfolio ep,
+portfolio np
+
+
+where
+
+
+ni.instype in ('cap','floor')
+and ei.instype in ('cap','floor')
+and et.insaddr=ei.insaddr
+and nt.insaddr=ni.insaddr
+and ni.insid like '%_2y'
+and ei.insid not like '%_2y'
+
+and nt.text2 = (et.trdnbr)
+
+
+and ni.exp_day>=Today
+and ei.exp_day>=Today
+/*
+and et.status not in ('Simulated', 'Void')
+*/
+and nt.status not in ('Simulated', 'Void')
+
+and et.prfnbr = ep.prfnbr
+and nt.prfnbr=np.prfnbr
+and ep.prfid in ('NLDO' , 'Swap Risk')
+
+union /*---------union---------------*/
+
+select
+Today'Date',
+et.trdnbr'existing trade',
+ei.insid'existing ins',
+'Net PV of the associated new trades',
+ep.prfid'existing portfolio',
+nt.trdnbr'new trade number',
+nt.Status'new trade status',
+np.prfid'new portfolio',
+nt.text2'new trade text2',
+nt.text1'new trade text1',
+ni.insid'New Ins',
+ni.instype'New instype',
+sum(present_value(nt))'new trade pv',
+(ei.Exp_day - today)/365'years to expiry'
+
+
+
+from
+
+trade et,
+instrument ei,
+trade nt,
+instrument ni,
+portfolio ep,
+portfolio np
+
+
+where
+
+
+ni.instype in ('cap','floor')
+and ei.instype in ('cap','floor')
+and et.insaddr=ei.insaddr
+and nt.insaddr=ni.insaddr
+and ni.insid like '%_2y'
+and ei.insid not like '%_2y'
+
+and nt.text2 = (et.trdnbr)
+
+
+and ni.exp_day>=Today
+and ei.exp_day>=Today
+/*
+and et.status not in ('Simulated', 'Void')
+*/
+and nt.status not in ('Simulated', 'Void')
+
+and et.prfnbr = ep.prfnbr
+and nt.prfnbr=np.prfnbr
+
+
+
+group by nt.text2

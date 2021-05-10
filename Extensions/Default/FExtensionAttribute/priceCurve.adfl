@@ -1,0 +1,7 @@
+[Default]FInstrument:priceCurve = mappedPriceCurveLink :* "priceCurve";
+[Default]FIrCurveInformation:priceCurve = priceCurveInformation;
+[Default]FLeg:priceCurve = select(mappedPriceCurveLink, 
+  nil->nil, 
+  default->mappedPriceCurveLink :* "priceCurve" [valuationDate]);
+[Default]FMappingLink:priceCurve = priceCurveHierarchy;
+[Default]FYieldCurveHierarchy:priceCurve = priceCurveComponent :* "pricingCurveInformation" [component = underlyingComponent];

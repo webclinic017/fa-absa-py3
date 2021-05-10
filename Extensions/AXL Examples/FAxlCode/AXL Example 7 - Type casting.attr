@@ -1,0 +1,43 @@
+[AXL Examples]FObject:AXL Example 7 - Type casting
+//---------------------------------------------------------------------
+//AXL Example 7 - Type casting
+//---------------------------------------------------------------------
+
+//This example shows how to perform type casting of numerical types.
+//Type casting can be used to force a value to be considered to be of another type.
+//For instance this can be used when wanting to perform a Switch on a Double value.
+//Please beware of the fact that casting might and often will degrade a values precision.
+//A double value of 10.01 that has been converted to an Int32 will be considered to have the
+//value 10.
+
+//main is the name of the main function and main is required for the formula
+//to compile. It is this function that is available to the Data Disposition UI
+//and in this UI the user can assign attributes, values or formulas to the arguments.
+
+//The actual formula is written after the = sign. In this case a call to MyFunction passing X
+//as an argument to the function.
+//The function is terminated by the ; sign.
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Double}
+  ],
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+  
+}
+//The Switch statements takes two arguments. The first is the value to switch on.
+//The second argument is a list of arguments. A list argument is declared by using brackets( [] ).
+//In the list argument each pair of arguments should be considered to be the "case" value followed by the result value.
+//The last argument in the list is the "default" value that will be returned if none of the "cases" are true.
+//Since it is not possible to Switch on a double value the type of X we have to cast it to an Int32
+//which is done by using the Int32.Cast method.
+
+main = Switch(Aggregate.Sum(Int32.Cast($X)),[0,'Zero',1,'One',2,'Two','None']);
+
+
+
+...

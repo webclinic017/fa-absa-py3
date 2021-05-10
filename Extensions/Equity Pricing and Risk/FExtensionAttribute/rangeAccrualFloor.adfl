@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:rangeAccrualFloor = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:rangeAccrualFloor = instrument:rangeAccrualFloor;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:rangeAccrualFloor = nil;
+[Equity Pricing and Risk]FOption:rangeAccrualFloor = select(isRangeAccrual, 
+  true->select(storedStrikeType, 
+    Absolute->denominatedvalue(object.Exotic.RangeAccrualFloor, strikeCurrency, storedStrikeType, ), 
+    default->absoluteStrikePriceFromRelative(underlyingPriceForStrike, denominatedvalue(object.Exotic.RangeAccrualFloor, strikeCurrency, storedStrikeType, ))), 
+  default->nil);
+[Equity Pricing and Risk]FPriceAggregate:rangeAccrualFloor = instrument:rangeAccrualFloor;

@@ -1,0 +1,5 @@
+[_securities_lending_exts]FBusinessObject:secLendObjectIsModifed = switch(object.Originator.StorageId <> object.StorageId, 
+  true->"True");
+[_securities_lending_exts]FTradeRow:secLendObjectIsModifed = switch(instrument:secLendObjectIsModifed, 
+  "True"->"True", 
+  default->trade:secLendObjectIsModifed);

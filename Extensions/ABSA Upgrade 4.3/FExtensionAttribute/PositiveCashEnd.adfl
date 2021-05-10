@@ -1,0 +1,7 @@
+[ABSA Upgrade 4.3]FInstrument:PositiveCashEnd = select(cashEnd > 0, 
+  true->cashEnd, 
+  false->nil);
+[ABSA Upgrade 4.3]FInstrumentAndTrades:PositiveCashEnd = select(cashEnd > 0, 
+  true->cashEnd, 
+  false->nil);
+[ABSA Upgrade 4.3]FMultiInstrumentAndTrades:PositiveCashEnd = sumOf(children :* "select(PositiveCashEnd, nil->currencyZero, default->PositiveCashEnd)");

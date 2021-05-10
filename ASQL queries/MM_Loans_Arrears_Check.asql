@@ -1,0 +1,132 @@
+/*
+
+Department and Desk : PCG
+Requester  : Andrew Tagg
+Developer  : Sanele Macanda
+CR Number  : CHNG0001788456
+Purpose    : This report will monitor the inactivity of call loans accounts.
+
+*/
+
+
+/* Usage code for this ASQL */
+
+select
+    ael_i(p,'ASQL_log','MM_Loans_Arrears_Check') 'Name'
+into  ASQL_LOG_TEMP
+    from TextObject p where 
+    p.name = 'MM_Loans_Arrears_Check' and p.type = 'SQL Query'
+
+
+Select
+    t.trdnbr,
+    t.insaddr               'addr_t',    
+    i.insaddr               'addr_i',
+    l.insaddr               'addr_l',
+    l.legnbr                'legnbr_l',
+    i.open_end,
+    pty.ptyid               'Counterparty',
+    p.prfid                 'Portfolio',
+    display_id(i, 'Curr')   'Curr',
+    projected_cf(cf)        'Balance',
+    ael_f(,'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation','Standard','FTradeSheet',t.trdnbr,'Trade','Portfolio Accrued Call Interest','ZAR',0,'',YESTERDAY) 'Call_Accrued'
+    
+    
+INTO Temp
+
+From
+    Trade t,
+    Instrument i,
+    Portfolio p,
+    CashFlow cf,
+    Party pty,
+    leg l
+
+Where
+    t.insaddr = i.insaddr
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and pty.ptynbr = t.counterparty_ptynbr
+    and p.prfnbr = t.prfnbr
+
+    and cf.type = 'Redemption Amount'
+    and i.instype = 'Deposit'
+    and i.open_end in ('Open End','Terminated')
+    and add_info(t,'Funding Instype') in ('Call Loan DTI', 'Call Loan NonDTI','Call Loan Coll DTI','Call Loan Coll NonDTI')
+    and t.status not in ('Simulated','Void')
+    and pty.ptyid not in ('EQ Derivatives Desk','SECURITY LENDINGS DESK','PRIME SERVICES DESK','ABSA SECURITIES LENDING')
+
+    Group by 1
+    
+/********************************************************************************/
+/* Getting the paydate where the counterparty last paid money into the account */
+
+Select
+    t.trdnbr,
+    t.insaddr,
+    max(cf.pay_day) 'Date_Of_Receipt'
+
+INTO DateOfReceipt
+
+From
+    Trade t,
+    CashFlow cf,
+    Temp tp,
+    Leg l
+    
+Where 
+    t.insaddr = tp.addr_i
+    and l.insaddr = tp.addr_i
+    and cf.legnbr = tp.legnbr_l
+    and cf.type = 'Fixed Amount'
+    and projected_cf(cf) < 0
+    
+    Group by 1
+    
+/*********************************************************************************/
+/* Getting the paydate of the last payment made into the account */
+
+Select
+    t.trdnbr,
+    t.insaddr,
+    max(cf.pay_day) 'Date_OF_Last_Payment'
+
+INTO DateOfLastPayment
+From
+    Trade t,
+    CashFlow cf,
+    Temp tp,
+    Leg l
+    
+Where 
+    t.insaddr = tp.addr_i
+    and l.insaddr = tp.addr_i
+    and cf.legnbr = tp.legnbr_l
+    and cf.type = 'Fixed Amount'
+    
+    Group by 1
+
+/*********************************************************************************/
+
+/* Selecting all the required fields */
+
+Select
+    tp.trdnbr,
+    tp.Counterparty,
+    tp.Portfolio,
+    tp.Curr,
+    tp.Balance,
+    tp.Call_Accrued,
+    tp.open_end,
+    d.Date_Of_Receipt,
+    p.Date_OF_Last_Payment                
+
+From
+    Temp tp,
+    DateOfReceipt d,
+    DateOfLastPayment p
+
+Where
+
+    tp.addr_t = d.insaddr
+    and tp.addr_t = p.insaddr

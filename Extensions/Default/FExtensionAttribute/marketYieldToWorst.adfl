@@ -1,0 +1,7 @@
+[Default]FInstrument:marketYieldToWorst = select(isMultiExercise and ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->minOfYieldExerciseEventPairs(flattenAndRemoveNil([marketYieldsFromStrikeValues, createPair(marketYieldToMaturity, nil)]))), 
+  false->nil);
+[Default]FInstrumentAndTrades:marketYieldToWorst = instrument :* "marketYieldToWorst" [priceSource, marketYieldToMaturity];
+[Default]FMultiInstrumentAndTrades:marketYieldToWorst = nil;

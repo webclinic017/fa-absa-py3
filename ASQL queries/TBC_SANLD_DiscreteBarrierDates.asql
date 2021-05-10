@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SANLD_DiscreteBarrierDates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SANLD_DiscreteBarrierDates' and p.type = 'SQL Query' 
+
+/*Report of discretely monitoring barrier option dates - SC 2007/09/18*/
+
+
+select			
+
+t.trdnbr			                                                                        'TrdNbr',
+i.insid				                                                                        'Instrument',
+i.instype			                                                                        'InsType',
+display_id(i,'category_chlnbr')		                                                        'Category',
+e.barrier_option_type                                                                       'Barrier Option Type',
+e.barrier_discrete_monitoring='No'? 'Discrete' : 'Continuous'	                            'Monitoring',
+display_id(t,'prfnbr')		                                                                'Portfolio',
+ael_s(,'SAGEN_str_functions.concat',display_id(i,'und_insaddr'),display_id(i,'curr'),'')	'CurrPair',
+ee.date                                                                                     'Discrete Monitoring Date'
+
+
+from
+
+instrument i,
+trade t,
+exotic e,
+exoticevent ee
+
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=e.insaddr
+and i.insaddr=ee.insaddr
+and e.barrier_monitoring = 'Discrete'
+and ee.type = 'Barrier date'
+and ee.date >= Today
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and t.status not in ('Void','Terminated','Simulated')
+order by 9

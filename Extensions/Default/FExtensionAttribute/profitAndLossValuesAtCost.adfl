@@ -1,0 +1,9 @@
+[Default]FInstrument:profitAndLossValuesAtCost = select(isValuedAtCost, 
+  true->select(doCostAdjustment, 
+    true->-profitAndLossValuesFromProfitAndLossCalculation.AccruedAdjustment - profitAndLossValuesFromProfitAndLossCalculation.OpenValue, 
+    false->-profitAndLossValuesFromProfitAndLossCalculation.OpenValue), 
+  false->plZero);
+[Default]FInstrumentAndTrades:profitAndLossValuesAtCost = instrument :* "profitAndLossValuesAtCost" [doCostAdjustment, positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Default]FLegAndTrades:profitAndLossValuesAtCost = instrument :* "profitAndLossValuesAtCost" [doCostAdjustment, positionObject, singleTradePosition, tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, legs, legId];
+[Default]FMultiInstrumentAndTrades:profitAndLossValuesAtCost = sumOf(instruments :* "profitAndLossValuesAtCost" [doCostAdjustment, positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);
+[Default]FTradeRow:profitAndLossValuesAtCost = instrument :* "profitAndLossValuesAtCost" [doCostAdjustment, singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];

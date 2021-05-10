@@ -1,0 +1,13 @@
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:currencyGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:currencyGroupingReference);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:currencyGroupingReference = select(groupingReference, 
+  nil->parentCurrencyGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCurrencyPair"), 
+    true->groupingReference:liquidCurrency, 
+    false->select(groupingReference.IsKindOf("FCurrency"), 
+      true->groupingReference, 
+      false->parentCurrencyGroupingReference)));
+[Fixed Income Pricing and Risk]FSingleInstrumentAndTrades:currencyGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:currencyGroupingReference);

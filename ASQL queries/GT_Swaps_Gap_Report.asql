@@ -1,0 +1,488 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Swaps_Gap_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Swaps_Gap_Report' and p.type = 'SQL Query' 
+
+/*
+
+coded by anil on 17 Nov 2006
+
+
+Excluded are trades that were captured after report date
+
+Included are forward starting swaps and fras
+
+resonability test the column 'total bucket ~ 0 :
+swaps NOT having same rolling_period.count are treated seperatly for fixed and floating leg
+
+I L S are included in the report even if the nominal of the Jibaar leg ~ nominal of index linked swap leg
+
+
+*/
+
+
+
+/*-------choose date related data into temp table = temp---------*/
+
+select 
+s.srdnbr,
+@report_date{Today;}'rd',
+
+date_add_banking_day(@report_date{Today;},'ZAR',1)'demand',
+
+date_add_delta(@report_date{Today;},0,1,0)'1m',
+date_add_delta(@report_date{Today;},0,2,0)'2m',
+date_add_delta(@report_date{Today;},0,3,0)'3m',
+date_add_delta(@report_date{Today;},0,4,0)'4m',
+date_add_delta(@report_date{Today;},0,5,0)'5m',
+date_add_delta(@report_date{Today;},0,6,0)'6m',
+date_add_delta(@report_date{Today;},0,7,0)'7m',
+date_add_delta(@report_date{Today;},0,8,0)'8m',
+date_add_delta(@report_date{Today;},0,9,0)'9m',
+date_add_delta(@report_date{Today;},0,10,0)'10m',
+date_add_delta(@report_date{Today;},0,11,0)'11m',
+date_add_delta(@report_date{Today;},0,12,0)'12m',
+date_add_delta(@report_date{Today;},0,24,0)'24m',
+date_add_delta(@report_date{Today;},0,36,0)'36m',
+date_add_delta(@report_date{Today;},0,48,0)'48m',
+date_add_delta(@report_date{Today;},0,60,0)'60m',
+date_add_delta(@report_date{Today;},0,120,0)'120m'
+
+into temp
+
+
+from 
+
+serverdata s
+
+
+
+
+/*-----select end day FRA trade data------------*/
+
+select
+
+t.trdnbr,
+time_to_day(t.time)'trade_time',
+t.status,
+i.instype,
+l.legnbr,
+l.type,
+
+
+
+
+p.prfid'portfolio',
+-1*l.nominal_factor*i.contr_size*t.quantity*(l.payleg = 'Yes' ? -1 : 1)'Nominal',
+l.start_day,
+l.end_day 'next_reset',
+l.end_day 'end_day',
+l.end_day'maturity'
+
+
+into tradedetails
+
+from
+instrument i,
+trade t,
+leg l,
+
+
+portfolio p,
+
+temp dd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+
+/*and r.type='single' as trdnbr 565447 has reset type = weighted */
+and l.start_day>dd.rd
+
+and t.prfnbr=p.prfnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+and time_to_day(t.time) <=dd.rd /* only trades captured before report date are included */
+
+and i.instype='FRA'
+
+
+
+
+
+
+
+/*-----select start date for FRA trade data------------*/
+
+select
+
+t.trdnbr,
+time_to_day(t.time)'trade_time',
+t.status,
+i.instype,
+l.legnbr,
+l.type,
+
+
+
+
+p.prfid'portfolio',
+l.nominal_factor*i.contr_size*t.quantity*(l.payleg = 'Yes' ? -1 : 1)'Nominal',
+l.start_day,
+l.start_day 'next_reset',
+l.end_day 'end_day',
+l.end_day'maturity'
+
+
+into tradedetails
+
+from
+instrument i,
+trade t,
+leg l,
+
+
+portfolio p,
+
+temp dd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+
+/*and r.type='single' as trdnbr 565447 has reset type = weighted */
+and l.start_day>dd.rd
+
+and t.prfnbr=p.prfnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+and time_to_day(t.time) <=dd.rd /* only trades captured before report date are included */
+
+and i.instype='FRA'
+
+
+
+
+
+/*-----select SWAP having same rolling swap trades data into tradedetails ------------*/
+/*---based on cf.end_day > reporting date----------------*/
+select
+
+t.trdnbr,
+time_to_day(t.time)'trade_time',
+t.status,
+i.instype,
+l.legnbr,
+l.type,
+
+
+
+
+p.prfid'portfolio',
+cf.nominal_factor*l.nominal_factor*i.contr_size*t.quantity*(l.payleg = 'Yes' ? -1 : 1)'Nominal',
+cf.start_day,
+l.type='Float' ? cf.start_day :  (cf.start_day> dd.rd ? cf.end_day : cf.start_day) 'next_reset',
+cf.end_day 'end_day',
+l.end_day'maturity'
+
+
+
+into tradedetails
+
+from
+instrument i,
+trade t,
+leg l,
+
+cashflow cf,
+portfolio p,
+
+temp dd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and l.legnbr=cf.legnbr
+
+/*and r.type='single' as trdnbr 565447 has reset type = weighted */
+and cf.end_day>dd.rd
+
+and t.prfnbr=p.prfnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+and time_to_day(t.time) <=dd.rd /* only trades captured before report date are included */
+
+and i.instype in ('SWAP','IndexLinkedSwap')
+and ael_i(t,'RollingPeriod.DifferenceRoll',t)=0
+
+
+
+
+
+
+/*-----FIXED leg of swap where the periods of fixed and floating cashflows are different -*/
+/*---based on cf.end_day > reporting date----------------*/
+select
+
+t.trdnbr,
+time_to_day(t.time)'trade_time',
+t.status,
+i.instype,
+l.legnbr,
+l.type,
+
+
+
+
+p.prfid'portfolio',
+cf.nominal_factor*l.nominal_factor*i.contr_size*t.quantity*(l.payleg = 'Yes' ? -1 : 1)'Nominal',
+cf.start_day,
+avg(i.exp_day) /*l.type='Float' ? cf.start_day :  (cf.start_day> dd.rd ? cf.end_day : cf.start_day)*/ 'next_reset',
+cf.end_day 'end_day',
+l.end_day'maturity'
+
+
+
+into tradedetails
+
+from
+instrument i,
+trade t,
+leg l,
+
+cashflow cf,
+portfolio p,
+
+temp dd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and l.legnbr=cf.legnbr
+
+
+and cf.end_day>dd.rd
+
+and t.prfnbr=p.prfnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+and time_to_day(t.time) <=dd.rd /* only trades captured before report date are included */
+
+and i.instype in ('SWAP','IndexLinkedSwap')
+and l.type='Fixed'
+
+/*and l.rolling_period.count=6*/
+and ael_i(t,'RollingPeriod.DifferenceRoll',t)~=0
+
+
+group by l.legnbr
+
+/*-----FLOAT leg of swap where the periods of fixed and floating cashflows are different -*/
+/*---based on cf.start_day > reporting date----------------*/
+select
+
+t.trdnbr,
+time_to_day(t.time)'trade_time',
+t.status,
+i.instype,
+l.legnbr,
+l.type,
+
+
+
+
+p.prfid'portfolio',
+cf.nominal_factor*l.nominal_factor*i.contr_size*t.quantity*(l.payleg = 'Yes' ? -1 : 1)'Nominal',
+cf.start_day,
+min(cf.start_day) /*l.type='Float' ? cf.start_day :  (cf.start_day> dd.rd ? cf.end_day : cf.start_day)*/ 'next_reset',
+cf.end_day 'end_day',
+l.end_day'maturity'
+
+
+
+into tradedetails
+
+from
+instrument i,
+trade t,
+leg l,
+
+cashflow cf,
+portfolio p,
+
+temp dd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and l.legnbr=cf.legnbr
+
+/*and r.type='single' as trdnbr 565447 has reset type = weighted */
+and cf.start_day>dd.rd
+
+and t.prfnbr=p.prfnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+and time_to_day(t.time) <=dd.rd /* only trades captured before report date are included */
+and i.instype in ('SWAP','IndexLinkedSwap')
+and l.type='Float'
+and ael_i(t,'RollingPeriod.DifferenceRoll',t)~=0
+
+
+group by l.legnbr
+
+
+
+/*---Bucket the trade data ----------*/
+
+select
+dd.rd'rd',
+t.trdnbr,
+t.trade_time,
+t.status,
+t.legnbr,
+t.type,
+
+
+
+
+t.portfolio,
+t.instype,
+t.Nominal,
+t.maturity,
+t.start_day,
+t.next_reset,
+t.end_day,
+(t.next_reset = dd.demand ? t.Nominal : 0) '1d',
+(t.next_reset > dd.demand ? (t.next_reset <= dd.1m ? t.Nominal : 0 ) : 0) '1m',
+(t.next_reset > dd.1m ? (t.next_reset <= dd.2m ? t.Nominal : 0 ) : 0) '2m',
+(t.next_reset > dd.2m ? (t.next_reset <= dd.3m ? t.Nominal : 0 ) : 0) '3m',
+(t.next_reset > dd.3m ? (t.next_reset <= dd.4m ? t.Nominal : 0 ) : 0) '4m',
+(t.next_reset > dd.4m ? (t.next_reset <= dd.5m ? t.Nominal : 0 ) : 0) '5m',
+(t.next_reset > dd.5m ? (t.next_reset <= dd.6m ? t.Nominal : 0 ) : 0) '6m',
+(t.next_reset > dd.6m ? (t.next_reset <= dd.7m ? t.Nominal : 0 ) : 0) '7m',
+(t.next_reset > dd.7m ? (t.next_reset <= dd.8m ? t.Nominal : 0 ) : 0) '8m',
+(t.next_reset > dd.8m ? (t.next_reset <= dd.9m ? t.Nominal : 0 ) : 0) '9m',
+(t.next_reset > dd.9m ? (t.next_reset <= dd.10m ? t.Nominal : 0 ) : 0) '10m',
+(t.next_reset > dd.10m ? (t.next_reset <= dd.11m ? t.Nominal : 0 ) : 0) '11m',
+(t.next_reset > dd.11m ? (t.next_reset <= dd.12m ? t.Nominal : 0 ) : 0) '12m',
+(t.next_reset > dd.12m ? (t.next_reset <= dd.24m ? t.Nominal : 0 ) : 0) '24m',
+(t.next_reset > dd.24m ? (t.next_reset <= dd.36m ? t.Nominal : 0 ) : 0) '36m',
+(t.next_reset > dd.36m ? (t.next_reset <= dd.48m ? t.Nominal : 0 ) : 0) '48m',
+(t.next_reset > dd.48m ? (t.next_reset <= dd.60m ? t.Nominal : 0 ) : 0) '60m',
+(t.next_reset > dd.60m ? (t.next_reset <= dd.120m ? t.Nominal : 0 ) : 0) '120m',
+(t.next_reset > dd.120m ? t.nominal : 0) '120m_plus'
+
+
+into bucket
+
+from tradedetails t,
+temp dd
+
+order by t.next_reset, t.end_day
+
+
+/*----FINAL select from bucket--------*/
+
+
+
+select
+t.rd'report_date',
+t.trdnbr,
+t.trade_time,
+t.legnbr,
+t.type,
+'Yes' ? t.status : ' ' 'status',
+t.portfolio,
+t.instype,
+(t.Nominal),
+t.maturity,
+t.start_day,
+t.next_reset'bucket date',
+t.end_day,
+
+
+
+sum(t.1d)'1d',
+sum(t.1m)'1m',
+sum(t.2m)'2m',
+sum(t.3m)'3m',
+sum(t.4m)'4m',
+sum(t.5m)'5m',
+sum(t.6m)'6m',
+sum(t.7m)'7m',
+sum(t.8m)'8m',
+sum(t.9m)'9m',
+sum(t.10m)'10m',
+sum(t.11m)'11m',
+sum(t.12m)'12m',
+sum(t.24m)'24m',
+sum(t.36m)'36m',
+sum(t.48m)'48m',
+sum(t.60m)'60m',
+sum(t.120m)'120m',
+sum(t.120m_plus)'>120m',
+
+(sum(t.1d)+sum(t.1m)+sum(t.2m)+sum(t.3m)+sum(t.4m)+sum(t.5m)+sum(t.6m)+sum(t.7m)+sum(t.8m)+sum(t.9m)+sum(t.10m)+sum(t.11m)+sum(t.12m)+sum(t.24m)+sum(t.36m)+sum(t.48m)+sum(t.60m)+sum(t.120m)+sum(t.120m_plus))'Total_bucket'
+
+
+from bucket t
+
+group by t.trdnbr
+
+order by t.maturity
+
+union
+
+
+
+select
+t.rd'report_date',
+t.trdnbr,
+t.trade_time,
+t.legnbr,
+t.type,
+'TOTAL Portfolio'/*t.status*/,
+t.portfolio,
+t.instype,
+(t.Nominal),
+t.maturity,
+t.start_day,
+t.next_reset'bucket date',
+t.end_day,
+
+
+
+sum(t.1d)'1d',
+sum(t.1m)'1m',
+sum(t.2m)'2m',
+sum(t.3m)'3m',
+sum(t.4m)'4m',
+sum(t.5m)'5m',
+sum(t.6m)'6m',
+sum(t.7m)'7m',
+sum(t.8m)'8m',
+sum(t.9m)'9m',
+sum(t.10m)'10m',
+sum(t.11m)'11m',
+sum(t.12m)'12m',
+sum(t.24m)'24m',
+sum(t.36m)'36m',
+sum(t.48m)'48m',
+sum(t.60m)'60m',
+sum(t.120m)'120m',
+sum(t.120m_plus)'>120m',
+
+(sum(t.1d)+sum(t.1m)+sum(t.2m)+sum(t.3m)+sum(t.4m)+sum(t.5m)+sum(t.6m)+sum(t.7m)+sum(t.8m)+sum(t.9m)+sum(t.10m)+sum(t.11m)+sum(t.12m)+sum(t.24m)+sum(t.36m)+sum(t.48m)+sum(t.60m)+sum(t.120m)+sum(t.120m_plus))'Total_bucket'
+
+
+from bucket t
+
+group by t.portfolio

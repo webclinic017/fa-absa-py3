@@ -1,0 +1,827 @@
+/* ***********************************
+ * INTELLIMATCH QUERY. DO NOT CHANGE *
+ * ***********************************
+*/ 
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ABSA.Money_Cashflow_BD_Void_IM') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'ABSA.Money_Cashflow_BD_Void_IM' and p.type = 'SQL Query' 
+ 
+/*  DO.Cashflows
+
+Query based on ABSA.Money_CashflowRep_BD_Void
+
+History:
+When: 		Who:		            What:
+2009-05-13  Willie van der Bank     Created
+*/ 
+/*===============SSI TEMP TABLE===============*/
+
+select distinct p.ptynbr, 
+p.ptyid, 
+pa.alias 'SwiftCode', 
+p.correspondent_bank 
+
+into tmpSwift
+
+from party p, PartyAlias pa
+
+where p.ptynbr = pa.ptynbr
+and pa.type = 10
+
+select 	distinct 
+	p.ptynbr,
+	p.ptyid, 
+	display_id(a,'correspondent_bank_ptynbr') 'Bank',
+	a.account,
+	display_id(ssi,'acquirer_ptynbr') 'Aquirer',
+	ssi.acquirer_ptynbr,
+	ts.SwiftCode
+	
+into tmpSSI	
+
+from party p, account a,  SettleInstruction ssi, tmpSwift ts
+
+where 	p.ptynbr = a.ptynbr
+and	a.accnbr = ssi.money_cp_accnbr
+and	a.correspondent_bank_ptynbr = ts.ptynbr
+and	ssi.acquirer_ptynbr ~= 0
+and	a.correspondent_bank_ptynbr ~= 0
+and	a.network_alias_type = 10
+and a.creat_usrnbr ~= 1418
+and ssi.creat_usrnbr ~= 1418
+
+
+/* List of trades */
+
+/*** non voids ***/
+select distinct
+	t.trdnbr,
+	i.insid,
+	t.value_day	'start_day',
+	display_id(t,'trader_usrnbr') 'DealerCode',
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+	display_id(t, 'counterparty_ptynbr')	'Cpty',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	time_to_day(t.creat_time) 	'time',
+	display_id(t,'prfnbr')  'Portfolio',
+	t.your_ref		'CPRef',
+	ssi.Bank			'AccName',
+	ssi.account		'AccNum',
+	ssi.swiftCode			'Swift',
+	ssi.Aquirer 'SSIAC'
+
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi,
+	tmpSSI		ssi
+where
+	match_filter(t, @Filter{IMATCH_SAMM_Prim_Trds_Void;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	p.ptynbr *= ssi.ptynbr
+and	t.acquirer_ptynbr *= ssi.acquirer_ptynbr
+and	('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@Instype{}))
+and	(time_to_day(t.creat_time) >= t.value_day
+and	time_to_day(t.time) ~= time_to_day(t.creat_time)
+and	(time_to_day(t.creat_time) = @Back_Day{today}))
+and t.status ~= 'Void'
+
+
+
+/*** voids ***/
+select distinct
+	t.trdnbr,
+	i.insid,
+	t.value_day	'start_day',
+	display_id(t,'trader_usrnbr') 'DealerCode',
+	ael_s(t,'InstrType.InstrumentType')	'itype',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+	display_id(t, 'counterparty_ptynbr')	'Cpty',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	t.optional_key 'DevonRef',
+	nominal_amount(t)	'Nominal',
+	t.status,
+	time_to_day(t.updat_time) 	'time',
+	display_id(t,'prfnbr')  'Portfolio',
+	t.your_ref		'CPRef',
+	ssi.Bank			'AccName',
+	ssi.account		'AccNum',
+	ssi.swiftCode			'Swift',
+	ssi.Aquirer 'SSIAC'
+
+into 
+	TRD
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi,
+	tmpSSI		ssi
+where
+	match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	p.ptynbr *= ssi.ptynbr
+and	t.acquirer_ptynbr *= ssi.acquirer_ptynbr
+and	('All' in (@Instype{All;'All','Swap','AveSwap','Amortising Swap','ROD','Option'*}) or ael_s(t,'InstrType.InstrumentType') in (@Instype{}))
+and	((t.status = 'Void'
+and	time_to_day(t.updat_time) = @Back_Day{today}
+and	time_to_day(t.creat_time) ~= time_to_day(t.updat_time)))
+
+/*Settlements*/
+Select
+    s.seqnbr,
+    s.trdnbr,
+    s.type,
+    s.cfwnbr,
+    s.amount
+into
+    tsettle
+From
+    settlement s
+Where
+        s.status in ('Acknowledged','Pending Closure','Closed','Released','Hold')
+    and s.value_day >= to_date(@1_StartDay{Today;})
+    and s.value_day <= to_date(@2_EndDay{Today;})
+
+/* Premium amounts */
+select
+	t.value_day	'day',
+	trd.start_day	'startday',
+	trd.DealerCode,
+	trd.status = 'Void' ? -1*(s.seqnbr is Null ? t.premium : s.amount) : (s.seqnbr is Null ? t.premium : s.amount) 	'amount',
+	display_id(t,'curr')	'curr',
+	'Premium'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid,
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	t.your_ref		'CPRef',
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,
+	t.trdnbr    'CashflowID',
+	s.seqnbr
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j,
+	tsettle s
+where
+	t.trdnbr = trd.trdnbr
+    and	t.premium ~= 0.0
+    and	t.insaddr = i.insaddr
+    and	t.curr = j.insaddr
+    and t.trdnbr *= s.trdnbr
+    
+
+/*Select
+    pcf.*,
+    s.seqnbr
+into
+    CF
+From
+    PCF pcf,
+    tsettle s
+Where
+        pcf.trdnbr *= s.trdnbr*/
+/*Group by trdnbr,amount*/
+
+/* Cashflows */
+select
+	c.pay_day	'day',
+	trd.start_day	'startday',
+	trd.DealerCode,
+	trd.status = 'Void' ? -1*(s.seqnbr is Null ? projected_cf(c) * t.quantity : s.amount) : (s.seqnbr is Null ? projected_cf(c) * t.quantity : s.amount) 	'amount',
+	display_id(l,'curr')	'curr',
+	'Cashflow'	'CFType',
+	t.quantity*i.contr_size*c.nominal_factor  'Nominal',
+	i.instype='FXSwap' ? l.nominal_factor : c.nominal_factor   'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	c.type = 'Fixed Amount' ? 'Fixed Amount' : c.type	'type',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	t.your_ref		'CPRef',
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,/*
+	trd.CashflowID*/
+	c.cfwnbr    'CashflowID',
+	s.seqnbr
+into
+	CF
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd,
+	instrument j,
+	tsettle s
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+and	('All' in (@CashflowType{All;Cashflow.type*}) or c.type in (@CashflowType{;Cashflow.type*}))
+and	l.curr = j.insaddr
+and c.cfwnbr *= s.cfwnbr
+and trd.trdnbr *= s.trdnbr
+
+/*Select
+    ccf.*,
+    s.seqnbr
+into
+    CF
+From
+    CCF ccf,
+    tsettle s
+Where
+        ccf.CashflowID *= s.cfwnbr
+    and ccf.trdnbr *= s.trdnbr*/
+/*Group by trdnbr,amount*/
+    
+
+/* End premiums and sec loan fees */
+select
+	i.exp_day	'day',
+	trd.start_day	'startday',
+	trd.DealerCode,
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+	trd.status = 'Void' ? -1*(t.quantity * projected_cf(i)) : t.quantity * projected_cf(i)	'amount',
+	display_id(t,'curr')	'curr',
+	'End Premium/Sec Loan Fee'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	t.your_ref		'CPRef',
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,/*
+	trd.CashflowID*/
+	t.trdnbr    'CashflowID',
+	0   'seqnbr'
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('BuySellback','SecurityLoan')
+and	t.curr = j.insaddr
+
+
+/* Common Futures */
+select
+	i.exp_day	'day',
+	trd.start_day	'startday',
+	trd.DealerCode,
+	trd.status = 'Void' ? -1*(nominal_amount(t)*t.price*-1) : nominal_amount(t)*t.price*-1 	'amount',
+	display_id(t,'curr')	'curr',
+	'Commodity Future'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	t.your_ref		'CPRef',
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,
+	/*trd.CashflowID*/
+	t.trdnbr    'CashflowID',
+	0 'seqnbr'
+into
+	CF
+from
+	trade t,
+	instrument i,
+	TRD trd,
+	instrument j
+where
+	t.trdnbr = trd.trdnbr
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and	i.und_instype = 'Commodity'
+and	t.curr = j.insaddr
+
+
+
+/* Additional payments */
+select
+	a.payday	'day',
+	trd.start_day	'startday',
+	trd.DealerCode,
+	trd.status = 'Void' ? -1*(s.seqnbr is Null ? a.amount : s.amount) : (s.seqnbr is Null ? a.amount : s.amount)	'amount',
+	display_id(a,'curr')	'curr',
+	'Additional Payment'	'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	a.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP' 'PartyType',
+	trd.cpid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	trd.CPRef,
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,
+	/*trd.CashflowID*/
+	a.trdnbr    'CashflowID',
+	s.seqnbr
+
+into 
+	CF
+from
+	payment a,
+	TRD trd,
+	instrument j,
+	tsettle s
+where
+	a.trdnbr = trd.trdnbr
+and	a.curr = j.insaddr
+and trd.trdnbr *= s.trdnbr
+/*and s.status ~= 'Updated'*/
+
+/*Select
+    acf.*,
+    s.seqnbr
+into
+    CF
+From
+    ACF acf,
+    tsettle s
+Where
+        acf.trdnbr *= s.trdnbr*/
+
+/* Dividend payments */
+
+select
+	d.day			'day',
+	trd.start_day		'startday',
+	trd.DealerCode,
+	trd.status = 'Void' ? -1*(d.dividend) : d.dividend		'amount',
+	display_id(i,'curr')	'curr',
+	'Dividend'		'CFType',
+	trd.Nominal,
+	1.00 'NominalFactor',
+	t.trdnbr		'Trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype		'Itype',
+	'Issuer' 'PartyType',
+	trd.issid 'Party',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+	t.your_ref		'CPRef',
+	trd.MM_Instype,
+	trd.AccName,
+	trd.AccNum,
+	trd.Swift,
+	/*trd.CashflowID*/
+	t.trdnbr    'CashflowID',
+	0 'seqnbr'
+
+into
+	CF
+
+from	instrument	i,
+	dividend	d,
+	trade		t,
+	TRD		trd,
+	instrument	j
+where
+	i.insaddr=d.insaddr
+and	d.insaddr=t.insaddr
+and	t.trdnbr=trd.trdnbr
+and	t.curr = j.insaddr
+
+
+
+
+
+
+	
+select
+	'Total by Curr & Day'		'Section',
+	c.day > to_date(@1_StartDay{2001-12-31;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+into 
+	tot
+from
+	CF c
+where
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+
+and	c.day <= to_date(@2_EndDay{Yesterday;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@4_Show_TOTALCurrRepDay{No;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3
+order by 2
+
+select
+	'Opening Balance'		'Section',
+	c.day 	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.status = 'Void' ? -1*c.Nominal : c.nominal	'Nominal',
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum ,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+into
+	open
+from
+	CF c
+where
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+and	c.day < @1_StartDay{Yesterday;}
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+
+
+group by 3
+
+		
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	*
+from
+	open
+
+union
+
+
+/*select
+	'Total by Curr & Day'		'Section',
+	c.day > to_date(@1_StartDay{Yesterday;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+	c.Mtm_price,
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum,
+	c.Swift
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{EUR;instrument.insid* where instype = 'Curr'})
+and	c.day <= to_date(@2_EndDay{Today;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@4_Show_TOTALCurrRepDay{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3
+*/
+
+select * from tot
+
+union
+
+select
+	'Run Tot',
+	c.Day,
+	c.startday,
+	c.Curr,
+	c.itype,
+	c.insid,
+	c.status = 'Void' ? -1*c.Nominal : c.nominal	'Nominal',
+	c.NominalFactor,
+	c.InvNominalFactor,
+	c.Buy_Sell,
+	ael_f(,'Metals.Metals_Total',c.Day,c.Curr,o.Amount,to_date(@1_StartDay{Yesterday;}),@Filter{;tradefilter.fltid})		'Amount',
+	c.HVAL,
+	/*c.Mtm_price,*/
+	c.Type,
+	c.TrdNbr,
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum ,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+
+from
+	tot c,
+	open o
+where
+	o.Curr = c.Curr
+
+union
+
+select
+	'Total by Instype'		'Section',	
+	c.day > to_date(@1_StartDay{Yesterday;}) ? c.day 
+	: to_date(@1_StartDay{Yesterday;})	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	0.00 'Nominal',
+	1.00 'NominalFactor',
+	1.00 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+and	c.day <= to_date(@2_EndDay{Yesterday;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@5_Show_TOTALInstype{No;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 1,2,3,4
+
+union
+
+select
+	'Details'		'Section',
+	c.day 	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.status = 'Void' ? -1*c.Nominal : c.nominal	'Nominal',
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+
+from
+	CF c
+where 	
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+and	c.day <= to_date(@2_EndDay{Yesterday;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@6_Show_TradeDetail{Yes;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+/*group by 2,3,4,5,7,8,9*/
+
+union
+
+select
+	'Total by Curr' 	'Section',
+	c.day 	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.status = 'Void' ? -1*c.Nominal : c.nominal	'Nominal',
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum ,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+and	c.day <= to_date(@2_EndDay{Yesterday;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@7_Show_TotalCurr{No;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by 3
+
+UNION
+
+select
+	'Total by Trade' 	'Section',
+	c.day 	'Day',
+	c.startday,
+	c.curr		'Curr',
+	c.itype,
+	c.insid,
+	c.status = 'Void' ? -1*c.Nominal : c.nominal	'Nominal',
+	c.NominalFactor,
+	1/c.NominalFactor 'InvNominalFactor',
+	sum(c.amount) > 0 ? 'B' : 'S'  'Buy_Sell',
+	sum(c.amount)	'Amount',
+	sum(c.Mtm_price * c.amount)'HVAL',
+/*	c.Mtm_price,*/
+	c.CFType	'Type',
+	c.trdnbr	'TrdNbr',
+	c.devonref,
+	c.PartyType,
+	c.Party,
+	c.status,
+	c.time,
+	c.portfolio,
+	c.CPRef,
+	c.MM_Instype,
+	c.AccName,
+	c.AccNum ,
+	c.Swift,
+	c.DealerCode,
+	c.CashflowID,
+	c.Seqnbr
+
+from
+	CF c
+where
+	c.curr in (@3_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+and	c.day <= to_date(@2_EndDay{Yesterday;})
+and	c.day >= to_date(@1_StartDay{Yesterday;})
+and	@8_Show_TotalTrade{No;'Yes','No'}	IN ('Yes','YES','yes','Y','y')
+
+group by c.trdnbr

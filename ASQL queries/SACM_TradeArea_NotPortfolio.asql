@@ -1,0 +1,68 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_TradeArea_NotPortfolio') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_TradeArea_NotPortfolio' and p.type = 'SQL Query' 
+ 
+  select
+t.trdnbr,
+t.quantity*1000000'nominal',
+t.creat_time,
+i.insid,
+
+t.status,
+p.prfid,
+cl.entry'Trade_Area',
+display_id(t,'counterparty_ptynbr')'CP'
+
+from
+instrument i,
+trade t,
+portfolio p,
+choicelist cl 
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.insid in ('ZAR/R186','ZAR/R153')
+and t.optkey1_chlnbr=cl.seqnbr
+and t.status not in ('Void','Simulated')
+
+and cl.entry=@TradeArea{SPT001;choicelist.entry where list='TradArea'}
+and p.prfid~=@NOT_Portfolio{JOB1;portfolio.prfid}
+
+union
+
+select
+t.trdnbr,
+t.quantity*1000000'nominal',
+t.creat_time,
+i.insid,
+
+t.status,
+p.prfid,
+cl.entry'Trade_Area',
+display_id(t,'counterparty_ptynbr')'CP'
+
+from
+instrument ui,
+trade t,
+portfolio p,
+choicelist cl,
+instrument i
+ 
+
+where
+
+i.insaddr=t.insaddr
+and i.und_insaddr=ui.insaddr
+and t.prfnbr=p.prfnbr
+and ui.insid in ('ZAR/R186','ZAR/R153')
+and t.optkey1_chlnbr=cl.seqnbr
+and t.status not in ('Void','Simulated')
+
+and cl.entry=@TradeArea{SPT001;choicelist.entry where list='TradArea'}
+and p.prfid~=@NOT_Portfolio{JOB1;portfolio.prfid}
+

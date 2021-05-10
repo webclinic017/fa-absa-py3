@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:firstExerciseSettleDate = select(isCallable or isPutable or isMultiExercise, 
+  true->minOf(sortedExerciseEvents :* "object.SettlementDate"), 
+  false->select(object.IsKindOf("FOption"), 
+    true->object.PayDay(object.ActualExpiryDay(valuationDate)), 
+    false->smallDate));

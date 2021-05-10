@@ -1,0 +1,5 @@
+[Default]FLeg:virtualCashFlowDividendsFromDividendForecast = select(useDividendForecast, 
+  true->select(indexReference:isCombination and (indexReference <> creditReference) and (indexReference.MapAtInstrument(creditReference, valuationBaseDate) <> nil), 
+    true->(indexReference.MapAtInstrument(creditReference, valuationDate)) :* "basketComponentWeight" * creditReference :* "dividendForecastDividends" [doSplitAll, useExDivDate, dividendSensitivityStartDate = dividendSensitivityStartDateVirtualCashFlows, dividendSensitivityEndDate, includeTaxFactor, aggregateDividends = false, filterUnitForDividendForecastDividends = scalingCurrency, calculationCurrency = currency, priceSource], 
+    default->creditReference :* "dividendForecastDividends" [doSplitAll, useExDivDate, dividendSensitivityStartDate = dividendSensitivityStartDateVirtualCashFlows, dividendSensitivityEndDate, includeTaxFactor, aggregateDividends = false, filterUnitForDividendForecastDividends = scalingCurrency, calculationCurrency = currency, priceSource]), 
+  default->nil);

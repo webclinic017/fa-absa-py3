@@ -1,0 +1,10 @@
+[Core Pricing]FExerciseEvent:storedStrike = switch(uniqueStrikeRate, 
+  nil->storedStrikeMethod, 
+  default->100.0 * uniqueStrikeRate);
+[Core Pricing]FInstrument:storedStrike = select(isStepUpSwaption, 
+  false->select(isMultiExercise, 
+    true->select(isSwaption or isSpreadOption, 
+      true->denominatedvalue(uniqueOrStoredStrike, , instrument:storedStrikeType, expiryDateTime), 
+      false->denominatedvalue(uniqueOrStoredStrike, instrument:currency, instrument:storedStrikeType, expiryDateTime)), 
+    false->storedStrikeMethod), 
+  true->object:stepUpSwaptionVolatilityStrikePrice [forwardPriceDate := expiryDate, priceSource]);

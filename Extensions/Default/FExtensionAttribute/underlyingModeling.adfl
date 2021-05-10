@@ -1,0 +1,9 @@
+[Default]FCertificate:underlyingModeling = select(baseValuationOnUnderlyingComponents, 
+  true->"Multi", 
+  default->"Single");
+[Default]FInstrument:underlyingModeling = nil;
+[Default]FOption:underlyingModeling = select(isOptionValuedAsPureSingle, 
+  true->"Single", 
+  false->select(mappedModelIsBasketAsSingleUnderlying, 
+    true->"BASU", 
+    false->"Multi"));

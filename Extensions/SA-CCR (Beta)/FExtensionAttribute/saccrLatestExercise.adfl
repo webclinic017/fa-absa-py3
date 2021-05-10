@@ -1,0 +1,6 @@
+[SA-CCR (Beta)]FInstrument:saccrLatestExercise = select(saccrAssetClassDefined and object.SACCRIsOption, 
+  true->saccrInstrumentComponents :* "round(object.SACCRLatestExercise, saccrDecimalsDefault)", 
+  false->nil);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrLatestExercise = select(isOpenPosition, 
+  true->openInstrument :* "saccrLatestExercise", 
+  false->nil);

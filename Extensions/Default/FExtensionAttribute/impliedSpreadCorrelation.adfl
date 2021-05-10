@@ -1,0 +1,5 @@
+[Default]FInstrument:impliedSpreadCorrelation = shunt(implyValid and (snoop(theoreticalPrice, "spreadCorrelationForLeg") <> nil), 
+  false->nil, 
+  true->imply(snoop(theoreticalPrice, "spreadCorrelationForLeg"), theoreticalPrice, marketPrice, implyPrecision, -1.0, 1.0, implyMaxIterations));
+[Default]FInstrumentAndTrades:impliedSpreadCorrelation = instrument :* "impliedSpreadCorrelation" [priceSource];
+[Default]FMultiInstrumentAndTrades:impliedSpreadCorrelation = nil;

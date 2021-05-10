@@ -1,0 +1,83 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Trades_NonStandard_Party') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Trades_NonStandard_Party' and p.type = 'SQL Query' 
+
+select
+	t.trdnbr		                    'Trdnbr',
+	i.insid			                    'Instrument',
+	i.instype		                    'InsType',
+	i.exp_day                           'ExpDay',
+	display_id(t,'acquirer_ptynbr')		'Acquirer',
+	display_id(t,'prfnbr')		        'Portfolio',
+	p.ptyid                             'Counterparty',
+	nominal_amount(t, t.value_day)      'Nominal',	
+	t.status		                    'Status',
+    time_to_day(t.time)	                'TradeTime',
+    t.value_day                         'ValueDay'
+
+into
+    trades
+
+from
+	Trade t,
+	Instrument i,
+	Party p,
+	AdditionalInfo ai,
+	AdditionalInfoSpec ais
+
+where
+	t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and t.execution_time >= date_add_delta(@FromTime{yesterday},-7,,)
+and t.execution_time <= @ToTime{yesterday}
+and ai.addinf_specnbr = ais.specnbr
+and ais.field_name = 'Standard'
+and p.ptynbr = ai.recaddr
+and ai.value = 'No'
+
+
+
+select
+    'Detail'            'Section',
+    t.Trdnbr,
+	t.Instrument,
+	t.InsType,
+	t.ExpDay,
+	t.Acquirer,
+	t.Portfolio,
+	t.Counterparty,
+	t.Nominal,	
+	t.Status,
+    t.TradeTime,
+    t.ValueDay
+    
+from
+    trades t
+    
+    
+union
+
+
+
+select
+    'Trades per Portfolio per Counterparty'            'Section',
+    count(t.Trdnbr),
+	t.Instrument,
+	t.InsType,
+	t.ExpDay,
+	t.Acquirer,
+	t.Portfolio,
+	t.Counterparty,
+	t.Nominal,	
+	t.Status,
+    t.TradeTime,
+    t.ValueDay
+    
+from
+    trades t
+    
+group by
+    t.Portfolio, t.Counterparty

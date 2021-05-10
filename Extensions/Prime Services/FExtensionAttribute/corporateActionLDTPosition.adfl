@@ -1,0 +1,8 @@
+[Prime Services]FMultiInstrumentAndTrades:corporateActionLDTPosition = sumOf(float(flattenAndRemoveNil((object.Children) :* "sumOf(flattenAndRemoveNil(corporateActionLDTPosition))")));
+[Prime Services]FSingleInstrumentAndTrades:corporateActionLDTPosition = switch(isCorporateActionDay, 
+  true->switch(corporateActionLDT <> nil, 
+    true->switch(corporateActionLDT.IsKindOf("FArray"), 
+      true->(corporateActionLDT :* "closingPositionMulti.Number" [corpActionMulitPosHolder = object]), 
+      false->object :* "profitAndLossPositionDisplay" [profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = datetime(corporateActionLDT)]), 
+    default->nil), 
+  false->nil);

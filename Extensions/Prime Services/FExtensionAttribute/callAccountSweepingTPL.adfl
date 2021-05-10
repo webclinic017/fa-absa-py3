@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:callAccountSweepingTPL = sumOf(children :* "callAccountSweepingTPL");
+[Prime Services]FSingleInstrumentAndTrades:callAccountSweepingTPL = switch(instrumentType == "Portfolio Swap", 
+  true->-1 * dailyTPL.Number, 
+  default->(clientTPL.Number - previousDayClientTPL) + dailyFunding.Number);

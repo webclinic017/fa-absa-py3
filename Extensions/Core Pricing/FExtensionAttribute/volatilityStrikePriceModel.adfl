@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:volatilityStrikePriceModel = select(useATMFXStrike or valuationAddOnNeedsATMVolatilityForValuation, 
+  true->select(volatilityInformation.UseVolatilityATMValue, 
+    true->0.0, 
+    false->underlyingATMVolatilityStrike), 
+  false->surfaceDependentVolatilityStrikePrice);

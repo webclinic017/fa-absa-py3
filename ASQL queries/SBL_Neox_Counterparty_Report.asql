@@ -1,0 +1,27 @@
+/* update_method=0 */
+select
+    p.ptyid                                         'Party Name',
+    p.fullname                                      'Full Name',
+    p.address                                       'Address',
+    p.address2                                      'Address 2',
+    p.attention                                     'Attention',
+    p.city                                          'City',
+    p.country                                       'Country',
+    p.contact1                                      'Contact',
+    p.email                                         'Email',
+    p.telephone                                     'Telephone',
+    p.swift                                         'BIC Code',
+    add_info(p,'BarCap_SMS_LE_SDSID')               'SDS ID',
+    add_info(p,'SL_G1PartyCode')                    'Cpty Code',
+    add_info(p,'SL_MajorPtyCode')                   'Major Code',
+    add_info(p,'SL_CptyType')                       'Lender/Borrower',                     
+    add_info(p,'STRATE_POOL_REF')                   'Strate Pool Ref',
+    add_info(p,'TAXABLE_STATUS')                    'Taxable Status',
+    add_info(p,'CSDP_STRATE_BPID')                  'CSDP Strate BPID',
+    add_info(p,'DWT_EXEMPT')                        'DWT Exempt'
+from
+    party p
+where
+    add_info(p,'SL_G1PartyCode') ~= ''
+and (p.ptyid like 'COLL_%' or p.ptyid like 'SLL_%' or p.ptyid like 'SLB_%')
+and p.ptyid ~= 'COLLATERAL DESK'

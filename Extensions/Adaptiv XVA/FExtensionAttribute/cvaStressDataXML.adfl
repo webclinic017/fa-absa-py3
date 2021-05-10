@@ -1,0 +1,10 @@
+[Adaptiv XVA]FCreditBalance:cvaStressDataXML = select(useStressScenario, 
+  true->createStressDataXML(cvaStressDataMapping), 
+  false->"");
+[Adaptiv XVA]FInstrument:cvaStressDataXML = "";
+[Adaptiv XVA]FInstrumentAndTrades:cvaStressDataXML = select(0 == count(creditBalanceInstruments), 
+  true->"", 
+  false->(creditBalanceInstruments[0]) :* "cvaStressDataXML");
+[Adaptiv XVA]FSingleInstrumentAndTrades:cvaStressDataXML = shunt(creditBalanceInstruments == nil, 
+  true->"", 
+  false->creditBalanceInstruments:cvaStressDataXML);

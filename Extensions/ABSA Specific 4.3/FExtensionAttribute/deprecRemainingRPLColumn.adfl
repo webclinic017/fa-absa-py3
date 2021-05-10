@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:deprecRemainingRPLColumn = deprecTotalRPLColumn - (deprecRPLColumn * (-1));
+[ABSA Specific 4.3]FTradeRow:deprecRemainingRPLColumn = shunt((premium == nil) and (trade.tradeDate == today), 
+  true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+  false->select(instrument.InsType, 
+    "IndexLinkedBond"->select(instrument.IsExpired, 
+      true->denominatedvalue(0.0, object.Trade.Currency, , ), 
+      false->deprecTotalRPLColumn - (deprecRPLColumn * (-1))), 
+    default->deprecTotalRPLColumn - (deprecRPLColumn * (-1))));

@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrumentAndTrades:bookCashAssetTPL = select(calculateCash, 
+  true->select(historicalFXChoice, 
+    "None, FX Matching"->bookAssetTPL - cashTPL, 
+    default->cashTPL + bookAssetTPL), 
+  false->collapse(bookAssetTPL));

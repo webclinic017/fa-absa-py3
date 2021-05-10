@@ -1,0 +1,30 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_EqPrices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_EqPrices' and p.type = 'SQL Query' 
+
+
+
+
+
+select distinct
+
+i.insid 'Stock',
+i.instype   'Instype',
+i.quote_type 'QuoteType',
+mtm_price(i,date_add_banking_day(@Date{yesterday},,-1),,,)  'Close t-1',
+mtm_price(i,@Date{yesterday},,,)   'Close t',
+
+mtm_price(i,@Date{yesterday},,,) - mtm_price(i,date_add_banking_day(@Date{yesterday},,-1),,,)   'Move'
+
+from
+instrument  i
+
+where
+
+i.instype in ('Stock','EquityIndex')
+and i.insid LIKE 'ZAR/%'
+and mtm_price(i,@Date{yesterday},,,) ~= 0
+

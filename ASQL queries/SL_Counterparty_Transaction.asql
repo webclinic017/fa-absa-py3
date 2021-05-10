@@ -1,0 +1,64 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+    ael_i(p,'ASQL_log','SL_Counterparty_Transaction') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SL_Counterparty_Transaction' and p.type = 'SQL Query' 
+
+   
+/* Updated by Paul Jacot-Guillarmod 2009/03/20
+   This report was the old SL_Activity report, the following updates were made: Display the trade status, selection of counterparty,
+   using the BuySell variable to select whether Buys, Sells or Both should be displayed
+*/
+
+select
+    @BuySell{Both; 'Both', 'Buy', 'Sell'} 'Detail',
+    t.trdnbr 'TradeNumber',
+    t.Status 'Status',
+    t.price 'Price',
+    t.quantity 'Quantity',
+    t.quantity < 0? 'Sell': 'Buy' 'BS',
+    t.time 'Time',
+    t.fee 'Fee',
+    cp.ptyid 'CounterParty',
+    i.insid 'Instrument',
+    ap.ptyid 'Acquirer',
+    date_add_banking_day(t.acquire_day,'ZAR',1) 'SettlementDate'
+into
+    temp
+from
+    trade t,
+    portfolio p,
+    party cp,
+    party ap,
+    instrument i
+where
+    p.prfid in (@Portfolio{;Portfolio.prfid*})
+and t.prfnbr = p.prfnbr
+and i.insaddr = t.insaddr
+and t.counterparty_ptynbr = cp.ptynbr
+and t.acquirer_ptynbr = ap.ptynbr
+and t.status not in ('Void', 'Simulated')
+and time_to_day(t.time) >= @From{}
+and time_to_day(t.time) <= @To{}
+and cp.ptyid in (@CounterParty{;Party.ptyid*})
+order by 6,7,4
+
+select
+    t.Detail,
+    t.TradeNumber,
+    t.Status,
+    t.Price,
+    t.BS 'B/S',
+    t.Quantity,
+    t.Time,
+    t.Fee,
+    t.CounterParty,
+    t.Instrument,
+    t.Acquirer,
+    t.SettlementDate
+from
+    temp t
+where
+    t.Detail = 'Both'
+or t.BS = t.Detail

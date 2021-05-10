@@ -1,0 +1,5 @@
+[Core Pricing]FCombination:theoreticalOrMarketInstrumentValueInInstrumentCurrency = select(isMultiCurrencyInstrument, 
+  false->theoreticalOrMarketInstrumentValue, 
+  true->select(sumOf(instrumentMaps :* "count(instrument:instrumentCurrencies)") > numberOfLegs, 
+    true->convertToCurrencyValidateDates(theoreticalOrMarketInstrumentValue, instrumentCurrencies :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency], currencySymbol), 
+    false->convertToCurrencyValidateDates(theoreticalOrMarketInstrumentValue, filterDuplicateFactors(instrumentMaps :* "fxLegToInstrument"), currencySymbol))) * fxInstrumentToCalculation;

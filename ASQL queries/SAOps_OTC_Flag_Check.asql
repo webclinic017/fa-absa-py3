@@ -1,0 +1,50 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       SAOps_OTC_Flag_Check
+PURPOSE                 :       This ASQL will report all Parties with SSIs which have the OTC flag not set
+                                to OTC.
+DEPARTMENT AND DESK     :       CCG
+REQUASTER               :       Cynthia Myburgh
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       852608
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2011-12-02      852608          Heinrich Cronje                 Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+*/
+
+/*----------------------------------------------------------------------------------------------------------
+                                                    LOGGING
+----------------------------------------------------------------------------------------------------------*/
+select
+ael_i(p,'ASQL_log','SAOps_OTC_Flag_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_OTC_Flag_Check' and p.type = 'SQL Query' 
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Party and SSI selection
+----------------------------------------------------------------------------------------------------------*/
+select
+    p.ptyid,
+    p.ptynbr,
+    add_info(p,'BarCap_SMS_CP_SDSID')   'BarCap_SMS_CP_SDSID',
+    add_info(p,'BarCap_SMS_LE_SDSID')   'BarCap_SMS_LE_SDSID',
+    add_info(p,'FICA_Compliant')   'FICA_Compliant',
+    p.not_trading,
+    s.settleid,
+    s.default_instruction,
+    s.instype,
+    s.settle_cf_type,
+    display_id(s,'counterparty_ptynbr') 'From Party',
+    s.otc_instr
+from
+    party p,
+    settleinstruction s
+where
+        p.ptynbr = s.ptynbr
+    and s.otc_instr ~= 'OTC'

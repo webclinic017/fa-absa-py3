@@ -1,0 +1,9 @@
+[ABSA Derivatives 4.3]FFuture:theoreticalInstrumentValueAtSpotInCalculationCurrency = select(underlyingType, 
+  Stock->select(object.QuoteType, 
+    "Per Unit"->marketSpotValue, 
+    "Per 100 Units"->marketSpotValue / 100), 
+  EquityIndex->theoreticalInstrumentValueAtSpot, 
+  Commodity->marketSpotValue, 
+  default->select(calculationCurrency == currency, 
+    true->theoreticalInstrumentValueAtSpot, 
+    false->theoreticalInstrumentValueAtSpot * fxInstrumentToCalculation));

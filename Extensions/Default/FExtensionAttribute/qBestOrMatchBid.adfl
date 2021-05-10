@@ -1,0 +1,6 @@
+[Default]FProposedQuoteLevelLink:qBestOrMatchBid = select(qQuoteController:qIsPrivate, 
+  true->nil, 
+  default->switch(qProposedQuoteLevel, 
+    nil->nil, 
+    default->qProposedQuoteLevel.BestOrMatch("Bid", object.PriceFeed.BidPriceDepth)));
+[Default]FQuoteLevelRow:qBestOrMatchBid = qProposedQuoteLevelLink:qBestOrMatchBid;

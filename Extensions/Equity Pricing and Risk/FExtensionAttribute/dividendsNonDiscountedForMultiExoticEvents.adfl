@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:dividendsNonDiscountedForMultiExoticEvents = select(dividendForecastNoRef, 
+  nil->collapse(valuationDateZero), 
+  default->select(dividendForecastNoRef.FxConversionNeeded(adsPriceDate, bigDate, calculationCurrency), 
+    true->dividendsNonDiscounted(dividendForecastNoRef, adsPriceDate, datesInPeriodForMultiExoticEvents, false, dividendFactor, includeTaxFactor, datesInPeriodForMultiExoticEvents, dividendForecastMarketValuesIfPropDiv, calculationCurrency, filterUnitForDividendForecastDividends, underlyingDividendsFxSpotRatesForTimeShift), 
+    false->dividendsNonDiscounted(dividendForecastNoRef, adsPriceDate, datesInPeriodForMultiExoticEvents, false, dividendFactor, includeTaxFactor, datesInPeriodForMultiExoticEvents, dividendForecastMarketValuesIfPropDiv, calculationCurrency, filterUnitForDividendForecastDividends)));

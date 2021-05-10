@@ -1,0 +1,6 @@
+[Corporate Actions Workbench]FCorporateActionElection:caEligiblePosition = caEligiblePosition(object, PortfolioFromInstance(object.PositionInstance).Trades);
+[Corporate Actions Workbench]FCorporateActionElectionMultiItem:caEligiblePosition = select(object.ElectionsForTheSamePosition, 
+  false->nil, 
+  true->select(children.Size > 0, 
+    false->nil, 
+    true->(children :* "caEligiblePosition").At(0)));

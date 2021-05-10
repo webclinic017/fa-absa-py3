@@ -1,0 +1,32 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Counterparties') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Counterparties' and p.type = 'SQL Query' 
+/*
+
+	Done By : Aaeda Salejee
+	Date    : 25 March 2004
+	Call No : 84382   (Parent Call : 84227)
+	Counterparty Detail (required by Capital Markets)
+
+*/
+
+select
+	p.ptyid 		'CounterParty',
+	p.hostid		'Host ID',
+	a.fullname		'Contact Name',
+	a.telephone		'Contact Number'
+
+from
+	Party p,
+	Instrument i,
+	Party a
+
+where
+	i.issuer_ptynbr = p.ptynbr
+and	i.instype IN ('Bond', 'Repo/Reverse', 'IndexLinkedBond')
+and	a.ptyid = 'ABSAI'
+
+	

@@ -1,0 +1,8 @@
+[Collateral Margin Report]FInstrumentAndTrades:collateralAgreement = select(collateralAgreementGroupingReference, 
+  nil->select(counterpartyGroupingReference, 
+    nil->nil, 
+    default->select(documentTypeGroupingReference, 
+      nil->nil, 
+      default->collateralAgreement(counterpartyGroupingReference, documentTypeGroupingReference, acquirerGroupingReference))), 
+  default->collateralAgreementGroupingReference);
+[Collateral Margin Report]FTradeRow:collateralAgreement = trade.CollateralAgreement;

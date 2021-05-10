@@ -1,0 +1,9 @@
+[Default]FInstrument:yieldToBestOfNext = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->maxOf(flattenAndRemoveNil([marketYieldToNextPut, marketYieldToMaturity]))), 
+  false->nil);
+[Default]FInstrumentAndTrades:yieldToBestOfNext = instrument :* "yieldToBestOfNext";
+[Default]FMultiInstrumentAndTrades:yieldToBestOfNext = nil;
+[Default]FOrderBook:yieldToBestOfNext = instrument :* "yieldToBestOfNext";
+[Default]FPriceFeed:yieldToBestOfNext = instrument :* "yieldToBestOfNext";

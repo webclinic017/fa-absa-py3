@@ -1,0 +1,247 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Primary_Printing') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Primary_Printing' and p.type = 'SQL Query' 
+
+/*
+Date            Who             What
+08/02/2007      Heinrich Cronje added value date >= report day
+*/
+
+select 		
+        t.trdnbr		'Trade',
+        i.instype       'Instype',
+       	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'Product_Code',
+
+		t.value_day			                'Issue_date',	
+		i.exp_day		                    'Redemption_date',
+		nominal_amount(t, t.value_day)      'Nominal',
+		t.premium                           'Premium',
+		l.type = 'Float' ? display_id(l, 'float_rate') : l.fixed_rate ~= 0.0 ? l.fixed_rate : i.rate        'Rate',
+		days_between(t.value_day, i.exp_day, 'Act/365')        'No_of_Days',
+		l.spread                                    'Spread',
+		ael_s(, 'RollingPeriod.RP', l)              'Rolling',
+/*		add_info(t,'MM_Instype') in ('NCD', 'PRN') ? projected_cf(t) : 0.0      'Maturity_Value',*/
+        /*projected_cf(t)   'projected_cf',*/
+		projected_cf(t,date_add_banking_day(i.exp_day,,-1),i.exp_day,)		'projected_cf',       
+		p.prfid			            'Portfolio',
+		pa.ptyid		            'Counterparty',
+		add_info(t, 'SettleAgent')  'SettleAgent',
+		t.Status		            'Status',
+        t.your_ref                  'Cert_No',
+        @ReportDate{today}          'ReportDate',
+		u.name                      'Trader',
+		add_info(t, 'Denom1')       'Denom1',
+		add_info(t, 'Denom2')       'Denom2',
+		add_info(t, 'Denom3')       'Denom3',
+		add_info(t, 'Denom4')       'Denom4',
+		add_info(t, 'Denom5')       'Denom5',
+		add_info(t, 'Denom6')       'Denom6',
+		add_info(t, 'Denom7')       'Denom7',
+		add_info(t, 'Denom8')       'Denom8',
+		add_info(t, 'Denom9')       'Denom9',
+		add_info(t, 'Denom10')       'Denom10',
+		add_info(t, 'Denom11')       'Denom11'
+		
+		
+into
+        temp
+        
+from	
+        instrument	i,
+		trade		t,
+		party		pa,
+		portfolio	p,
+		leg         l,
+		User        u
+
+where		
+        match_filter(t,@TradeFilter{;tradefilter.fltid})
+and		i.insaddr=t.insaddr
+and		i.insaddr*=l.insaddr
+and		t.prfnbr=p.prfnbr
+and		pa.ptynbr=t.counterparty_ptynbr
+and     t.trader_usrnbr = u.usrnbr
+and     t.value_day >= @ReportDate{today}
+/*and     time_to_day(t.creat_time) = @ReportDate{today}*/
+
+/*and t.trdnbr in (861548,
+861547,
+861544,
+861543,
+861538,
+861533,
+861528,
+861520,
+861518,
+861516,
+861512,
+861510,
+861509,
+861501,
+861500,
+861499,
+861498,
+861495,
+861493,
+861492,
+861491,
+861490,
+861488,
+861486,
+861482,
+861481,
+861478,
+861477,
+861476,
+861474,
+861473,
+861472,
+861471,
+861468,
+861466,
+861465,
+861464,
+861439,
+861438,
+861436,
+861434,
+861433,
+861432,
+861431,
+861430,
+861426,
+861425,
+861424,
+861423,
+861422,
+861420,
+861418,
+861411,
+861409,
+861408,
+861405,
+861404,
+861403,
+861402,
+861401,
+861400,
+861399,
+861398,
+861397,
+861396,
+861395,
+861394,
+861393,
+861392,
+861391,
+861390,
+861389,
+861388,
+861387,
+861385,
+861384,
+861383,
+861381,
+861378,
+861068,
+860992,
+860986,
+860505,
+854869,
+681784,
+653271,
+653266,
+653106,
+653099)
+*/
+
+
+
+
+select
+        t.Product_Code,
+        'YES' ? t.Trade : ''       'Trade',
+        t.Issue_date,	
+		t.Redemption_date,
+		t.Nominal,
+		t.Premium,
+		t.Rate,
+		t.No_of_Days,
+		t.Spread,
+		t.Rolling,
+		t.Product_Code in ('NCD', 'PRN') ? t.projected_cf : 0.0      'Maturity_Value',
+		t.Portfolio,
+		t.Counterparty,
+		t.SettleAgent,
+		t.Status,
+		t.Instype,
+		t.Cert_No,
+		t.ReportDate,
+		t.Trader,		
+		t.Denom1,
+		t.Denom2,
+		t.Denom3,
+		t.Denom4,
+		t.Denom5,
+		t.Denom6,
+		t.Denom7,
+		t.Denom8,
+		t.Denom9,
+		t.Denom10,
+		t.Denom11
+	
+from 
+        temp t
+
+where
+        t.Product_Code in ('NCD', 'NCF', 'FRN', 'CLN', 'PRN', 'NCC')
+
+
+
+union
+
+
+
+select
+        t.Product_Code,
+        'Total by Product',
+       	t.Issue_date,	
+		t.Redemption_date,
+		sum(t.Nominal),
+		t.Premium,
+		t.Rate,
+		t.No_of_Days,
+		t.Spread,
+		t.Rolling,
+		t.Product_Code in ('NCD', 'PRN') ? t.projected_cf : 0.0      'Maturity_Value',
+		t.Portfolio,
+		t.Counterparty,
+		t.SettleAgent,
+		t.Status,
+		t.Instype,
+		t.Cert_No,
+		t.ReportDate,
+		t.Trader,		
+		t.Denom1,
+		t.Denom2,
+		t.Denom3,
+		t.Denom4,
+		t.Denom5,
+		t.Denom6,
+		t.Denom7,
+		t.Denom8,
+		t.Denom9,
+		t.Denom10,
+		t.Denom11
+
+from temp t
+
+where
+        t.Product_Code in ('NCD', 'NCF', 'FRN', 'CLN', 'PRN', 'NCC')
+        
+group by t.Product_Code

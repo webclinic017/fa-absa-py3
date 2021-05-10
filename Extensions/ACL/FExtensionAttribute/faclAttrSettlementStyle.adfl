@@ -1,0 +1,7 @@
+[ACL]FInstrument:faclAttrSettlementStyle = nil;
+[ACL]FOption:faclAttrSettlementStyle = select(object.SettlementType, 
+  "Physical Delivery"->"Physical", 
+  default->object.SettlementType);
+[ACL]FTradeRow:faclAttrSettlementStyle = select(faclProduct, 
+  "Swaption"->instrument:faclAttrSettlementStyle, 
+  default->nil);

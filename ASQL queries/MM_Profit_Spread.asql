@@ -1,0 +1,123 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MM_Profit_Spread') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MM_Profit_Spread' and p.type = 'SQL Query' 
+
+/*
+
+Query : MM_Profit_Spread
+Purpose : Applicable profit calculation based on the add_info 'MM_Profit_Spread'
+Desk : Funding and Liquidity
+Developer : Anil Parbhoo
+Reqested by : Deon Raju
+Jira Reference : ABITFA505
+CR number : 593308
+*/
+select
+
+
+@Report_Start_Date{FIRSTDAYOFMONTH;}'PL_Start_Date',
+@Report_End_Date{Today;}'PL_End_Date',
+
+t.trdnbr,
+t.status,
+u.name'trader',
+time_to_day(t.creat_time)'Create_Time',
+i.insid,
+
+display_id(t,'acquirer_ptynbr')'acquirer',
+t.quantity*i.contr_size'Nominal',
+l.type'leg_Type',
+l.start_day,
+l.end_day,
+l.fixed_rate,
+l.spread,
+
+display_id(t,'prfnbr')'portfolio',
+display_id(t,'counterparty_ptynbr')'counterparty',
+add_info(t,'MM_Profit_Spread')'MM_Profit_Spread',
+i.instype,
+to_double(add_info(t,'MM_Profit_Spread')) 'Margin', 
+
+
+
+
+@Report_Start_Date{FIRSTDAYOFMONTH;}>=l.start_day ? @Report_Start_Date{FIRSTDAYOFMONTH;} : l.start_day 'Reporting_Start_Date',
+@Report_End_Date{Today;}>=l.end_day ? l.end_day : @Report_End_Date{Today;}  'Reporting_End_Date',
+
+days_between((@Report_Start_Date{FIRSTDAYOFMONTH;}>=l.start_day ? @Report_Start_Date{FIRSTDAYOFMONTH;} : l.start_day ),(@Report_End_Date{Today;}>=l.end_day ? l.end_day : @Report_End_Date{Today;} ),'Act/365')'days_between_reporting_start_and_end_dates'
+
+
+
+into temp
+
+
+from 
+instrument i,
+trade t,
+leg l,
+user u
+
+
+where
+i.insaddr = t.insaddr
+and t.status not in ('void', 'simulated')
+and i.instype in ('Bill','CD','Deposit','FRN')/*the add_info is only defined for these instypes*/
+and time_to_day(t.creat_time)>='18/02/2011'
+and add_info(t,'MM_Profit_Spread')~= ''
+and i.insaddr=l.insaddr
+and t.trader_usrnbr=u.usrnbr
+
+and match_filter(t, @TradeFilter{MM_Derecognition - Haroon; tradefilter.fltid})
+
+
+/*
+and match_filter(t,'MM_Derecognition - Haroon')
+*/
+
+
+
+and l.end_day>@Report_Start_Date{FIRSTDAYOFMONTH;}
+
+and l.start_day<@Report_End_Date{Today;}
+
+
+
+/*select from temp*/
+
+select
+tt.PL_Start_Date,
+tt.PL_End_Date,
+tt.trdnbr,
+tt.status,
+tt.trader,
+tt.Create_Time'Trade_Create_Time',
+
+tt.instype,
+tt.acquirer,
+tt.Nominal,
+tt.leg_Type,
+tt.start_day'Ins_Start_Date',
+tt.end_day'Ins_End_Date',
+tt.fixed_rate,
+tt.spread,
+
+tt.portfolio,
+tt.counterparty,
+tt.MM_Profit_Spread,
+tt.instype,
+tt.Margin,
+tt.Reporting_Start_Date,
+tt.Reporting_End_Date,
+
+tt.days_between_reporting_start_and_end_dates,
+
+abs(tt.Nominal * tt.Margin * tt.days_between_reporting_start_and_end_dates / 36500) 'profit' 
+
+
+
+
+from temp tt
+

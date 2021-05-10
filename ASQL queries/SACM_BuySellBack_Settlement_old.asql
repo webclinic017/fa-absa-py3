@@ -1,0 +1,234 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_BuySellBack_Settlement_old') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_BuySellBack_Settlement_old' and p.type = 'SQL Query' 
+/* SACM_BuySellBack_Settlement: last updated on Wed May 12 08:41:45 2004. Extracted by Stowaway on 2004-06-04.*/
+select
+	@1_SettleDate{}			'Date'
+into
+	makro
+from
+	serverdata s
+where
+	srdnbr > 0
+
+
+select
+	t.trdnbr								'Trade',
+	i.instype = 'BuySellback' ? (i.contr_size*t.quantity) : (i.ref_value * t.quantity)	'Nominal',
+	i.insid									'Instrument',
+	und.insid								'Underlying',	
+	i.instype = 'BuySellback' ? (t.quantity >= 0 ? 'BuySellback' : 'SellBuyback') : (t.quantity >= 0 ? 'ReverseRepo' : 'Repo')	'Instype',
+	time_to_day(t.time)							'TradeDate',	
+	t.value_day								'ValueDate',
+	t.value_day								'Startdate',
+	i.exp_day								'Enddate',
+	p.ptyid									'Counterparty',
+	i.instype = 'BuySellback' ? i.rate : l.fixed_rate			'RepoRate',
+	i.instype = 'BuySellback' ? t.price : i.ref_price			'Startrate',
+	i.instype = 'BuySellback' ? i.ref_price : to_double('0.0')		'Endrate',
+	t.premium								'Startcash',
+	i.instype = 'BuySellback' ? (i.ref_value*t.quantity) : to_double('0.0')	'Endcash',
+	(((i.instype = 'BuySellback' ? i.rate : l.fixed_rate) * t.premium * days_between(t.value_day, i.exp_day, 'Act/365')/36500)* -1)	'Interest',
+	t.status								'Status',
+	display_id(t, 'prfnbr')							'Portfolio'	
+into 
+	temp	
+from
+	trade	t,
+	instrument	i,
+	party	p,
+	leg	l,
+	instrument	und
+	
+where
+	i.insaddr=t.insaddr
+and 	t.counterparty_ptynbr=p.ptynbr
+and 	i.und_insaddr=und.insaddr
+and	i.insaddr *= l.insaddr
+and	i.instype in ('BuySellback', 'Repo/Reverse')
+and	t.status not in ('Simulated','Terminated','Void')
+and	('All' IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}) 
+or 	p.ptyid IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}))
+	
+
+
+select 
+	t.Trade,
+	t.Nominal,
+	t.Instrument,
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	m.Date					'ReportDate',
+	t.Startdate,
+	t.Enddate,
+	t.Counterparty,
+	t.Startcash				'Cash',
+	t.Status,
+	t.Portfolio,
+	t.Nominal			'flow_of_stock'
+into
+	Result
+from
+	temp t,
+	makro m
+where
+	t.Startdate = m.Date
+
+
+select 
+	t.Trade,
+	t.Nominal,
+	t.Instrument,
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	m.Date				'ReportDate',
+	t.Startdate,
+	t.Enddate,
+	t.Counterparty,
+	t.instype = 'BuySellback' ? t.Endcash : (t.Startcash * -1) + t.Interest	'Cash',
+	t.Status,
+	t.Portfolio,
+	-1 * t.Nominal		'flow_of_stock'
+into
+	Result
+from
+	temp t,
+	makro m
+where
+	t.Enddate = m.Date
+
+
+select
+	t.Trade,
+	t.Nominal,
+	t.Instrument,
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	t.Cash,
+	t.Cash < 0 ? 'Pay' : 'Receive'		'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	t.flow_of_stock
+from
+	Result t
+
+union
+
+select
+	t.Trade,
+	sum(t.Nominal),
+	'Sum by Portfolio',
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	sum(t.Cash),
+	t.Cash < 0 ? 'Pay' : 'Receive'	'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	sum(t.flow_of_stock)
+from
+	Result t
+group by t.Portfolio
+
+union
+
+select
+	t.Trade,
+	sum(t.Nominal),
+	'Sum by Counterparty',
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	sum(t.Cash),	
+	t.Cash < 0 ? 'Pay' : 'Receive'		'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	sum(t.flow_of_stock)
+from
+	Result t
+group by 
+	t.Counterparty
+
+union
+
+select
+	t.Trade,
+	sum(t.Nominal),
+	'Sum by Underlying',
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	sum(t.Cash),
+	t.Cash < 0 ? 'Pay' : 'Receive'		'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	sum(t.flow_of_stock)
+from
+	Result t
+group by 
+	t.Underlying
+
+union
+
+
+select
+	t.Trade,
+	sum(t.Nominal),
+	'Sum by Pay/Receive',
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	sum(t.Cash),
+	t.Cash < 0 ? 'Pay' : 'Receive'		'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	sum(t.flow_of_stock)
+from
+	Result t
+group by 
+	11
+
+union
+
+select
+	t.Trade,
+	sum(t.Nominal),
+	'TOTAL',
+	t.Underlying,
+	t.Instype,
+	t.TradeDate,
+	t.ValueDate,
+	t.ReportDate,
+	t.Counterparty,
+	sum(t.Cash),
+	t.Cash < 0 ? 'Pay' : 'Receive'		'Pay_Receive',
+	t.Status,
+	t.Portfolio,
+	sum(t.flow_of_stock)
+from
+	Result t
+group by 
+	3

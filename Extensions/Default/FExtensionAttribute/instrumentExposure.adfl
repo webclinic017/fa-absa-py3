@@ -1,0 +1,5 @@
+[Default]FCashFlowInstrument:instrumentExposure = select(legsInCurrency.Size > 0, 
+  true->sumOf(legsInCurrency :* "instrumentExposure" [timeDistributionBucket]), 
+  false->0.0);
+[Default]FInstrument:instrumentExposure = 1.0;
+[Default]FLeg:instrumentExposure = staticLegInformation.LegExposure(legInformation, valuationDate, instrumentSpotOrStartDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment, roundingInformation);

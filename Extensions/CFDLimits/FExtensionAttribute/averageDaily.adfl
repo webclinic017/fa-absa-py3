@@ -1,0 +1,5 @@
+[CFDLimits]FInstrument:averageDaily = py("PriceSearch", context).returnPrice(object, "Volume", profitAndLossEndDate);
+[CFDLimits]FMultiInstrumentAndTrades:averageDaily = select(object.Instruments.Size == 1, 
+  true->firstInstrument:averageDaily, 
+  false->nil);
+[CFDLimits]FSingleInstrumentAndTrades:averageDaily = instrument:averageDaily;

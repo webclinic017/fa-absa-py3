@@ -1,0 +1,6 @@
+[Profit and Loss]FCombInstrMapAndTrades:historicalNAVPerUnit = nil;
+[Profit and Loss]FInstrumentAndTrades:historicalNAVPerUnit = collapse(nAVPerUnit);
+[Profit and Loss]FLegAndTrades:historicalNAVPerUnit = nil;
+[Profit and Loss]FPortfolioInstrumentAndTrades:historicalNAVPerUnit = switch(profitAndLossEndDate == valuationDate, 
+  true->collapse(nAVPerUnit), 
+  default->averageOf(fundInstruments :* "select(pricingPriceFeed.MtMPrice(profitAndLossEndDate).PriceExists, true->pricingPriceFeed.MtMPrice(profitAndLossEndDate).Get, default->0)" [displayCurrency, profitAndLossEndDate]));

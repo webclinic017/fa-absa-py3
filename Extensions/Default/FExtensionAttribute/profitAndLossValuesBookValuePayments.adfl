@@ -1,0 +1,8 @@
+[Default]FInstrument:profitAndLossValuesBookValuePayments = select(doCostAdjustment, 
+  true->select(isValuedAtCost, 
+    true->profitAndLossValues.BookValuePayment, 
+    false->plZero), 
+  false->profitAndLossValues.BookValuePayment);
+[Default]FInstrumentAndTrades:profitAndLossValuesBookValuePayments = instrument:profitAndLossValuesBookValuePayments [doCostAdjustment, positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Default]FMultiInstrumentAndTrades:profitAndLossValuesBookValuePayments = sumOf(instruments :* "profitAndLossValuesBookValuePayments" [doCostAdjustment, positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);
+[Default]FTradeRow:profitAndLossValuesBookValuePayments = instrument:profitAndLossValuesBookValuePayments [doCostAdjustment, singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, taxLotPositionObject];

@@ -1,0 +1,9 @@
+[Trading]FObject:tradingLimits = nil;
+[Trading]FOwnOrder:tradingLimits = tradingLimitModule:tradingLimits [account];
+[Trading]FTrade:tradingLimits = tradingLimitModule :* "tradingLimits" [account];
+[Trading]FTradeRow:tradingLimits = trade:tradingLimits;
+[Trading]FTradingLimitModule:tradingLimits = switch(account, 
+  nil->nil, 
+  ""->nil, 
+  default->object.GetLimits(account));
+[Trading]FTradingLimits:tradingLimits = object;

@@ -1,0 +1,10 @@
+[Prime Services]FMultiInstrumentAndTrades:overnightSpread = select(isExpiredOrClosedOut, 
+  true->select(firstChildInstrument:isOvernightSpreadInstrument, 
+    true->firstChild:overnightSpread, 
+    false->nil), 
+  false->nil);
+[Prime Services]FSingleInstrumentAndTrades:overnightSpread = switch(isFundingPortfolio, 
+  true->switch(fundingPortfolioType, 
+    "CFD"->py("PS_Functions", context).OvernightFundingSpread(previousBusinessDayPositionOrValue, fundingInstrument, businessDayBeforePnLEndDate), 
+    default->fundingRate - overnightBaseRate - shortPremiumRate), 
+  false->0);

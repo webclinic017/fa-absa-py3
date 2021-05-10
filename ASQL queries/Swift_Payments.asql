@@ -1,0 +1,207 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Swift_Payments') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Swift_Payments' and p.type = 'SQL Query' 
+/* Name:  Swift_Payments
+
+Date            Who                 What
+01/02/2007      Heinrich Cronje     Put the required portfolios into a trade filter called 'Swift_Payments_Portfolio'
+
+Reports connected: Swift_messagesR
+
+
+*/
+select
+	t.trdnbr                                'TrdNo',
+	i.insid                                 'Instrument',
+	i.instype            				    'Type',
+	(t.optkey1_chlnbr > 0 ? tk1.entry :'' )	'TradeArea' ,
+	pt.prfid							    'Portfolio',
+ 	u.userid						        'Trader',
+	t.status						        'Status',
+        t.quantity*i.contr_size             'Nom',
+        @StartDay                           'StartDay',
+        @EndDay                             'EndDay',
+        'CashFlow'                          'PayType',
+        cf.pay_day                          'PayDay',
+	display_id(l,'curr')                    'Currency',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity 'Payment',
+	/*display_id(l,'curr')                  'Curr',*/
+	display_id(t,'counterparty_ptynbr')     'Counterparty',
+	display_id(t,'acquirer_ptynbr')			'Acquirer',
+	t.optional_key						    'Devon_TRN_ID',
+	i.free_text						        'Contract',
+        d.swift = '' ? d.fullname : d.swift	'Counterparty_Swift',
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '205' : '100' 'Stype', 
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '58' : '59' 'field', 
+	pc1.swift ~= '' ? pc1.swift : (d.swift = '' ? d.fullname : d.swift)		'Account_Swift',	
+	pc1.depository,
+	pc1.account
+into 
+	Tempt
+from
+        front.instrument i,
+        front.trade t,
+        front.leg l,
+        front.cashflow cf,
+        front.account pc1 fill          /*payments to cp*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.party d fill,
+	front.portfolio pt,
+	front.user u
+
+where
+        cf.pay_day between @StartDay{TODAY} and @EndDay{TODAY}
+and     i.insaddr = t.insaddr
+and	t.creat_usrnbr = u.usrnbr
+and     l.insaddr = i.insaddr
+and     cf.legnbr = l.legnbr
+and     i.instype in('Cap','CurrSwap','FRA','Floor','Swap')
+and 	l.curr = 2
+and     t.counterparty_ptynbr = d.ptynbr
+and 	d.ptynbr = pc1.ptynbr
+and	pc1.details_of_charges = 'BEN'
+and	pc1.accounting = 'IRD'
+
+and     ('None' in (@UndInsType{None;instrument.und_instype*})
+        or i.und_instype in (@UndInsType{})
+        or i.und_instype = 'None')
+and	t.prfnbr = pt.prfnbr
+and match_filter(t, @PortfolioFilter{Swift_Payments_Portfolio;tradefilter.fltid})
+and     t.status in (@TradeStatus{FO Confirmed;trade.status*})
+
+and     tk1.seqnbr = t.optkey1_chlnbr
+group by  /*Account_Swift,*/ t.trdnbr, cf.pay_day 
+order by 15,16,5,14,18,17
+
+/* SWIFT FOR PREMIUMS and fees */
+
+select  /* Premium in trade record */
+        t.trdnbr                                        'TrdNo',
+        i.insid                                         'Instrument',
+	i.instype					'Type',
+	(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' ) 	           		'TradeArea' ,
+	pt.prfid					'Portfolio',
+	u.userid					'Trader',
+	t.status					'Status',
+        t.quantity*i.contr_size                         'Nom',
+        @StartDay                                       'StartDay',
+        @EndDay                                         'EndDay',
+	'Premium'                                       'PayType',
+	t.value_day                                     'PayDay',
+        display_id(t,'curr')                            'Currency',
+	t.premium                                       'Payment',
+	display_id(t,'counterparty_ptynbr')             'Counterparty',
+	display_id(t,'acquirer_ptynbr')			'Acquirer',
+        t.optional_key					'Devon_TRN_ID',    
+	i.free_text						'Contract',
+        d.swift = '' ? d.fullname : d.swift			'Counterparty_Swift',
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '205' : '100' 'Stype', 
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '58' : '59' 'field', 
+	pc1.swift ~= '' ? pc1.swift : (d.swift = '' ? d.fullname : d.swift)		'Account_Swift',	
+	pc1.depository									,
+	pc1.account
+into 
+	Tempt	
+from
+        front.instrument i,
+        front.trade t,
+        front.account pc1 fill          /*payments to cp*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.party d fill,
+	front.portfolio pt,
+	user u
+
+where
+        t.premium ~= 0.0
+and     t.value_day between @StartDay{} and @EndDay{}
+and     i.insaddr = t.insaddr
+and     ('None' in (@InsType{None}) or i.instype in (@InsType{None;i.instype*}))
+and     ('None' in (@UndInsType{}) or i.und_instype in (@UndInsType{})
+or      i.und_instype = 'None')
+
+AND	pt.prfid in (match_filter(t, @PortfolioFilter{Swift_Payments_Portfolio;tradefilter.fltid}))
+and	t.prfnbr = pt.prfnbr
+and 	t.creat_usrnbr = u.usrnbr
+
+and     ('None' in (@AcquireDep{None}) or d.ptyid in (@AcquireDep{None;party.ptyid where type = 'Intern Dept'}))
+and     t.status in (@TradeStatus{})
+and     tk1.seqnbr = t.optkey1_chlnbr
+and     t.counterparty_ptynbr = d.ptynbr
+and 	d.ptynbr = pc1.ptynbr
+and	pc1.details_of_charges = 'BEN'
+and	pc1.accounting = 'IRD'
+
+order by 5, 2
+
+select  /* Payments in payment records */
+        t.trdnbr                                        'TrdNo',
+        i.insid                                         'Instrument',
+	i.instype					'Type',
+	(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' ) 	           		'TradeArea' ,
+	pt.prfid					'Portfolio',
+	u.userid					'Trader',
+	t.status					'Status',
+        t.quantity*i.contr_size                         'Nom',
+        @StartDay                                       'StartDay',
+        @EndDay                                         'EndDay',
+        'Yes' ? pay.type : ''                           'PayType',
+	pay.payday                                      'PayDay',
+        display_id(pay,'curr')                          'Currency',
+	pay.amount                                      'Payment',
+	display_id(t,'counterparty_ptynbr')             'Counterparty',
+	display_id(t,'acquirer_ptynbr')			'Acquirer',
+        t.optional_key					'Devon_TRN_ID',    
+	i.free_text						'Contract',
+        d.swift = '' ? d.fullname : d.swift			'Counterparty_Swift',
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '205' : '100' 'Stype', 
+	d.bis_status = 'Non-OECD Bank' or d.bis_status = 'OECD Bank' ? '58' : '59' 'field', 
+	pc1.swift ~= '' ? pc1.swift : (d.swift = '' ? d.fullname : d.swift)		'Account_Swift',	
+	pc1.depository									,
+	pc1.account
+into
+	Tempt
+from
+        front.instrument i,
+        front.trade t,
+        front.account pc1 fill          /*payments to cp or us*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.party d fill,
+        front.payment pay,
+	front.portfolio pt,
+	user u
+
+where
+        pay.amount ~= 0.0
+and     pay.payday between @StartDay{} and @EndDay{}
+and     pay.type ~= 'Broker Fee'
+and     i.insaddr = t.insaddr
+and     pay.trdnbr = t.trdnbr
+and     ('None' in (@InsType{}) or i.instype in (@InsType{}))
+and     ('None' in (@UndInsType{}) or i.und_instype in (@UndInsType{})
+or      i.und_instype = 'None')
+AND	pt.prfid in (match_filter(t, @PortfolioFilter{Swift_Payments_Portfolio;tradefilter.fltid}))
+and	t.prfnbr = pt.prfnbr
+and 	t.creat_usrnbr = u.usrnbr
+and     ('None' in (@AcquireDep{}) or d.ptyid in (@AcquireDep{}))
+and     t.status in (@TradeStatus{})
+and     tk1.seqnbr = t.optkey1_chlnbr
+and     pay.ptynbr = d.ptynbr
+and 	d.ptynbr = pc1.ptynbr
+and	pc1.details_of_charges = 'BEN'
+and	pc1.accounting = 'IRD'
+order by 5, 2
+
+
+select 
+	*
+from 
+	Tempt
+where 
+	Payment < 0
+	and Counterparty ~= 'DECIMAX'
+ 

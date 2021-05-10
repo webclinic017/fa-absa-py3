@@ -1,0 +1,18 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_Acquirer_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_Acquirer_Extract' and p.type = 'SQL Query' 
+select
+	p.ptyid				'Acquirer',
+	max(time_to_day(t.time))	'LastTraded',
+	p.creat_time			'Created',
+	p.updat_time			'Updated',
+	Today				'BusinessDay'
+from
+	Trade t,
+	Party p
+where
+	t.acquirer_ptynbr = p.ptynbr
+group by p.ptyid

@@ -1,0 +1,291 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_DVaR_Input_Rates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_DVaR_Input_Rates' and p.type = 'SQL Query' 
+
+
+
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+price price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'EUR'
+and c.insid = 'USD'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+
+
+union
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+price price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'GBP'
+and c.insid = 'USD'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+
+
+union
+
+
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+price price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'USD'
+and c.insid = 'ZAR'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+union
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+price price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+
+and i.insid in ('ZAR-JIBAR-ON-DEP',
+'ZAR-JIBAR-1M',
+'ZAR-JIBAR-3M',
+'ZAR-JIBAR-6M',
+'ZAR-JIBAR-12M',
+
+'ZAR/IRS/GEN/2Y',
+
+'ZAR/IRS/GEN/5Y',
+
+'ZAR/IRS/GEN/10Y',
+'ZAR/IRS/GEN/30Y')
+
+and c.insid = 'ZAR'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+
+order by i.insid
+
+union /* all the last prices from hereon*/
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+lastprice price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'EUR'
+and c.insid = 'USD'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+union
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+lastprice price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'GBP'
+and c.insid = 'USD'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+
+
+union
+
+
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+lastprice price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+and i.insid = 'USD'
+and c.insid = 'ZAR'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+union
+
+select 
+I.INSID ,
+c.insid'CURR',
+price.DAY ,
+
+price.settle'Rate'
+
+
+from
+instrument i,
+instrument c,
+PARTY PARTY,
+lastprice price
+
+where
+
+ i.insaddr=price.insaddr
+and price.curr=c.insaddr
+
+
+and i.insid in ('ZAR-JIBAR-ON-DEP',
+'ZAR-JIBAR-1M',
+'ZAR-JIBAR-3M',
+'ZAR-JIBAR-6M',
+'ZAR-JIBAR-12M',
+
+'ZAR/IRS/GEN/2Y',
+
+'ZAR/IRS/GEN/5Y',
+
+'ZAR/IRS/GEN/10Y',
+'ZAR/IRS/GEN/30Y')
+
+and c.insid = 'ZAR'
+
+
+and price.ptynbr=party.ptynbr
+AND PARTY.PTYID='SPOT'
+
+and price.day=@date{Today;}
+
+
+order by i.insid
+
+

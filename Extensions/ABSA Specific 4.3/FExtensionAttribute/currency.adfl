@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FTradeRow:currency = shunt(count(trade.Instrument.Legs), 
+  1->trade.Instrument.Legs.At(0).Currency, 
+  2->shunt(trade.Instrument.Legs.At(0).Currency == trade.Instrument.Legs.At(1).Currency, 
+    true->trade.Instrument.Legs.At(0).Currency, 
+    default->nil), 
+  3->shunt((trade.Instrument.Legs.At(0).Currency == trade.Instrument.Legs.At(1).Currency) and (trade.Instrument.Legs.At(1).Currency == trade.Instrument.Legs.At(2).Currency), 
+    true->trade.Instrument.Legs.At(0).Currency, 
+    default->nil), 
+  default->nil);

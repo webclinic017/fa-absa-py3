@@ -1,0 +1,6 @@
+[Profit and Loss]FInstrument:markToMarketValuesUnNormalized = select(valuesOnSpot, 
+  true->adjustForSpotHandling(markToMarketValues, true), 
+  false->markToMarketValuesUndiscounted);
+[Profit and Loss]FInstrumentAndTrades:markToMarketValuesUnNormalized = openInstrument :* "collapse(markToMarketValuesUnNormalized)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, useMarkToMarketPriceToday, useFallbackToTheoreticalValues, profitAndLossParameters, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FLegAndTrades:markToMarketValuesUnNormalized = openInstrument :* "adjustForSpotHandling(theoreticalLegValuesMoved, valuesOnSpot)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, tradesInPosition, legs, profitAndLossParameters, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FMultiInstrumentAndTrades:markToMarketValuesUnNormalized = sumOf(openInstruments :* "collapse(markToMarketValuesUnNormalized)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, useMarkToMarketPriceToday, useFallbackToTheoreticalValues, profitAndLossParameters, filterUnit, groupingSpotDiscountDate]);

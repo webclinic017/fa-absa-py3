@@ -1,0 +1,6 @@
+[ABSA Columns]FSingleInstrumentAndTrades:NotionalCCY1 = sumOf(tradesInPosition :* "NotionalCCY1" [positionObject]);
+[ABSA Columns]FTrade:NotionalCCY1 = select(sl_instype, 
+  "CurrSwap"->instrumentRecLegNominalValue * instrument.NominalAmount, 
+  "Curr"->object.Quantity, 
+  default->0);
+[ABSA Columns]FTradeRow:NotionalCCY1 = trade:NotionalCCY1;

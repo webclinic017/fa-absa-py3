@@ -1,0 +1,7 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:preTradeAveragePeriodValue = sumOf(removeNil(prePostTradeOrders :* "preTradeAveragePeriodValue"));
+[PreAndPostTradeAnalysis]FOrderProgram:preTradeAveragePeriodValue = switch(preTradeAnalysisHasPeriod, 
+  true->sumOf(memberOrders :* "preTradeAveragePeriodValue"), 
+  default->0.0);
+[PreAndPostTradeAnalysis]FOwnOrder:preTradeAveragePeriodValue = nil;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:preTradeAveragePeriodValue = preTradeArrivalPrice * preTradeVolumePeriodAverage;
+[PreAndPostTradeAnalysis]FSalesOrder:preTradeAveragePeriodValue = prePostTradeAnalysis:preTradeAveragePeriodValue;

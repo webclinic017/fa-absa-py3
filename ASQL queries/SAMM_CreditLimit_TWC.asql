@@ -1,0 +1,66 @@
+/*
+Purpose: [Credit Limit report to be used for checking limit utilisation for TWC]
+Department: [FO MM; Credit Risk - Exposure Management], [FO MM; Credit Risk - Exposure Management]
+Requester: [Marilize Knoetze; Marlin Moodley], [Sipho Sibanyoni]
+Developer: [Bhavnisha Sarawan], [Bhavnisha Sarawan]
+CR Number: [CHNG0002992086 (23/07/2015)], [CHNG000 (//2015)]
+*/
+
+select
+ael_i(p,'ASQL_log','SAMM_CreditLimit_TWC') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_CreditLimit_TWC' and p.type = 'SQL Query' 
+
+select
+'Details' 'Section',
+t.trdnbr 'Trade Number',
+display_id(t, 'counterparty_ptynbr') 'Counterparty',
+display_id(t, 'acquirer_ptynbr') 'Acquirer',
+nominal_amount(t) 'Nominal Amount',
+projected_cf(t) + nominal_amount(t) 'End Cash',
+l.start_day 'Start Day',
+i.exp_day 'Expiry',
+'' 'Limit Loaded',
+'' 'Limit Utilised',
+'' 'Limit Available',
+'' 'Limit Status'
+from
+trade t,
+Instrument i,
+leg l,
+CreditLimit cl
+where
+match_filter(t, @1_Filter{SAMM_CreditLimit_TWC;tradefilter.fltid})
+and t.acquirer_ptynbr = cl.depnbr
+and t.counterparty_ptynbr = cl.ptynbr
+and t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+
+union
+
+select
+'Sum' 'Section',
+t.trdnbr 'Trade Number',
+display_id(t, 'counterparty_ptynbr') 'Counterparty',
+display_id(t, 'acquirer_ptynbr') 'Acquirer',
+sum(nominal_amount(t)) 'Total Nominal Amount',
+sum(projected_cf(t) + nominal_amount(t)) 'End Cash',
+l.start_day 'Start Day',
+i.exp_day 'Expiry',
+to_string(cl.limit[0]) 'Limit Loaded',
+to_string(sum(nominal_amount(t))) 'Limit Utilised',
+to_string(cl.limit[0] - sum(nominal_amount(t))) 'Limit Available',
+to_string(cl.limit[0] - sum(nominal_amount(t)) > 0 ? 'Not Breached':'Breached') 'Limit Status'
+from
+trade t,
+instrument i,
+leg l,
+CreditLimit cl
+where
+match_filter(t, @1_Filter{SAMM_CreditLimit_TWC;tradefilter.fltid})
+and t.acquirer_ptynbr = cl.depnbr
+and t.counterparty_ptynbr = cl.ptynbr
+and t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+group by 3,4

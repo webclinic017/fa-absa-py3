@@ -1,0 +1,6 @@
+[Default]FInstrument:annuityFactor = select(underlyingValueType, 
+  "IRF Option"->denominatedvalue(underlying:quotePeriod, currency, , valuationModelBaseDate), 
+  "Swaption"->select(isDigital and isCashSettled, 
+    false->setDateTimePart(swaptionCouponFactor, valuationModelBaseDate), 
+    true->denominatedvalue(1.0, currency, , valuationModelBaseDate)), 
+  default->denominatedvalue(1.0, , , valuationModelBaseDate));

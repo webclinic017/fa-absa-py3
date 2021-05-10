@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:averageImpliedVolatility = 0.5 * (object:impliedVolatility [priceSource, doSplitAll, filterUnit, marketPriceChoice = "Bid", useCalibrationAccuracy] + object:impliedVolatility [priceSource, doSplitAll, filterUnit, marketPriceChoice = "Ask", useCalibrationAccuracy]);
+[Core Pricing]FInstrumentAndTrades:averageImpliedVolatility = instrument :* "averageImpliedVolatility" [priceSource, isSplitAllGrouped, filterUnit, useVanillaEquivalent, useCalibrationAccuracy];
+[Core Pricing]FMultiInstrumentAndTrades:averageImpliedVolatility = nil;
+[Core Pricing]FOrderBook:averageImpliedVolatility = 0.5 * (equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Ask"] + equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Bid"]);
+[Core Pricing]FOwnOrder:averageImpliedVolatility = trading :* "averageImpliedVolatility" [useCalibrationAccuracy];
+[Core Pricing]FPriceAggregate:averageImpliedVolatility = priceFeed:averageImpliedVolatility [useVanillaEquivalent, useCalibrationAccuracy];
+[Core Pricing]FPriceFeed:averageImpliedVolatility = 0.5 * (equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Ask"] + equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Bid"]);
+[Core Pricing]FTradingInterface:averageImpliedVolatility = 0.5 * (equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Ask"] + equivalentInstrument:impliedVolatilityCalculation [useCalibrationAccuracy, marketPriceChoice = "Bid"]);
+[Core Pricing]FVolatilityPoint:averageImpliedVolatility = object.Volatility;

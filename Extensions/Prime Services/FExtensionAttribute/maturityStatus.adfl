@@ -1,0 +1,8 @@
+[Prime Services]FTrade:maturityStatus = switch(tradeDate == profitAndLossEndDate, 
+  true->"New", 
+  false->switch(instrument :* "expiryDate" == profitAndLossEndDate, 
+    true->"Maturing", 
+    false->switch((tradeDate < profitAndLossEndDate) and (instrument :* "expiryDate" > profitAndLossEndDate), 
+      true->"Open", 
+      false->nil)));
+[Prime Services]FTradeRow:maturityStatus = trade :* "maturityStatus";

@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:riskFactorScenarioResult = 
+# The first select is to avoid unnecessary valuation trees if something has gone wrong in the scenario creation.
+select(riskFactorScenario.IsKindOf("FScenario"), 
+  true->select(riskFactorScenarioColumn > 0, 
+    true->array(riskFactorScenarioResultArray.At(riskFactorScenarioColumn - 1)), 
+    false->riskFactorScenarioResultArray), 
+  false->riskFactorScenario);

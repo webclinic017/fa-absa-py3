@@ -1,0 +1,6 @@
+[Default]FGroupingOrder:postTradeValueTradedPeriod = sumOf(removeNil(prePostTradeOrders :* "postTradeValueTradedPeriod"));
+[Default]FOrderProgram:postTradeValueTradedPeriod = sumOf(memberOrders :* "postTradeValueTradedPeriod");
+[Default]FOwnOrder:postTradeValueTradedPeriod = nil;
+[Default]FSalesOrder:postTradeValueTradedPeriod = switch(postTradeAnalysisHasPeriod, 
+  true->(marketTotalQtyDuringExecution * postTradeVWAPPeriod), 
+  default->nan);

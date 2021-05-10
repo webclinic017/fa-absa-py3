@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:riskPositionAveragePrice = shunt(isZeroRiskPosition, 
+  true->nil, 
+  default->sumOf(tradesInPosition :* "riskPositionAveragePrice" [parent = object]) / riskPosition);
+[ABSA Specific 4.3]FTrade:riskPositionAveragePrice = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades = false], 
+  true->0, 
+  default->object.Price * unmatchedQuantity);
+[ABSA Specific 4.3]FTradeRow:riskPositionAveragePrice = shunt((object :* "isZeroRiskPosition" [includeAllTrades = false]) or (trade :* "unmatchedQuantity" [parent = object] == 0), 
+  true->0, 
+  default->trade.Price);

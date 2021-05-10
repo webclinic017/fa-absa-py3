@@ -1,0 +1,99 @@
+/*------------------------------------------------------------------
+    PS_TowerCapital_EOD_Trades
+
+    This query generates a report of all stock trades booked on the 'Today'
+    
+	Department and Desk : TCUEquities,Prime Services,Broking
+	Requester			: Ryan Bates
+	Developer 			: Edmundo Chissungo
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+	2014-08-05	2183145		 Edmundo Chissungo	Created New Column for LDN Reporting
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','PS_TowerCapital_EOD_Trades') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'PS_TowerCapital_EOD_Trades' 
+and p.type = 'SQL Query' 
+
+    /* Function Column: New logic*/
+select
+    t.trdnbr 'TradeID',
+    'new' 'Function'
+Into
+    Temp
+from
+    Trade t,
+    Portfolio p
+where
+    t.prfnbr = p.prfnbr
+    and t.execution_time = Today
+    and t.updat_time = t.execution_time
+    and p.prfid = @Allocate_Portfolio{;portfolio.prfid}
+    
+    /* =============Function Column: Amend logic==============================*/
+
+
+select
+    t.trdnbr 'TradeID',
+    'amend' 'Function'
+Into
+    Temp
+from
+    Trade t,
+    Portfolio p
+where
+    t.prfnbr = p.prfnbr
+    and t.status not in ('Simulated','Void')
+    and t.execution_time = Today
+    and t.updat_time <= date_add_banking_day(Today,,-1)
+    and p.prfid = @Allocate_Portfolio{;portfolio.prfid}
+    
+
+    /* All other columns matched with the Temp table*/
+select
+    t.trdnbr 'Trade ID',
+    tmp.Function 'Function',
+    'TowerCapital ' 'HF Identifier',
+    'Barclays' 'PB Identifier',
+    i.isin  'Isin',
+    add_info(i,'SEDOL') 'SEDOL',
+    ael_s(,'SAGEN_str_functions.split_string', pd.data[0], ' ', 1)  'RIC',
+   
+    i.instype 'Underlying Security Name',
+ 
+    i.curr 'Currency',
+    i.curr  'Settle Currency',
+    t.quantity > 0 ? 'Buy' : 'Sell' 'BuySell',
+    t.execution_time 'Trade Date',
+    t.value_day 'Settle Date',
+    t.quantity 'Quantity',
+    t.price 'Gross Price',
+    t.net_price 'Net Price',
+    t.premium 'T premium',
+    add_info(p,'CFD Fee Percentage') 'Fee bps'
+   
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    PriceDefinition pd,
+    Temp tmp
+where
+    i.instype in ('Stock','ETF')
+and t.insaddr = i.insaddr
+and pd.insaddr = i.insaddr
+and pd.source_ptynbr = 10
+and t.status not in ('Simulated','Void')
+and t.prfnbr = p.prfnbr
+and t.trdnbr = tmp.TradeID
+and p.prfid = @Allocate_Portfolio{;portfolio.prfid}

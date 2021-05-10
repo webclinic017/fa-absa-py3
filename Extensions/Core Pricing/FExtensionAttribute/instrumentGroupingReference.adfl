@@ -1,0 +1,20 @@
+[Core Pricing]FCombInstrMapAndTrades:instrumentGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:instrumentGroupingReference);
+[Core Pricing]FDeliverableLinkAndTrades:instrumentGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:instrumentGroupingReference);
+[Core Pricing]FInstrument:instrumentGroupingReference = nil;
+[Core Pricing]FLegAndTrades:instrumentGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:instrumentGroupingReference);
+[Core Pricing]FMultiInstrumentAndTrades:instrumentGroupingReference = select(groupingReference, 
+  nil->parentInstrumentGroupingReference, 
+  default->select(groupingReference.IsKindOf("FInstrument") and not groupingReference.IsKindOf("FCurrency"), 
+    true->groupingReference, 
+    false->parentInstrumentGroupingReference));
+[Core Pricing]FPortfolioInstrumentAndTrades:instrumentGroupingReference = nil;
+[Core Pricing]FSingleInstrumentAndTrades:instrumentGroupingReference = select(parent, 
+  nil->nil, 
+  default->parent:instrumentGroupingReference);
+[Core Pricing]FTradeRow:instrumentGroupingReference = nil;

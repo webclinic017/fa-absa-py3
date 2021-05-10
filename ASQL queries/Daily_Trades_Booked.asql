@@ -1,0 +1,48 @@
+/*
+Purpose                       :  Daily file dump of trades booked
+Department and Desk           :  IT - CTB
+Requester                     :  Karin Bonthuys
+Developer                     :  Ickin Vural/Bhavnisha Sarawan
+CR Number                     :  C570112
+
+*/
+
+/* Usage code for this ASQL */
+
+select
+ael_i(p,'ASQL_log','Daily_Trades_Booked') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Daily_Trades_Booked' and p.type = 'SQL Query' 
+
+select distinct
+    @Trades_Create_Date{Today;} 'Trade_Create_Or_Trade_Date',
+    display_id(t,'trader_usrnbr') 'trader_usrnbr',
+    display_id(t,'creat_usrnbr') 'creat_usrnbr',
+    t.time >= @Trades_Create_Date{Today;}? max(t.time): max(t.creat_time) 'time',
+    max(t.trdnbr) 'Trade',
+    t.optional_key re_like '[0-9]+_[0-9]+' ? 'XTP'
+        : t.optional_key re_like 'TAL_.+[A-Z]+[0-9]+[A-Z]+_[A-Z]' ? 'Hermes' 
+            : t.optional_key re_like 'MW+[0-9]+V+[0-9]+[a-z]+' ? 'Marketwire' 
+                : t.optional_key re_like '[0-9]+.STATUS.+' ?  'BESA'
+                    : t.optional_key re_like 'YIELDX.+' ? 'Yield-X'
+                        : t.optional_key re_like 'SFX1_.+' ? 'SAFEX/Nutron'
+                            : 'Front' 'TradeSource'
+into temp
+from
+    Trade t
+where
+    t.time >= @Trades_Create_Date{Today;}
+or  t.creat_time >= @Trades_Create_Date{Today;}
+group by 2,3
+
+select
+    t1.Trade_Create_Or_Trade_Date,
+    t1.trader_usrnbr,
+    t1.creat_usrnbr,
+    t1.TradeSource,
+    t1.Trade
+from 
+    temp t1
+   
+   

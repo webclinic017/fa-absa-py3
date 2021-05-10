@@ -1,0 +1,13 @@
+select
+    t.trdnbr
+from
+    Trade t,
+    Portfolio p,
+    Instrument i
+where
+    t.prfnbr = p.prfnbr
+    and p.prfid in ('MIDAS_FLO', 'MIDAS_EDI', 'MIDAS_GKR', 'MIDAS_AGG', 'MIDAS_YST', 'MIDAS_CAT')
+    and t.insaddr = i.insaddr
+    and i.instype = 'Curr'
+    and t.status not in ('Simulated', 'Void', 'Reserved')
+    and t.insaddr ~= t.curr

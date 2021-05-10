@@ -1,0 +1,11 @@
+[Default]FQuoteController:quoteToDriver = switch(driver, 
+  "YTM"->instrument:marketYieldToMaturity [marketPrice = myQuote] - bmYTM, 
+  "AswSpread"->instrument:proposedQuoteToCurveSpread [marketPrice = myQuote, assetSwapIrCurveInformation], 
+  "DM"->instrument:proposedQuoteToCurveSpread [marketPrice = myQuote, assetSwapIrCurveInformation], 
+  "Z-Spread"->object:proposedQuoteToZSpread [marketPrice = myQuote, zSpreadIrCurveInformation], 
+  "I-Spread"->instrument:marketYieldToMaturity [marketPrice = myQuote] - iSpreadBenchmarkRate, 
+  "Price"->double(myQuote) - bmPrice, 
+  "Spread Bid Price"->double(denominatedvalue(driverSpreadSign * (double(myQuote) - double(proposedQuoteOtherSide)), currency, , valuationDate)), 
+  "Quote"->double(denominatedvalue(myQuote, currency, , valuationDate)), 
+  "Gross Basis"->double(myQuote) - bmGrossBasis * grossBasisBenchmarkConversionFactor, 
+  default->nil);

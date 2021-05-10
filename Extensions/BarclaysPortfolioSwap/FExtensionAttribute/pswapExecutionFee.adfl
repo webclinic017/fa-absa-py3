@@ -1,0 +1,4 @@
+[BarclaysPortfolioSwap]FInstrumentAndTrades:pswapExecutionFee = sumOf(children :* "pswapExecutionFee");
+[BarclaysPortfolioSwap]FSingleInstrumentAndTrades:pswapExecutionFee = -1 * py("pswap_fees", context).pswap_execution_fee_total(tradesInPosition.AsArray, profitAndLossStartDate, profitAndLossEndDate);
+[BarclaysPortfolioSwap]FTrade:pswapExecutionFee = -1 * py("pswap_fees", context).pswap_execution_fee(object, profitAndLossStartDate, profitAndLossEndDate);
+[BarclaysPortfolioSwap]FTradeRow:pswapExecutionFee = trade :* "pswapExecutionFee";

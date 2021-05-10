@@ -1,0 +1,8 @@
+[Default]ExecutionAlgo:marketTotalValueDuringExecution = switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+  true->prePostTradeAnalysis.PeriodQuantity(object.StartTime, object.StopTime).TotalValueIncludingOTCDeals, 
+  false->prePostTradeAnalysis.PeriodQuantity(object.StartTime, object.StopTime).TotalValue);
+[Default]FSalesOrder:marketTotalValueDuringExecution = denominatedvalue(switch(postTradeAnalysisHasPeriod, 
+  true->switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+    true->prePostTradeAnalysis.PeriodQuantity(postTradeStartTime, postTradeEndTime).TotalValueIncludingOTCDeals, 
+    false->prePostTradeAnalysis.PeriodQuantity(postTradeStartTime, postTradeEndTime).TotalValue), 
+  default->nan), currency, , );

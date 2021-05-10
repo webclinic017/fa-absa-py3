@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FTrade:fxInternalStatusCheck = select((object.Trade.TradeSystem == "SML"), 
+  false->(fxConfirmationStatus and fxPartyType and fxInternalCPCheck), 
+  true->(fxSMLConfirmationStatus and fxPartyType or (object.GroupTrdnbr.Counterparty.Oid == "6512") or (object.GroupTrdnbr.Counterparty.Oid == "42951")));

@@ -1,0 +1,5 @@
+[Default]FInstrument:costOfCarryValues = select(mappedFundingParameter <> nil, 
+  true->costOfCarryFundingValues * T(costOfCarryFundingRates), 
+  false->0);
+[Default]FInstrumentAndTrades:costOfCarryValues = instrument :* "costOfCarryValues" [positionObject, priceSource, isSplitAllGrouped, profitAndLossParameters, plSpotGroupingReference];
+[Default]FMultiInstrumentAndTrades:costOfCarryValues = sumOf(instruments :* "costOfCarryValues" [positionObject, priceSource, isSplitAllGrouped, profitAndLossParameters, plSpotGroupingReference]);

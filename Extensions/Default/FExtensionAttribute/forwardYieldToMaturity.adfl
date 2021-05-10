@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:forwardYieldToMaturity = select(isSecurity and ytmCalculationValid, 
+  true->imply(snoop(theoreticalInstrumentSpotValueCleanFromForwardYield, "yield"), theoreticalInstrumentSpotValueCleanFromForwardYield, object:forwardValueClean [forwardValueDate := instrumentSpotDateOrTradeValueDate], ytmAccuracy, -0.5, 1.0, 100), 
+  false->nil);
+[Default]FFuture:forwardYieldToMaturity = select(ytmCalculationValid, 
+  true->imply(snoop(theoreticalInstrumentSpotValueCleanFromForwardYield, "yield"), theoreticalInstrumentSpotValueCleanFromForwardYield, theoreticalInstrumentSpotValueForPrice, ytmAccuracy, -0.5, 1.0, 100), 
+  false->nil);
+[Default]FInstrument:forwardYieldToMaturity = nil;
+[Default]FInstrumentAndTrades:forwardYieldToMaturity = nil;
+[Default]FTradeRow:forwardYieldToMaturity = instrument :* "forwardYieldToMaturity" [instrumentSpotDateOrTradeValueDate];

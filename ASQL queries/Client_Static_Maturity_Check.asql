@@ -1,0 +1,285 @@
+/* update_method=0 */
+select
+    p.ptyid,
+    p.ptynbr,
+    to_string(p.type)   'type',
+    to_string(p.issuer) 'issuer',
+    p.fullname,
+    p.fullname2,
+    add_info(p,'FICA_Compliant')    'FICA_Compliant',
+    to_string(p.not_trading)    'not_trading',
+    to_string(p.bis_status) 'bis_status',
+    display_id(p,'business_status_chlnbr')  'BusinessStatus',
+    to_string(p.correspondent_bank) 'correspondent_bank',
+    to_string(p.cls)    'cls'
+into parties
+from
+    party p
+where
+    p.ptyid in (@Front_Party{;party.ptyid*})
+
+/*Select CFR trades based on the Midas ID on the add info*/
+select
+    t.trdnbr,
+    add_info(t,'Source Ctpy Id')    'ptynbr',
+    add_info(t,'Source Ctpy Name')    'ptyid'
+into
+    cfrTrades
+from
+    trade t,
+    instrument i,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais
+where
+        t.insaddr = i.insaddr
+    and i.instype = 'Curr'
+    and ai.recaddr = t.trdnbr
+    and ai.addinf_specnbr = ais.specnbr
+    and ais.field_name = 'Source Ctpy Id'
+    and ai.value in (@Midas_Customer_Number{;}) /*Midas Customer Number*/
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Summary'    'Section',
+    'TradeCount' 'detail',
+    max(i.instype in ('Stock', 'CFD', 'EquityIndex')
+        ? t.value_day
+        : i.instype in ('Bond','FRN') 
+            ? t.primary_issuance = 'No' 
+                ? t.value_day 
+                : maturity_date(t)
+            : maturity_date(t))    'last_date',
+    count(t.trdnbr) 'count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    trade t,
+    instrument i
+where
+        t.counterparty_ptynbr =* p.ptynbr
+    and t.insaddr = i.insaddr
+    and t.status not in ('Simulated','Void', 'Terminated')
+    /*and p.type = 'Counterparty'*/
+group by 1,2,3,4,5,6
+
+union
+
+select
+    'MidasCFR'    'Source',
+    c.ptyid,
+    c.ptynbr,
+    ''  'type',
+    ''  'issuer',
+    'Summary'    'Section',
+    'TradeCount' 'detail',
+    max(maturity_date(t))    'last_date',
+    count(t.trdnbr) 'count',
+    ''  'fullname',
+    ''  'fullname2',
+    ''  'FICA_Compliant',
+    ''  'not_trading',
+    ''  'bis_status',
+    ''  'BusinessStatus',
+    ''  'correspondent_bank',
+    ''  'cls'
+from
+    trade t,
+    cfrTrades c
+where
+        t.trdnbr = c.trdnbr
+    and t.status not in ('Simulated','Void', 'Terminated')
+
+group by 2,3
+
+union
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Summary'    'Section',
+    'PaymentCount' 'detail',
+    max(pa.payday)    'last_date',
+    count(pa.paynbr) 'count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    trade t,
+    payment pa
+where
+        pa.ptynbr =* p.ptynbr
+    and t.trdnbr =  pa.trdnbr
+    and t.status not in ('Simulated','Void', 'Terminated')
+    /*and p.type = 'Counterparty'*/
+group by 1,2,3,4,5,6
+    
+
+union
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Summary'    'Section',
+    'InsCount' 'detail',
+    max(to_date(i.creat_time))    'last_date',
+    count(i.insaddr)    'count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    instrument i
+where
+        i.issuer_ptynbr =* p.ptynbr
+group by 1,2,3,4,5,6
+
+union
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Detail Trade'    'Section',
+    to_string(t.trdnbr) 'detail',
+    max(i.instype in ('Stock', 'CFD', 'EquityIndex')
+        ? t.value_day
+        : i.instype in ('Bond','FRN') 
+            ? t.primary_issuance = 'No' 
+                ? t.value_day 
+                : maturity_date(t)
+            : maturity_date(t))    'last_date',
+    0  'Count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    trade t,
+    instrument i
+where
+        t.counterparty_ptynbr =* p.ptynbr
+    and t.insaddr = i.insaddr
+    and t.status not in ('Simulated','Void', 'Terminated')
+    and @Detail{No;'Yes','No'} = 'Yes'
+    /*and p.type = 'Counterparty'*/
+
+union
+
+select
+    'MidasCFR'    'Source',
+    c.ptyid,
+    c.ptynbr,
+    ''  'type',
+    ''  'issuer',
+    'Detail Trade'    'Section',
+    to_string(t.trdnbr) 'detail',
+    max(maturity_date(t))    'last_date',
+    0 'count',
+    ''  'fullname',
+    ''  'fullname2',
+    ''  'FICA_Compliant',
+    ''  'not_trading',
+    ''  'bis_status',
+    ''  'BusinessStatus',
+    ''  'correspondent_bank',
+    ''  'cls'
+from
+    trade t,
+    cfrTrades c
+where
+        t.trdnbr = c.trdnbr
+    and t.status not in ('Simulated','Void', 'Terminated')
+    and @Detail{No;'Yes','No'} = 'Yes'
+    
+union
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Detail Payment'    'Section',
+    to_string(t.trdnbr) 'detail',
+    max(pa.payday)    'last_date',
+    0 'count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    trade t,
+    payment pa
+where
+        pa.ptynbr =* p.ptynbr
+    and t.trdnbr =  pa.trdnbr
+    and t.status not in ('Simulated','Void', 'Terminated')
+    /*and p.type = 'Counterparty'*/
+    and @Detail{No;'Yes','No'} = 'Yes'
+
+union
+
+select
+    'FrontArena'    'Source',
+    p.ptyid,
+    to_string(p.ptynbr) 'ptynbr',
+    p.type,
+    p.issuer,
+    'Detail Instrument'    'Section',
+    i.insid 'detail',
+    to_date(i.creat_time)    'last_date',
+    0  'Count',
+    p.fullname,
+    p.fullname2,
+    p.FICA_Compliant,
+    p.not_trading,
+    p.bis_status,
+    p.BusinessStatus,
+    p.correspondent_bank,
+    p.cls
+from
+    parties p,
+    instrument i
+where
+        i.issuer_ptynbr =* p.ptynbr
+    and @Detail{No;'Yes','No'} = 'Yes'

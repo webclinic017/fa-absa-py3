@@ -1,0 +1,11 @@
+[Equity Market Making]FQuoteController:qUndQuoteVolumeAsk = switch(qUndQuoteVolumeDeltaBased, 
+  true->select(instrument.IsDerivative, 
+    true->select(isUndPositive, 
+      true->switch(qPriceDelta > 0, 
+        true->qProposedAskQty * contractSize * qPriceDelta, 
+        false->0.0), 
+      false->switch(qPriceDelta < 0, 
+        true->qProposedBidQty * contractSize * (-qPriceDelta), 
+        false->0.0)), 
+    false->qUndQuoteVolumeAskSetting), 
+  false->qUndQuoteVolumeAskSetting);

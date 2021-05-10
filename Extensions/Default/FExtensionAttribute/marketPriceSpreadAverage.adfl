@@ -1,0 +1,6 @@
+[Default]FFxAdsPriceFeed:marketPriceSpreadAverage = object.SelectedPrice(["SpreadAveragePrice"]).GetPriceForQuantity(0.0, false, valuationDateTime) * (1 + priceShift);
+[Default]FInstrument:marketPriceSpreadAverage = pricingPriceFeed :* "marketPriceSpreadAverage";
+[Default]FInstrumentAndTrades:marketPriceSpreadAverage = instrument :* "marketPriceSpreadAverage" [priceSource];
+[Default]FPriceAggregate:marketPriceSpreadAverage = priceFeed:marketPriceSpreadAverage;
+[Default]FPriceFeed:marketPriceSpreadAverage = object.SpreadAveragePrice.GetPriceForQuantity(roundLot);
+[Default]FTradingInterface:marketPriceSpreadAverage = priceFeed:marketPriceSpreadAverage;

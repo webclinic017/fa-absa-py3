@@ -1,0 +1,82 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_OTC_CURRENCY_LONG_CONFIRM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_OTC_CURRENCY_LONG_CONFIRM' and p.type = 'SQL Query' 
+select 
+
+i.call_option,
+i.insaddr,
+t.trdnbr 				'DealRef',
+time_to_day(t.time)			'DealDate',
+i.strike_price				'StrikePrice',
+i.exp_day 				'ExpiryDate',
+i.exercise_type 			'OptionStyle',
+
+t.premium 				'Premium',
+display_id(t,'curr') 			'PremiumCurrency',
+
+i.call_option = 'Yes' ?  display_id(i,'curr') : und.insid	'PutCurrency',
+i.call_option = 'No' ? 	display_id(i,'curr'): und.insid 'CallCurrency',
+
+
+
+i.call_option = 'Yes' ? t.quantity*i.strike_price : t.quantity 	'PutAmount',
+i.call_option = 'No' ? t.quantity*i.strike_price : t.quantity	'CallAmount',
+
+t.status				'Status',
+display_id(t,'trader_usrnbr')		'Trader',
+display_id(t,'optkey1_chlnbr')		'TradeArea',
+p.prfid					'Portfolio',	
+cp.ptyid				'Counterparty',
+cp.fullname 				'Counter_Party_Name',
+t.quantity < 0 ? 
+'ABSA BANK LIMITED' : cp.fullname 	'OptionSeller',
+t.quantity > 0 ?
+'ABSA BANK LIMITED' : cp.fullname 	'OptionBuyer',
+t.optional_key 				'DevNbr',
+used_vol(i)	'Volatility',
+i.spot_banking_days_offset		'SpotOffset',
+
+/*i.exp_day + i.spot_banking_days_offset  'SettlementDate',*/
+/*date_add_banking_day(i.exp_day,c.insid,c.spot_banking_days_offset)  	'SettlementDate_curr',
+date_add_banking_day(i.exp_day,und.insid,und.spot_banking_days_offset)  'SettlementDate_und',*/
+/*date_add_banking_day(i.exp_day,c.insid,c.spot_banking_days_offset) > date_add_banking_day(i.exp_day,und.insid,und.spot_banking_days_offset) ? date_add_banking_day(i.exp_day,c.insid,c.spot_banking_days_offset) : date_add_banking_day(i.exp_day,und.insid,und.spot_banking_days_offset)	'SettlementDate',*/
+date_add_banking_day(i.exp_day,c.insid,i.pay_day_offset) > date_add_banking_day(i.exp_day,und.insid,i.pay_day_offset) ? date_add_banking_day(i.exp_day,c.insid,i.pay_day_offset) : date_add_banking_day(i.exp_day,und.insid,i.pay_day_offset)	'SettlementDate',
+
+t.value_day 'PremPayDay',
+cp.address				'Address',
+cp.address2				'Address2',
+cp.zipcode				'Zipcode',
+cp.city					'City',
+cp.fax					'Fax'
+
+from 
+
+trade t , 
+instrument i, 
+instrument und, 
+instrument c,
+portfolio p,
+party cp,
+party us
+
+where 
+	match_filter(t, @Filter{;tradefilter.fltid}, @TradeNumber{})
+and	t.insaddr = i.insaddr
+and	i.instype = 'Option'
+and	i.und_instype = 'Curr'
+and 	i.und_insaddr = und.insaddr
+and	i.curr = c.insaddr
+and	p.prfnbr = t.prfnbr
+and	cp.ptynbr = t.counterparty_ptynbr
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+/*and 	us.ptyid = 'ABSA BANK'   Commented by Andries Brink on 17/12/2004 */
+and 	t.acquire_day = @Date{YESTERDAY}
+/*and	t.trdnbr = 209895, 210062, 210143,  209897*/
+
+/*and	t.trdnbr in (220182, 220198, 220183)*/
+
+
+

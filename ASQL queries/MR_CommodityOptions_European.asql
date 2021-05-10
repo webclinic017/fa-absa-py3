@@ -1,0 +1,80 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_CommodityOptions_European') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_CommodityOptions_European' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_CommodityOptions_European.OpenFile',@1_path{'f:\'},@2_FileName{'MR_CommodityOptions_European.csv'},@3_PositionName{'MR_CommodityOptions_European_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+	
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_CommodityOptions_European.Write',@1_path{'f:\'},@2_FileName{'MR_CommodityOptions_European.csv'},@3_PositionName{'MR_CommodityOptions_European_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+    instrument i
+Where
+    /* Basic filtering conditions */
+    (i.exp_day = 0 or i.exp_day > Today)
+	    
+    /* Instrument specific filtering*/
+    and i.instype in ('Option')
+    and i.und_instype in ('Commodity','ETF')
+    and i.exercise_type in ('European')
+    and i.digital in ('No')
+    and i.exotic_type in ('None')
+	
+/* anwar 2010-07-01 added new selection for options that have underlyings as future/forwards that have commodity underlyings*/	
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_CommodityOptions_European.Write',@1_path{'f:\'},@2_FileName{'MR_CommodityOptions_European.csv'},@3_PositionName{'MR_CommodityOptions_European_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+    instrument i,
+    instrument ui
+Where
+    /* Basic filtering conditions */
+    (i.exp_day = 0 or i.exp_day > Today)
+	    
+    /* Instrument specific filtering*/
+    and i.instype in ('Option')
+    and i.und_instype in ('Future/Forward')
+    and i.exercise_type in ('European')
+    and i.digital in ('No')
+    and i.exotic_type in ('None')
+    and ui.insaddr = i.und_insaddr
+    and ui.und_instype = 'Commodity'
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+	
+Select * From Macro
+Where Process In ('Create File','Close File')
+

@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FCertificate:basketFxAdjustedWeights = select(isQuanto, 
+  true->basketWeights .* underlyingInstrumentMaps :* "fixFXRate" [isForwardStarting := false], 
+  false->basketWeights);
+[Equity Pricing and Risk]FOption:basketFxAdjustedWeights = select(isQuanto, 
+  true->basketWeights .* multiUnderlyingFixFxLegToInstrument, 
+  false->basketWeights);

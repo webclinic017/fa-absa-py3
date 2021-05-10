@@ -1,0 +1,6 @@
+[Default]FDerivative:impliedRepoRate = shunt((nil <> repoRateInTheoreticalPriceIfExists) and implyValid, 
+  false->nil, 
+  true->imply(snoop(theoreticalPrice, "repoRateForForwardValue"), theoreticalPrice, marketPrice, implyPrecision, -0.1, 0.3, implyMaxIterations));
+[Default]FInstrument:impliedRepoRate = 0.0;
+[Default]FInstrumentAndTrades:impliedRepoRate = instrument :* "impliedRepoRate" [marketPrice];
+[Default]FMultiInstrumentAndTrades:impliedRepoRate = nil;

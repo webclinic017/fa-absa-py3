@@ -1,0 +1,11 @@
+[ABSAPortfolioSwap]FInstrumentAndTrades:legtype = nil;
+[ABSAPortfolioSwap]FLegAndTrades:legtype = leg.PayLeg;
+[ABSAPortfolioSwap]FTradeRow:legtype = shunt(count(trade.Instrument.Legs), 
+  1->trade.Instrument.Legs.At(0).PayLeg, 
+  2->shunt(trade.Instrument.Legs.At(0).PayLeg == trade.Instrument.Legs.At(1).PayLeg, 
+    true->trade.Instrument.Legs.At(0).PayLeg, 
+    default->nil), 
+  3->shunt((trade.Instrument.Legs.At(0).PayLeg == trade.Instrument.Legs.At(1).PayLeg) and (trade.Instrument.Legs.At(1).PayLeg == trade.Instrument.Legs.At(2).PayLeg), 
+    true->trade.Instrument.Legs.At(0).PayLeg, 
+    default->nil), 
+  default->nil);

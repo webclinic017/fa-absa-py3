@@ -1,0 +1,22 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_CopyVolSurfaceToSOB') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_CopyVolSurfaceToSOB' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+    'VolSurfaceCopy',
+    vol.vol_name,
+    today,
+    ael_s(,'Louw_utils.copyVolSurfaceToSOB', vol.vol_name)
+    
+from
+    volatility vol
+
+where 
+    vol.vol_name in ('EQ_ALSI_SSkew','EQ_CADIZ_SSkew','EQ_ISP_SSkew','EQ_RUT_SSkew','EQ_STX40_SSkew','EQ_SWIX_SSkew')

@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:externalLoanPosition = 0;
+[Securities Lending ABSA]FInstrumentAndTrades:externalLoanPosition = sumOf(instruments :* "externalLoanPosition" [positionObject]);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:externalLoanPosition = nil;
+[Securities Lending ABSA]FSecurityLoan:externalLoanPosition = select(externalLoanTradesInPosition == [], 
+  true->0, 
+  default->sumOf(externalLoanTradesInPosition :* "sl_position"));
+[Securities Lending ABSA]FSingleInstrumentAndTrades:externalLoanPosition = sumOf(instrument :* "externalLoanPosition" [positionObject]);

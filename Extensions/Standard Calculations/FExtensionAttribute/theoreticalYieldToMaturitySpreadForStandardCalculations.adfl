@@ -1,0 +1,5 @@
+[Standard Calculations]FInstrument:theoreticalYieldToMaturitySpreadForStandardCalculations = 0.0;
+[Standard Calculations]FInstrumentAndTrades:theoreticalYieldToMaturitySpreadForStandardCalculations = select(yieldCurve, 
+  nil->0.0, 
+  default->shift(theoreticalYieldToMaturity, snoop(theoreticalYieldToMaturity, ["creditCurve", "discountCurve", "repoCurve", "moneyMarketCurve"]), [irCurveInformationForStandardCalculationsInstrumentSpecific]) - theoreticalYieldToMaturity);
+[Standard Calculations]FMultiInstrumentAndTrades:theoreticalYieldToMaturitySpreadForStandardCalculations = nil;

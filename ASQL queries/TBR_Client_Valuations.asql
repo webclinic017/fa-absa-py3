@@ -1,0 +1,59 @@
+ select 
+      ael_i(p,'ASQL_log','TBR_Client_Valuations') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBR_Client_Valuations' and p.type = 'SQL Query'
+  /*When		Who		What
+2008/07/08	Bronwyn Ladner	Created*/
+
+select
+	ael_s(,'Valuation.OpenFile')	'OpenFile'
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 
+select 
+    to_string(i.instype) 'InsType',
+    t.trdnbr 'Trade_Number',
+    to_date(@valuation_date{Today;}) 'Valuation_Date',
+    mtm_value_fo(t,@valuation_date{Today;},'ZAR') 'MTM_ZAR',
+    ael_s(,'Valuation.conTest',t,@valuation_date{Today;},display_id(i,'curr'),mtm_value_fo(t,@valuation_date{Today;},'ZAR'),@1_Filter{;tradefilter.fltid}) 'OpenFile',
+    '' 'NewFile'
+into
+    temp1
+from
+    trade   t,
+    instrument  i,
+    temp tt
+    
+where
+    t.insaddr = i.insaddr
+    and i.exp_day >= TODAY
+    and i.instype ~= 'Deposit'
+    and tt.Openfile = 'Success'
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+select
+    *
+from
+    temp1
+
+union
+
+select 
+    'Total MTM_ZAR' 'InsType',
+    to_int('') 'Trade_Number',
+    to_date('00/00/0000') 'Valuation_Date',
+    sum(MTM_ZAR) 'MTM_ZAR',
+    '''OpenFile',
+    ael_s(,'Valuation.mtm_zar_sum',sum(MTM_ZAR)) 'NewFile'
+from 
+  temp1
+group by 5
+
+
+    
+
+

@@ -1,0 +1,5 @@
+[Treasury Pricing and Risk]FCurrency:interestRateAtTradeTime = fxDiscountCurve.DiscountRate(currencyPairSpotDate, valueDay, daycountMethod);
+[Treasury Pricing and Risk]FFra:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = valueDay, valueDay = startDate];
+[Treasury Pricing and Risk]FFuture:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = instrumentSpotDate, valueDay = settlementDate];
+[Treasury Pricing and Risk]FInstrument:interestRateAtTradeTime = currency :* "interestRateAtTradeTime" [currencyPairSpotDate = instrumentSpotDate, valueDay = valueDay];
+[Treasury Pricing and Risk]FTrade:interestRateAtTradeTime = instrument :* "interestRateAtTradeTime" [valuationBaseDateTimeInput = object.TradeTime, valueDay = object.ValueDay, fxToCurrency = currency];

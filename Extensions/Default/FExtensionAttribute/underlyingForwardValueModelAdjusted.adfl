@@ -1,0 +1,6 @@
+[Default]FCertificate:underlyingForwardValueModelAdjusted = collapse(underlyingForwardValueModel);
+[Default]FDerivative:underlyingForwardValueModelAdjusted = underlyingForwardValueModel * quantoCarryAdjustment;
+[Default]FFuture:underlyingForwardValueModelAdjusted = underlyingForwardValueModel * quantoCarryAdjustment / underlyingConversionFactor;
+[Default]FInstrument:underlyingForwardValueModelAdjusted = select(useUnderlyingAdjustmentFactor, 
+  true->underlyingAdjustmentFactor * underlyingForwardValueModel, 
+  false->underlyingForwardValueModel);

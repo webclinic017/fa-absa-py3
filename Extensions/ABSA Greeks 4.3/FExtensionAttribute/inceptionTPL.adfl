@@ -1,0 +1,7 @@
+[ABSA Greeks 4.3]FInstrument:inceptionTPL = sumOf(inceptionTPLValues);
+[ABSA Greeks 4.3]FInstrumentAndTrades:inceptionTPL = openInstrument :* "inceptionTPL" [isSplitAllGrouped, positionObject];
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:inceptionTPL = sumOf(openInstruments :* "inceptionTPL" [isSplitAllGrouped, positionObject]);
+[ABSA Greeks 4.3]FTrade:inceptionTPL = select(tsInceptionTpl <> nil, 
+  true->tsInceptionTpl.DenominatedValue, 
+  default->nil);
+[ABSA Greeks 4.3]FTradeRow:inceptionTPL = openInstrument :* "inceptionTPL" [isSplitAllGrouped, singleTradePosition, includeAllTrades];

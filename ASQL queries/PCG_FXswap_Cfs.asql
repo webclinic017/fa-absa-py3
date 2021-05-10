@@ -1,0 +1,87 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','PCG_FXswap_Cfs') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+    where p.name = 'PCG_FXswap_Cfs' and p.type = 'SQL Query' 
+
+ 
+select
+    t.connected_trdnbr                          'Trd',
+    t.value_day                                 'Payday',
+    maturity_date(t)                            'Trdexpiry',
+    'FxSwap'                                    'Type',
+    i.insid                                     'curr',
+    t.quantity                                  'Currency_Cashflow',
+    p.fullname                                  'Counterparty',
+    p.type                                      'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',i.insid)       'FXRate'
+into temp
+from
+    trade t,
+    instrument i,
+    party p
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and t.value_day > @StartDay{TODAY}
+    and i.insaddr = t.insaddr
+    and i.instype = 'Curr'
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and t.counterparty_ptynbr = p.ptynbr
+
+
+select
+    t.connected_trdnbr                              'Trd',
+    t.value_day                                     'Payday',
+    maturity_date(t)                                'Trdexpiry',
+    'FxSwap'                                        'Type',
+    curr.insid                                      'curr',
+    t.premium                                       'Currency_Cashflow',
+    p.fullname                                      'Counterparty',
+    p.type                                          'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',curr.insid)        'FXRate'
+into temp
+from
+    trade t,
+    instrument i,
+    instrument curr,
+    party p
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and t.value_day > @StartDay{TODAY}
+    and i.insaddr = t.insaddr
+    and i.instype = 'Curr'
+    and curr.insaddr = t.curr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and t.counterparty_ptynbr = p.ptynbr
+
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    to_double(Currency_Cashflow)'Cflow',
+    Counterparty,
+    CPTY_Type,
+    Fxrate,
+    Currency_Cashflow * Fxrate 'USDEqCF'
+into temp2
+
+from temp
+/*where Counterparty ~= 'FORWARDS DESK'*/
+
+/*---------------------------------------------------------*/
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    sum(Cflow)'Sum',
+    Counterparty,
+    Counterparty = 'FORWARDS DESK' ? 'Intern Dept' : CPTY_Type ' Cpty Type',
+    avg(FXrate) 'FX Rate',
+    sum(USDEqCF) 'Sum USD'
+
+from temp2
+    
+Group by Trd,curr
+

@@ -1,0 +1,9 @@
+[T3 Allocations]FInstrument:allocationAggregatedLongPremium = sumOf(removeNil(tradesInPosition :* "allocationAggregatedLongPremium")) + denominatedvalue(0, symbol(displayCurrency), , );
+[T3 Allocations]FMultiInstrumentAndTrades:allocationAggregatedLongPremium = sumOf(instruments :* "allocationAggregatedLongPremium" [positionObject]);
+[T3 Allocations]FSingleInstrumentAndTrades:allocationAggregatedLongPremium = instrument :* "allocationAggregatedLongPremium" [positionObject];
+[T3 Allocations]FTrade:allocationAggregatedLongPremium = shunt(object.AllocIsValid, 
+  true->select(object.AllocLongShort, 
+    "Long"->convertToCurrency(denominatedvalue(object.Premium, symbol(currency), , ), currency:immediateOrSpotFxRate [fxToCurrency = displayCurrency], symbol(displayCurrency)), 
+    "Short"->denominatedvalue(0, symbol(displayCurrency), , )), 
+  default->nil);
+[T3 Allocations]FTradeRow:allocationAggregatedLongPremium = trade:allocationAggregatedLongPremium;

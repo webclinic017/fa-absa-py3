@@ -1,0 +1,12 @@
+[Brokerage Risk]FCurrency:initialMarginValue = nil;
+[Brokerage Risk]FInstrument:initialMarginValue = shunt((collateralPosition == 0) and (portfolio:portfolioType <> "Cash Account") and not (spanInstruments.HasKey(object.Oid)), 
+  true->shunt(initialMarginCondition <> nil, 
+    true->shunt(initialMarginCurve.CurveType, 
+      "Percentage"->initialMarginCurve.MinValue, 
+      "Per Unit"->convertToCurrency(denominatedvalue(initialMarginCurve.MinValue, initialMarginCurve.Currency, , ), initialMarginFxRates, displayCurrencySymbol), 
+      default->nil), 
+    false->100.0), 
+  false->nil);
+[Brokerage Risk]FSingleInstrumentAndTrades:initialMarginValue = shunt(instrument:initialMarginValue [portfolio, positionObject].IsKindOf("FDenominatedValue"), 
+  true->convertToCurrency(instrument:initialMarginValue [portfolio, positionObject], portfolioFxRates, displayCurrencySymbol), 
+  default->instrument:initialMarginValue [portfolio, positionObject]);

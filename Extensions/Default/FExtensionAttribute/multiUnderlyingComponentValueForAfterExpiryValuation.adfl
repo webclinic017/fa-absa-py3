@@ -1,0 +1,5 @@
+[Default]FInstrument:multiUnderlyingComponentValueForAfterExpiryValuation = select(isCashSettled, 
+  true->shunt[priceSource, expiryDate](pricingPriceFeed.MtMPrice(expiryDate).PriceExists, 
+    true->stripDateTimePart(pricingPriceFeed.MtMPrice(expiryDate).Get), 
+    false->marketSpotValue), 
+  false->marketSpotValue);

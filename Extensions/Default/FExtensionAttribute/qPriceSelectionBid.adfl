@@ -1,0 +1,9 @@
+[Default]FQuoteController:qPriceSelectionBid = switch(qUnderlyingPriceType, 
+  "Bid/Ask"->select(instrument:isUndPositive, 
+    true->qPriceArrayBid, 
+    false->qPriceArrayAsk), 
+  "SprAvg"->qPriceArraySpreadAverage, 
+  "Bid"->qPriceArrayBid, 
+  "Ask"->qPriceArrayAsk, 
+  "Last"->qPriceArrayLast, 
+  default->qPriceArraySpreadAverage);

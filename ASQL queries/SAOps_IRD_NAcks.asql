@@ -1,0 +1,43 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAOps_IRD_NAcks') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_IRD_NAcks' and p.type = 'SQL Query' 
+
+/*
+Purpose             :   Report on settlements not acknowledged
+Department and Desk :   Ops
+Rquester            :   FATLM Project
+Developer           :   Anwar Banoo
+CR Number           :   
+*/
+    
+/*---------- Not Acknowledged Settlements ----------*/
+select    
+    i.instype   'Instrument Type',
+    s.status    'Settlement Status',
+    s.trdnbr    'Trade No',
+    s.amount    'Amount',
+    display_id(s, 'curr')   'Currency',
+    s.value_day 'Pay Date',
+    s.type  'Type',
+    s.acquirer_ptyid    'Acquirer',
+    p.ptyid 'Counterparty'
+from
+    settlement s,
+    trade t,
+    instrument i,
+    party p
+where
+        s.acquirer_ptyid = 'IRD DESK' /*as part of FATLM we only report on the ird desk trades*/
+    and s.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr    
+    and s.counterparty_ptynbr = p.ptynbr
+    and s.value_day >= @1_FromDate{Today} 
+    and s.value_day <= @2_ToDate{Today} 
+    and ((@3_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@3_Counterparty{All;Party.ptyid*})))    
+    and (@4_TradeNbr{All} in ('All', '') or t.trdnbr = @4_TradeNbr{All})
+    and s.status = 'Not Acknowledged'
+
+order by 6

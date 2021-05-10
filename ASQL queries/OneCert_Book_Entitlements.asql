@@ -1,0 +1,114 @@
+/* update_method=1 */
+/* ******************  ASQL USAGE LOG  *********************** */ 
+ select 
+      ael_i(p,'ASQL_log','OneCert_Book_Entitlements') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'OneCert_Book_Entitlements' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Date                : [2010-03-09]
+                          [2015-10-02]
+    Purpose             : [Shows User and Group access]
+                          [Updated to include Profile components for One Cert feed]
+    Department and Desk : [FA System Admin]
+                          [UT Book Access Control Team]
+    Requester           : Rod Jardine
+                          [Rahul Dixit]
+    Developer           : Aaeda Salejee
+                          [Fancy Dire]
+    CR Number           : 247110
+------------------------------------------------------------------*/
+ 
+/*Select all users and their profiles*/ 
+select
+    'User'                                  'Section',
+    u.userid                                'UserID',
+    u.userid                                'Name',
+    g.grpid                                 'Group',
+    to_string('@BOOK@BookGroup=',p.profid,'^BookAccessType=ProfileAccess')  'Profile',
+    p.description                           'ProfileDescription',
+    c.type                                  'ComponentType',
+    c.compname                              'ComponentName',
+    profc.allow_write,
+    profc.allow_create,
+    g.grpid = 'Previous User' ? 'N' : 'Y'    'Active',
+    g.grpid in ('Admin', 'System Processes', 'Integration Process', 'Interfaces') ? 'System' : 'User'   'User',
+    p.profid = 'ALL_COMPONENTS' ? 'Y' : 'N'   'Privilege'
+    
+into
+    UserAccess
+    
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    UserProfileLink upl,
+    UserProfile p,
+    ProfileComponent profc,
+    Component c
+
+where
+    u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and u.usrnbr = upl.usrnbr
+and p.profnbr = upl.profnbr
+and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr
+
+
+/*Select all users and their group profiles*/
+select
+    'Group'                                 'Section',   
+    u.userid                                'UserID',                              
+    u.userid                                'Name',
+    g.grpid                                 'Group',
+    to_string('@BOOK@BookGroup=',p.profid,'^BookAccessType=ProfileAccess')  'Profile',
+    p.description                           'ProfileDescription',
+    c.type                                  'ComponentType',
+    c.compname                              'ComponentName',
+    profc.allow_write,
+    profc.allow_create,
+    (g.grpid = 'Previous User' or u.inactive = 'Yes') ? 'N' : 'Y'    'Active',
+    g.grpid in ('Admin', 'System Processes', 'Integration Process', 'Interfaces') ? 'System' : 'User'   'User',
+    p.profid = 'ALL_COMPONENTS' ? 'Y' : 'N'   'Privilege'
+
+into
+    UserAccess
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    GroupProfileLink gpl,
+    UserProfile p,
+    ProfileComponent profc,
+    Component c
+
+where
+    u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and g.grpnbr = gpl.grpnbr
+and gpl.profnbr = p.profnbr
+and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr
+
+
+/*Combining the two tables above to generate the final output for One Cert
+for only Portfolio components*/
+select   
+    t.UserID,
+    t.Name,
+    t.Profile,
+    ''  'Col1',
+    ''  'Col2',
+    ''  'Col3',
+    ''  'Col4',
+    ''  'Col5',
+    t.user,
+    t.active,
+    ''  'Col6',
+    t.privilege
+from
+    UserAccess t
+where t.ComponentType = 'Portfolio'
+group by 1,3

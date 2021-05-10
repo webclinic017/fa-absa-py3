@@ -1,0 +1,7 @@
+[Core Risk]FCombInstrMap:volgaValuesInstrument = select(volatilityGreekRiskFactorCount > 0, 
+  true->instrument :* "volgaValuesInstrument" [doSplitAll, priceSource, volatilityGreekFilter] * weight * contractSize * timeDistributionFactor * fxLegToInstrumentOnLegSpotDay, 
+  false->combinationSpotZero);
+[Core Risk]FCombination:volgaValuesInstrument = select(splitCombination, 
+  true->sumOf((instrumentMaps) :* "volgaValuesInstrument" [doSplitAll, priceSource, volatilityGreekFilter]) / combinationDivisionFactor, 
+  false->instrumentSpotZero);
+[Core Risk]FInstrument:volgaValuesInstrument = differential(vegaValuesInstrument, vegaVolatilityGreekRiskFactorsShiftedDown, valuationModelSpecificRelativeVolatilityShift * 100);

@@ -1,0 +1,6 @@
+[_securities_lending_exts]FTrade:secLendAddtlCostParams = switch(secLendCptyRating <> nil, 
+  true->switch(object.Trade.Market <> nil, 
+    true->TreeResult(secLendAddtlCostTree, [secLendCptyRating, object.Trade.Market]), 
+    default->nil), 
+  default->nil);
+[_securities_lending_exts]FTradeRow:secLendAddtlCostParams = trade:secLendAddtlCostParams;

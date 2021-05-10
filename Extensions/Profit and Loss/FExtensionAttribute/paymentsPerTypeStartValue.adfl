@@ -1,0 +1,4 @@
+[Profit and Loss]FInstrument:paymentsPerTypeStartValue = positionPayments(tradesInPosition, valuationSystemDate, profitAndLossStartDate, tradeStatusInclusionMaskDefault, paymentDayComparisonRule, paymentType);
+[Profit and Loss]FMultiInstrumentAndTrades:paymentsPerTypeStartValue = sumOf(instruments :* "paymentsPerTypeStartValue" [positionObject, profitAndLossStartDate, paymentType]);
+[Profit and Loss]FSingleInstrumentAndTrades:paymentsPerTypeStartValue = instrument :* "paymentsPerTypeStartValue" [positionObject, profitAndLossStartDate, paymentType];
+[Profit and Loss]FTradeRow:paymentsPerTypeStartValue = instrument :* "paymentsPerTypeStartValue" [singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, profitAndLossStartDate, paymentType, taxLotPositionObject, taxLotValuation := taxLotPnL];

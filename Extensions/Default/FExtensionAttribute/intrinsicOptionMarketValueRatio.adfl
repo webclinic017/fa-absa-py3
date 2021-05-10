@@ -1,0 +1,7 @@
+[Default]FInstrument:intrinsicOptionMarketValueRatio = nil;
+[Default]FInstrumentAndTrades:intrinsicOptionMarketValueRatio = openInstrumentOrInstrument :* "intrinsicOptionMarketValueRatio" [priceSource, isSplitAllGrouped];
+[Default]FMultiInstrumentAndTrades:intrinsicOptionMarketValueRatio = nil;
+[Default]FOption:intrinsicOptionMarketValueRatio = select(isFinite(marketInstrumentUnitValue), 
+  nil->nil, 
+  default->intrinsicOptionUnitValue / marketInstrumentUnitValue);
+[Default]FPriceAggregate:intrinsicOptionMarketValueRatio = instrument:intrinsicOptionMarketValueRatio [priceSource];

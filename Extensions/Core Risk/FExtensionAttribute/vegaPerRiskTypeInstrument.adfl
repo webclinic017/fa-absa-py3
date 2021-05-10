@@ -1,0 +1,8 @@
+[Core Risk]FInstrument:vegaPerRiskTypeInstrument = select(riskTypeEnumerationVector == nil, 
+  true->nil, 
+  false->differential(riskTypeEnumerationVector :* "collapse(vegaPerRiskTypeInstrument)" [thPrc = theoreticalInstrumentValueAtSpotInInstrumentCurrency], theoreticalInstrumentValueAtSpotInInstrumentCurrency, fixedVolatilityShift * 100));
+[Core Risk]FInstrumentAndTrades:vegaPerRiskTypeInstrument = openInstrumentOrInstrument :* "collapse(vegaPerRiskTypeInstrument)" [isSplitAllGrouped, priceSource, riskTypeEnumerationVector];
+[Core Risk]FMultiInstrumentAndTrades:vegaPerRiskTypeInstrument = riskTypeEnumerationVector :* "nil";
+[Core Risk]FNamedParameters:vegaPerRiskTypeInstrument = shift(thPrc, snoop(thPrc, volatilityInformationRiskFactorNames, vegaPerRiskTypeFilter), shiftVolatilityDeltaScaled fixedVolatilityShift);
+[Core Risk]FPortfolioInstrumentAndTrades:vegaPerRiskTypeInstrument = riskTypeEnumerationVector :* "nil";
+[Core Risk]FPriceAggregate:vegaPerRiskTypeInstrument = instrument :* "adjustForSpotHandling(vegaPerRiskTypeInstrument, true)" [priceSource];

@@ -1,0 +1,11 @@
+[Default]FInstrument:marketYieldToNextPut = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->shunt(nextPutInFuture, 
+      nil->nil, 
+      default->imply(snoop(theoreticalInstrumentSpotValueCleanFromYieldToNextPut, "yield"), theoreticalInstrumentSpotValueCleanFromYieldToNextPut, marketUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations))), 
+  false->nil);
+[Default]FInstrumentAndTrades:marketYieldToNextPut = instrument :* "marketYieldToNextPut";
+[Default]FMultiInstrumentAndTrades:marketYieldToNextPut = nil;
+[Default]FOrderBook:marketYieldToNextPut = instrument :* "marketYieldToNextPut";
+[Default]FPriceFeed:marketYieldToNextPut = instrument :* "marketYieldToNextPut";

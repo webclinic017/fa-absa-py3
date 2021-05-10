@@ -1,0 +1,7 @@
+[Treasury Pricing and Risk]FCurrency:currencyPairSpotDate = shunt(currencyPair, 
+  nil->instrumentSpotDate, 
+  default->currencyPair.SpotDate(valuationDateTime));
+[Treasury Pricing and Risk]FFxRate:currencyPairSpotDate = instrumentSpotDate;
+[Treasury Pricing and Risk]FPortfolio:currencyPairSpotDate = select(nil == currencyPair, 
+  true->currency.SpotDate(valuationDate), 
+  false->currencyPair.SpotDate(valuationDateTime));

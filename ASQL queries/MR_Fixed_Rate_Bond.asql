@@ -1,0 +1,141 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 632898
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003404656   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-444
+2016-03-08     CHNG0003469409   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-489
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_Fixed_Rate_Bond') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Fixed_Rate_Bond' and p.type = 'SQL Query' 
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Fixed_Rate_Bond.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Fixed_Rate_Bond.csv'},@3_PositionName{'MR_Fixed_Rate_Bond_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Bond' 'instype',
+    max(i.exp_day) 'exp_day'
+Into
+    MaxDate
+From
+    instrument i, Trade t, leg l, valid_portfolios vp
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('CreditDefaultSwap')
+And t.insaddr = i.insaddr
+And t.status not in ('Void', 'Terminated', 'Simulated')
+and l.insaddr = i.insaddr
+and l.type = 'Credit Default'
+and t.prfnbr = vp.prfnbr
+
+Group by 1
+
+Select
+    i.insaddr,
+    md.exp_day,
+    pty.ptyid,
+    ccy.insid 'Currency'
+Into
+    BondInstruments
+From
+    Instrument i, 
+	Instrument ccy,
+    Context c,
+    ContextLink cl,
+    YieldCurve yc,
+    Choicelist chl,
+	YCAttribute yca,
+	Party pty,
+    MaxDate md
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype = md.instype
+And c.name = 'ACMB Global'
+and c.seqnbr = cl.context_seqnbr
+and cl.name = yc.yield_curve_name
+and cl.mapping_type in ('Val Group')
+and yc.yield_curve_type not in ('Benchmark')
+and yc.ir_format in ('Hazard Rate Curve')
+and chl.seqnbr = cl.group_chlnbr
+and chl.entry in ('CRT_HR_DG', 'AC_GLOBAL_CD')
+and i.generic = 'Yes'
+and yc.seqnbr = yca.yield_curve_seqnbr
+and yca.issuer_ptynbr = pty.ptynbr
+and yca.curr = ccy.insaddr
+and pty.ptynbr = i.issuer_ptynbr
+
+Select
+    i.insaddr,
+    md.exp_day,
+	'' 'ptyid',
+	'' 'Currency'
+Into
+    BondInstruments
+From
+    instrument i, leg l, MaxDate md
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('Bond')
+And i.instype = md.instype
+and l.insaddr = i.insaddr
+And l.amort_type = 'None'
+
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_Fixed_Rate_Bond.Write',@1_path{'f:\'},@2_FileName{'MR_Fixed_Rate_Bond.csv'},@3_PositionName{'MR_Fixed_Rate_Bond_Position.csv'},BI.exp_day, BI.ptyid, BI.Currency)	'BuildConfirmation'
+Into
+    Macro
+From
+    instrument i, BondInstruments BI
+Where
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('Bond')
+And BI.insaddr = i.insaddr
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

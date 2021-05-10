@@ -1,0 +1,17 @@
+[Securities Lending ABSA]FBond:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FCertificateOfDeposit:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FDeposit:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FIndexLinkedBond:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FMoneyFlow:slPartyCode = slMoneyFlowCounterparty:slPartyCode;
+[Securities Lending ABSA]FMoneyFlowAndTrades:slPartyCode = slMoneyFlowCounterparty:slPartyCode;
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPartyCode = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.SL_G1PartyCode), 
+  default->nil);
+[Securities Lending ABSA]FMultiMoneyFlowAndTrades:slPartyCode = shunt(slMoneyFlowCounterparty, 
+  nil->nil, 
+  default->slMoneyFlowCounterparty:slPartyCode);
+[Securities Lending ABSA]FParty:slPartyCode = object.AdditionalInfo.SL_G1PartyCode;
+[Securities Lending ABSA]FSecurityLoan:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPartyCode = instrument:slPartyCode;
+[Securities Lending ABSA]FStock:slPartyCode = (object.Trades.At(0)) :* "slPartyCode";
+[Securities Lending ABSA]FTrade:slPartyCode = object.Counterparty.AdditionalInfo.SL_G1PartyCode;

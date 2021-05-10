@@ -1,0 +1,8 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:interest = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:interest = nil;
+[Profit and Loss]FInstrumentAndTrades:interest = accrued + settled;
+[Profit and Loss]FPriceAggregate:interest = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "interest");

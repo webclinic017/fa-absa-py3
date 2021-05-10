@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:underlyingForwardPriceTransformedInverted = select(underlyingForwardPriceTransformed, 
+  nil->nil, 
+  default->select(almostZero(underlyingForwardPriceTransformed, 1e-05), 
+    true->nil, 
+    false->denominatedvalue(1 / double(underlyingForwardPriceTransformed), unit(underlyingForwardPriceTransformed), , date(underlyingForwardPriceTransformed))));

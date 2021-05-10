@@ -1,0 +1,7 @@
+[Core Risk]FInstrument:priceGreekRiskFactorsBetaShiftedUpDownRelative = select(priceGreekFactorsUseUnfiltered, 
+  true->select(count(priceGreekBetaInstrumentsUnFiltered) > 0, 
+    true->scenarioaxisarray(priceGreekRiskFactorsUnShifted, priceGreekPerimeterNames, , betaScenarioRelativeUpDown(priceGreekBetaInstrumentsUnFiltered, priceGreekBetaFactorsUnfiltered, priceGreekRiskFactorNames, [(1.0 + valuationModelSpecificRelativePriceShift), (1.0 - valuationModelSpecificRelativePriceShift)])), 
+    false->[priceGreekRiskFactorsUnShifted, priceGreekRiskFactorsUnShifted]), 
+  false->select(count(priceGreekBetaInstrumentsFiltered) > 0, 
+    true->scenarioaxisarray(priceGreekRiskFactorsUnShifted, priceGreekPerimeterNames, , betaScenarioRelativeUpDown(priceGreekBetaInstrumentsFiltered, priceGreekBetaFactorsFiltered, priceGreekRiskFactorNames, [(1.0 + valuationModelSpecificRelativePriceShift), (1.0 - valuationModelSpecificRelativePriceShift)])), 
+    false->[priceGreekRiskFactorsUnShifted, priceGreekRiskFactorsUnShifted]));

@@ -1,0 +1,239 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+    ael_i(p,'ASQL_log','Cap_Mkt_Liq_Asset_Val_Today') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'Cap_Mkt_Liq_Asset_Val_Today' and p.type = 'SQL Query' 
+
+
+/*
+File used by Koos and Illumination for BA reporting
+*/
+
+
+select
+	date_add_delta(to_date(@Date{today}), -1)      'Calc_Day'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+    
+
+
+/*positions*/
+select
+    t.trdnbr,
+    m.Calc_Day	                                                'Calc_Day',
+    display_id(t,'prfnbr')                                      'Portfolio',
+    display_id(t,'counterparty_ptynbr')                         'Counterparty',
+    i.insaddr,
+    i.instype,
+    i.insid,
+    add_info(t,'MM_Instype')                                    'BillType',
+    ui.insid                                                    'undinsid',
+    ui.instype                                                  'und_insType',
+   
+    ael_s(,'Cap_Mkt_LiquidityAssets_LUM.get_info', i, m.Calc_Day, 'security')                      'Security',
+    to_int(ael_s(,'Cap_Mkt_LiquidityAssets_LUM.get_info', i, m.Calc_Day, 'term_bucket'))           'BillTermBucket',
+    to_double(ael_s(,'Cap_Mkt_LiquidityAssets_LUM.get_info', i, m.Calc_Day, 'remaining_term'))     'RemainingBillTerm',
+    
+    sum(ael_f(, 'Cap_Mkt_LiquidityAssets_LUM.PLPosEnd', t, m.Calc_Day))    'Position',
+    /*sum(position(t,,,m.Calc_Day,m.Calc_Day,))                             'Position'*/
+    
+    ael_f(, 'Cap_Mkt_LiquidityAssets_LUM.get_SARB20_price', i, m.Calc_Day, 'SARB20') 'SARB20'
+    
+into
+    temp
+  
+from 
+    instrument i,
+    instrument ui,
+    trade t,
+    macros m
+
+where
+    match_filter(t, @Tradefilter{Cap_Mkt_Liq_Asset_Val_Today;tradefilter.fltid})
+and t.insaddr = i.insaddr 
+and ui.insaddr =* i.und_insaddr 
+and t.value_day <= m.Calc_Day
+/*and time_to_day(t.time) <= m.Calc_Day */
+and i.exp_day > m.Calc_Day 
+/*and t.trdnbr = 15697354*/
+and	(i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','FRN','Future/Forward') 
+    or (i.instype  = 'Bill' and add_info(t,'MM_Instype') in ('TB','LBB','SARB Debenture')))  
+
+
+
+
+
+/*select latest prices for today*/
+select
+    t.trdnbr,
+    t.Calc_day,
+    t.Portfolio,
+    t.Counterparty,
+    t.insid,
+    t.BillType,
+    'Yes' ? t.instype : ''                              'Instype',
+    t.und_insType                                       'und_insType',
+    t.Security,
+    t.BillTermBucket,
+    t.RemainingBillTerm,
+    t.Position,
+    t.BillType ~= 'SARB Debenture' 
+        ? t.SARB20 
+        : ((365/t.BillTermBucket)*((1/(1-(t.SARB20*t.BillTermBucket/36500)))-1))*100  'SARB20Yield',
+
+    i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','Future/Forward')   
+        ? Dirty_from_yield(i, m.Calc_Day ,,, t.SARB20) 
+        : i.instype ='FRN' 
+            ? (present_value(i)/10000) 
+            : 0.00                                                                      'BondAIP',
+
+    t.BillType in ('TB','LBB') 
+        ? (t.Position * t.SARB20/100)*(t.remainingBillTerm/365)       
+        : (t.Position * (((365/t.BillTermBucket)
+            *((1/(1-(t.SARB20*t.BillTermBucket/36500)))-1))*100)/100)
+            *(t.remainingBillTerm/365)                                                  'BillDiscount',
+                
+    ael_f(,'Cap_Mkt_LiquidityAssets_LUM.get_value', t.trdnbr, m.Calc_Day, t.BillType)      'Value',
+    ael_f(,'Cap_Mkt_LiquidityAssets_LUM.get_MTD_value', t.trdnbr, m.Calc_Day, t.BillType)  'MTD_Value'
+
+into 
+    result
+
+from 
+    temp t,
+    instrument i,
+    macros m
+
+where
+    t.security = i.insid 
+and t.SARB20 ~= 0.0
+/*and t.security = 'ZAR/R205'*/
+
+
+
+/* Resultant query*/
+
+/*Bonds per instrument*/
+select 
+    r.Counterparty                  'Counterparty',
+    0                               'TradeNumber', 
+    r.Calc_day,
+    'Bonds'                         'Instrument',
+    ''                              'BillType',
+    r.security,
+    0                               'BillTermBucket',
+    0.00                            'RemainingBillTerm',
+    sum(r.Position)                 'Position',
+    avg(r.SARB20Yield)              'SARB20 Yield',
+    avg(r.BondAIP)                  'Bond AIP',
+    0.00                            'Bill Discount',
+    sum(r.Value)                    'PreviousDayValue',
+    sum(r.MTD_Value)                'MonthToDateValue'
+
+from 
+    result r
+
+where
+    r.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','FRN','Future/Forward') 
+and r.und_insType ~= 'Bill'
+    
+group by r.security
+order by r.security
+
+
+union
+
+
+/*TBill and debentures per instrument*/
+select
+    r.Counterparty                  'Counterparty',
+    r.trdnbr                        'TradeNumber', 
+    r.Calc_day,
+    'Tbills Debentures'             'Instrument',
+    r.BillType                      'BillType',
+    r.security,
+    r.BillTermBucket                'BillTermBucket',
+    r.RemainingBillTerm             'RemainingBillTerm',
+    r.Position                      'Position',
+    avg(r.SARB20Yield)              'SARB20 Yield',
+    avg(r.BondAIP)                  'Bond AIP',
+    sum(r.BillDiscount)             'Bill Discount',
+    r.Value                         'PreviousDayValue',
+    r.MTD_Value                     'MonthToDateValue'
+
+from 
+    result r
+
+where
+    r.instype in ('Bill')
+and r.BillType ~= 'LBB'
+
+group by r.trdnbr
+order by r.BillType, r.RemainingBillTerm /* order by bill type and remaing term */ 
+
+
+union
+
+
+/*Repo Buysellback bill per instrument*/
+select
+    r.Counterparty                  'Counterparty',
+    r.trdnbr                        'TradeNumber', 
+    r.Calc_day,
+    'Repo and Buysellback Bills'    'Instrument',
+    r.BillType                      'BillType',
+    r.security,
+    r.BillTermBucket                'BillTermBucket',
+    r.RemainingBillTerm             'RemainingBillTerm',
+    r.Position                      'Position',
+    avg(r.SARB20Yield)              'SARB20 Yield',
+    avg(r.BondAIP)                  'Bond AIP',
+    sum(r.BillDiscount)             'Bill Discount',
+    r.Value                         'PreviousDayValue',
+    r.MTD_Value                     'MonthToDateValue'
+
+from 
+    result r
+
+where
+    r.instype in ('BuySellback','Repo/Reverse') 
+and r.und_insType = 'Bill'
+
+group by r.trdnbr
+order by r.BillType, r.RemainingBillTerm /* order by bill type and remaing term */ 
+
+
+union
+
+
+/*Landbank bill per instrument*/
+select
+    r.Counterparty                  'Counterparty',
+    r.trdnbr                        'TradeNumber', 
+    r.Calc_day,
+    'LandBank Bills'                'Instrument',
+    r.BillType                      'BillType',
+    r.security,
+    r.BillTermBucket                'BillTermBucket',
+    r.RemainingBillTerm             'RemainingBillTerm',
+    sum(r.Position)                 'Position',
+    avg(r.SARB20Yield)              'SARB20 Yield',
+    avg(r.BondAIP)                  'Bond AIP',
+    sum(r.BillDiscount)             'Bill Discount',
+    r.Value                         'PreviousDayValue',
+    sum(r.MTD_Value)                'MonthToDateValue'
+
+from 
+    result r
+
+where
+    r.instype in ('Bill')
+and r.BillType = 'LBB'
+
+group by r.trdnbr
+order by r.BillType, r.RemainingBillTerm /* order by bill type and remaing term */ 

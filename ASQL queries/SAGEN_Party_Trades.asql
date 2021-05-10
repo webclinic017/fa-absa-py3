@@ -1,0 +1,78 @@
+select
+ael_i(p,'ASQL_log','SAGEN_Party_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Party_Trades' and p.type = 'SQL Query' 
+
+/*
+Purpose: Created. Shows all active parties within certain date.
+Department: Ops
+Requester: Karen Mortimer
+Developer: Willie van der Bank
+CR Number: C301492 (06/02/2010)
+*/
+
+select
+    p.ptynbr,
+    p.ptyid,
+    add_info(p, 'BESA_Member_Agree')        'BESA_Member_Agree',
+    add_info(p, 'FICA_Compliant')           'FICA_Compliant',
+    p.not_trading                           'not_trading',
+    count(t.trdnbr)                         'Trade_Count'
+into final
+from
+    Party p,
+    Trade t,
+    instrument i,
+    leg l
+where
+        t.counterparty_ptynbr = p.ptynbr
+    and t.status not in ('Simulated','Void')
+    and match_filter(t, @3_Filter{;tradefilter.fltid})
+    and t.insaddr = i.insaddr
+    and t.insaddr = l.insaddr
+    and time_to_day(t.execution_time) between @1_From_Date{01/01/2010} and @2_To_Date{20/01/2010}
+    and not (i.instype = 'Deposit' and l.type = 'Call Fixed Adjustable')
+
+group by 1
+
+/*Call Accounts*/
+select
+    p.ptynbr,
+    p.ptyid,
+    add_info(p, 'BESA_Member_Agree')        'BESA_Member_Agree',
+    add_info(p, 'FICA_Compliant')           'FICA_Compliant',
+    p.not_trading                           'not_trading',
+    count(t.trdnbr)                         'Trade_Count'
+into final
+from
+    Party p,
+    Trade t,
+    instrument i,
+    leg l,
+    cashflow cf
+where
+        t.counterparty_ptynbr = p.ptynbr
+    and t.status not in ('Simulated','Void')
+    and match_filter(t, @3_Filter{;tradefilter.fltid})
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and i.instype = 'Deposit'
+    and l.type = 'Call Fixed Adjustable'
+    and cf.legnbr = l.legnbr
+    and (l.start_day between @1_From_Date{01/01/2010} and @2_To_Date{20/01/2010}
+    or cf.pay_day between @1_From_Date{01/01/2010} and @2_To_Date{20/01/2010})
+    
+group by 1
+
+select
+    f.ptynbr,
+    f.ptyid,
+    f.BESA_Member_Agree,
+    f.FICA_Compliant,
+    f.not_trading,
+    sum(f.Trade_Count) 'Trd_Count'
+from
+    final f
+    
+group by 1

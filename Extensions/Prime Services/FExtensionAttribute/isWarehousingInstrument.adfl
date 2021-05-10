@@ -1,0 +1,16 @@
+[Prime Services]FBond:isWarehousingInstrument = true;
+[Prime Services]FBuySellBack:isWarehousingInstrument = true;
+[Prime Services]FCap:isWarehousingInstrument = true;
+[Prime Services]FFloor:isWarehousingInstrument = true;
+[Prime Services]FFra:isWarehousingInstrument = true;
+[Prime Services]FFrn:isWarehousingInstrument = true;
+[Prime Services]FFuture:isWarehousingInstrument = select(object.Otc, 
+  true->actualUnderlying :* "isWarehousingInstrument", 
+  false->false);
+[Prime Services]FInstrument:isWarehousingInstrument = false;
+[Prime Services]FOption:isWarehousingInstrument = select(object.Otc, 
+  true->actualUnderlying :* "isWarehousingInstrument", 
+  false->false);
+[Prime Services]FRepo:isWarehousingInstrument = true;
+[Prime Services]FSingleInstrumentAndTrades:isWarehousingInstrument = instrument :* "isWarehousingInstrument";
+[Prime Services]FSwap:isWarehousingInstrument = true;

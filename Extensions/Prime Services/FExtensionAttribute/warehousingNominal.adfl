@@ -1,0 +1,10 @@
+[Prime Services]FInstrumentAndTrades:warehousingNominal = sumOf(children :* "warehousingNominal");
+[Prime Services]FSingleInstrumentAndTrades:warehousingNominal = switch(isWarehousingInstrument and (fixedIncomeYearsToMaturity >= 1), 
+  true->-1 * abs(psNominal * fixedIncomeYearsToMaturity), 
+  false->0);
+[Prime Services]FTrade:warehousingNominal = switch(isWarehousingInstrument and (fixedIncomeYearsToMaturity >= 1), 
+  true->switch(instrument.InsType, 
+    "Repo/Reverse"->-1 * abs(object.Quantity * instrument.RefValue * fixedIncomeYearsToMaturity), 
+    default->-1 * abs(object.Nominal * fixedIncomeYearsToMaturity)), 
+  false->0);
+[Prime Services]FTradeRow:warehousingNominal = trade :* "warehousingNominal";

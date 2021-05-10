@@ -1,0 +1,22 @@
+[Default]FCashFlowInstrument:impliedCoupon = select((nil == uniqueCouponInTheoreticalPrice) or (nil == firstFixedLeg) or hasInvalidLegsForImply, 
+  false->firstFixedLeg :* "impliedCoupon" [impliedCouponName = parCouponNames, uniqueCouponOrSpreadInTheoreticalPriceFilter, marketPriceOrGoalValue], 
+  true->nil);
+[Default]FFra:impliedCoupon = floatLeg :* "impliedCoupon" [impliedCouponName = parCouponNames, uniqueCouponOrSpreadInTheoreticalPriceFilter, marketPriceOrGoalValue];
+[Default]FInstrument:impliedCoupon = nil;
+[Default]FInstrumentAndTrades:impliedCoupon = instrument :* "impliedCoupon" [priceSource];
+[Default]FLeg:impliedCoupon = select(isGenericCouponQuoted, 
+  true->dividedByHundred(marketPrice), 
+  false->select(instrument:isExpiredFullDay, 
+    true->nil, 
+    false->select(uniqueCouponsInTheoreticalPrice, 
+      nil->nil, 
+      default->select(not isFinite(marketPrice) and (instrument.Quotation == "Yield"), 
+        true->nil, 
+        false->imply(uniqueCouponsInTheoreticalPrice, instrument:theoreticalPrice, marketPriceOrGoalValue, implyPrecision, 0.0, 1.0, implyMaxIterations)))));
+[Default]FLegAndTrades:impliedCoupon = select(leg.IsFixedLeg, 
+  true->leg :* "impliedCoupon" [priceSource], 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:impliedCoupon = nil;
+[Default]FTotalReturnSwap:impliedCoupon = select(object.TotalReturnFundingLeg, 
+  nil->nil, 
+  default->(object.TotalReturnFundingLeg) :* "impliedCoupon" [priceSource]);

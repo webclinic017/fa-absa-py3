@@ -1,0 +1,6 @@
+[Default]FInstrument:averagePriceSoFar = nil;
+[Default]FOption:averagePriceSoFar = select(isAsian and useAveragePriceDates, 
+  false->nil, 
+  default->select(baseValuationOnUnderlyingComponents, 
+    false->asianAverage(asianHistoricalAveragePriceEvents, asianHistoricalPriceWeight, unit(storedStrike), datetime(storedStrike), exoticAverageMethodTypeIsArithmetic), 
+    default->asianBasketAverage(asianBasketHistoricalAveragePriceEvents, asianBasketHistoricalPriceWeight, basketWeightsForHistoricalCalculations, unit(strikeValue), datetime(strikeValue), exoticAverageMethodTypeIsArithmetic)));

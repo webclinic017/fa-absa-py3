@@ -1,0 +1,6 @@
+[CRT]FMoneyFlowAndTrades:crtFlowUnupliftedNominal = switch(cashFlow, 
+  nil->0.0, 
+  default->switch(cashFlow.CashFlowType, 
+    "Fixed Rate"->cashFlow.NominalFactor * tradeQuantity * 1000000 * legNominalFactor, 
+    "Zero Coupon Fixed"->cashFlow.NominalFactor * tradeQuantity * 1000000 * legNominalFactor, 
+    default->cashFlow.NominalFactor * cashFlow.FixedAmount * tradeQuantity * 1000000 * legNominalFactor));

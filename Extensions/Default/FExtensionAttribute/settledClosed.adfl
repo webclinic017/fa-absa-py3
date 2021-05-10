@@ -1,0 +1,7 @@
+[Default]FCombInstrMapAndTrades:settledClosed = nil;
+[Default]FDeliverableLinkAndTrades:settledClosed = nil;
+[Default]FInstrumentAndTrades:settledClosed = interest - accruedOpenValue;
+[Default]FLegAndTrades:settledClosed = nil;
+[Default]FPriceAggregate:settledClosed = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "settledClosed");

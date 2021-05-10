@@ -1,0 +1,150 @@
+/*
+ * Conicov Andrei
+ * ABITFA-2785
+ * This query is executed by the OPS_TradeVolume.py module
+ * Date        Who                 What
+ * 2016-04-25  Faize Adams         Added 'BAGL ACQUIRER', 'ABCAP CRT', 'ACQ STRUCT DERIV DESK' counter parties and 'TotalReturnSwap' on 'REPO DESK'
+ */ 
+select
+    t.trdnbr                                'TrdNo',
+    time_to_day(t.time)                     'DealDate',
+    i.instype                               'Instrument',
+    i.exp_day                               'Expiry',
+    display_id(t,'prfnbr')                  'Portfolio',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    cp.type                                 'PartyType',
+    nominal_amount(t,,display_id(i,'curr')) 'Nominal',
+    present_value(t)                        'PresentValue',
+    display_id(i,'curr')                    'CCY',
+    display_id(t,'broker_ptynbr')           'Broker',
+    u.name                                  'Trader',
+    t.fee                                   'Fee',
+    t.status                                'Status',
+    display_id(t, 'acquirer_ptynbr')        'Acquirer',
+    1                                       'Volume'
+
+into
+    trds
+    
+from
+    trade t,
+    instrument i,
+    user u,
+	party cp,
+	party ap,
+	instrument c,
+	Portfolio  p
+
+where
+    t.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and t.prfnbr = p.prfnbr
+and ap.ptynbr = t.acquirer_ptynbr
+and c.insaddr = i.curr
+and u.usrnbr = t.trader_usrnbr
+and (time_to_day(t.time) >= @1_StartDate{}
+and time_to_day(t.time) <= @2_EndDate{})
+/*------------------*/
+and i.instype not in ('CFD', 'ETF', 'Portfolio Swap', 'Stock', 'Bond', 'BuySellback', 'IndexLinkedBond', 'SecurityLoan')
+and (ap.ptyid in ('PRIME SERVICES DESK', 'STRUCT NOTES DESK', 'CREDIT DERIVATIVES DESK', 'EQ Derivatives Desk', 'BAGL ACQUIRER', 'ABCAP CRT', 'ACQ STRUCT DERIV DESK')
+    or
+    (ap.ptyid in ('REPO DESK') and i.instype in ('TotalReturnSwap'))
+    )
+and cp.ptyid2 not in ('ABSA BANK LTD', 'SAFEX', 'JSE SECURITIES EXCHANGE SOUTH AFRICA')
+and (i.instype not in ('Future/Forward')
+	or
+	(i.instype in ('Future/Forward') and ael_i(p,'Derivatives_Cashflow_Recon.get_Port_Struct_from_Port',p.prfnbr,'BARX_EQD')=0)
+	or
+	(i.instype in ('Future/Forward') and ap.ptyid in ('REPO DESK'))
+	)
+and cp.type in ('Intern Dept','Counterparty','Client')
+and not (i.instype in ('FRN', 'Combination') and i.isin like 'ZAG%')
+and ((@3_ForExpiredTrades{'no'}='yes' and i.exp_day<=today and t.status in ('FO Confirmed', 'BO Confirmed'))
+	or
+	(@3_ForExpiredTrades{'no'}='no' and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed', 'Terminated'))
+	)
+and t.type not in ('Abandon', 'Closing', 'Exercise', 'Assign')
+AND (ap.ptyid not in ('EQ Derivatives Desk')
+    OR
+    (ap.ptyid in ('EQ Derivatives Desk') AND p.prfid NOT IN ('BARX_EQD'))
+)
+
+
+select
+    t.TrdNo,
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    t.Nominal,
+    t.PresentValue,
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    t.Fee,
+    t.Status,
+    t.Acquirer,
+    t.Volume
+    
+from
+    trds t
+    
+order by
+    t.Expiry
+
+
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+   t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by
+    t.Instrument
+    
+    
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+    t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by t.CCY

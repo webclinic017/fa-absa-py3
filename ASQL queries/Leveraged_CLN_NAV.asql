@@ -1,0 +1,185 @@
+/*------------------------------------------------------------------
+    Leveraged CLN NAV
+    
+    This query supplies information on CLN trades, trigger values and trigger statuses
+    
+    Date                : 2010-05-21
+    Purpose             : Rewrite old query to use new booking method of deals, and add breakeven trigger and credit reference columns.
+    Department and Desk : FO Credit
+    Requester           : Parbhoo-Kanjee, Trusha
+    Developer           : Rohan van der Walt
+    CR Number           : 319427
+
+    History:
+    When: 		CR Number:  Who:		        What:
+    2010-05-21	            Rohan van der Walt	Rewrite old query to use new booking method of deals, and add breakeven trigger and credit reference columns.
+	2010-09-20	            Rohan van der Walt	Changed Breakeven column data type to string for returned errors to display correctly
+	2012-05-24  C255837     Nidheesh Sharma     Added columns so CurrSwap PV and Nominal can be included and also grouped rows by trans ref number
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+ SELECT 
+    ael_i(p,'ASQL_log','Leveraged_CLN_NAV') 'Name' 
+ INTO
+    ASQL_LOG_TEMP 
+ FROM
+    TextObject p 
+ WHERE 
+    p.name = 'Leveraged_CLN_NAV' AND p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	cur.insid                           'Currency',
+	used_price(cur, today,'ZAR') 	    'Rate'
+INTO
+	fxrates    
+FROM
+	Instrument	cur
+WHERE
+    cur.instype = 'Curr'
+
+/*------------------------------------------------------------------
+	CurrSwaps PVs and Nominals
+------------------------------------------------------------------*/   
+SELECT DISTINCT
+    t.trx_trdnbr                        'trx_trdnbr',
+    present_value(t)                    'CDS_NAV',
+    FRNTrade.trdnbr                     'FRN_trdnbr',
+    CurrSwapTrade.trdnbr                'CurrSwap_trdnbr',
+    CurrSwapIns.instype                 'CurrSwap_instype',
+    sum(nominal_amount(CurrSwapTrade))  'CurrSwap_Nominal',
+    sum(ael_f(,'SAIT_LandingArea_Functions.PresentValue',CurrSwapTrade) / fx.Rate)     'CurrSwap_PV'
+INTO
+    tempCurrSwap
+FROM
+    Trade t,
+    Instrument i,
+    Trade FRNTrade,
+    Instrument FRNIns,
+    Trade CurrSwapTrade,
+    Instrument CurrSwapIns,
+    Instrument CurrSwapCur,
+    Party p,
+    fxrates fx
+WHERE
+    i.insaddr = t.insaddr
+AND i.instype = 'CreditDefaultSwap'
+AND t.trx_trdnbr ~= 0
+AND FRNIns.insaddr = FRNTrade.insaddr
+AND FRNTrade.trdnbr = t.trx_trdnbr
+AND t.trx_trdnbr ~= t.trdnbr
+AND FRNTrade.trdnbr = CurrSwapTrade.trx_trdnbr
+AND CurrSwapTrade.insaddr = CurrSwapIns.insaddr
+AND CurrSwapIns.instype = 'CurrSwap'
+AND CurrSwapTrade.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated')
+AND CurrSwapTrade.counterparty_ptynbr = p.ptynbr
+AND p.type ~= 'Intern Dept'
+AND CurrSwapTrade.curr = CurrSwapCur.insaddr
+AND fx.Currency = CurrSwapCur.insid
+AND match_filter(t, @1_Filter{Leveraged_Report;tradefilter.fltid},@2_TrdNbrs{})
+GROUP BY 
+    2
+
+SELECT
+    tCS.trx_trdnbr                      'trx_trdnbr',
+    sum(tCS.CDS_NAV)                    'CDS_NAV',
+    tCS.FRN_trdnbr                      'FRN_trdnbr',
+    tCS.CurrSwap_trdnbr                 'CurrSwap_trdnbr',
+    tCS.CurrSwap_instype                'CurrSwap_instype',
+    tCS.CurrSwap_Nominal                'CurrSwap_Nominal',
+    tCS.CurrSwap_PV                     'CurrSwap_PV'
+INTO
+    tempCurrSwap2
+FROM
+    tempCurrSwap tCS
+GROUP BY
+    tCS.trx_trdnbr
+
+/*------------------------------------------------------------------
+	CDS and FRNs PVs and Nominals to get Abs_Total_PV
+------------------------------------------------------------------*/
+SELECT 
+    t.trx_trdnbr 'trx_trdnbr',
+    t.trdnbr 'CDS_trdnbr',
+    i.insid 'CDS_ins',
+    i.issuer_ptynbr 'CDS_issuer',
+    nominal_amount(t) 'CDS_trd_nominal',
+    nominal_amount(FRNTrade) 'FRN_trd_nominal',
+    to_double(tCurrSwap.CurrSwap_instype = 'CurrSwap' ? tCurrSwap.CurrSwap_Nominal : '') 'CurrSwap_trd_nominal',
+    to_double(i.instype='CreditDefaultSwap'?present_value(t):'') 'CDS_NAV',
+    to_double(FRNIns.instype = 'FRN'?present_value(FRNTrade):'') 'FRN_PV',
+    to_double(tCurrSwap.CurrSwap_instype = 'CurrSwap' ? tCurrSwap.CurrSwap_PV : '') 'CurrSwap_PV',
+    to_double(FRNIns.instype = 'FRN'?(abs((tCurrSwap is null ? present_value(t) : tCurrSwap.CDS_NAV) + present_value(FRNTrade) 
+                                        + (tCurrSwap is null ? 0 : tCurrSwap.CurrSwap_PV))):'') 'Abs_Total_PV',
+    to_double(par_rate(t))*100 'CDS_ParRate',
+    abs(nominal_amount(FRNTrade) * to_double(add_info(t,'PV Amount Trigger'))/100) 'TL1',
+    abs(nominal_amount(FRNTrade) * to_double(add_info(t,'PV Amount Trigger 2'))/100) 'TL2',
+    abs(nominal_amount(FRNTrade) * to_double(add_info(t,'PV Amount Trigger 3'))/100) 'TL3',
+    to_double(add_info(t,'Spread Trigger')) 'STL1',
+    ael_s( t,'BreakevenTrigger.simulate') 'BreakevenTrigger',
+    FRNTrade.trdnbr 'TRXTrdNbr',
+    CreditRefIns.insid 'credit_ref'
+INTO
+    temp
+FROM
+    Leg CDLeg,
+    Trade t,
+    Instrument i,
+    Trade FRNTrade,
+    Instrument FRNIns,
+    Instrument CreditRefIns,
+    tempCurrSwap2 tCurrSwap
+WHERE
+        t.insaddr *= i.insaddr
+    AND FRNTrade.insaddr *= FRNIns.insaddr
+    AND match_filter(t, @1_Filter{Leveraged_Report;tradefilter.fltid},@2_TrdNbrs{})
+    AND t.trx_trdnbr = FRNTrade.trdnbr
+    AND CDLeg.insaddr = i.insaddr
+    AND CDLeg.type = 'Credit Default'
+    AND CreditRefIns.insaddr = CDLeg.credit_ref
+    AND t.trx_trdnbr *= tCurrSwap.trx_trdnbr
+
+/*------------------------------------------------------------------
+	Trigger Levels
+------------------------------------------------------------------*/    
+SELECT
+    tmp.CDS_trdnbr,
+    (tmp.Abs_Total_PV < tmp.TL3)? 'Trigger Level 3 Breached':(tmp.Abs_Total_PV < tmp.TL2)? ael_s(,'SAGEN_str_functions.concat','Trigger Level 2 breached. ','Next trigger: ',to_string(tmp.TL3)) : (tmp.Abs_Total_PV < tmp.TL1) ? ael_s(,'SAGEN_str_functions.concat','Trigger Level 1 breached. ','Next trigger: ',to_string(tmp.TL2)): 'No Breach' 'nav_status',
+    (tmp.STL1 <= tmp.CDS_ParRate) ? 'Spread Trigger Breached':'No Breach' 'spr_status'
+INTO 
+    temp2
+FROM
+    temp tmp
+
+/*------------------------------------------------------------------
+	Final Table
+------------------------------------------------------------------*/
+SELECT 
+    tmp.trx_trdnbr 'Trans Ref',
+    tmp.CDS_ins 'Instrument',
+    tmp.credit_ref 'Credit Reference',
+    sum(tmp.CDS_trd_nominal) 'CDS Nominal',
+    tmp.FRN_trd_nominal 'FRN Nominal',
+    tmp.CurrSwap_trd_nominal 'CurrSwap Nominal',
+    sum(tmp.CDS_NAV) 'CDS NAV',
+    tmp.FRN_PV 'FRN PV',
+    tmp.CurrSwap_PV 'CurrSwap_PV',
+    tmp.Abs_Total_PV 'Absolute Total PV',
+    tmp.CDS_ParRate 'ParRate',
+    tmp.TL1 'Trigger Level 1',
+    tmp.TL2 'Trigger Level 2',
+    tmp.TL3 'Trigger Level 3',
+    tmp.STL1 'Spread Trigger',
+    (tmp.STL1 = '' or tmp.STL1 = 0 or tmp2.spr_status = 'No Breach') ? tmp2.nav_status : tmp2.spr_status 'Trigger Status',
+    tmp.BreakevenTrigger 'Breakeven Trigger'
+FROM
+    temp tmp,
+    temp2 tmp2
+WHERE
+    tmp.CDS_trdnbr = tmp2.CDS_trdnbr
+GROUP BY
+    tmp.trx_trdnbr

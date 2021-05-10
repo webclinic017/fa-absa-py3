@@ -1,0 +1,73 @@
+[Instrument Definition API]FMethod:InsDef.NovateTrade$7
+This method is used when novating a trade in a similar way as when the trade
+action is run from the instrument definition windows. The premium of the novated and novated assigned trade will be determined based on the nominal.
+
+Similar UI scenario:
+
+1. Open an existing trade in an instrument definition window  
+2. Open the Novation Trade dialog (Actions > Trade > Actions > Novation) 
+3. Fill in the dialog fields as appropriate 
+4. Press Ok Press Save New in the instrument definition window for the Novated and Novated Assigned trade
+
+@param
+The original trade to novate
+
+@param
+The new counterparty for the novated assigned trade.
+
+@param
+The acquire day of the novated trade and the novated assigned trade
+
+@param
+The value day of the novated trade and the novated assigned trade
+
+@param
+The nominal amount to novate.This value should be the opposite sign of the trade's nominal.
+
+@param
+Blueprint of payments that will be created on the novated trade. *Party*, *Type* and *Amount* are required for each payment
+
+@param
+Blueprint of payments that will be created on the novated assigned trade.  *Party*, *Type* and *Amount* are required for each payment
+
+@return
+The saved Novated as first return value and the Novated Assigned trade as second return value. Exceptions will be raised if the save is not successful.
+
+Example::
+
+	params1 = acm.FOrderedDictionary()
+	params1['Quantity'] = 100.0
+	params1['Acquirer'] = 'Aquirer A'
+	params1['Counterparty'] = 'Counterparty A'
+	params1['Portfolio'] = 'Portfolio A'
+	params1['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock X', params1)
+
+	payment1 = acm.FPayment()
+	payment1.Party('Counterparty B')
+	payment1.Type('A Payment type')
+	payment1.Amount(34330000.0)
+
+	payment2 = acm.FPayment()
+	payment2.Party('Counterparty A')
+	payment2.Type('A Payment type')
+	payment2.Amount(1010002.0)
+
+	ps1 = acm.FArray()
+	ps1.Add(p1)
+
+	ps2 = acm.FArray()
+	ps2.Add(p2)
+
+	acquireDay = '20181106'
+	valueDay = '20181106'
+
+	novated, novatedAssigned = acm.InsDef.NovateTrade(
+		trade, 
+		acquireDay,
+		valueDay,
+		payments1 = ps1,
+		payments2 = ps2)
+		
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

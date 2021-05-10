@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','Agris_Confirmations') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'Agris_Confirmations' and p.type = 'SQL Query'
+
+/* 
+    Name      : Agris_Confirmations
+    Purpose   : Build Letters of Sale and Purchase for the Agris Desk
+    Developer : Tshepo Mabena
+    Date      : 18-05-2009
+*/
+
+
+select
+	ael_s(,'Commodities_Confirmation.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

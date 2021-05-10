@@ -1,0 +1,34 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_bm_vega_bmspread_cp') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_bm_vega_bmspread_cp' and p.type = 'SQL Query' 
+
+
+
+
+
+select
+    TODAY                                   'RepDate',
+    @02_Filter{dirk_tmp;tradefilter.fltid}  'filter',
+    vol.vol_name,
+    vol.vol_type,
+    ael_s(pnt, 'dirk_utils.vol_point_expiry_str')              'exp',
+    ael_d(pnt, 'dirk_utils.vol_point_expiry')                  'exp_dte',
+    ael_s(pnt, 'dirk_utils.vol_point_maturity_str')              'mat',
+    ael_d(pnt, 'dirk_utils.vol_point_maturity')                  'mat_dte',    
+    strike,
+    ael_f(pnt, 'dirk_utils.bm_vega', 
+                    @02_Filter{dirk_tmp;tradefilter.fltid},
+                    vol.vol_name)                               'vega01'
+from
+    volatility vol,
+    VolPoint pnt
+where
+    vol.seqnbr = vol_seqnbr
+    and vol_type = 'Benchmark Spread Call/Put'
+    and vol_name = (@01_Vol{;volatility.vol_name where vol_type = 'Benchmark Spread Call/Put'})
+    and ael_d(pnt, 'dirk_utils.vol_point_expiry') < to_date(@03_BumpToExpDate{BIGDATE;})
+    and ael_d(pnt, 'dirk_utils.vol_point_maturity') < to_date(@04_BumpToMatDate{BIGDATE;})
+order by 6, 8, 9

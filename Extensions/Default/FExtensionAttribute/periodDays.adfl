@@ -1,0 +1,10 @@
+[Default]FCashFlowInformation:periodDays = select(isAmountCashFlow, 
+  true->nil, 
+  false->select(staticLegInformation:daycountMethod, 
+    "1/1"->nil, 
+    default->object.CalendarDays));
+[Default]FCashFlowMoneyFlow:periodDays = select(cashFlowInformation, 
+  nil->nil, 
+  default->cashFlowInformation:periodDays);
+[Default]FMoneyFlow:periodDays = nil;
+[Default]FMoneyFlowAndTrades:periodDays = moneyFlow:periodDays;

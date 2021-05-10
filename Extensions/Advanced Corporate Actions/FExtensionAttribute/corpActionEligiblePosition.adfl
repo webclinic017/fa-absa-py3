@@ -1,0 +1,11 @@
+[Advanced Corporate Actions]FInstrument:corpActionEligiblePosition = select(isCorpActionInstrument, 
+  false->nil, 
+  default->object :* "collapse(inventoryPosition)" [tradesInPosition = corpActionTradesInPosition, valuesOnSpotOverride, valuationDate, corpActionSetExternally]);
+[Advanced Corporate Actions]FInstrumentAndTrades:corpActionEligiblePosition = nil;
+[Advanced Corporate Actions]FSecurityLoan:corpActionEligiblePosition = select(isCorpActionInstrument, 
+  false->nil, 
+  default->instrument :* "collapse(secLendInventoryPosition)" [tradesInPosition = corpActionTradesInPosition, valuesOnSpotOverride, valuationDate, corpActionSetExternally]);
+[Advanced Corporate Actions]FSingleInstrumentAndTrades:corpActionEligiblePosition = instrument:corpActionEligiblePosition [tradesInPosition = corpActionTradesInPosition, valuesOnSpotOverride, valuationDate, corpActionSetExternally];
+[Advanced Corporate Actions]FTradeRow:corpActionEligiblePosition = select(isCorpActionInstrument, 
+  false->nil, 
+  default->instrument :* "collapse(secLendInventoryPosition)" [tradesInPosition = corpActionTradesInPosition, valuesOnSpotOverride, valuationDate, corpActionSetExternally = nextCorpAction]);

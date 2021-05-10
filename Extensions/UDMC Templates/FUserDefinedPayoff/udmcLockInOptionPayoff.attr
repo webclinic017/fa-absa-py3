@@ -1,0 +1,56 @@
+[UDMC Templates]FObject:udmcLockInOptionPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for Lock-In Option.
+#
+# INTERPRETATION
+# 
+#
+# DEFINITION
+# 
+#
+#--------------------------------------------
+
+# PARAMETERS
+
+# PROCESS
+process matrix(double) S;
+param matrix(double) timeSteps;
+matrix(double) SInit = S;
+matrix(double) SPerformance = S;
+matrix(double) SLockIn = S;
+matrix(double) lockInRow = S;
+param int barrierIsHit;
+param int isCall;
+param double strike;
+param double rebate;
+
+# LOCAL VARIABLES
+double optionValue = 0.0;
+int t = 0;
+int lockInEvent = 0;
+int last = length(timeSteps)-1;
+matrix(double) allAreAbove = 0.0 + zeros(1,last+1);
+matrix(double) ones = (1.0+zeros(1,last+1));
+SInit = S[:,0]*(1.0 + zeros(1,last+1));
+SPerformance = S./SInit;
+SLockIn = 0.0 + (SPerformance>strike);
+lockInRow = 0.0 + colMax(SLockIn);
+
+allAreAbove = 0.0 + colMin(SPerformance)>ones;
+
+# MAIN LOOP
+lockInEvent = 0;
+for t = 1 to (last+1)
+{
+    if(lockInRow[t] > 0.0)
+    {
+        lockInEvent = 1;
+    };
+    if(allAreAbove[t]>0.0 or lockInEvent > 0)
+    {
+        cashFlow(t, rebate);
+    };
+};
+
+...

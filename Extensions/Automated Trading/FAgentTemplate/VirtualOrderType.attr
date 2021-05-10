@@ -1,0 +1,188 @@
+[Automated Trading]FObject:VirtualOrderType
+
+Properties =
+  Abstract=Yes
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=Order Type
+  EditPermission=System
+  Granularity=100
+  InheritsFrom=FAgent
+  TradingEnabled=Yes
+
+State Active =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Pending =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Start =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Stop =
+  Description=
+  OnEntry=DeleteActiveOrders
+  OnExit=<none>
+
+Transitions =
+  agentDone=Pending -> agentDone / <none> -> Stop
+  agentOk=Start -> agentOk / <none> -> Pending
+  orderDeleted=Active -> orderDeleted / <none> -> Stop
+  orderDone=Active -> orderDone / <none> -> Pending
+  pendingOrderDeleted=Pending -> pendingOrderDeleted / <none> -> Stop
+  restart=Pending -> restart / ClearOrder -> Start
+  sendOrder=Pending -> sendOrder / CreateAndSendOrder -> Active
+  templateChanged=Active -> templateChanged / DeleteActiveOrders -> Pending
+
+Panel InfoParameters =
+  DisplayName=InfoParameters
+  Orientation=Vertical
+  Variables=filledQuantity, totalQuantity, unfilledQuantity
+
+Panel Parameters =
+  DisplayName=Parameters
+  Orientation=Vertical
+  Variables=orderQuantity, price, marketAccount, account, reference, expirationTime
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Target, Parameters
+
+Panel Target =
+  DisplayName=Target
+  Orientation=Vertical
+  Variables=orderBook, buyOrSell, totalQuantity
+
+Conditions =
+  agentDone=filledQuantity >= totalQuantity
+  agentOk=not activeOrders
+  modifyExpiration=switch(order, \
+      nil->false, \
+      default->order.ExpirationDateTime <> expirationTime)
+  modifyPrice=switch(order, \
+      nil->false, \
+      default->not almostEqual(double(order.Price), price))
+  modifyQuantity=switch(order, \
+      nil->false, \
+      default->order.OriginalQuantity > orderQuantity)
+  orderDeleted=shunt(order, \
+      nil->false, \
+      default->order.IsOrderDeleted)
+  orderDone=order.IsOrderDone and not order.DeletedQuantity > 0
+  pendingOrderDeleted=orderDeleted and not templateChanged
+  restart=templateChanged and not activeOrders
+  sendOrder=marketOk and not agentDone and not templateChanged
+  templateChanged=modifyPrice or modifyQuantity or modifyExpiration
+
+Actions =
+  ClearOrder=nil => order
+  CreateAndSendOrder=!CreateAndSendOrder
+  DeleteActiveOrders=!DeleteActiveOrders
+
+ActionLists =
+
+Variable account =
+  DisplayName=Account
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderAccount", context)
+
+Variable buyOrSell =
+  DisplayName=Buy or Sell
+  Domain=buyOrSell
+  Mandatory=No
+  Type=Input
+  Value="Buy"
+
+Variable expirationTime =
+  DisplayName=Exp Time
+  Domain=FDateTime
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderExpirationDate", context)
+
+Variable filledQuantity =
+  DisplayName=Filled Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=filledQuantityFromOrder
+
+Variable isVirtualOrderTypeAgent =
+  Domain=bool
+  Type=Private
+  Value=true
+
+Variable marketAccount =
+  DisplayName=Market Acc
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderMarketAccount", context)
+
+Variable order =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable orderBook =
+  DisplayName=Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable orderQuantity =
+  Description=The individual order quantity
+  DisplayName=Order Qty
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=totalQuantity
+
+Variable price =
+  DisplayName=Price
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable reference =
+  DisplayName=Reference
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderReference", context)
+
+Variable remainingQuantity =
+  Domain=double
+  Type=ReadOnly
+  Value=totalQuantity - activeOrDoneOrderQuantity
+
+Variable totalQuantity =
+  DisplayName=Total Qty
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable unfilledQuantity =
+  DisplayName=To Do Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=totalQuantity - filledQuantity
+
+Variable usedOrderQuantity =
+  DisplayName=Used Order Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=min(remainingQuantity, orderQuantity)
+
+<end>

@@ -1,0 +1,67 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Bonds_Daily_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Bonds_Daily_Trades' and p.type = 'SQL Query' 
+/*  
+
+name = Bonds_Daily_Trades
+
+changes
+
+2002-06-18  ap  additional col to reflect the difference between the calculated consideration and premium
+2005-05-31  changed report to reflect trades where a trade area is not captured
+2005-12-13  anil change report to include simulated trades
+2006-01-12  reflect portfolio
+2006-11-20  added Zero Bonds
+2009-08-17  Anwar Banoo - Added trade filter to exclude a particular portfolio from the report
+2011-07-14  CR 713436 Anil Parbhoo - Report to exclude trades pertaining to PB portfolios (i.e. Portfolio = PB_*) and reflect portfolio add info fields
+                                   - Replace CP with Portfolio name from the PB agency trade if the trans ref points to a prime services trade
+                                   - Replace Host ID with the Nutron Client Code (i.e. value on “AgencyTradPrincipal” field) from the PB agency trade if the trans ref points to a prime services trade
+                                   - in the case of a transref for a non PB portfolio reflect the Unexcor code of the portfolio add info field of the PB agency trade
+2011-10-13  Aaeda Salejee CR795118 - Changed the default filter (Bonds_Daily_Exclude_Portfolio), to a new filter which is a copy of the old plus the restriction to only return ABCAP trades.
+2012-04-12  Willie van der Bank C128652 - Added Cpty UnexCor Code
+*/
+
+
+
+select
+    t.trdnbr,
+    c.entry'TradeArea',
+    p.prfid'portfolio',
+    i.extern_id1,
+    (t.creat_time)'Deal Date',
+    (t.quantity*1000000)'Nominal',
+    t.premium,
+    t.value_day'Settlement',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? party.ptyid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_of_transref_trade',t.trdnbr) 'CP',
+    t.status,
+    t.price'Trade Yield',
+    round(t.premium-(dirty_from_yield(i,t.value_day,,,t.price)*-t.quantity*10000),0)'diff to calc prem',
+    u.name,
+    t.trx_trdnbr=0  or t.trx_trdnbr=t.trdnbr ? party.hostid : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_AgencyTradPrincipal',t.trdnbr)  'HostId',
+    add_info(t,'Confo Date Sent')   'Confo Date Sent',    
+    add_info(t,'Confo Date Sent') = '' ? '' : add_info(t,'Confo Text')  'Confo Text',
+    t.trx_trdnbr 'Trans_Ref',
+    add_info(p,'AgencyTradPrincipal')'AgencyTradPrincipal',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? '' : ael_s(t,'PrimeServices_TransRef_Trade.portfolio_add_info_CapMktUnexcorCode',t.trdnbr) 'CapMkt_Unexcor_Code',
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(party,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code'
+from
+    instrument i,
+    trade t,
+    choicelist c,
+    portfolio p,
+    party party,
+    user u
+where
+        match_filter(t, @Filter{Bonds_Daily_Trades;tradefilter.fltid}) 
+    and i.insaddr=t.insaddr
+    and t.optkey1_chlnbr*=c.seqnbr
+    and p.prfnbr=t.prfnbr
+    and @CaptureDate{Today;}=time_to_day(t.creat_time)
+    and u.usrnbr=t.creat_usrnbr
+    and t.counterparty_ptynbr=party.ptynbr
+order by 
+    t.trdnbr

@@ -1,0 +1,7 @@
+[Prime Services]FInstrumentAndTrades:yearlyExecutionFee = sumOf(children :* "yearlyExecutionFee");
+[Prime Services]FSingleInstrumentAndTrades:yearlyExecutionFee = switch(allFundingPortfolios, 
+  true->switch(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_FundingCalculations", context).CalculateFee(cfdUnderlying, fundingInstruments, "ExecutionFee", isGeneralPortfolio, acm.Time.DateAddDelta(firstDayOfYear, 0, 0, -1), profitAndLossEndDate), 
+    nil->"Not implemented", 
+    default->py("PS_TradeFees", context).ReturnTotalFee(tradesInPosition.AsArray, acm.Time.DateAddDelta(firstDayOfYear, 0, 0, -1), profitAndLossEndDate)), 
+  false->0);

@@ -1,0 +1,10 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:thTPL = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:thTPL = nil;
+[Profit and Loss]FInstrumentAndTrades:thTPL = theoreticalPeriodValue + actualCashTheoretical;
+[Profit and Loss]FLegAndTrades:thTPL = nil;
+[Profit and Loss]FPriceAggregate:thTPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "thTPL");
+[Profit and Loss]FTimeBucketAndObject:thTPL = scenarioaxisarray(rowInstrumentAndTrades:thTPL [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <"timeDistributionDateRule", , "fixedvariant", "TheoreticalValueProjectionDate">)[timeBucketCollectionIndex];

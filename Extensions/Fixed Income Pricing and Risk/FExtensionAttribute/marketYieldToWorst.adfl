@@ -1,0 +1,7 @@
+[Fixed Income Pricing and Risk]FInstrument:marketYieldToWorst = select(isMultiExercise and ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->minOfYieldExerciseEventPairs(flattenAndRemoveNil([marketYieldsFromStrikeValues, createPair(marketYieldToMaturity, nil)]))), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:marketYieldToWorst = instrument :* "marketYieldToWorst" [priceSource, marketYieldToMaturity];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:marketYieldToWorst = nil;

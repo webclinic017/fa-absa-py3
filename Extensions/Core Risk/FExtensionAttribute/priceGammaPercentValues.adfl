@@ -1,0 +1,13 @@
+[Core Risk]FCashFlowInstrument:priceGammaPercentValues = select(priceGreekOnSpot and (not valuesOnSpot), 
+  true->discountAndFilterCurrency(priceGammaPercentCashFlowValues, instrumentMoneyMarketCurvesNoDiscountingType, instrumentSpotDate, filterUnit), 
+  false->priceGammaPercentCashFlowValues);
+[Core Risk]FCombInstrMapAndTrades:priceGammaPercentValues = shunt(isOpenPosition, 
+  true->riskPosition * instrument :* "priceGammaPercentValuesInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, groupingSpotDiscountDate], 
+  false->instrumentSpotZero);
+[Core Risk]FInstrument:priceGammaPercentValues = select(priceGreekOnSpot or valuesOnSpot, 
+  true->priceGammaPercentSpotValues, 
+  false->discountAndFilterCurrency(priceGammaPercentSpotValues, instrumentMoneyMarketCurvesNoDiscountingType, discountAndConvertToBaseDate, filterUnit));
+[Core Risk]FInstrumentAndTrades:priceGammaPercentValues = openInstrument :* "collapse(priceGammaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate];
+[Core Risk]FMultiInstrumentAndTrades:priceGammaPercentValues = sumOf(openInstruments :* "collapse(priceGammaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate]);
+[Core Risk]FSingleInstrumentAndTrades:priceGammaPercentValues = openInstrument :* "collapse(priceGammaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate];
+[Core Risk]FTradeRow:priceGammaPercentValues = openInstrument :* "priceGammaPercentValues" [isSplitAllGrouped, priceSource, singleTradePosition, includeAllTrades, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate];

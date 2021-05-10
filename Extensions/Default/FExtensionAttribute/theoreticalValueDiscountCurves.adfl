@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:theoreticalValueDiscountCurves = select(onlySpotValuedInstruments, 
+  true->nil, 
+  false->select("Today" == reportDate, 
+    true->createDictionary(theoreticalValueDiscountingUnits, theoreticalValueDiscountingUnits :* "moneyMarketCurve"), 
+    false->createDictionary(theoreticalValueDiscountingUnits, theoreticalValueDiscountingUnits :* "moneyMarketCurve", displayCurrencySymbol, displayCurrencySymbol :* "moneyMarketCurve")));

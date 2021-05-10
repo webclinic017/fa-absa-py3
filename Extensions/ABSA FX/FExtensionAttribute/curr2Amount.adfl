@@ -1,0 +1,7 @@
+[ABSA FX]FInstrumentAndTrades:curr2Amount = sumOf(trades :* "curr2Amount");
+[ABSA FX]FTrade:curr2Amount = select(object.Instrument.Name == curr2Name, 
+  true->object.Quantity, 
+  default->object.Premium);
+[ABSA FX]FTradeRow:curr2Amount = select(tradeCurrPair, 
+  nil->0, 
+  default->trade:curr2Amount);

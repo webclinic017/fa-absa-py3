@@ -1,0 +1,5 @@
+[Commodity Valuations]FInstrument:carryCostQuanto = select(isQuantoOption and not mappedModelIsBasketAsSingleUnderlying, 
+  true->quantoAdjustedCarryCost(carryCost, underlyingFXCorrelation, volatilityForQuantoAdjustedCarryCost, fxVolatilityForQuantoAdjustedCarryCost), 
+  false->select(isCompoOption, 
+    false->carryCost, 
+    true->compo_adj_carry(carryStartDate, carryEndDate, (underlyingCurrency :* "fxForwardRate" [fxForwardDate = carryStartDate, fxToCurrency := calculationCurrency]).Number, (underlyingCurrency :* "fxForwardRate" [fxForwardDate = carryEndDate, fxToCurrency := calculationCurrency]).Number, carryCost)));

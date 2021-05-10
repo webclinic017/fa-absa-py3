@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log', 'FundingDesk_GraveyardPortfolios') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = ' FundingDesk_GraveyardPortfolios' and p.type = 'SQL Query'
+
+/*
+    Date                : 2010-05-26
+    Purpose             : Returns all the settlements in GRAVEYARD and MM_Graveyard portfolios
+    Department and Desk : PCG Money Market Operations
+    Requester           : Martie Waite
+    Developer           : Bhavnisha Sarawan
+    CR Number           : 324024
+*/
+
+select
+    t.trdnbr                                'Trade number',
+    p.ptyid                                 'Acquirer',
+    s.amount                                'Amount',
+    s.creat_time                            'Create Time',
+    display_id(t, 'curr')                   'Currency',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    s.status                                'Status',
+    s.type                                  'Type',
+    s.value_day                             'Value Day',
+    display_id(t, 'prfnbr')                 'Portfolio',
+    i.insid                                 'Instrument',
+    add_info(s,'Call_Confirmation')         'Call Confirmation'
+    
+from
+    trade t,
+    party p,
+    settlement s,
+    instrument i
+    
+where
+    match_filter(t, @1_Filter{FundingDesk_Graveyard;tradefilter.fltid})
+and p.ptynbr = t.acquirer_ptynbr
+and p.ptyid = 'Funding Desk'
+and s.trdnbr = t.trdnbr
+and i.insaddr = t.insaddr

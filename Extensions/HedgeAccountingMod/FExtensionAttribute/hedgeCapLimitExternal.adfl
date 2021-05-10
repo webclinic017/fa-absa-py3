@@ -1,0 +1,5 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCapLimitExternal = sumOf(children :* "hedgeCapLimitExternal");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCapLimitExternal = sumOf(children :* "hedgeCapLimitExternal");
+[HedgeAccountingMod]FTradeRow:hedgeCapLimitExternal = switch(tradeHedgeType, 
+  "External"->denominatedvalue(costUPL, displayCurrencySymbol, , ), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));

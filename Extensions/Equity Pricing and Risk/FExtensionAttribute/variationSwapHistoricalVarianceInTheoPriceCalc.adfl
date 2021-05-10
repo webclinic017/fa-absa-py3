@@ -1,0 +1,8 @@
+[Equity Pricing and Risk]FInstrument:variationSwapHistoricalVarianceInTheoPriceCalc = nil;
+[Equity Pricing and Risk]FVolatilityFuture:variationSwapHistoricalVarianceInTheoPriceCalc = switch(theoreticalPriceIsExpired, 
+  true->nil, 
+  default->switch((variationSwapNHistoricalPriceFixings < 1), 
+    true->0.0, 
+    default->switch(theoreticalModelCallUsesHistoricalOnly, 
+      true->variationSwapCappedHistoricalVariance, 
+      default->snoop01(theoreticalPrice, ["sumSquaredReturns"]) * variationSwapTradingDaysPerYear * 10000 / variationSwapNHistoricalPriceFixings)));

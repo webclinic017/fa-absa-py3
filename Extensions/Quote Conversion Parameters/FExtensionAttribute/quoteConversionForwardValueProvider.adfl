@@ -1,0 +1,9 @@
+[Quote Conversion Parameters]FBuySellBack:quoteConversionForwardValueProvider[priceSource, doSplitAll] = underlying:forwardValueProvider [priceSource, doSplitAll];
+[Quote Conversion Parameters]FCashFlowInstrument:quoteConversionForwardValueProvider[priceSource, doSplitAll] = select(isDynamicQuoted, 
+  true->nil, 
+  false->object:forwardValueProvider [priceSource, doSplitAll, exposeForwardValuationTargets = false]);
+[Quote Conversion Parameters]FInstrument:quoteConversionForwardValueProvider[priceSource, doSplitAll] = select(hasMappedUnderlyingFuture, 
+  true->shunt[priceSource, doSplitAll](needsUnderlyingFutureObservationDate, 
+    true->object:forwardValueProvider [priceSource, doSplitAll, exposeForwardValuationTargets = false, forwardValuationInInstrumentCurrency = false], 
+    false->object:forwardValueProvider [priceSource, doSplitAll, exposeForwardValuationTargets = false, useSpotProxy = true, forwardValuationInInstrumentCurrency = false]), 
+  false->object:forwardValueProvider [priceSource, doSplitAll, exposeForwardValuationTargets = false]);

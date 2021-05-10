@@ -1,0 +1,5 @@
+[Default]FInstrument:absoluteStrikePriceInVolatilityQuotation = select(isSwaption or isSpreadOption, 
+  true->collapse(absoluteStrikePriceForVolatilityStrike), 
+  false->select(volatilityStrikeQuotationEqualUnderlyingQuotation, 
+    true->collapse(absoluteStrikePriceForVolatilityStrike), 
+    false->optionOnInterestRateFutureFactor * underlying:quoteConversionWrapperQuoteToQuote [quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperFromQuote = absoluteStrikePriceForVolatilityStrike, quoteConversionWrapperToQuotation = volatilityStructure:strikeQuotation, priceSource, doSplitAll]));

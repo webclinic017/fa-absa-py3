@@ -1,0 +1,53 @@
+select
+    to_date(@Creat_Day{Today;})        'Creat_Day',
+    to_string(@Acquirer{FMAINTENANCE;party.ptyid where type = 'Intern Dept'})  'Acquirer',
+    to_string(@CounterParty{FMAINTENANCE;party.ptyid where type = 'Intern Dept'}) 'CounterParty',
+    to_string(@MappingFileDirectory{C:\\})  'MappingFileDirectory',
+    to_string(@OutfileDirectory{C:\\})      'OutfileDirectory'
+    
+into macro
+
+from
+    instrument  i
+    
+where i.insid = 'ZAR'
+
+select
+    t.trdnbr    'TrdNbr',
+    ael_s(t,'jpTest.jpChangeCloseOutStockPort',m.MappingFileDirectory,m.OutfileDirectory),
+    i.insid     'Instr',
+    i.instype   'InstrType',
+    i.insid   'UnderInstr',
+    i.instype 'UndInstrType',
+    i.strike_price  'InsStrikePrice',
+    used_price(i,m.Creat_Day,'ZAR',,,'EquitiesMTM') > 0 ? used_price(i,m.Creat_Day,'ZAR',,,'EquitiesMTM') : 'NoPriceFound'    'ExercisePrice',
+    t.price 'TrdPrice',
+    t.status    'TrdStatus',
+    i.settlement    'Settlement',
+    t.quantity * i.contr_size    'QTY',
+    i.otc       'Otc',
+    i.exp_day   'ExpDay',
+    p.ptyid     'Acquirer',
+    ap.ptyid    'CounterParty',
+    port.prfid  'Portfolio',
+    u.userid    'TrdCreatUser'    
+    
+from
+    instrument  i,
+    trade   t,
+    party   p,
+    party   ap,
+    portfolio   port,
+    user    u,
+    macro   m
+    
+where i.insaddr = t.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and ap.ptynbr = t.counterparty_ptynbr
+and port.prfnbr = t.prfnbr
+and u.usrnbr = t.creat_usrnbr
+and p.ptyid = m.Acquirer
+and ap.ptyid = m.CounterParty
+and to_date(t.creat_time) = m.Creat_Day
+and match_filter(t,(@TradeFilter{;TradeFilter.fltid}))
+and i.instype = 'Stock'

@@ -1,0 +1,45 @@
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','FDC_Report') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'FDC_Report' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	DATA
+------------------------------------------------------------------*/
+select
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype') : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype') : add_info(t, 'Instype')) 'MM_Instype',
+    ptyid 'Counter_Party',
+    t.price 'Price',
+    i.exp_day 'Expiry_Date',
+    t.quantity*projected_cf(cf) 'Nominal_Value',
+    u.name 'Trader',
+    display_id(t,'prfnbr') 'Portfolio'    
+from
+    party p,
+    trade t,
+    instrument i,
+    portfolio po,
+    cashflow cf,
+    leg l,
+    user u
+where
+    p.ptynbr = t.counterparty_ptynbr
+and i.insaddr = t.insaddr
+and t.prfnbr = po.prfnbr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and t.trader_usrnbr = u.usrnbr
+and po.prfid in  (@1_Portfolio{LIABILITIES 2474;portfolio.prfid*})
+and add_info(t,'Funding Instype') = 'FDC'
+and i.exp_day >= @2_ExpDay{Today;}
+and cf.type = 'Fixed Amount'
+and match_filter(t, @3_Filter{;tradefilter.fltid}, @4_TrdNos{})
+and t.status = (@5_Status{BO Confirmed;Trade.Status*})

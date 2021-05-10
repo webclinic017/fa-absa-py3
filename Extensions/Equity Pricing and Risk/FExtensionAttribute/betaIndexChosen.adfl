@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FDerivative:betaIndexChosen = underlying:betaIndexChosen;
+[Equity Pricing and Risk]FInstrument:betaIndexChosen = var(select(instrumentHasBeta, 
+  true->switch(betaIndexChosenGuess, 
+    nil->betaIndexAlternatives[0], 
+    default->betaIndexChosenGuess), 
+  false->betaIndexAlternatives[0]), "FInstrument");
+[Equity Pricing and Risk]FInstrumentAndTrades:betaIndexChosen = instrument:betaIndexChosen;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:betaIndexChosen = nil;
+[Equity Pricing and Risk]FPriceAggregate:betaIndexChosen = instrument:betaIndexChosen;

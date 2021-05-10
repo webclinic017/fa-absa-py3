@@ -1,0 +1,32 @@
+/* update_method=0 */
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAIT_SDSID_LiveDeals') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAIT_SDSID_Reg_Lawrence' and p.type = 'SQL Query' 
+/*
+Purpose:                Displays the counterparty with it's BarCap_Eagle_SDSID,BarCap_SMS_CP_SDSID and BarCap_SMS_LE_SDSID
+                        for the IRD DESK where exp day is greater that user input date.
+Department and Desk:    PCG FI
+Requester:              Lawrence Magubane  
+Developer:              Maxwell Monyeleote
+CR Number:              C424675
+*/
+
+select
+    p.ptyid,
+    add_info(p,'BarCap_Eagle_SDSID')    'BarCap_Eagle_SDSID',
+    add_info(p,'BarCap_SMS_CP_SDSID')    'BarCap_SMS_CP_SDSID',
+    add_info(p,'BarCap_SMS_LE_SDSID')    'BarCap_SMS_LE_SDSID'
+from
+    trade t,
+    instrument i,
+    party p
+where
+        t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and i.exp_day >= @Day{2009-01-01}
+    and match_filter(t, @Filter{SDSID_Reg_Lawrence;tradefilter.fltid})
+        
+group by 1

@@ -1,0 +1,321 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','dw_SNI_Report_190407') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'dw_SNI_Report_190407' and p.type = 'SQL Query' 
+ 
+  /*  per tradefilter */
+/*Changes                                                               */
+/*2007/05/15 ABMW438: i.exp_day >= today changed to i.exp_day > today   */
+/*   This was done to remove instances where Front ignored CLNs expiring today but didn't ignore CDSs expiring today*/    
+/*2007/07/13 ABMW438: updated the trade filter*/
+/*2008/01/16 abmw438 updated tradefilters and added value date <= today statement */
+
+/*Credit Derivatives only*/
+select
+    t.trdnbr,
+    i.insid,
+    i.instype 'InsType',
+    display_id(ii, 'issuer_ptynbr')  'Issuer',
+    /*display_id(l, 'credit_ref')         'Issuer',*/
+    display_id(t, 'prfnbr')             'Portfolio',
+    sum(c.nominal_factor*t.quantity *1000000)             'Nominal',
+    mtm_value_fo(t)                     'mtm',
+    i.instype = 'CreditDefaultSwap' ?  sum((c.nominal_factor*t.quantity *1000000) + mtm_value_fo(t)) 
+    : mtm_value_fo(t) 'Exposure',
+    l.end_day                           'End_Day',
+    today                               'BusinessDate'
+
+    
+into temp 
+   
+from
+    trade t,
+    instrument i,
+    instrument ii,
+    leg l,
+    cashflow c
+    
+where
+    match_filter(t, 'CredDer_All') /*, @2_TrdNbrs{})*/
+    /* match_filter(t, @1_Filter{;tradefilter.fltid})*/
+and t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and i.exp_day > today
+and l.type = 'Credit Default'  
+and l.legnbr = c.legnbr
+/*and c.end_day = l.end_day*/
+and l.credit_ref = ii.insaddr
+and t.trdnbr not in ('282016','472928')
+and t.value_day <= today
+
+
+/*** Combination Instruments - CLN booked as combo***/
+select
+	t.trdnbr ,
+	i.insid ,
+	/*i.instype,*/
+    i.instype 'InsType',
+	display_id(ii, 'issuer_ptynbr')  'Issuer',
+	display_id(t, 'prfnbr')             'Portfolio',
+
+	 i.instype = 'FreeDefCF'  and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity
+	: i.instype = 'Combination' and c.type = 'Fixed Amount' ? nominal_amount(c, t.value_day) *  t.quantity/i.index_factor
+	: i.instype = 'Combination' and c.type not in ('Fixed Amount') ? c.nominal_factor*t.quantity
+    : c.nominal_factor*t.quantity *1000000  'Nominal',
+    
+    /*mtm_value_fo(t)                     'mtm',*/
+    mtm_value_fo(t)                     'mtm',
+    /*mtm_value_fo(t) 'Exposure',*/
+    present_value(t)* used_price(cr2,today,'ZAR')  'Exposure',
+    l.end_day                           'End_Day',
+    today                               'BusinessDate'
+    
+	/*
+	period_rate(c,c.start_day,c.end_day) 'COUPON_RATE',
+	l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method 'DAYS_YEAR',
+	c.start_day = '0000-01-01'? '1900/01/01' : c.start_day 'EFFECTIVE_DATE',
+	ael_s(l,'myfreq')  'TERM',
+	i.instype = 'Swap' ? 'Swap' : i.instype 'TYPE',
+	l.payleg = 'Yes'? 'PAY' : 'REC' 'PAY_REC',
+	time_to_day(t.time) 'TRADEDATE',
+	today 'DATE_LAST_UPDATED',
+	display_id(t,'prfnbr') 'PORTFOLIO',
+	i.settlement = 'None' ? 'None' : i.settlement 'SETTLEMENT_METHODOLOGY',
+	l.digital_payoff 'SETTLE_AMOUNT',
+	display_id(t,'trader_usrnbr')	'DEALER',
+	c.spread			'SPREADS',
+	c.type = 'Float Rate' ? 'Float Rate' : c.type				'CF_TYPE',
+    present_value(c) * t.quantity	'MtM_ZAR',
+    present_value(c) * t.quantity * used_price(cur,,'USD')	'MtM_USD',
+	display_id(cr,'issuer_ptynbr')		'ISSUER',
+	c.pay_day,
+    i.insid                             'INSTRUMENT',
+    display_id(l, 'float_rate')         'FLOAT REF'*/
+
+into temp
+
+from 	
+	instrument i,
+   instrument ii,
+	trade t,
+	leg l,
+	cashflow c,
+	party p,
+	party cp,
+	instrument cr,
+    instrument cr2,
+	instrument cur,
+	portfolio port,
+    CombinationLink cl,
+	Instrument und_ins
+
+where i.insaddr = t.insaddr
+
+/*and i.insaddr = l.insaddr*/
+and l.legnbr = c.legnbr
+
+/*CombinationLink*/
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr = l.insaddr
+and l.credit_ref = ii.insaddr
+and i.curr = cr2.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and l.type = 'Credit Default' 
+/*and t.trdnbr = 977725 977725 976763*/
+/*and i.exp_day > today*/
+
+and l.credit_ref *= cr.insaddr
+and cur.insid = 'ZAR'
+and t.status not in ('Simulated','Terminated','Void')
+and i.instype = 'Combination'
+/*and port.prfid = 'CREDIT DERIV 4533'  */
+and match_filter(t, 'CredDer_All')
+and t.value_day <= today
+
+    
+    
+/* Bonds Index-Linked and Zeros*/    
+select
+    t.trdnbr,
+    i.insid,
+    i.instype  'InsType',
+    display_id(i, 'issuer_ptynbr')      'Issuer',
+    display_id(t, 'prfnbr')             'Portfolio',
+    sum(t.quantity*1000000)             'Nominal',
+    mtm_value_fo(t)                     'mtm',
+    i.instype = 'CreditDefaultSwap' ?  (sum(t.quantity*1000000) + mtm_value_fo(t)) 
+            : mtm_value_fo(t) 'Exposure',
+    i.exp_day                           'End_Day',
+    today                               'BusinessDate'
+
+ 
+into temp     
+    
+from
+    trade t,
+    instrument i
+    
+where
+    i.instype in ('Bond', 'IndexLinkedBond'/*, 'Zero'*/)
+and t.insaddr = i.insaddr
+and i.exp_day > today
+and t.status not in ('Void', 'Simulated', 'Terminated')
+and t.value_day <= today    
+
+    
+/*Buysellbacks*/    
+/*
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    display_id(u, 'issuer_ptynbr')      'Issuer',
+    display_id(t, 'prfnbr')             'Portfolio',
+    sum(t.quantity*1000000)             'Nominal',
+    mtm_value_fo(t)                     'mtm',
+    i.instype = 'CreditDefaultSwap' ?  (sum(t.quantity*1000000) + mtm_value_fo(t)) 
+            : mtm_value_fo(t) 'Exposure',
+    i.exp_day                           'End_Day',
+    today                               'BusinessDate'
+
+
+into temp      
+    
+from
+    trade t,
+    instrument i,
+	instrument u
+    
+where
+    i.instype in ('BuySellback')
+and t.insaddr = i.insaddr
+and u.insaddr = i.und_insaddr
+and i.exp_day > today
+and t.status not in ('Void', 'Simulated', 'Terminated')    
+*/
+
+    
+/*REPOS*/   
+/* 
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    display_id(u, 'issuer_ptynbr')      'Issuer',
+    display_id(t, 'prfnbr')             'Portfolio',
+    sum(t.quantity*1000000)             'Nominal',
+    mtm_value_fo(t)                     'mtm',
+    i.instype = 'CreditDefaultSwap' ?  (sum(t.quantity*1000000) + mtm_value_fo(t)) 
+            : mtm_value_fo(t) 'Exposure',
+    i.exp_day                           'End_Day',
+    today                               'BusinessDate'
+
+
+into temp    
+    
+from
+    trade t,
+    instrument i,
+	instrument u
+    
+where
+    i.instype in ('Repo/Reverse')
+and t.insaddr = i.insaddr
+and u.insaddr = i.und_insaddr
+and i.exp_day > today
+and t.status not in ('Void', 'Simulated', 'Terminated')    
+*/
+
+/*'''''' main */
+select
+    t.trdnbr,
+    t.insid,
+    t.InsType,
+    t.Issuer,
+    t.Portfolio,
+    t.Nominal,
+    t.mtm,
+    t.Exposure,
+    t.End_Day,
+    t.BusinessDate,
+    /*t.Portfolio in ('ARG5','CDS_HFT','DERV','DERV2','DERV3','DERV4','DERV5','EQ Customer Liability','EQ Islamic Liabilities','EQ Rho Hedge','FOREX','FOREX FWD BONDS','FOREX SPOT BONDS','GTRA','GWR Bonds','HYBRID_BOND','IRR','JOB1','JOB10','JOB11','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB9','JOBX1','MAN_Bond','MAN_Bond_2','MONY 9802') ? 'YES'
+    : 'NO'                              'Use',
+    t.Portfolio in ('GT Term Funding','IRD Funding Hybrid','9803AFS','9803CARRIES','9803HFT','ARG5','CDS_HFT','DERV','DERV2','DERV3','DERV4','DERV5','EQ Customer Liability','EQ Islamic Liabilities','EQ Rho Hedge','FOREX','FOREX FWD BONDS','FOREX SPOT BONDS','GTRA','GWR Bonds','HYBRID_BOND','IRR','JOB1','JOB10','JOB11','JOB2','JOB3','JOB4','JOB5','JOB6','JOB7','JOB8','JOB9','JOBX1','MAN_Bond','MAN_Bond_2','MONY 9802','SF Carries And Repos','SPV1','SPV2','SPV3','Telkom Structure') ? 'YES'
+    : 'NO'                              'Known_Portfolio',*/
+    t.end_day <= date_add_delta(today,0,1,0) ? '1m' /*date_add_delta(date,days,months,years*/
+    : t.end_day <= date_add_delta(today,0,3,0) ? '3m'
+    : t.end_day <= date_add_delta(today,0,6,0) ? '6m'
+    : 'Rest'                            'Category'  
+    /*MR_SNI_DG_Import.Find_DG(t.Issuer) 'DG_RATING'*/
+    /*ael_i(t,'MR_SNI_DG_Import.Find_DG',Issuer) 'DG_RATING'    */
+
+into temp2  
+from
+    temp t
+where t.Exposure ~= 0
+and t.Issuer ~= ''
+
+
+
+
+select t.Issuer 'Issuer'
+into temp3
+from temp2 t
+group by t.Issuer
+order by t.Issuer
+
+select t.Issuer 'Issuer',
+        /*to_int(MR_LOOKUP.VLookup(t.Issuer,0,2,'//v036syb004001/DART/ERM/DC/AEL_LOOKUP.csv')) 'DG_RATING'*/
+        9999 'DG_RATING'
+into temp4
+from temp3 t
+
+select t.Portfolio 'Portfolio'
+into temp33
+from temp2 t
+group by t.Portfolio
+order by t.Portfolio
+
+select  t.Portfolio 'Portfolio', 
+        /*to_string(MR_LOOKUP.VLookup(t.Portfolio,0,1,'//v036syb004001/DART/ERM/DC/PORTFOLIO_LOOKUP.csv')) 'Use',
+        t.Portfolio = MR_LOOKUP.VLookup(t.Portfolio,0,0,'//v036syb004001/DART/ERM/DC/PORTFOLIO_LOOKUP.csv') ? 'YES'
+        : 'NO' 'Known_Portfolio',
+        to_string(MR_LOOKUP.VLookup(t.Portfolio,0,2,'//v036syb004001/DART/ERM/DC/PORTFOLIO_LOOKUP.csv')) 'PrimSec',
+        to_string(MR_LOOKUP.VLookup(t.Portfolio,0,3,'//v036syb004001/DART/ERM/DC/PORTFOLIO_LOOKUP.csv')) 'SecArea'*/
+        'Use' 'Use',
+        'Known_Portfolio' 'Known_Portfolio',
+        'PrimSec' 'PrimSec',
+        'SecArea' 'SecArea'        
+        
+into temp44
+from temp33 t
+
+select
+             t.trdnbr,
+    t.insid,
+    t.InsType,
+    t.Issuer,
+    t.Portfolio,
+    t.Exposure,
+    t.End_Day,
+    t.Category,  
+    t44.Use,
+    t44.Known_Portfolio,
+    t44.PrimSec,
+    t44.SecArea,
+    t4.DG_Rating
+ 
+/*into temp55   */
+from temp2 t,
+        temp4 t4,
+        temp44 t44
+        
+        
+where t.Issuer = t4.Issuer
+and t.Portfolio = t44.Portfolio
+

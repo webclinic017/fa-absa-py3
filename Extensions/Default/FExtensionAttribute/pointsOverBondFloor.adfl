@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:pointsOverBondFloor = shunt(isFinite(marketPrice), 
+  true->stripDateTimePart(marketPriceToQuote) - stripDateTimePart(bondFloor), 
+  false->nil);
+[Default]FInstrument:pointsOverBondFloor = nil;
+[Default]FInstrumentAndTrades:pointsOverBondFloor = openInstrumentOrInstrument :* "pointsOverBondFloor" [priceSource, filterCurrency];
+[Default]FMultiInstrumentAndTrades:pointsOverBondFloor = nil;
+[Default]FOrderBook:pointsOverBondFloor = instrument :* "pointsOverBondFloor" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Default]FPriceAggregate:pointsOverBondFloor = priceFeed:pointsOverBondFloor [priceSource];
+[Default]FPriceFeed:pointsOverBondFloor = instrument :* "pointsOverBondFloor" [priceSource, quotation] * fxInstrumentToPriceFeed;

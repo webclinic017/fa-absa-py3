@@ -1,0 +1,62 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Trade_Backdate_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Trade_Backdate_Report' and p.type = 'SQL Query' 
+
+/*
+Date            Who             What
+01/11/2007      Heinrich Cronje Created
+
+Description:
+
+Report all the backdated cash flows on Call Deposit/Loan for a specific date.
+Specify a date in the macro and the report will give all the cash flows on
+deposits that was created on that date but with a pay day in the future.
+
+*/
+
+
+
+select
+    @3_Date{Today}    'Date'
+into
+    macro
+from
+    serverdata s
+where
+    srdnbr >= 0
+    
+select
+    cf.start_day ~= 0 ? cf.start_day : cf.pay_day 'Day',
+    i.start_day 'Start_Day',
+    display_id(i,'curr')    'Curr',
+    i.instype   'Instype',
+    i.insid 'Insid',
+    cf.fixed_amount < 0 ? 'S' : 'B' 'Buy_Sell',
+    to_double(t.quantity*cf.fixed_amount) 'Amount',
+    t.trdnbr    'Trdnbr',
+    display_id(t,'counterparty_ptynbr') 'Party',
+    t.status    'Status',
+    m.Date  'Time',
+    display_id(t,'prfnbr')  'Portfolio',
+    add_info(t,'Funding Instype')   'MM_Instype',    
+    display_id(cf,'creat_usrnbr') 'Dealer',
+    cf.cfwnbr   'Cashflow nbr',
+    cf.type 'Cashflow_Type'
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    macro m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and to_date(cf.creat_time) = m.Date
+    and cf.pay_day < m.Date
+    and i.exp_day >= m.Date
+    and cf.type = 'Fixed Amount'
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})

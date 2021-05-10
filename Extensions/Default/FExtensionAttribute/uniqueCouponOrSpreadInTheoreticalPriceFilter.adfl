@@ -1,0 +1,16 @@
+[Default]FInstrument:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(isGenericCouponOrSpreadQuoted, 
+  true->[object], 
+  false->select(exerciseEvents, 
+    nil->select(isBasisSwap, 
+      true->insPayLeg, 
+      false->legs), 
+    default->flattenAndRemoveDuplicates([legs, object])));
+[Default]FInstrumentAndTrades:uniqueCouponOrSpreadInTheoreticalPriceFilter = instrumentOrLotFromLotMap :* "collapse(uniqueCouponOrSpreadInTheoreticalPriceFilter)";
+[Default]FLeg:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(isGenericCouponOrSpreadQuoted, 
+  true->select(isFixedLeg, 
+    true->[instrument], 
+    false->[]), 
+  false->[object]);
+[Default]FTotalReturnSwap:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(object.TotalReturnFundingLeg, 
+  nil->[], 
+  default->[object.TotalReturnFundingLeg]);

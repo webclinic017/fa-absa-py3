@@ -1,0 +1,43 @@
+[OperationsViewerAxlFormulas]FObject:Security Issue Amortization
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isNotTradeTypeSecurityTransfer = Not(Compare.IsEqual(&['trdnbr','type'], 'Security Transfer'));
+
+{
+}
+isSecurityDvPNominalRedemption = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+cancelOwnIssues = Aggregate.Sum(If(And(@isNotTradeTypeSecurityTransfer(), And(And(@isTradePrimaryIssuance(), @isSecurityDvPNominalRedemption()), And(@isSettledDaySet(), @isAmountPositive()))), &'amount', 0.0));
+
+{
+  DisplayInformation:
+  {
+    Label:'Issue Amortization',
+    GroupLabel:'Security',
+    Description:'Security settlements related to trades with Primary Issuance = Yes where amount is positive, and trade type is not equal to Security Transfer.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = @cancelOwnIssues();
+
+...

@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','Fx_Option_Client_Valuations') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'Fx_Option_Client_Valuations' and p.type = 'SQL Query'
+
+/* 
+    Name      : Fx_Option_Client_Valuation
+    Purpose   : Build Client Valuation in PDF format
+    Developer : Tshepo Mabena
+    Date      : 31-03-2009
+*/
+
+
+select
+	ael_s(,'Fx_Option_Client_Valuations.ASQL')	  'OpenFile' /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

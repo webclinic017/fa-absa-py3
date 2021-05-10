@@ -1,0 +1,6 @@
+[InternationalFutures]FInstrumentAndTrades:pswapOpeningMarketValue = sumOf(children :* "pswapOpeningMarketValue");
+[InternationalFutures]FSingleInstrumentAndTrades:pswapOpeningMarketValue = select(isIntFutPortfolio, 
+  false->nil, 
+  true->select(instrumentType, 
+    "Deposit"->profitAndLossPositionDisplayStart.Number * openingPrice.Number * instrument:quotationFactor, 
+    default->PSwapMTMAsOf(instrument, fundingInstrument, profitAndLossStartDate)));

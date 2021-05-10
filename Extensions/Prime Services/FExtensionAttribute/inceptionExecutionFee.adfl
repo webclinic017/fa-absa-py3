@@ -1,0 +1,7 @@
+[Prime Services]FInstrumentAndTrades:inceptionExecutionFee = sumOf(children :* "inceptionExecutionFee");
+[Prime Services]FSingleInstrumentAndTrades:inceptionExecutionFee = switch(allFundingPortfolios, 
+  true->switch(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_FundingCalculations", context).CalculateFee(cfdUnderlying, fundingInstruments, "ExecutionFee", isGeneralPortfolio, smallDate, profitAndLossEndDate), 
+    nil->"Not implemented", 
+    default->py("PS_TradeFees", context).ReturnTotalFee(tradesInPosition.AsArray, smallDate, profitAndLossEndDate)), 
+  false->0);

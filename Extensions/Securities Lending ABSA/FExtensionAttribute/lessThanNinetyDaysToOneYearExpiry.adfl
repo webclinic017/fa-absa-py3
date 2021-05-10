@@ -1,0 +1,13 @@
+[Securities Lending ABSA]FSingleInstrumentAndTrades:lessThanNinetyDaysToOneYearExpiry = select(sl_instype, 
+  "SecurityLoan"->(object.Trades.AsArray.At(0)) :* "lessThanNinetyDaysToOneYearExpiry", 
+  default->nil);
+[Securities Lending ABSA]FTrade:lessThanNinetyDaysToOneYearExpiry = select(instrument:isOpenEnd, 
+  false->nil, 
+  true->select(instrument:isLoanRecalled, 
+    true->select(recalledNumDaysToOneYearExpiry <= 90, 
+      true->recalledNumDaysToOneYearExpiry, 
+      false->nil), 
+    false->select(numDaysToOneYearExpiry <= 90, 
+      true->numDaysToOneYearExpiry, 
+      false->nil)));
+[Securities Lending ABSA]FTradeRow:lessThanNinetyDaysToOneYearExpiry = trade:lessThanNinetyDaysToOneYearExpiry;

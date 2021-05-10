@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:cliquetGlobalCapPercent = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:cliquetGlobalCapPercent = instrument:cliquetGlobalCapPercent;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:cliquetGlobalCapPercent = nil;
+[Equity Pricing and Risk]FOption:cliquetGlobalCapPercent = select(isCliquet, 
+  true->select(cliquetType == "Reversed", 
+    true->exotic.GlobalCap, 
+    false->nil), 
+  false->nil);
+[Equity Pricing and Risk]FPriceAggregate:cliquetGlobalCapPercent = instrument:cliquetGlobalCapPercent;

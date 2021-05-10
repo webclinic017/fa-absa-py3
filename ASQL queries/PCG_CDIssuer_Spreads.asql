@@ -1,0 +1,26 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_CDIssuer_Spreads') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_CDIssuer_Spreads' and p.type = 'SQL Query' 
+ 
+  select    
+    TODAY                                   'RepDate',
+    yc.yield_curve_name                     'yc',
+    display_id(yca,'issuer_ptynbr')     'Issuer',
+    yp.date_period.count,
+    yp.date_period.unit,
+    ys.spread * 100                                 'spread'
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys,
+    YCAttribute yca
+where
+    yc.yield_curve_name  in (@01_YieldCurve{CDIssuerCurve_HR;yieldcurve.yield_curve_name*})
+    and yca.seqnbr = ys.attribute_seqnbr 
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr
+    
+order by 3

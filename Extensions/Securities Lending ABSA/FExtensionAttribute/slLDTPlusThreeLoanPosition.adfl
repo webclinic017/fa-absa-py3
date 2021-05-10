@@ -1,0 +1,10 @@
+[Securities Lending ABSA]FInstrument:slLDTPlusThreeLoanPosition = sumOf(tradesInPosition :* "slLDTPlusThreeLoanPosition");
+[Securities Lending ABSA]FInstrumentAndTrades:slLDTPlusThreeLoanPosition = sumOf(instrument :* "slLDTPlusThreeLoanPosition" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slLDTPlusThreeLoanPosition = sumOf(instruments :* "slLDTPlusThreeLoanPosition" [positionObject, profitAndLossStartDate, profitAndLossEndDate]);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:slLDTPlusThreeLoanPosition = nil;
+[Securities Lending ABSA]FTrade:slLDTPlusThreeLoanPosition = switch(sl_instype, 
+  "SecurityLoan"->switch((slDividendLDTPlusThree >= sl_startDate) and (slDividendLDTPlusThree < sl_endDate), 
+    true->sl_quantity, 
+    false->0), 
+  default->0);
+[Securities Lending ABSA]FTradeRow:slLDTPlusThreeLoanPosition = sumOf(instrument :* "slLDTPlusThreeLoanPosition" [tradesInPosition = [trade], profitAndLossStartDate, profitAndLossEndDate]);

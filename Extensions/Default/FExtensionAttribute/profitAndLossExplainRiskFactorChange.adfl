@@ -1,0 +1,4 @@
+[Default]FInstrumentAndTrades:profitAndLossExplainRiskFactorChange = select(riskFactorVectorItem:isComplete [profitAndLossExplainRiskFactorParameterTarget], 
+  true->(profitAndLossExplainRiskFactorValueAtEndDate - profitAndLossExplainRiskFactorValueAtStartDate) / profitAndLossExplainRiskFactorChangeDivisor, 
+  false->object:profitAndLossExplainRiskFactorFlatChange [profitAndLossStartDate, profitAndLossEndDate, profitAndLossExplainTimeBucketsSetExternally, riskFactorTypeName, riskFactorVectorItem, weightMethod]);
+[Default]FRiskFactor:profitAndLossExplainRiskFactorChange = rowObject:profitAndLossExplainRiskFactorChange [profitAndLossStartDate, profitAndLossEndDate, riskFactorTypeName, riskFactorVectorItemSetExternally := object];

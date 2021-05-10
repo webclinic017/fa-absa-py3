@@ -1,0 +1,87 @@
+/* *******Deployments************* 
+Purpose               : Initial development - interpolation of rates not resident in the ZAR-SWAP curve, for periods not traded as standard
+Department and Desk   : FO/MO
+Requester             : Martin van der Walt
+Developer             : Anwar Banoo
+CR Number             : 204535
+
+Purpose               : ECR - ael needed to be relicated and renamed due to failed to ird_provision_totals
+Department and Desk   : FO/MO
+Requester             : Martin van der Walt
+Developer             : Anwar Banoo
+CR Number             : 219979
+
+***********************************/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* Usage code for this ASQL */
+SELECT
+    ael_i(p,'ASQL_log','Rates Query') 'Name'
+INTO  
+    ASQL_LOG_TEMP
+FROM 
+    TextObject p 
+WHERE 
+    p.name = 'Rates Query' and p.type = 'SQL Query' 
+
+SELECT
+    to_date(yesterday)  'From',
+    date_add_delta(yesterday,0,9,0) 'To',
+    days_between(yesterday, date_add_delta(yesterday,0,9,0), 'ACT/365') 'Rows'
+INTO
+    temp
+FROM
+    serverdata s
+WHERE
+    s.srdnbr > 0                                                
+
+select
+    p1.ptynbr,
+    count(p2.ptynbr)-1         'Nbr'
+into
+    TMP
+from
+    party p1,
+    party p2
+where
+    p1.ptynbr<p2.ptynbr
+and p1.ptynbr < 500
+and p2.ptynbr < 500
+group by 
+    p1.ptynbr 
+
+select
+    date_add_banking_day(yesterday,'ZAR', 10*(t2.Nbr)+t1.Nbr)   'TradeDate'
+into
+    DateRange
+from 
+    TMP     t1,
+    TMP     t2,
+    temp t
+where
+    t1.Nbr<10
+and t2.Nbr<t.rows/10
+and (10*(t2.Nbr)+t1.Nbr+1) <= t.rows + 1
+and date_add_banking_day(yesterday,'ZAR', 10*(t2.Nbr)+t1.Nbr) <= t.to
+
+select
+    TradeDate,    
+    yc_rate(yc, TradeDate, date_add_delta(TradeDate, 0 ,@Fwd_Rt_Maturity[3],0), 'Quarterly', @Daycount{Act/365;'Act/360','30E/360','Act/365'} ,'Forward Rate',,)*100 'Forward_Rate',
+    IRDShortEndCurveProvision.market_rate_asql(TradeDate, Today, display_id(yc, 'curr'))    'Market_Rate'
+into 
+    TempTable
+from
+    DateRange,
+    YieldCurve yc
+where
+    yc.yield_curve_name = @YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name}
+order by
+    1
+    
+select
+    TradeDate,
+    convert('double', Forward_Rate, 8) 'Forward Rate',
+    convert('double', Market_Rate, 8) 'Market Rate'
+from
+    TempTable
+    

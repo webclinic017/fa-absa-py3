@@ -1,0 +1,67 @@
+
+/*
+**************Developments******************
+
+Purpose               : TCU/PCG require a report that gives them a view to all brokerage issue trades booked via markitwire
+Department and Desk   : TCU/PCG
+Requester             : Kalin Ramsumner
+Developer             : Arthur Grace
+CR Number             : CHNG0003021105
+
+********************************************
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MarkitWireBrokerFeePayDay') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MarkitWireBrokerFeePayDay' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr 'Trade Nbr', 
+    pay.type,
+    pay.amount,
+    pay.payday,
+    add_info(t, 'MarkitWire') 'MW Key',
+    add_info(t, 'CCPmiddleware_id') 'ccp Key',
+    add_info(t, 'CCPmiddleware_versi') 'ccp Key',
+    i.exp_Day 'Expiry',
+    i.insid 'Ins ID',
+    i.instype 'Type',
+    t.status 'Status',
+    t.value_day 'Effective',
+    display_id(i, 'curr')    'Currency',
+    nominal_amount(t) 'Nominal',
+    display_id(t, 'acquirer_ptynbr') 'Acquirer',
+    display_id(t, 'counterparty_ptynbr')    'Counterparty',
+    u.userid 'Trader',
+    t.time  'Trade Date',
+    t.acquire_day   'Acquire Date',
+    t.value_day 'Value Date'
+from
+    trade t, 
+    instrument i, 
+    user u,
+    AdditionalInfo ai,
+    AdditionalInfoSpec ais,
+    payment pay
+where 
+    i.insaddr = t.insaddr
+and ai.recaddr = t.trdnbr
+and ai.addinf_specnbr = ais.specnbr
+and ais.field_name = 'CCPmiddleware_id'
+and ai.value ~= ''
+and t.trader_usrnbr = u.usrnbr
+and ((@4_Trader{All;user.userid} = 'All') or 
+    (u.userid in (@4_Trader{All;user.userid})))
+and (i.instype in (@3_Instype{Swap;'Swap','FRA', 'CurrSwap'*}))
+and pay.trdnbr = t.trdnbr
+and pay.type = 'Broker Fee'
+and t.time >= @1_StartDay{Yesterday;}
+and t.time <= @2_EndDay{Today;}
+and pay.payday = @3_PayDay{Today;}
+and t.status not in ('Void')
+
+order by 
+    t.trdnbr

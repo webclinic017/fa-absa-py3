@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_AsianOpt_AvgDates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAMR_AsianOpt_AvgDates' and p.type = 'SQL Query' 
+ 
+
+
+
+/*** Non - Asian Options ***/
+select 
+  t.trdnbr                    'Trade Number', 
+  i.insid                     'Instrument',
+  i.instype                   'Ins Type',
+  ee.*,
+  ii.insid                    'Underlying',
+  i.und_instype               'Undderlying Type',  
+  @Date{TODAY}				  'Business_Day'
+    
+
+	
+
+from 
+	instrument i,
+	instrument ii,
+	trade t,
+	exotic exo,
+    ExoticEvent ee
+	
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and i.und_insaddr *= ii.insaddr
+	and i.insaddr = exo.insaddr
+	and i.instype = 'Option'
+	and time_to_day(t.time) <= today
+	and i.exp_day > today
+	and exo.average_method_type not in ('None')
+	and ee.insaddr = i.insaddr
+
+

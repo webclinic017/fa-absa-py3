@@ -1,0 +1,210 @@
+/*------------------------------------------------------------------
+    Date                : [2011-08-26], [2012-03-28]
+						  [2015-06-15]
+						  [2017-04-04]
+                          [2018-07-03]
+    Purpose             : [Retrieve trade value for the report date as well as the MTD figure. Calculate the broker cost based on the trade value. Update MTD stock value on the Portfolios]
+                          [Update calcualtions inline with JSE fee structure update.]
+                          [Excluded voided trades]
+                          [Filter on trade create time and not trade time]
+						  [Added BROKER_STRATE_PER_TRADE to the calculation]
+                          [Amended calculation for Old_broker_fee_calc with respect to OD trades]
+                          [JSE cost updates 2017]
+                          [JSE cost updates 2018]
+    Department and Desk : [ACS PCG], [ACS PCG], [ACS PCG], [ACS PCG], [ACS PCG], [ACS PCG], [ACS PCG]
+    Requester           : [James Jackson], [James Jackson], [Marli Penzhorn], [Marli Penzhorn], [Kekana, Reletile], [Luvuyo Booi]
+    Developer           : [Jaysen Naicker], [Jaysen Naicker], [Jaysen Naicker], [Jaysen Naicker], [Fancy Dire], [Bhavik Mistry], [Libor Svoboda]
+    CR Number           : 752220, 113367, CHNG0000147637 , CHNG0000193155, CHNG0004452477, CHG1000166517
+------------------------------------------------------------------*/
+
+/* Get broker fee calculation contstants */
+select 
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_TRADING_FACTOR'))      'BROKER_TRADING_FACTOR',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_TRADING_FLOOR'))       'BROKER_TRADING_FLOOR',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_TRADING_CAP'))         'BROKER_TRADING_CAP',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_CLEARING_FACTOR'))     'BROKER_CLEARING_FACTOR',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_CLEARING_FLOOR'))      'BROKER_CLEARING_FLOOR',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_CLEARING_CAP'))        'BROKER_CLEARING_CAP',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_IPL_FACTOR'))          'BROKER_IPL_FACTOR',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_JSETS'))               'BROKER_JSETS',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'VAT_FACTOR'))                 'TAX',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS'))                 'OTHER_COSTS',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_CAP'))             'OTHER_COSTS_CAP',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_AGENCY'))          'OTHER_COSTS_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_CAP_AGENCY'))      'OTHER_COSTS_CAP_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_EQUITIES'))        'OTHER_COSTS_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_CAP_EQUITIES'))    'OTHER_COSTS_CAP_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_PRIME'))           'OTHER_COSTS_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_CAP_PRIME'))       'OTHER_COSTS_CAP_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_STRUCTURED'))      'OTHER_COSTS_STRUCTURED',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'OTHER_COSTS_CAP_STRUCTURED'))  'OTHER_COSTS_CAP_STRUCTURED',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE'))                 'CUSTODY_FEE',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_CAP'))             'CUSTODY_FEE_CAP',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_AGENCY'))          'CUSTODY_FEE_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_CAP_AGENCY'))      'CUSTODY_FEE_CAP_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_EQUITIES'))        'CUSTODY_FEE_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_CAP_EQUITIES'))    'CUSTODY_FEE_CAP_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_PRIME'))           'CUSTODY_FEE_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_CAP_PRIME'))       'CUSTODY_FEE_CAP_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_STRUCTURED'))      'CUSTODY_FEE_STRUCTURED',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'CUSTODY_FEE_CAP_STRUCTURED'))  'CUSTODY_FEE_CAP_STRUCTURED',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE'))                 'BROKER_STRATE',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_CAP'))             'BROKER_STRATE_CAP',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_AGENCY'))          'BROKER_STRATE_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_CAP_AGENCY'))      'BROKER_STRATE_CAP_AGENCY',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_EQUITIES'))        'BROKER_STRATE_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_CAP_EQUITIES'))    'BROKER_STRATE_CAP_EQUITIES',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_PRIME'))           'BROKER_STRATE_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_CAP_PRIME'))       'BROKER_STRATE_CAP_PRIME',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_STRUCTURED'))      'BROKER_STRATE_STRUCTURED',
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'BROKER_STRATE_CAP_STRUCTURED'))  'BROKER_STRATE_CAP_STRUCTURED',
+    
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'RTM_FEE_FACTOR'))                'RTM_FEE_FACTOR'
+into constant
+from serverdata s
+where s.srdnbr > 0
+    
+
+select  
+    t.trdnbr,
+    to_date(@date{yesterday})   'Trade_date',
+    port.prfid                  'Portfolio',
+    (i.quote_type = 'Per 100 Units' ? abs(t.quantity*t.price/100) : abs(t.quantity*t.price)) 'Trade_value',
+    sum(pay.type = 'Broker Fee' ? pay.amount : 0.0 )   'broker_fee',
+    add_info(t, 'XtpTradeType') 'XtpTradeType',
+    ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS Cash Equities Agency') = 1 ? 'AGENCY' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS Cash Equities Agency Barcap') = 1 ? 'AGENCY' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS Cash Equities Agency Syndicated Tra') = 1 ? 'AGENCY' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS RTM Equities') = 1 ? 'EQUITIES' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS RTM Prime Services') = 1 ? 'PRIME' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS RTM Structured Trading') = 1 ? 'STRUCTURED' :
+        ael_i(port, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ACS RTM - Syndicate') = 1 ? 'STRUCTURED' :
+        'DEFAULT'     'Portfolio_fee_flag'
+into tmp
+from 
+    trade t,
+    instrument i,
+    portfolio port,
+    Payment pay,
+    party p
+where
+    match_filter(t,@Filter{IMATCH_ACS;TradeFilter.fltid})
+    and t.insaddr = i.insaddr
+    and t.prfnbr = port.prfnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and to_date(t.creat_time) = to_date(@date{yesterday})
+    and p.ptyid = 'JSE'
+    and pay.trdnbr =* t.trdnbr
+    and add_info(t, 'Broker_Fee_Exclude') ~= 'Yes' 
+    and add_info(port, 'PS_PortfolioType' ) not in ('General', 'CFD Allocation', 'Cash Equity Allocation')
+    and t.status ~= 'Void'
+    and not (display_id(t, 'trader_usrnbr') = 'FMAINTENANCE' and t.type = 'Aggregate')
+
+    
+select
+    t.trdnbr,
+    t.Trade_date,
+    t.Portfolio,
+    t.Trade_value,
+    t.broker_fee,
+    t.XtpTradeType,
+    t.Portfolio_fee_flag = 'AGENCY' ? c.OTHER_COSTS_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.OTHER_COSTS_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.OTHER_COSTS_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.OTHER_COSTS_STRUCTURED :
+        c.OTHER_COSTS     'OTHER_COSTS',
+    t.Portfolio_fee_flag = 'AGENCY' ? c.OTHER_COSTS_CAP_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.OTHER_COSTS_CAP_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.OTHER_COSTS_CAP_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.OTHER_COSTS_CAP_STRUCTURED :
+        c.OTHER_COSTS_CAP     'OTHER_COSTS_CAP',
+    t.Portfolio_fee_flag = 'AGENCY' ? c.CUSTODY_FEE_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.CUSTODY_FEE_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.CUSTODY_FEE_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.CUSTODY_FEE_STRUCTURED :
+        c.CUSTODY_FEE     'CUSTODY_FEE',
+    t.Portfolio_fee_flag = 'AGENCY' ? c.CUSTODY_FEE_CAP_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.CUSTODY_FEE_CAP_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.CUSTODY_FEE_CAP_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.CUSTODY_FEE_CAP_STRUCTURED :
+        c.CUSTODY_FEE_CAP     'CUSTODY_FEE_CAP',
+    t.Portfolio_fee_flag = 'AGENCY' ? c.BROKER_STRATE_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.BROKER_STRATE_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.BROKER_STRATE_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.BROKER_STRATE_STRUCTURED :
+        c.BROKER_STRATE     'BROKER_STRATE',
+    t.Portfolio_fee_flag = 'AGENCY' ? c.BROKER_STRATE_CAP_AGENCY :
+        t.Portfolio_fee_flag = 'EQUITIES' ? c.BROKER_STRATE_CAP_EQUITIES :
+        t.Portfolio_fee_flag = 'PRIME' ? c.BROKER_STRATE_CAP_PRIME :
+        t.Portfolio_fee_flag = 'STRUCTURED' ? c.BROKER_STRATE_CAP_STRUCTURED :
+        c.BROKER_STRATE_CAP     'BROKER_STRATE_CAP',
+    t.Portfolio_fee_flag = 'AGENCY' ? 0.0 : c.BROKER_IPL_FACTOR     'BROKER_IPL_FACTOR',
+    t.Portfolio_fee_flag in ('EQUITIES', 'PRIME', 'STRUCTURED') ? c.RTM_FEE_FACTOR : 0.0     'EX_PREM_FACTOR',
+    t.XtpTradeType in ('XTP_MARKET_HIT', 'OD', 'OP') ? 1.0 : 
+        t.Portfolio_fee_flag = 'AGENCY' ? 0.0 : 1.0     'XTP_TYPE_FACTOR'
+into temp_data_and_fees
+from 
+    tmp t,
+    constant c
+
+select
+    t.trdnbr,
+    t.Trade_date,
+    t.Portfolio,
+    t.Trade_value,
+    t.XtpTradeType in ('OD', 'OP') ? 0.0 :
+        t.Trade_value * c.BROKER_TRADING_FACTOR > c.BROKER_TRADING_CAP ? c.BROKER_TRADING_CAP : 
+        t.Trade_value * c.BROKER_TRADING_FACTOR < c.BROKER_TRADING_FLOOR ? c.BROKER_TRADING_FLOOR : 
+        t.Trade_value * c.BROKER_TRADING_FACTOR                                                                     'broker_trading',
+    t.Trade_value * c.BROKER_CLEARING_FACTOR > c.BROKER_CLEARING_CAP ? c.BROKER_CLEARING_CAP : 
+        t.Trade_value * c.BROKER_CLEARING_FACTOR < c.BROKER_CLEARING_FLOOR ? c.BROKER_CLEARING_FLOOR : 
+        t.Trade_value * c.BROKER_CLEARING_FACTOR                                                                    'broker_clearing',
+    t.Trade_value * t.BROKER_IPL_FACTOR                                                                             'broker_ipl',
+    t.Trade_value * t.OTHER_COSTS > t.OTHER_COSTS_CAP ? t.OTHER_COSTS_CAP : t.Trade_value * t.OTHER_COSTS           'other_costs',
+    t.Trade_value * t.BROKER_STRATE > t.BROKER_STRATE_CAP ? t.BROKER_STRATE_CAP : t.Trade_value * t.BROKER_STRATE   'broker_strate',
+    t.Trade_value * t.CUSTODY_FEE > t.CUSTODY_FEE_CAP ? t.CUSTODY_FEE_CAP : t.Trade_value * t.CUSTODY_FEE           'custody_fee',
+    t.XtpTradeType in ('OD', 'OP') ? 0.0 : t.Trade_value                                                            'consideration',
+    t.XtpTradeType in ('OD', 'OP') ? t.Trade_value : 0.0                                                            'consideration_od_op',
+    t.XtpTradeType in ('OD', 'OP') ? 0.0 : t.Trade_value * t.EX_PREM_FACTOR                                         'ex_premium',
+    t.broker_fee,
+    t.XtpTradeType,
+    t.XTP_TYPE_FACTOR
+into tmp2    
+from 
+    temp_data_and_fees t,
+    constant c
+
+
+select
+    t.Trade_date,
+    t.Portfolio,
+    sum(t.Trade_value)  'Trade_value',
+    sum((t.broker_trading + t.broker_clearing + t.broker_ipl + t.broker_strate + t.other_costs + t.custody_fee + c.BROKER_JSETS) * (-1 * (1 + c.TAX)) * t.XTP_TYPE_FACTOR) 'JSE_Cost',
+    sum(t.consideration)         'Consideration',
+    sum(t.consideration_od_op)   'Consideration_OD_OP',
+    sum(t.ex_premium)  'Ex_Premium',
+    sum(t.broker_fee)  'Broker_fee',
+    count(t.trdnbr)    'Trade_count'
+into tmp3
+from 
+    tmp2 t,
+    constant c
+group by 1,2
+
+
+select
+    t.Trade_date                        'Create_date',
+    t.Portfolio,
+    '',
+    t.JSE_Cost                          'JSE Cost',
+    t.Ex_Premium                        'Execution Premium',
+    t.Consideration                     'Consideration No OD OP',
+    t.Consideration_OD_OP               'Consideration OD OP'
+from 
+    tmp3 t
+

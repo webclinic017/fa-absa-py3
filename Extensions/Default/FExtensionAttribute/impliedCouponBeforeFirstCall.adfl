@@ -1,0 +1,7 @@
+[Default]FInstrument:impliedCouponBeforeFirstCall = select((isCallable or isPutable), 
+  false->nil, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(shiftCouponBeforeFirstCall, "shiftedValue", object), shiftCouponBeforeFirstCall, marketPrice, implyPrecision, 0, 1, implyMaxIterations)));
+[Default]FInstrumentAndTrades:impliedCouponBeforeFirstCall = instrument :* "impliedCouponBeforeFirstCall" [priceSource];
+[Default]FMultiInstrumentAndTrades:impliedCouponBeforeFirstCall = nil;

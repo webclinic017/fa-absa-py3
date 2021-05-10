@@ -1,0 +1,9 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRelationshipStatus = switch(usedInHedge, 
+  true->getHedgeRelationshipStatus(object), 
+  default->nil);
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRelationshipStatus = switch(usedInHedge, 
+  true->getHedgeRelationshipStatus(lowestChild.OriginalTrade.DealPackage), 
+  default->nil);
+[HedgeAccountingMod]FTradeRow:hedgeRelationshipStatus = switch(usedInHedge, 
+  true->getHedgeRelationshipStatus(object.OriginalTrade.DealPackage), 
+  default->nil);

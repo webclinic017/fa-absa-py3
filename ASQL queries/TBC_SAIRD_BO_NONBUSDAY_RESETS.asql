@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SAIRD_BO_NONBUSDAY_RESETS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SAIRD_BO_NONBUSDAY_RESETS' and p.type = 'SQL Query' 
+/* Updated by:
+	Aaeda Salejee	15/04/2004	Call No: 87958
+*/
+
+select c.calid, cd.daynbr
+
+into tempCal
+
+from Calendar c,
+Calendardate cd
+
+where c.calnbr = cd.calnbr
+and daynbr > TODAY
+
+/*=================================*/
+
+select 
+	t.trdnbr, 
+	display_id(t, 'prfnbr') 'Portfolio',
+	i.instype, 
+	r.day,  
+	display_id(l,'pay_calnbr') 'Calendar'
+
+
+
+from
+
+trade t, instrument i, leg l, reset r, tempCal tt
+
+where match_filter(t, @Filter{;tradefilter.fltid}) 
+and i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = r.legnbr
+and r.day = tt.daynbr
+and tt.calid = display_id(l,'pay_calnbr')
+
+order by r.day
+

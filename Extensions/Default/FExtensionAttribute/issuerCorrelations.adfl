@@ -1,0 +1,10 @@
+[Default]FInstrument:issuerCorrelations = select(correlationMatrix, 
+  nil->nil, 
+  default->select(isMonteCarloCreditBasket, 
+    true->select(correlationType, 
+      "Correlation Matrix"->correlationMatrixInformation.Values, 
+      "Instrument Correlation"->flatCorrelationMatrix(instrumentCorrelationMatrixInformation.Correlation(object), count(creditIssuer)), 
+      default->nil), 
+    default->select(correlationType, 
+      "Instrument Correlation"->instrumentCorrelationMatrixInformation.Correlation(object), 
+      "Correlation Matrix"->flatCorrelationMatrix(emptyCorrelationInformation.DefaultCorrelation, 1))));

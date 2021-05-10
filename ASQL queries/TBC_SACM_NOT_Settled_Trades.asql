@@ -1,0 +1,295 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_NOT_Settled_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_NOT_Settled_Trades' and p.type = 'SQL Query' 
+
+
+/*
+
+query to identify all not settled 'legs' 
+
+for trades that settle after a given date
+
+*/
+
+
+
+/*---bonds---*/
+
+select
+Today'Today',
+t.value_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+0.00 'repo_rate',
+p.prfid,
+cl.entry'tradearea',
+t.price'rate',
+t.premium'premium',
+party.ptyid'CP',
+party.hostid,
+-1*dirty_from_yield(i,t.value_day,,,t.price)*10000*t.quantity'Dirty'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+choicelist cl fill
+
+where
+
+i.insaddr=t.insaddr
+and t.optkey1_chlnbr=cl.seqnbr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.value_day>=@settlement{Tomorrow;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid~='DRA TRANSAKSIES'
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid')
+and match_filter(t,@filter{;tradefilter.fltid})
+and ('None' in (@CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@CounterParty{}))
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+Today'Today',
+t.value_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+i.rate'repo_rate',
+p.prfid,
+cl.entry'tradearea',
+t.price'rate',
+t.premium'premium'/*t.premium applies to both Bsb and repo for cash1*/,
+party.ptyid'CP',
+party.hostid,
+-1*dirty_from_yield(ui,t.value_day,,,t.price)*10000*t.quantity'Dirty'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+choicelist cl fill
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.optkey1_chlnbr=cl.seqnbr
+and t.value_day>=@settlement{Tomorrow;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','SPV4','LIABILITIES 9830','IRD Funding Hybrid')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+and ('None' in (@CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@CounterParty{}))
+and match_filter(t,@filter{;tradefilter.fltid})
+
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+Today'Today',
+i.exp_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1) 'Nominal',
+i.rate'repo_rate',
+p.prfid,
+cl.entry'tradearea',
+i.ref_price'rate',
+i.instype='BuySellback' ? i.ref_value*t.quantity : (t.premium*-1)+(l.fixed_rate*t.premium*days_between(t.value_day,i.exp_day,'Act/365')/36500)*-1'premium',
+party.ptyid'CP',
+party.hostid,
+-1*dirty_from_yield(ui,i.exp_day,,,i.ref_price)*10000*t.quantity'Dirty'
+
+into temp
+
+
+from
+instrument i,
+leg l,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+choicelist cl fill
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr*=l.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.optkey1_chlnbr=cl.seqnbr
+and i.exp_day>=@settlement{Tomorrow;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','LIABILITIES 9830','IRD Funding Hybrid')
+and match_filter(t,@filter{;tradefilter.fltid})
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+and ('None' in (@CounterParty{None;party.ptyid *}) or display_id(t,'counterparty_ptynbr')  in (@CounterParty{}))
+
+order by i.instype, ui.insid
+
+
+/*----select all from temp table ------*/
+
+
+select
+t.Today,
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'YES' ? t.status : '' 'status',
+'YES' ? t.instype : '' 'instype',
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+
+t.Nominal,
+t.repo_rate,
+t.prfid,
+'Yes' ? t.tradearea : '' 'tradearea',
+t.rate,
+t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+t.premium,
+t.CP 'CP',
+t.hostid,
+t.Dirty,
+abs(t.premium)-abs(t.Dirty)'Diff_to_premium'
+from 
+
+temp t
+
+order by  t.CP,t.insid,6/*t.instype*/
+
+
+
+union
+
+select
+t.Today,
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'Sub Total By CP and B_S'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+
+t.Nominal,
+t.repo_rate,
+' ' /*t.prfid*/,
+' ' /*t.tradearea*/,
+t.rate,
+t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+sum(t.premium),
+ t.CP,
+t.hostid,
+t.Dirty,
+abs(t.premium)-abs(t.Dirty)'Diff_to_premium'
+
+from 
+
+temp t
+
+group by t.CP,8 /*B_S*/
+
+
+order by t.CP
+
+
+
+union
+
+select
+t.Today,
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'Net Total By CP '/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+
+t.Nominal,
+t.repo_rate,
+' ' /*t.prfid*/,
+' ' /*t.tradearea*/,
+t.rate,
+t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+sum(t.premium),
+ t.CP,
+t.hostid,
+t.Dirty,
+abs(t.premium)-abs(t.Dirty)'Diff_to_premium'
+
+from 
+
+temp t
+
+group by t.CP
+
+
+order by t.CP
+
+union
+
+select
+t.Today,
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'GRAND TOTAL '/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+
+t.Nominal,
+t.repo_rate,
+' ' /*t.prfid*/,
+' ' /*t.tradearea*/,
+t.rate,
+t.Nominal>0 ? 'Pay' : 'Rec' 'Pay_Rec',
+sum(t.premium),
+ t.CP,
+t.hostid,
+t.Dirty,
+abs(t.premium)-abs(t.Dirty)'Diff_to_premium'
+
+from 
+
+temp t
+
+group by 1
+
+

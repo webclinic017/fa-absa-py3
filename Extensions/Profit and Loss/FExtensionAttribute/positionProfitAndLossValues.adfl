@@ -1,0 +1,7 @@
+[Profit and Loss]FTrade:positionProfitAndLossValues = select(object == originalTrade, 
+  true->select(positionObject, 
+    nil->select(portfolioUsedInProfitAndLoss, 
+      nil->calculationInstrument:profitAndLossValues [tradesInPosition = [object], profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, createClosingLotInfos], 
+      default->calculationInstrument:profitAndLossValues [positionObject = portfolioUsedInProfitAndLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, createClosingLotInfos]), 
+    default->calculationInstrument:profitAndLossValues [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, createClosingLotInfos]), 
+  false->calculationInstrument:profitAndLossValues [tradesInPosition = profitAndLossTradesInposition, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, createClosingLotInfos]);

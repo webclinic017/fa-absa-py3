@@ -1,0 +1,62 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 714504
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Euro_Double_Knock_Out') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Euro_Double_Knock_Out' and p.type = 'SQL Query'
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Euro_Double_Knock_Out.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Euro_Double_Knock_Out.csv'},@3_PositionName{'MR_Euro_Double_Knock_Out_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Euro_Double_Knock_Out.Write',@1_path{'f:\'},@2_FileName{'MR_Euro_Double_Knock_Out.csv'},@3_PositionName{'MR_Euro_Double_Knock_Out_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+
+from
+    instrument i,
+    exotic e
+where
+    /* Basic filtering conditions */
+        i.insaddr = e.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Option')
+    
+    /* Special filtering conditions */ 
+    and i.exotic_type in ('Other')                      /* All digital options are excluded */
+    and e.average_method_type in ('None')               /* Exclude all averaging type options */
+    and i.digital in ('No')                             /* Exclude binary or digital options */
+    and e.barrier_option_type in ('Double Out')					/* Includes only Knock Out options */
+    and e.barrier_monitoring not in ('Window')          /* Exclude Window Barriers */    
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+

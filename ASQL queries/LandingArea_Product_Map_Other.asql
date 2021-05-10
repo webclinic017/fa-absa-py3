@@ -1,0 +1,445 @@
+ /* ******************  ASQL USAGE LOG  ********************** */ 
+ /*select 
+      ael_i(p,'ASQL_log','LandingArea_Product_Map_Other') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Product_Map_Other' and p.type = 'SQL Query' */
+
+/*
+Date        CR Number      Developer           Description
+2013-04-30  XXXXXX         Heinrich Cronje     Added the Python call for underlying detail
+                                               for PriceSwap instruments.
+2013-12-04  CHNG0001589018 Heinrich Cronje     Added instrument EUR/111013-111014/0.70/#3 to speficic
+                                               Instrument section
+*/ 
+
+
+
+select
+	today							        'RepDay',
+	date_add_delta(today, -90, 0, 0,)       'past'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+	
+	
+	
+
+
+/* CurrSwap */	
+select
+    t.trdnbr,
+    l.type,
+    l.payleg
+
+into tempYes
+
+from 
+    trade t, 
+    leg l, 
+    instrument i,
+    macros m
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Float'
+and l.payleg = 'Yes'
+and i.exp_day > m.past
+
+
+
+
+select
+    t.trdnbr,
+    l.type,
+    l.payleg
+
+into tempNo
+
+from 
+    trade t, 
+    leg l, 
+    instrument i,
+    macros m
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Float'
+and l.payleg = 'No'
+and i.exp_day > m.past
+
+select 
+    ty.trdnbr, 
+    'BasisSwap'  'Type'
+
+into tempType
+
+from 
+    tempYes ty, 
+    tempNo tn
+
+where 
+    ty.trdnbr = tn.trdnbr
+
+
+select
+    t.trdnbr,
+    'CurrSwap' 'Type'
+
+into tempType
+
+from 
+    trade t, 
+    leg l, 
+    instrument i,
+    macros m
+
+where 
+    l.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.type = 'Fixed'
+and i.exp_day > m.past
+
+
+
+
+
+
+
+
+
+/* ***************************** MAIN *****************************/
+
+select distinct 
+    ael_s(,'SAGEN_str_functions.concat',min(psi.insaddr),'','')   'insaddr',
+    ael_s(,'SAGEN_str_functions.concat',i.insid,'/CFD/LOCAL','')            'insid',
+    'Portfolio Swap'			                                            'instype',
+    add_info(t,'MM_Instype')                                                'MM_INSTYPE',
+    add_info(t,'Funding Instype')                                           'FUNDING_INSTYPE',
+ 	min(display_id(i,'issuer_ptynbr'))		                                'ISSUER', 
+    i.exp_day,
+    i.insaddr                                                               'Und_insaddr',
+    i.insid             		                                            'Und_insid',
+	i.instype	                                                            'Und_instype',
+	'None'                                                                  'OptType',
+    add_info(t,'Instype')                                                   'ADD_INSTYPE',
+    min(display_id(t,'acquirer_ptynbr'))                                    'Desk',
+    min(display_id(t,'counterparty_ptynbr'))                                'CP',
+    display_id(pl,'owner_prfnbr')                                           'Portfolio',
+    i.paytype		                                                        'Paytype',
+    add_info(t, 'SND_Trade_Type')                                           'SND_Trade_Type',
+	to_time(to_date(t.time))				                                'Trade_Date_and_Time'  
+INTO
+    PSwap_tmp
+FROM
+	trade		t,
+	instrument	i,
+	instrument	ccy,
+    instrument  psi,
+	PortfolioLink pl
+
+WHERE
+    t.insaddr = i.insaddr
+and pl.member_prfnbr = t.prfnbr
+and i.curr = ccy.insaddr
+and i.instype = 'Stock'
+and ccy.insaddr = 2
+and t.quantity < 0
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and psi.fund_prfnbr = t.prfnbr
+and psi.instype = 'Portfolio Swap'
+group by 2, 15, 18
+
+
+
+select distinct 
+    ael_s(,'SAGEN_str_functions.concat',min(psi.insaddr),'','')   'insaddr',
+    ael_s(,'SAGEN_str_functions.concat',i.insid,'/CFD/LOCAL','')            'insid',
+    'Portfolio Swap'			                                            'instype',
+    add_info(t,'MM_Instype')                                                'MM_INSTYPE',
+    add_info(t,'Funding Instype')                                           'FUNDING_INSTYPE',
+ 	min(display_id(i,'issuer_ptynbr'))		                                'ISSUER', 
+    i.exp_day,
+    i.insaddr                                                               'Und_insaddr',
+    i.insid             		                                            'Und_insid',
+	i.instype	                                                            'Und_instype',
+	'None'                                                                  'OptType',
+    add_info(t,'Instype')                                                   'ADD_INSTYPE',
+    min(display_id(t,'acquirer_ptynbr'))                                    'Desk',
+    min(display_id(t,'counterparty_ptynbr'))                                'CP',
+    display_id(pl,'owner_prfnbr')                                           'Portfolio',
+    i.paytype		                                                        'Paytype',
+    add_info(t, 'SND_Trade_Type')                                           'SND_Trade_Type',
+	to_time(to_date(t.time))				                                'Trade_Date_and_Time'  
+INTO
+    PSwap_tmp
+FROM
+	trade		t,
+	instrument	i,
+	instrument	ccy,
+	instrument  psi,
+	PortfolioLink pl
+
+WHERE
+    t.insaddr = i.insaddr
+and pl.member_prfnbr = t.prfnbr
+and i.curr = ccy.insaddr
+and i.instype = 'Stock'
+and ccy.insaddr = 2
+and t.quantity >= 0
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and psi.fund_prfnbr = t.prfnbr
+and psi.instype = 'Portfolio Swap'
+group by 2, 15, 18
+
+select distinct
+    ps.insaddr,
+    ps.insid,
+    ps.instype,
+    ps.MM_INSTYPE,
+    ps.FUNDING_INSTYPE,
+ 	ps.ISSUER, 
+    ps.exp_day,
+    to_string(ps.Und_insaddr)   'Und_insaddr',
+    ps.Und_insid,
+	to_string(ps.Und_instype)   'Und_instype',
+	ps.OptType,
+    ps.ADD_INSTYPE,
+    ps.Desk,
+    ps.CP,
+    ps.Portfolio,
+    ps.Paytype,
+    ps.SND_Trade_Type
+from
+    PSwap_tmp ps
+    
+    
+union
+
+/* CurrSwap - Final*/
+select distinct 
+        ael_s(i,'ProductMappId.ConvertProdId') 'insaddr',
+    i.insid,
+    ty.type	                            'Instype',
+    add_info(t,'MM_Instype')            'MM_INSTYPE',
+    add_info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(und.insaddr)              'Und_insaddr',
+    und.insid                           'Und_insid',
+    to_string(und.instype)              'Und_instype',
+    'None'                              'OptType',
+    add_info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    tempType ty, 
+    instrument und
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype = 'CurrSwap'
+and t.trdnbr = ty.trdnbr
+
+
+union
+
+
+
+/* Specific Trades - Simulated*/
+select distinct 
+      ael_s(i,'ProductMappId.ConvertProdId') 'insaddr',
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    add_info(t,'MM_Instype')            'MM_INSTYPE',
+    add_info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(und.insaddr)              'Und_insaddr',
+    und.insid                           'Und_insid',
+    to_string(und.instype)              'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    add_info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.trdnbr IN (1129688,1356965,1232483)   /*1502608 - archived trade?*/
+
+
+
+union
+
+
+
+/* Specific Instruments*/
+select distinct 
+       ael_s(i,'ProductMappId.ConvertProdId') 'insaddr',
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    add_info(t,'MM_Instype')            'MM_INSTYPE',
+    add_info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(und.insaddr)              'Und_insaddr',
+    und.insid                           'Und_insid',
+    to_string(und.instype)              'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    add_info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und,
+    macros m
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and ((i.insid LIKE 'USD/IMM/%' and i.exp_day > m.past)
+or i.insid = 'EUR/111013-111014/0.70/#3')
+
+
+
+union
+
+
+/* Other - exp */
+select distinct 
+        ael_s(i,'ProductMappId.ConvertProdId') 'insaddr',
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    Add_Info(t,'MM_Instype')            'MM_INSTYPE',
+    Add_Info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(i.instype = 'PriceSwap' ? ael_s(,'SAIT_LandingArea_Functions.get_underlyingInsaddr', t) : und.insaddr) 'Und_insaddr',
+    i.instype = 'PriceSwap' ? ael_s(,'SAIT_LandingArea_Functions.get_underlyingInsID', t) : und.insid  'Und_insid',
+    to_string(i.instype = 'PriceSwap' ? ael_s(,'SAIT_LandingArea_Functions.get_underlyingInsType', t) : und.instype)  'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    Add_Info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und,
+    macros m
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype not in ('CurrSwap', 'Bond', 'Stock', 'Curr','Portfolio Swap')
+and i.exp_day > m.past
+
+
+
+union
+
+
+
+/* Other - 0000-01-01 exp */
+select distinct 
+        ael_s(i,'ProductMappId.ConvertProdId') 'insaddr',
+    i.insid,
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    Add_Info(t,'MM_Instype')            'MM_INSTYPE',
+    Add_Info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(und.insaddr)              'Und_insaddr',
+    und.insid                           'Und_insid',
+    to_string(und.instype)              'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    Add_Info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und,
+    macros m
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype not in ('CurrSwap', 'Bond', 'Stock', 'Curr')
+and i.exp_day = '0000-01-01' 
+
+union
+
+/*Curr*/
+
+select distinct 
+    ael_s(t,'InstrType.InstrumentType') = 'FxSwap' ? ael_s(t,'ProductMappId.ProdId') :
+    i.insaddr   'insaddr',
+    ael_s(t,'InstrType.InstrumentType') = 'FxSwap' ? ael_s(t,'ProductMappId.ProdInsId')
+    : i.insid                            'insid',
+    ael_s(t,'InstrType.InstrumentType')	'Instype',
+    Add_Info(t,'MM_Instype')            'MM_INSTYPE',
+    Add_Info(t,'Funding Instype')       'FUNDING_INSTYPE',
+    display_id(i,'issuer_ptynbr')       'ISSUER',
+    i.exp_day,
+    to_string(und.insaddr)              'Und_insaddr',
+    und.insid                           'Und_insid',
+    to_string(und.instype)              'Und_instype',
+    i.instype =  'Option' ? (i.call_option = 'YES' ? 'Call' : 'Put')  : 'None' 'OptType',
+    Add_Info(t,'Instype')               'ADD_INSTYPE',
+    display_id(t,'acquirer_ptynbr')     'Desk',
+    display_id(t,'counterparty_ptynbr') 'CP',
+    display_id(t,'prfnbr')              'Portfolio',
+    i.paytype		                    'Paytype',
+    add_info(t, 'SND_Trade_Type')       'SND_Trade_Type'
+
+from 
+    trade t, 
+    instrument i, 
+    instrument und,
+    macros m
+
+where 
+    i.insaddr = t.insaddr
+and i.und_insaddr *= und.insaddr
+and t.status not in ('Simulated')
+and i.instype in ('Curr')

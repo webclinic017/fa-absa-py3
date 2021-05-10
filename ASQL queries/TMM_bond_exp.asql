@@ -1,0 +1,69 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TMM_bond_exp') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TMM_bond_exp' and p.type = 'SQL Query' 
+
+
+select distinct
+    TODAY                                   'RepDate',
+    ins.insid,
+    ins.instype,
+    ins.exp_day,
+    ins.exp_day <= date_add_delta(TODAY, 1, 0, 0) 
+        ? '1d' 
+        : (date_add_delta(TODAY, 1, 0, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 1, 0) ) 
+            ? '1m '
+            : (date_add_delta(TODAY, 1, 1, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 3, 0) ) 
+                ? '3m'
+                : (date_add_delta(TODAY, 1, 3, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 6, 0) ) 
+                    ? '6m'
+                    : (date_add_delta(TODAY, 1, 6, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 9, 0) ) 
+                        ? '9m'
+                        :(date_add_delta(TODAY, 1, 9, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 1) ) 
+                            ? '1y'
+                            :(date_add_delta(TODAY, 1, 0, 1) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 3, 1) ) 
+                                ?'15m'
+                                :(date_add_delta(TODAY, 1, 3, 1) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 6, 1) ) 
+                                    ?'18m'
+                                    :(date_add_delta(TODAY, 1, 6, 1) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 9, 1) ) 
+                                        ?'21m'
+                                        :(date_add_delta(TODAY, 1, 9, 1) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 2) ) 
+                                            ?'2y'
+                                            :(date_add_delta(TODAY, 1, 0, 2) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 3) ) 
+                                                ?'3y'
+                                                :(date_add_delta(TODAY, 1, 0, 3) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 4) ) 
+                                                    ?'4y'
+                                                    :(date_add_delta(TODAY, 1, 0, 4) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 5) ) 
+                                                        ?'5y'
+                                                        :(date_add_delta(TODAY, 1, 0, 5) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 6) )
+                                                            ?'6y'
+                                                            :(date_add_delta(TODAY, 1, 0, 6) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 7) )
+                                                                ?'7y'
+                                                                :(date_add_delta(TODAY, 1, 0, 7) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 8) )
+                                                                    ?'8y'
+                                                                    :(date_add_delta(TODAY, 1, 0, 8) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 9) )
+                                                                        ?'9y'
+                                                                        :(date_add_delta(TODAY, 1, 0, 9) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 10) )
+                                                                            ?'10y'
+                                                                            :(date_add_delta(TODAY, 1, 0, 10) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 12) )
+                                                                                ?'12y'
+                                                                                :(date_add_delta(TODAY, 1, 0, 12) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 15) )
+                                                                                    ?'15y'
+                                                                                    :(date_add_delta(TODAY, 1, 0, 15) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 20) )
+                                                                                        ?'20y'
+                                                                                        :(date_add_delta(TODAY, 1, 0, 20) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 1, 0, 30) )
+                                                                                            ?'30y'
+                                                                                            : ins.exp_day > date_add_delta(TODAY, 1, 0, 30) 
+                                                                                                ? '30y+'
+                                                                                                : 'N/A'    'Area'
+from
+    instrument ins
+where
+    
+    /*ins.instype in ('Bond', 'IndexLinkedBond')*/
+    ins.instype = 'Bond'
+and ins.insid like 'ZAR/R%'
+and ins.exp_day >= TODAY
+order by 4        

@@ -1,0 +1,77 @@
+/*------------------------------------------------------------------
+    IRC_EAD_Data 
+
+    This query provides nominal amount in ZAR grouped by trade currency, instrument type and issuer.
+    
+History:
+When: 		Who:		What:
+2011-07-07	Jaysen Naicker	Created
+
+Purpose:                Create report., Added in filter name column and scheduled report
+Department and Desk:    MR, MR
+Requester:              Tshiamo Tsogang, Tshiamo Tsogang
+Developer:              Jaysen Naicker, Jaysen Naicker
+CR Number:              706729 07/07/2011, 810542  27/10/2011
+
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','IRC_EAD_Data ') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'IRC_EAD_Data ' and p.type = 'SQL Query' 
+
+
+SELECT
+	hc.insid						            'hcurr',
+	curr.insid						            'curr',
+    used_price(hc, , curr.insid)
+INTO
+	fxrates
+
+FROM
+	instrument	hc,
+	instrument	curr
+
+WHERE
+    hc.insid = 'ZAR'
+AND curr.instype = 'Curr'
+
+
+select 
+    @Filter{IRC_Africa_All;tradefilter.fltid}   'Filter',
+    display_id(t, 'curr')           'Curr', 
+    i.instype                       'Instrument_Type',
+    ael_s(,'SAIT_LandingArea_Functions.get_IssuerName', t)    'Issuer',
+    sum(nominal_amount(t) / fx.used_price)          'ZAR_Notional'
+into temp
+from
+    trade t,
+    instrument i,
+    fxrates fx
+where
+    t.insaddr = i.insaddr
+    and match_filter(t, @Filter{IRC_Africa_All;tradefilter.fltid})
+    and fx.curr = display_id(t, 'curr')
+group by 1,2,3,4
+
+
+Select 
+    Filter,
+    Curr, 
+    Instrument_Type, 
+    Issuer, 
+    ZAR_Notional
+from
+    temp tmp
+where
+    Issuer  ~= ''
+    and ZAR_Notional ~= 0
+order by 2,3,4

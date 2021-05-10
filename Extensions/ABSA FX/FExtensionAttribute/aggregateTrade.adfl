@@ -1,0 +1,6 @@
+[ABSA FX]FMultiInstrumentAndTrades:aggregateTrade = sumOf(children :* "aggregateTrade");
+[ABSA FX]FTradeRow:aggregateTrade = shunt(trade.Type, 
+  "FX Aggregate"->trade.AggregateCount, 
+  "Aggregate"->trade.AggregateCount, 
+  "Cash Posting"->trade.AggregateCount, 
+  default->0);

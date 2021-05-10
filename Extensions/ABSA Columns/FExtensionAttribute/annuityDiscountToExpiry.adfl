@@ -1,0 +1,9 @@
+[ABSA Columns]FInstrument:annuityDiscountToExpiry = nil;
+[ABSA Columns]FInstrumentAndTrades:annuityDiscountToExpiry = nil;
+[ABSA Columns]FOption:annuityDiscountToExpiry = select(underlyingType, 
+  "Swap"->shunt(isExpired, 
+    true->0.0, 
+    false->double(swaptionAnnuity / discountFactorAtExpiry), 
+    default->nil));
+[ABSA Columns]FSingleInstrumentAndTrades:annuityDiscountToExpiry = instrument:annuityDiscountToExpiry;
+[ABSA Columns]FTradeRow:annuityDiscountToExpiry = instrument:annuityDiscountToExpiry;

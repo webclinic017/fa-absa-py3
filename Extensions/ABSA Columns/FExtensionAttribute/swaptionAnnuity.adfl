@@ -1,0 +1,9 @@
+[ABSA Columns]FCashFlow:swaptionAnnuity = cashFlowInformation:periodDays * discountCurve.DiscountValue(denominatedvalue(1.0, symbol(currency), , cashFlowInformation.PayDate(valuationDate)), valuationDate) / 365;
+[ABSA Columns]FCashFlowInstrument:swaptionAnnuity = select(firstFixedLeg, 
+  nil->nil, 
+  default->firstFixedLeg:swaptionAnnuity);
+[ABSA Columns]FInstrument:swaptionAnnuity = nil;
+[ABSA Columns]FLeg:swaptionAnnuity = sumOf(emptyListToZero(cashFlows :* "swaptionAnnuity"));
+[ABSA Columns]FOption:swaptionAnnuity = select(underlyingType, 
+  "Swap"->underlying:swaptionAnnuity, 
+  default->nil);

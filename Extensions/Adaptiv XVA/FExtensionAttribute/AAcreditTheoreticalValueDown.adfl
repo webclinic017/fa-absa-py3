@@ -1,0 +1,7 @@
+[Adaptiv XVA]FInstrumentAndTrades:AAcreditTheoreticalValueDown = select(AAOptimise and supportCreditShiftDown, 
+  true->select(timeBucketsSetExternally, 
+    nil->scenarioaxis(theoreticalValue, <["cvaScenName"], , , "CreditShiftDown">), 
+    default->select(isSupportedTimeBuckets and supportCreditShiftDownBucket, 
+      true->scenarioaxisarray(theoreticalValue, <["cvaScenName"], , , creditShiftDownTimeBucketsScenName :* "object">), 
+      false->shift(theoreticalValue, creditCurvesInTheoreticalValue, creditTheoreticalValueShiftFunction creditShiftParametersDown))), 
+  false->shift(theoreticalValue, creditCurvesInTheoreticalValue, creditTheoreticalValueShiftFunction creditShiftParametersDown));

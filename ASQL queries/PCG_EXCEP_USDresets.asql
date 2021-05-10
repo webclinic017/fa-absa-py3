@@ -1,0 +1,45 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_EXCEP_USDresets') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_EXCEP_USDresets' and p.type = 'SQL Query'
+
+Select
+
+
+t.trdnbr 'Trade Number',
+cf.cfwnbr 'Cashflow Number',
+l.legnbr 'Leg Number',
+r.resnbr 'Reset Number',
+r.day 'Reset Day',
+cf.start_day 'Cashflow Start Day',
+r.type 'Reset Type',
+fr.insid 'Floating Rate Index',
+cf.start_day - r.day 'Days Difference',
+l.   
+t.status 'Trade Status'
+
+
+from 
+
+trade t,
+cashflow cf,
+leg l,
+reset r,
+instrument i,
+instrument fr
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and l.insaddr = i.insaddr
+and cf.legnbr = l.legnbr
+and r.cfwnbr = cf.cfwnbr
+and l.float_rate = fr.insaddr
+and display_id(l, 'curr') = 'USD'
+and r.type = 'Single'
+
+and r.day = @2_ResetDate{today}
+
+

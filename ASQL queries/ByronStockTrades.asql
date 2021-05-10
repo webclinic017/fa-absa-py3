@@ -1,0 +1,26 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ByronStockTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ByronStockTrades' and p.type = 'SQL Query' 
+
+
+
+select
+    @Filter{ByronStockTrades;Tradefilter.fltid}'Trade Filter',
+    t.trdnbr,
+    t.quantity,
+    t.price/100,
+    t.time,
+    i.insid,
+    i.instype
+from
+    trade t,
+    
+    instrument i
+    
+where
+    match_filter(t,@Filter{ByronStockTrades;Tradefilter.fltid})
+    and i.insaddr=t.insaddr

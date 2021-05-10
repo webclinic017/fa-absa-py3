@@ -1,0 +1,152 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT, Market Risk
+Requester:              :Natalie Austin, Jacqueline Calitz
+Developer               :Douglas Finkel, Heinrich Cronje
+CR Number               :264536,622355,622355, 842128
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Historical_Rates_Curve') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Historical_Rates_Curve' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Historical_Rates_Curve.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Historical_Rates_Curve.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+select
+    display_id(l,'float_rate') 'rate',
+    l.float_rate,
+    r.instype
+into
+    tempRate
+from
+    instrument r,
+    leg l
+where
+        l.float_rate = r.insaddr
+    and l.type in ('Float')
+    and r.instype in ('RateIndex','Commodity')
+group by 1
+
+
+select
+    display_id(l,'inf_scal_ref') 'rate',
+    l.inf_scal_ref,
+    ir.instype
+into
+    tempRate
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+        i.insaddr = l.insaddr
+    and l.inf_scal_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('IndexLinkedSwap','IndexLinkedBond')    
+group by 1
+
+select
+    display_id(l,'index_ref') 'rate',
+    l.index_ref,
+    ir.instype
+into
+    tempRate
+from
+    instrument i,
+    instrument ir,
+    leg l
+where
+        i.insaddr = l.insaddr
+    and l.index_ref = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('TotalReturnSwap','VarianceSwap')     
+    and ir.instype in ('Stock','EquityIndex','Bond','IndexLinkedBond','ETF')
+group by 1
+
+select
+    ir.insid 'rate',
+    ir.insaddr,
+    ir.instype
+into
+    tempRate
+from
+    instrument i,
+    instrument ir
+where
+        i.und_insaddr = ir.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Option')   
+    and i.exotic_type in ('Other')
+    and ir.instype in ('Stock','EquityIndex')
+group by 1
+
+/*
+select
+    display_id(l,'curr') 'rate',
+    l.curr,
+    i.instype
+into
+    tempRate
+from
+    instrument i,
+    leg l
+where
+    (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype = 'CurrSwap'
+    and i.insaddr = l.insaddr
+group by 1
+*/
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Historical_Rates_Curve.Write',@1_path{'f:\'},@2_FileName{'MR_Historical_Rates_Curve.csv'})     'BuildConfirmation'
+Into
+    macro
+from
+    instrument i,
+    tempRate t
+where
+    i.insid = t.rate
+
+Select 
+    'Write File' 'Process', 
+    ael_s(,'MR_Historical_Rates_Curve.Write2',rl.is_locked = 'Yes' ? to_string(display_id(rl,'curr'),'/',display_id(ll,'curr')) : to_string(display_id(ll,'curr'),'/',display_id(rl,'curr')),@1_path{'f:\'},@2_FileName{'MR_Historical_Rates_Curve.csv'})    'BuildConfirmation'
+Into 
+    macro
+From 
+    instrument i,
+    leg rl,
+    leg ll
+    
+Where 
+    (i.exp_day = 0 or i.exp_day > Today) 
+And i.instype = 'CurrSwap'
+And i.insaddr = rl.insaddr
+And i.insaddr = ll.insaddr
+And (rl.is_locked = 'Yes' or ll.is_locked = 'Yes')
+And rl.curr ~= ll.curr
+
+Select
+    'Close File'    'Process', 
+    'Successful'     'BuildConfirmation'
+Into
+    Macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

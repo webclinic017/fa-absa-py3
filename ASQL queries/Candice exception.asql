@@ -1,0 +1,141 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candice exception') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candice exception' and p.type = 'SQL Query' 
+ 
+  select distinct
+yc.updat_time       'Update',
+yc.updat_usrnbr     'UpdatedBy',
+'Yield curve'       'Type',
+to_string(yc.yield_curve_name) 'Name',
+'None'          'Mapped to',
+u.name 'user'
+from
+yieldcurve yc,
+user u
+where yc.updat_time>=@StartDay{TODAY}
+and u.usrnbr=yc.updat_usrnbr
+
+union
+
+select distinct
+c.updat_time       'Update',
+c.updat_usrnbr     'UpdatedBy',
+'Context   '       'Type',
+to_string(c.name)            'Name',
+'None'   'Mapped to',
+u.name 'user'
+from
+context c,
+user u
+where c.updat_time>=@StartDay{TODAY}
+and u.usrnbr=c.updat_usrnbr
+union
+
+select distinct
+cl.updat_time       'Update',
+cl.updat_usrnbr     'UpdatedBy',
+'ContextLink'       'Type',
+to_string(cl.name)            'Name',
+to_string(cl.mapping_type)            'Mapped to',
+u.name 'user'
+from
+contextlink cl,
+user u
+where cl.updat_time>=@StartDay{TODAY}
+and u.usrnbr=cl.updat_usrnbr
+
+union
+
+/*------select
+cl.updat_time       'Update',
+cl.updat_usrnbr     'UpdatedBy',
+'ContextLink'       'Type',
+to_string(cl.mapping_type)   'Mapping'
+from
+contextlink cl
+where updat_time=@StartDay{TODAY}
+
+union
+
+select distinct
+b.updat_time       'Update',
+b.updat_usrnbr     'UpdatedBy',
+'Benchmark'       'Type',
+to_string(b.instrument)      'Name'
+from
+benchmark b
+where updat_time=@StartDay{TODAY}
+
+union
+
+select distinct
+b.updat_time       'Update',
+b.updat_usrnbr     'UpdatedBy',
+'Benchmark'       'Type',
+to_string(b.seqnbr) 'Name'
+from
+benchmark b
+where updat_time=@StartDay{TODAY}
+
+union-----*/
+
+select    
+    b.updat_time       'Update',
+    b.updat_usrnbr     'UpdatedBy',
+    'Benchmark2'        'Type',                 
+    ins.insid          'Name',
+    to_string(yc.yield_curve_name) 'Mapped to',
+    u.name              'User'
+from
+    benchmark b,
+    instrument ins,
+    yieldcurve yc,
+    user u
+where
+    b.updat_time>=@StartDay{TODAY}
+    and b.instrument = ins.insaddr  
+    and b.yield_curve_seqnbr = yc.seqnbr  
+    and u.usrnbr=b.updat_usrnbr
+  
+union
+
+select distinct
+ch.updat_time       'Update',
+ch.updat_usrnbr     'UpdatedBy',
+'ValGroup    '       'Type',
+to_string(ch.entry)          'Name',
+to_string(ch.list)             'Mapped to',
+u.name             'User'
+from
+choicelist ch,
+user u
+where ch.updat_time>=@StartDay{TODAY}
+  and u.usrnbr=ch.updat_usrnbr
+union
+
+/*----select
+ch.updat_time       'Update',
+ch.updat_usrnbr     'UpdatedBy',
+'ChoiceList    '       'Type',
+to_string(ch.list)           'valgroup'
+from
+choicelist ch
+where updat_time=@StartDay{TODAY}
+
+union----*/
+
+select distinct
+val.updat_time       'Update',
+val.updat_usrnbr     'UpdatedBy',
+'ValuationParameters'       'Type',
+to_string(val.name)          'Name',
+'None'                      'Mapped to',
+u.name          'user'
+from
+valuationparameters val,
+user u
+where val.updat_time>=@StartDay{TODAY}
+  and u.usrnbr=val.updat_usrnbr

@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:absoluteValueInstrument = select(absoluteMtMValue.Size > 0, 
+  false->nil, 
+  true->convertToCurrency(maxOf(absoluteMtMValue), mtmValueFxRates, displayCurrency, filterUnit));
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:absoluteValueInstrument = select(isExpiredFullDay, 
+  true->0, 
+  default->convertToCurrency(absoluteMtMValue, mtmValueFxRates, displayCurrency, filterUnit));

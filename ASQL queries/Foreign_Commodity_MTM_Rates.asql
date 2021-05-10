@@ -1,0 +1,50 @@
+select
+ael_i(p,'ASQL_log','Foreign_Commodity_MTM_Rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Foreign_Commodity_MTM_Rates' and p.type = 'SQL Query' 
+ 
+
+/* Foreign_Commodity_MTM_Rates
+Purpose               :  Daily extract of Foreign MtM Commodity rates for daily DVaR reports
+Department and Desk   :  Market Risk - Commodities
+Requester             :  Rishaan Ramnarain
+Developer             :  Rishaan Ramnarain
+CR Number             :  221638
+*/
+
+select
+    today    'date'
+into
+	date
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+	i.insid 			'Instrument Name',
+	i.instype 			'Instrument Type',
+	i.exp_day 			'Expiry Day',
+	p.last              'Closing Price',
+  	i.instype = 'Commodity' ? 0 : used_vol(u)	'Market Volitility',
+	u.insid 			'Underlying Instrument',
+	u.instype 			'Underlying Instrument Type',
+	d.date				'Date',
+	add_info(i, 'DividendYield') 	'Dividend Yield'
+from
+	instrument i,
+	instrument u,
+    price p,
+    party pt,
+    date  d
+where
+	i.und_insaddr *= u.insaddr
+and i.instype IN ('Future/Forward','Commodity')
+and u.instype in ('Commodity','Curr','EquityIndex','')
+and i.curr ~= 2
+and pt.ptynbr = p.ptynbr
+and i.insaddr = p.insaddr
+and p.day = d.date
+and pt.ptyid = 'SPOT'
+order by 1

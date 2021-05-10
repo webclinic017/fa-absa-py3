@@ -1,0 +1,185 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Long_Position2') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Long_Position2' and p.type = 'SQL Query' 
+/*Report results in Long Position for All Products (Bill/Depo/Loan/FRN), Summary view of trades
+total by 1. Instrument and Portfolio, 2. Portfolio, 3. Product, 4. GrandTotal
+ 
+Date            Who              What
+31/05/2007      Heinrich Cronje  Added Start and End Day macro
+*/
+/*
+Purpose: [Updated query to remove double counting of Deposits.],[Changed grouping of "Total By InsPortfolio"]
+Department: [PCG MONEY MARKET],[PCG MONEY MARKET]
+Requester: [Gill Dailey],[Sherona Singh]
+Developer: [Willie van der Bank],[Willie van der Bank]
+CR Number: [C270962 (01/04/2010)],[C392793 (05/08/2010)]
+*/
+
+
+select
+    @1_Start_day{}  'Start_day',
+    @2_End_day{}    'End_day'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+select   t.trdnbr  'Trade',
+  t.optional_key  'STT_Ref', 
+  i.insid   'Instrument',
+  i.instype ='Deposit' ? (add_info(t,'Funding Instype')='' ? i.instype : add_info(t,'Funding Instype')) : (add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype')) 'Product',
+  l.start_day  'StartDate',
+  i.exp_day  'MaturityDate',
+  p.prfid   'Portfolio',
+  pa.ptyid  'Counterparty',
+  i.issuer_ptynbr = 0 ? pa.ptyid : py.ptyid  'Issuer',
+  add_info(t,'MM_Instype') = 'NCD' 
+   ? to_double(add_info(t,'MM_Original_Nominal')) 
+   : t.quantity * i.contr_size 'Nominal',
+  t.price   'DiscountPrice',
+  t.premium  'Premium',
+  projected_cf(t,date_add_banking_day(i.exp_day,,-1),bankday_adjust(i.exp_day,,'Mod. Following'))  'ProjectedCash',
+  t.value_day  'SettlementDate',
+  t.status  'Status',
+  t.updat_time  'Update'
+ 
+into temp
+ 
+from  instrument i,
+  trade  t,
+  party  pa,
+  party  py,
+  portfolio p,
+  leg  l,
+  macro m
+ 
+where  match_filter(t,@TradeFilter{;tradefilter.fltid})
+and  i.insaddr=t.insaddr
+and  i.insaddr=l.insaddr
+and  t.prfnbr=p.prfnbr
+and  pa.ptynbr=t.counterparty_ptynbr
+and  i.issuer_ptynbr*=py.ptynbr
+and  i.exp_day >= @3_exp_day_after{}
+and     time_to_day(t.time) >= m.Start_day
+and     time_to_day(t.time) <= m.End_day
+
+select   'Total By InsPortfolio'  'Section',
+  t.Trade,
+  t.STT_Ref, 
+  t.Instrument,
+  t.Product,
+  t.StartDate,
+  t.MaturityDate,
+  t.Portfolio,
+  t.Counterparty,
+  t.Issuer,
+  sum(t.Nominal) 'Nominal',
+  t.DiscountPrice,
+  sum(t.Premium) 'Premium',
+  sum(t.ProjectedCash) 'ProjectedCash',
+  t.SettlementDate,
+  t.Status,
+  t.Update
+  
+into total
+ 
+from temp t
+ 
+group by t.Instrument, t.Portfolio, t.Product
+ 
+select   'Total By Portfolio'  'Section',
+  t.Trade,
+  t.STT_Ref, 
+  t.Instrument,
+  t.Product,
+  t.StartDate,
+  t.MaturityDate,
+  t.Portfolio,
+  t.Counterparty,
+  t.Issuer,
+  sum(t.Nominal) 'Nominal',
+  t.DiscountPrice,
+  sum(t.Premium) 'Premium',
+  sum(t.ProjectedCash) 'ProjectedCash',
+  t.SettlementDate,
+  t.Status,
+  t.Update
+  
+into total
+from temp t
+ 
+group by t.Portfolio
+ 
+select   'Total By Product'  'Section',
+  t.Trade,
+  t.STT_Ref, 
+  t.Instrument,
+  t.Product,
+  t.StartDate,
+  t.MaturityDate,
+  t.Portfolio,
+  t.Counterparty,
+  t.Issuer,
+  sum(t.Nominal) 'Nominal',
+  t.DiscountPrice,
+  sum(t.Premium) 'Premium',
+  sum(t.ProjectedCash) 'ProjectedCash',
+  t.SettlementDate,
+  t.Status,
+  t.Update
+  
+into total
+from temp t
+ 
+group by t.Product
+ 
+select   'Total By Status'  'Section',
+  t.Trade,
+  t.STT_Ref, 
+  t.Instrument,
+  t.Product,
+  t.StartDate,
+  t.MaturityDate,
+  t.Portfolio,
+  t.Counterparty,
+  t.Issuer,
+  sum(t.Nominal) 'Nominal',
+  t.DiscountPrice,
+  sum(t.Premium) 'Premium',
+  sum(t.ProjectedCash) 'ProjectedCash',
+  t.SettlementDate,
+  t.Status,
+  t.Update
+  
+into total
+from temp t
+ 
+group by t.Status  
+
+select
+ 
+  t.Section,
+  t.Trade,
+  t.STT_Ref, 
+  t.Instrument,
+  t.Product,
+  t.StartDate,
+  t.MaturityDate,
+  t.Portfolio,
+  t.Counterparty,
+  t.Issuer,
+  t.Nominal,
+  t.DiscountPrice,
+  t.Premium,
+  t.ProjectedCash,
+  t.SettlementDate,
+  t.Status,
+  t.Update
+from total t
+where
+not (round(t.nominal ,2) = 0 and round(t.ProjectedCash ,2) = 0)

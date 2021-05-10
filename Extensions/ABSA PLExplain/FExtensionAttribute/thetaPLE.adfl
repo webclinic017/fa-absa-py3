@@ -1,0 +1,17 @@
+[ABSA PLExplain]FCombInstrMapAndTrades:thetaPLE = nil;
+[ABSA PLExplain]FDeliverableLinkAndTrades:thetaPLE = nil;
+[ABSA PLExplain]FLegAndTrades:thetaPLE = nil;
+[ABSA PLExplain]FMoneyFlowAndTrades:thetaPLE = thetaTheoreticalValue + thetaSettled;
+[ABSA PLExplain]FSecurityAndTrades:thetaPLE = nil;
+[ABSA PLExplain]FSecurityMoneyFlow:thetaPLE = nil;
+[ABSA PLExplain]FSingleInstrumentAndTrades:thetaPLE = select(instrument.InsType, 
+  "Future/Forward"->select(instrument:underlying.InsType, 
+    "IndexLinkedBond"->thetaCash, 
+    "RateIndex"->select(thetaCash.Number == 0.0, 
+      true->thetaTheoreticalValue + thetaCash, 
+      false->thetaCash), 
+    default->select(isExpiredFullDay, 
+      true->thetaCash, 
+      false->thetaTheoreticalValue + thetaCash)), 
+  default->thetaTheoreticalValue + thetaCash);
+[ABSA PLExplain]FTimeBucketAndObject:thetaPLE = scenarioaxisarray(rowObject:thetaThTPL [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

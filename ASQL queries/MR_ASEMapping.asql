@@ -1,0 +1,45 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :586418,599672
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_ASEMapping.OpenFile',@1_path{'f:\'},@2_FileName{'MR_ASE_Mapping.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select 
+    'Write File' 'Process',
+    ael_s(i,'MR_ASEMapping.Write',@1_path,@2_FileName)	'BuildConfirmation'
+Into
+    Macro
+From
+    Instrument i
+Where 
+    i.instype in ('Stock','EquityIndex','Commodity','PriceIndex','Bond','BondIndex','IndexLinkedBond')
+And (i.exp_day > Today or i.exp_day = 0)
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select  * 
+From    Macro
+Where   Process In ('Create File','Close File')

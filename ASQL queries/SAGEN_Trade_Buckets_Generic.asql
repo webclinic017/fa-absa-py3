@@ -1,0 +1,167 @@
+/*
+Purpose               : Group trades into different time buckets
+Department and Desk   : PCG
+Requester             : Muhammed Osman/Andrew Nobbs
+Developer             : Bhavnisha Sarawan
+CR Number             : C892055
+Date                  : 15/02/2012
+*/
+
+
+
+
+select
+    ael_i(p,'ASQL_log','SAGEN_Trade_Buckets_Generic') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'SAGEN_Trade_Buckets_Generic' and p.type = 'SQL Query' 
+
+
+select
+    @3_ShowDetails{No;'Yes','No'}  'det'
+into
+    input
+from
+    serverdata s
+where
+    s.srdnbr > 0
+  
+select
+    display_id(t, 'acquirer_ptynbr')                                        'Acquirer',
+    u.name                                                                  'Trader',
+    t.acquirer_ptynbr                                                       'acqnbr',
+    t.status                                                                'Status',
+    t.trdnbr,
+    po.prfid                                                                'Portfolio',
+    days_between(time_to_day(t.time), TODAY, 'Act/365')                     'Days',
+    display_id(t, 'counterparty_ptynbr')                                    'CP',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+          : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+          : add_info(t, 'Instype'))                                         'MM_Instype',
+    present_value(t)                                                        'HVAL',
+    add_info(t, 'Confo Text')                                               'ConfoText',
+    add_info(t,'BoConfirm timestamp')                                       'BO_Timestamp',
+    add_info(t,'Confo Date Sent')                                           'confo_date',
+    time_to_day(t.time)                                                     'trade_date',
+    i.instype                                                               'Instrument_Type',
+    t.your_ref                                                              'CPRef',
+    t.trx_trdnbr,
+    t.execution_time,
+    i.exp_day,
+    i.paytype
+into
+    temp
+from
+    Trade t,
+    Instrument i,
+    Party p,
+    Portfolio po,
+    user u
+where
+t.insaddr = i.insaddr
+and po.prfnbr = t.prfnbr
+and u.usrnbr = t.trader_usrnbr
+and t.acquirer_ptynbr = p.ptynbr
+and match_filter(t,@1_Filter{SAGEN_Trade_Buckets_Equity;tradefilter.fltid*})
+and not (i.instype = 'Future/Forward' and i.paytype = 'Future')
+and not (i.instype = 'Option' and i.paytype = 'Future')
+
+
+select
+    t.Acquirer,
+    t.Trader,
+    t.Status,
+    t.BO_Timestamp,
+    t.Days <= 2 ? 1 : 0                                                        'Less_eq_2',
+    t.Days >= 3 and t.Days <= 5 ? 1 : 0                                        '3_to_5',
+    t.Days >= 6 and t.Days <= 10 ? 1 : 0                                       '6_to_10',
+    t.Days >= 11 and t.Days <= 30 ? 1 : 0                                      '11_to_30',
+    t.Days > 30 ? 1 : 0                                                        'Grt30',
+    t.trdnbr,
+    t.Portfolio,
+    t.CP,
+    t.Days,
+    t.MM_Instype,
+    t.HVAL,
+    t.ConfoText,
+    t.confo_date,
+    t.trade_date,
+    t.Instrument_Type,
+    t.CPRef,
+    t.trx_trdnbr,
+    t.exp_day,
+    t.paytype
+into
+    temp2
+from
+    temp t
+
+/*group by t.Acquirer, t.Status, t.Days*/
+
+
+/* ****main**** */
+select
+    t.Acquirer,
+    t.Trader,
+    t.Status,
+    t.BO_Timestamp,
+    t.Less_eq_2                                                                'Less_eq_2',
+    t.3_to_5                                                                   'd_3_to_5',
+    t.6_to_10                                                                  'd_6_to_10',
+    t.11_to_30                                                                 'd_11_to_30',
+    t.Grt30                                                                    'Grt30',
+    t.trdnbr                                                                   'Trdnbr',
+    t.Portfolio,
+    t.CP,
+    t.Days,
+    t.MM_Instype,
+    t.HVAL,
+    t.ConfoText,
+    t.confo_date,
+    t.trade_date,
+    t.Instrument_Type,
+    t.CPRef,
+    t.trx_trdnbr                                                               'Transref',
+    t.exp_day,
+    t.paytype
+from
+    temp2 t, 
+    input d
+where
+    d.det in ('Yes','YES','yes','Y','y')
+order by 
+    t.Acquirer, t.Status
+
+union 
+
+select
+    t.Acquirer,
+    t.Trader,
+    t.Status,
+    t.BO_Timestamp,
+    sum(t.Less_eq_2)                                                           'Less_eq_2',
+    sum(t.3_to_5)                                                              'd_3_to_5',
+    sum(t.6_to_10)                                                             'd_6_to_10',
+    sum(t.11_to_30)                                                            'd_11_to_30',
+    sum(t.Grt30)                                                               'Grt30',
+    0                                                                          'Trdnbr',
+    t.Portfolio,
+    t.CP,
+    t.Days,
+    t.MM_Instype,
+    t.HVAL,
+    t.ConfoText,
+    t.confo_date,
+    t.trade_date,
+    t.Instrument_Type,
+    t.CPRef,
+    t.trx_trdnbr                                                               'Transref',
+    t.exp_day,
+    t.paytype
+from
+    temp2 t
+group by 
+    t.Acquirer, t.Status

@@ -1,0 +1,6 @@
+[Core Pricing]FCurrency:markToMarketSpotValue = denominatedvalue(1.0, object, , instrumentSpotDate);
+[Core Pricing]FFra:markToMarketSpotValue = switch(useMarkToMarketPrice, 
+  true->collapse(markToMarketSpotUnitValue), 
+  false->instrumentSpotZero);
+[Core Pricing]FFxRate:markToMarketSpotValue = denominatedvalue(mtmFXSpotRateValue, object.DomesticCurrency, nil, currencyPairSpotDate);
+[Core Pricing]FInstrument:markToMarketSpotValue = collapse(markToMarketSpotUnitValue);

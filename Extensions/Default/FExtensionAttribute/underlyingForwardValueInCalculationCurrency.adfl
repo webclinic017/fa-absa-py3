@@ -1,0 +1,21 @@
+[Default]FInstrument:underlyingForwardValueInCalculationCurrency = select(forwardValueProviderTargetInPriceGreekRiskFactorsUnShifted, 
+  nil->nil, 
+  default->select(forwardValuationDateInPriceGreekRiskFactorsUnShifted, 
+    nil->nil, 
+    default->ProviderValue(forwardValueProviderTargetInPriceGreekRiskFactorsUnShifted, forwardValuationDateInPriceGreekRiskFactorsUnShifted, underlyingForwardValueCurrency)));
+[Default]FInstrumentAndTrades:underlyingForwardValueInCalculationCurrency = select(instrument:underlyingForwardValueFromInterestComponent, 
+  true->snoop01(theoreticalPrice, "underlyingForwardRate", alwaysMatchedFilter, lotIndex), 
+  false->select(forwardValueProviderTargetInTheoreticalPrice, 
+    nil->nil, 
+    default->select(forwardValuationDateInTheoreticalPrice, 
+      nil->nil, 
+      default->select(useUnderlyingFutureProvider, 
+        true->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, underlyingForUnderlyingForwardPriceInTheoreticalPriceCurrency) * underlyingForwardPriceFxConversion, 
+        false->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, instrument:underlyingForwardValueCurrency)))));
+[Default]FPriceAggregate:underlyingForwardValueInCalculationCurrency = select(forwardValueProviderTargetInPriceGreekRiskFactorsUnShifted, 
+  nil->nil, 
+  default->select(forwardValuationDateInPriceGreekRiskFactorsUnShifted, 
+    nil->nil, 
+    default->select(useUnderlyingFutureProvider, 
+      true->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, underlyingForUnderlyingForwardPriceInTheoreticalPriceCurrency) * underlyingForwardPriceFxConversion, 
+      false->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, instrument:underlyingForwardValueCurrency))));

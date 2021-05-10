@@ -1,0 +1,315 @@
+/*old name .Maint/PayCal/Interest Blotter2*/
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_.Maint/PayCal/Interest Blt2') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_.Maint/PayCal/Interest Blt2' and p.type = 'SQL Query' 
+/* Name:  Maint/PayCal/Interest Blotter2*/
+/*------------------------------------------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	mtm_price(hc, @EndDay{YESTERDAY}, curr.insid)		'fxRepDay',
+	mtm_price(hc, @StartDay{YESTERDAY}, curr.insid)		'fxPrevRepDay'
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	    hc.insid = @HomeCurr{ZAR;instrument.insid where instype='Curr'}
+	AND curr.instype = 'Curr'
+/*------------------------------------------------------------------------------------------------------*/
+SELECT
+    t.trdnbr                                        		'TrdNo',
+    i.instype                                         		'InstrumentType',
+    i.insid                                                 'Instrument',
+    i.insaddr                                               'Iinsaddr',
+    i.creat_usrnbr                                          'Iusrnbr',
+    i.curr                                                  'Icurr',
+    display_id(t,'counterparty_ptynbr')    			        'Counterparty',
+    display_id(l,'curr')                            		'Curr',
+    display_id(i,'curr')                            		'Curr2',
+    l.redemption_curr                                 		'Curr3',
+
+    projected_cf(cf,,,display_id(l,'curr'))*t.quantity    	'Payment',
+    projected_cf(cf,,,display_id(l,'curr'))                 'ProjCF',
+    nominal_amount(cf,,,display_id(l,'curr'))               'cfnom',
+    @StartDay                                       	    'StartDay',
+    @EndDay                                         	    'EndDay',
+    cf.pay_day                                      	    'ValDate',
+    cf.type							                        'CashflowType',
+    cf.legnbr                                               'CfLegNumber',
+    cf.creat_usrnbr                                         'Cfusrnbr',
+    cf.cfwnbr                                               'CFnumber',
+    'MMD'						                            'DealerCode',
+    t.quantity*i.contr_size                                 'Nom',
+    l.type                                                  'legtype',
+	l.nominal_scaling                                       'NomScale',
+	t.creat_usrnbr                                          'Tusrnbr',
+	t.insaddr                                               'Tinsaddr',
+	l.curr                                                  'lcurr',
+	l.legnbr                                                'Lleg',
+	l.insaddr                                               'Linsaddr',
+	l.creat_usrnbr                                          'Lusrnbr',
+	l.payleg                                                'payleg',
+	1/fx.fxRepDay                                             'Rate',
+	r.value                                                 'ResetRate',
+	r.legnbr                                                'resetleg',
+	r.cfwnbr                                                'resetcfnbr',
+	r.end_day                                               'resetendday',
+	r.start_day                                             'resetstartday',
+	r.type                                                  'resettype',
+			
+	
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+    display_id(l,'curr')='ZAR'? 
+    'ADBS':
+    display_id(l,'curr')~='ZAR'? 
+        cf.type='Float Rate'?
+            'DERI':              
+        cf.type='Return'?
+            'ADBS':'':''   'CustNo',
+   
+    
+ display_id(l,'curr')='ZAR'? 
+        nominal_amount(cf,,,display_id(l,'curr')):
+ display_id(l,'curr')~='ZAR'?
+        r.type='Nominal Scaling'?
+        nominal_amount(cf,,,display_id(l,'curr')):'':''    'PAmt1',
+        
+l.payleg='Yes'?
+'Pay':
+l.payleg~='Yes'?
+'Receive':''  'payrec',
+        
+ /*display_id(l,'curr')='ZAR'? 
+        nominal_amount(cf,,,display_id(l,'curr'))*(	1/fx.fxRepDay):
+ display_id(l,'curr')~='ZAR'?
+        r.type='Nominal Scaling'?
+        nominal_amount(cf,,,display_id(l,'curr'))/(	1/fx.fxRepDay):'':''    'SAmt1',
+        
+
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) > 0 ?
+        display_id(l,'curr'): ''                     'PCurr',    
+    
+   
+    (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) > 0?
+        cf.type in ('Float Rate', 'Fixed Amount')?
+                    (projected_cf(cf,,,display_id(l,'curr'))*t.quantity):'':'' 'PAmt1',
+                    
+    (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) < 0?
+        cf.type='Return'?
+                 nominal_amount(cf,,,display_id(l,'curr')) :'':''
+                                    'PAmt2',     
+  (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) < 0?
+        cf.type='Float Rate'?
+            r.type='Single'?
+                 nominal_amount(cf,,,display_id(l,'curr')) :'':'':''
+                                    'PAmt3',          */        
+   
+   
+        display_id(l,'curr') = 'ZAR' ?
+            '14' :
+        display_id(l,'curr') = 'USD' ?
+            '28' :
+        display_id(l,'curr') = 'EUR' ?
+            '05':
+        display_id(l,'curr') = 'GBP' ?
+            '53':
+        display_id(l,'curr') = 'JPY' ?
+            '04':
+        display_id(l,'curr') = 'CHF' ?
+            '01':''      'PNostro',
+
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) <= 0 ?
+        display_id(l,'curr'): ''     'SCurr',    
+    
+      (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) < 0?
+        cf.type in ('Float Rate', 'Fixed Amount')?
+                    (projected_cf(cf,,,display_id(l,'curr'))*t.quantity):'':'' 'SAmt1',
+                    
+    (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) > 0?
+        cf.type='Return'?
+                 nominal_amount(cf,,,display_id(l,'curr')) :'':''
+                                    'SAmt2',               
+                                         
+  (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) > 0?
+        cf.type='Float Rate'?
+            r.type='Single'?
+                 nominal_amount(cf,,,display_id(l,'curr')) :'':'':''
+                                    'SAmt3',
+               
+   (projected_cf(cf,,,display_id(l,'curr'))*t.quantity) <= 0 ?
+        display_id(l,'curr') = 'ZAR' ?
+            '14':
+        display_id(l,'curr') = 'USD' ?
+            '28':
+        display_id(l,'curr') = 'EUR' ?
+            '05':
+        display_id(l,'curr') = 'GBP' ?
+            '53':
+        display_id(l,'curr') = 'JPY' ?
+            '04':
+        display_id(l,'curr') = 'CHF' ?
+            '01' :'' :''                              
+                                    'SNostro',
+
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+
+   to_string(display_id(t,'counterparty_ptynbr'), i.instype, t.trdnbr)     'Description',                                                                      
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+    i.instype = 'CurrSwap'?
+    '3916005389804':  
+    i.instype = 'FRA'?
+    '3916005469804':
+    i.instype = 'Swap'?
+    '3916006009804':   
+    i.instype = 'FxSwap'?
+    '3916005389804':'' 'MISDept'  
+/*xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    r.value=0?
+        cf.type='Fixed Amount'?   
+    '1':'':'' 'incl'*/
+    
+                            
+into Temp
+from
+    front.instrument i,
+    front.trade t,
+    front.leg l,
+    front.cashflow cf,
+    front.portfolio p,
+    fxrates fx,
+    front.instrument curr,
+    front.reset r
+   
+
+where
+cf.pay_day >= @StartDay{YESTERDAY} /*and @EndDay{YESTERDAY}*/
+and t.trdnbr in ('997448','997455','997915','332053','396915','331311','994307','994315')
+and     i.insaddr = t.insaddr
+and     l.insaddr = i.insaddr
+and     cf.legnbr = l.legnbr
+and     cf.cfwnbr=r.cfwnbr
+and     i.instype not in('Future/Forward','Option','Warrant')
+and	    curr.instype = 'Curr'
+and     fx.curr=curr.insid
+and     curr.insaddr=l.curr
+/*and     r.value>0
+/*and     r.end_day>@EndDay{YESTERDAY}
+and     r.start_day>@StartDay{YESTERDAY}
+/*and     display_id(l,'curr')~='ZAR'     */
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*----------------------------------------------------------------------------------------------*/
+Select distinct
+TrdNo,
+CustNo,
+InstrumentType,
+Instrument,
+/*Iinsaddr,
+Iusrnbr,
+Icurr,*/
+Counterparty,
+Curr,
+/*Curr2,*/
+Curr3,
+/*Payment,
+ResetRate,
+resetcfnbr,
+StartDay,
+EndDay,*/
+ValDate,
+/*CashflowType,
+CFnumber,
+CfLegNumber,
+Cfusrnbr,
+Nom,*/
+payleg,
+payrec,
+cfnom,
+/*legtype,
+NomScale,
+Tusrnbr,
+Tinsaddr,
+lcurr,
+resetleg,
+resetendday,
+resetstartday,
+resettype,
+Lleg,
+Linsaddr,
+Lusrnbr,
+   TrdNo,
+    CustNo,
+    CashflowType,
+    ValDate,
+    Nom,*/
+    ProjCF,
+   /* PCurr,*/
+    PAmt1,
+    /*PAmt2,
+    /*PAmt3,*/
+    PNostro,
+    /*SCurr,
+    SAmt1,
+   /* SAmt2,
+    SAmt3,
+    SNostro,*/
+    Rate,
+    Description,
+    MISDept,
+    DealerCode,
+    
+    temp.CustNo='ADBS'?
+     to_double(temp.PAmt1)>=0?
+        temp.payrec='Pay'?
+           to_double(temp.PAmt1)*-1:
+        temp.payrec='Receive'?
+            to_double(temp.PAmt1)*1:'':
+      to_double(temp.PAmt1)<0?
+        temp.payrec='Receive'?
+         to_double(temp.PAmt1)*-1:
+        temp.payrec='Pay'?
+           to_double(temp.PAmt1)*1:'':'':
+    temp.CustNo='DERI'?
+        ProjCf:''               'PAmt'
+Into Temp2   
+From Temp
+where
+/*NomScale ='FX'
+resettype not in ('Single','Return')
+and */ResetRate>0
+order by TrdNo
+/*----------------------------------------------------------------------------------------------*/
+Select distinct
+TrdNo,
+CustNo,
+InstrumentType,
+Instrument,
+Counterparty,
+Curr,
+Curr3,
+ValDate,
+payleg,
+payrec,
+cfnom,
+ProjCF,
+PAmt1,
+PAmt,
+PNostro,
+Rate,
+Description,
+MISDept,
+DealerCode
+ 
+From Temp2
+where
+PAmt1~=''
+order by TrdNo

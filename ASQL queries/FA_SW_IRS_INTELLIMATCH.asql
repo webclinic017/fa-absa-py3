@@ -1,0 +1,203 @@
+/*
+Purpose                       :  The requirement is to reconcile deal data. 
+Department and Desk           :  Ops
+Requester                     :  Miguel de silva
+Developer                     :  Ickin Vural
+CR Number                     :  362177 (ABOPSIT-107)
+*/
+
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','FA_SW_IRS_INTELLIMATCH') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'FA_SW_IRS_INTELLIMATCH' and p.type = 'SQL Query' 
+
+select
+    
+    t.optional_key,
+    t.trdnbr,
+    to_date(t.time) 'time',
+    t.status,
+    display_id(t,'prfnbr') 'prfnbr',
+    i.contr_size,
+    abs(t.quantity) 'quantity',
+    display_id(t,'curr') 'curr',
+    l.start_day,
+    display_id(t,'acquirer_ptynbr') 'acquirer_ptynbr',
+    p.swift  'COUNTERPARTY_PTYNBR_SWIFT',
+    i.instype,
+    display_id(t,'trader_usrnbr') 'trader_usrnbr',
+    l.payleg = 'Yes' ? 'Pay' : 'Rec' 'payleg',
+    l.daycount_method = 'Act/360' ? 'ACT/360' : l.daycount_method = 'Act/365' ? 'ACT/365.FIXED' : l.daycount_method = 'Act/ActISDA' ? 'ACT/ACT>ISDA' : l.daycount_method = 'Act/ActISMA' ? 'ACT/ACT.ISMA' : ''  'daycount_method',
+    l.pay_day_method = 'Mod. Following' ? 'MODFOLLOWING' : l.pay_day_method = 'Following' ? 'FOLLOWING' : l.pay_day_method = 'Preceding' ? 'PRECEDING' : ''  'pay_day_method' ,
+    l.rolling_period.count 'rolling_period_count',
+    l.rolling_period.unit 'rolling_period_unit',
+    l.rolling_base_day,
+    l.long_stub,
+    display_id(l,'pay_calnbr') 'pay_calnbr',
+    l.spread,
+    display_id(l,'float_rate') 'float_rate',
+    l.fixed_rate,
+    to_string(l.rolling_period.count,l.rolling_period.unit = 'Days' ? 'D' : l.rolling_period.unit = 'Months' ? 'M' : l.rolling_period.unit = 'Years' ? 'Y' : '') 'pay_frequency',
+    l.type
+    
+    
+into
+    Temp
+
+from
+
+    Instrument i,
+    Trade t,
+    Leg l,
+    Party p,
+    Instrument ui
+
+where
+    i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.instype = 'Swap'
+and ui.insaddr =* l.float_rate
+and t.status not in ('Simulated', 'Void')
+and (time_to_day(t.creat_time) = @Date{Today})
+and add_info(t,'CCPmiddleware_id') ~= ''
+and t.optional_key like 'MW%'
+
+
+
+select
+    
+    t.optional_key,
+    t.trdnbr,
+    t.time,
+    t.status,
+    t.prfnbr,
+    t.contr_size,
+    t.quantity,
+    t.curr,
+    t.start_day,
+    t.acquirer_ptynbr,
+    t.COUNTERPARTY_PTYNBR_SWIFT,
+    t.instype,
+    t.trader_usrnbr,
+    
+    t.payleg 'FXD_payleg',
+    t.daycount_method 'FXD_daycount_method',
+    t.rolling_period_count 'FXD_rolling_period_count',
+    t.rolling_period_unit 'FXD_rolling_period_unit',
+    t.pay_frequency 'FXD_pay_frequency',
+    t.rolling_base_day 'FXD_rolling_base_day',
+    t.long_stub 'FXD_long_stub',
+    t.pay_day_method 'FXD_pay_day_method',
+    t.pay_calnbr 'FXD_pay_calnbr',
+    t.spread 'FLT_spread',
+    t.fixed_rate 'FXD_fixed_rate'
+    
+into
+
+    Temp_FXD
+    
+from 
+
+    Temp t
+    
+where
+
+    t.type = 'Fixed'
+
+select
+    
+    t.optional_key,
+    t.trdnbr,
+    t.time,
+    t.status,
+    t.prfnbr,
+    t.contr_size,
+    t.quantity,
+    t.curr,
+    t.start_day,
+    t.acquirer_ptynbr,
+    t.COUNTERPARTY_PTYNBR_SWIFT,
+    t.instype,
+    t.trader_usrnbr,
+    
+    t.payleg 'FLT_payleg',
+    t.daycount_method 'FLT_daycount_method',
+    t.rolling_period_count 'FLT_rolling_period_count',
+    t.rolling_period_unit 'FLT_rolling_period_unit',
+    t.pay_frequency 'FLT_pay_frequency',
+    t.rolling_base_day 'FLT_rolling_base_day',
+    t.long_stub 'FLT_long_stub',
+    t.pay_day_method 'FLT_pay_day_method',
+    t.pay_calnbr 'FLT_pay_calnbr',
+    t.spread 'FLT_spread',
+    t.float_rate 'FLT_float_rate'
+    
+into
+    Temp_FLT
+
+from 
+
+    Temp t
+
+where
+
+    t.type = 'Float'
+   
+select distinct
+    
+    t_fxt.optional_key 'MARKITWIRE_ID',
+    t_fxt.trdnbr 'TRDNBR',
+    t_fxt.time 'TIME',
+    t_fxt.status 'STATUS',
+    t_fxt.prfnbr 'PRFNBR.PRFID',
+    t_fxt.contr_size 'CONTR_SIZE',
+    t_fxt.quantity 'QUANTITY',
+    t_fxt.curr 'CURR.INSID',
+    t_fxt.start_day 'START_DAY',
+    t_fxt.acquirer_ptynbr 'ACQUIRER_PTYNBR.PTYID',
+    t_fxt.COUNTERPARTY_PTYNBR_SWIFT 'COUNTERPARTY_PTYNBR.SWIFT',
+    t_fxt.instype 'INSTTYPE',
+    t_fxt.trader_usrnbr 'TRADER_USERNBR.USERID',
+    
+    t_fxt.FXD_payleg 'FXD_PAYLEG',
+    t_fxt.FXD_daycount_method 'FXD_DAYCOUNT_METHOD',
+    t_fxt.FXD_rolling_period_count 'FXD_ROLLING_PERIOD.COUNT',
+    t_fxt.FXD_rolling_period_unit 'FXD_ROLLING_PERIOD.UNIT',
+    t_fxt.FXD_rolling_base_day 'FXD_ROLLING_BASE_DAY',
+    t_fxt.FXD_long_stub 'FLT_LONG_STUB',
+    t_fxt.FXD_pay_day_method 'FXD_PAY_DAY_METHOD',
+    t_fxt.FXD_pay_calnbr 'FXD_PAY_CALNBR.CALID',
+    t_fxt.FXD_fixed_rate 'FXD_FIXED_RATE',
+    
+    t_flt.FLT_payleg 'FLT_PAYLEG',
+    t_flt.FLT_daycount_method 'FLT_DAYCOUNT_METHOD',
+    t_flt.FLT_rolling_period_count 'FLT_ROLLING_PERIOD.COUNT',
+    t_flt.FLT_rolling_period_unit 'FLT_ROLLING_PERIOD.UNIT',
+    t_flt.FLT_rolling_base_day 'FLT_ROLLING_BASE_DAY',
+    t_flt.FLT_long_stub 'FLT_LONG_STUB',
+    t_flt.FLT_pay_day_method 'FLT_PAY_DAY_METHOD',
+    t_flt.FLT_pay_calnbr 'FLT_PAY_CALNBR.CALID',
+    t_flt.FLT_spread 'FLT_SPREAD',
+    t_flt.FLT_float_rate 'FLT_FLOAT_RATE.INSID'
+    
+    
+    
+from 
+ 
+    Temp_FXD t_fxt,
+    Temp_FLT t_flt
+   
+
+where
+
+    t_fxt.trdnbr *= t_flt.trdnbr
+    
+
+
+
+

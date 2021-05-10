@@ -1,0 +1,19 @@
+[ABSA Market Risk]FCommodity:isPreciousMetal = select(object.AdditionalInfo.Commodity_SubAsset, 
+  "Precious Metal"->true, 
+  default->false);
+[ABSA Market Risk]FDeposit:isPreciousMetal = select(currency.AdditionalInfo.Commodity_SubAsset, 
+  "Precious Metal"->true, 
+  default->false);
+[ABSA Market Risk]FDerivative:isPreciousMetal = select(object.InsType <> "Odf", 
+  true->select(object.AdditionalInfo.Commodity_SubAsset, 
+    "Precious Metal"->true, 
+    default->false), 
+  default->false);
+[ABSA Market Risk]FFxRate:isPreciousMetal = select(currencyPair.Currency1.AdditionalInfo.Commodity_SubAsset, 
+  "Precious Metal"->true, 
+  default->false);
+[ABSA Market Risk]FInstrument:isPreciousMetal = false;
+[ABSA Market Risk]FInstrumentAndTrades:isPreciousMetal = instrument :* "isPreciousMetal";
+[ABSA Market Risk]FMultiInstrumentAndTrades:isPreciousMetal = 
+# Upgrade 2017 - which instrument should be used
+nil;

@@ -1,0 +1,8 @@
+[_convertible_pricing_and_risk_exts]FInstrument:bondFloorToNextPutModifiedDuration = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->shunt(nextPutInFuture, 
+    nil->nil, 
+    default->object:modifiedDurationToNextPutFromYield [yieldValue = theoreticalYieldToNextPut, instrumentSpotDate]), 
+  false->nan);
+[_convertible_pricing_and_risk_exts]FInstrumentAndTrades:bondFloorToNextPutModifiedDuration = instrument :* "bondFloorToNextPutModifiedDuration" [priceSource];
+[_convertible_pricing_and_risk_exts]FMultiInstrumentAndTrades:bondFloorToNextPutModifiedDuration = nan;
+[_convertible_pricing_and_risk_exts]FPriceAggregate:bondFloorToNextPutModifiedDuration = instrument:bondFloorToNextPutModifiedDuration;

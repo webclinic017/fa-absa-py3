@@ -1,0 +1,158 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Next_Reset') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Next_Reset' and p.type = 'SQL Query' 
+
+
+/*
+
+coded by ap 2005-01-10 
+
+query to reflect the next given number of reset dates 
+
+
++ve or -ve Nominals are determinede from the direction of the projected cf
+however in the case of FRA's the nominal value of the trade is used 
+irrespective of the cash flow
+
+2005-03-03 additional column = PV
+
+2005-12-02 applied nominal factor in the case of amoritising swaps
+
+
+*/
+
+
+
+
+
+select
+t.trdnbr,
+display_id(t,'counterparty_ptynbr')'CP',
+cf.cfwnbr,
+i.insid,
+i.instype,
+i.exp_day,
+l.legnbr,
+p.prfid,
+
+r.type,
+(r.day)'next_reset',
+cf.start_day'cf_start',
+cf.end_day'cf_end',
+cf.nominal_factor,
+c.insid'Leg_Currency',
+projected_cf(cf)*t.quantity 'pcf',
+
+present_value(cf,cf.start_day,,cf.end_day)*t.quantity'pv',
+
+i.instype~='FRA' ? ((projected_cf(cf)*t.quantity>=0.0 ? 1*cf.nominal_factor : -1*cf.nominal_factor) * abs(l.curr=1 ? (i.instype='CurrSwap' ? nominal_amount(cf,cf.start_day,,l.curr) : t.quantity*1000000) : 0)) : (l.curr=1 ? t.quantity*1000000 : 0) 'USD_Nom',
+i.instype~='FRA' ? (projected_cf(cf)*t.quantity>=0.0 ? 1*cf.nominal_factor : -1*cf.nominal_factor) * abs(l.curr=2 ? (i.instype='CurrSwap' ? nominal_amount(cf,cf.start_day,,l.curr) : t.quantity*1000000) : 0) : (l.curr=2 ? t.quantity*1000000 : 0) 'ZAR_Nom',
+i.instype~='FRA' ? (projected_cf(cf)*t.quantity>=0.0 ? 1*cf.nominal_factor : -1*cf.nominal_factor) * abs(l.curr=1 ? 0 : (l.curr=2 ? 0 : (i.instype='CurrSwap' ? nominal_amount(cf,cf.start_day,,l.curr) : t.quantity*1000000))) : (l.curr=1 ? 0 : (l.curr=2 ? 0 : t.quantity*1000000))  'Other_Nominal',
+(l.nominal_scaling='FX' ? l.nominal_scaling : '' )'nominal_scaling',
+display_id(l, 'float_rate')			'Index'
+
+
+into temp
+
+from
+instrument i,
+trade t,
+leg l,
+portfolio p,
+reset r,
+instrument c,
+cashflow cf
+
+
+
+where
+
+ i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+
+and t.status not in ('Simulated','Reserved','Internal','Void','Terminated')
+and t.prfnbr=p.prfnbr
+and i.exp_day>Today
+and l.legnbr=r.legnbr
+and r.type= 'Single'
+
+and (r.day>=Today
+and  r.day<=@Up_To_Next_reset_Date{;})
+and l.curr=c.insaddr
+and r.cfwnbr=cf.cfwnbr
+and match_filter(t,@Filter{;tradefilter.fltid})
+
+
+order by i.exp_day
+
+/*------------------*/
+
+
+
+select
+t.trdnbr,
+t.CP,
+t.cfwnbr,
+'Yes' ? t.instype : '' 'instype',
+t.exp_day,
+t.prfid,
+
+
+t.next_reset'Reset_Date',
+t.cf_start,
+t.cf_end,
+t.nominal_factor,
+t.Leg_Currency'Leg_Curr',
+t.pv'PV',
+t.pcf'projected_CF',
+(t.USD_Nom),
+(t.ZAR_Nom),
+t.Other_Nominal,	
+t.nominal_scaling='FX' ? 'MtM_BS' : '' 'MtM_BS',
+t.Index
+
+
+
+from temp t
+
+
+
+order by t.next_reset,t.Leg_Currency
+
+
+union
+
+
+
+select
+t.trdnbr,
+''/*t.CP*/,
+t.cfwnbr,
+''/*'Yes' ? t.instype : '' */'instype',
+t.exp_day,
+'Reset Date-Total'/*t.prfid*/,
+
+
+t.next_reset,
+t.cf_start,
+t.cf_end,
+t.nominal_factor,
+''/*t.Leg_Currency*/,
+t.pcf'projected_CF',
+t.pv,
+sum(t.USD_Nom),
+sum(t.ZAR_Nom),
+t.Other_Nominal,	
+t.nominal_scaling='FX' ? 'MtM_BS' : '' 'MtM_BS',
+t.Index
+
+
+
+from temp t
+
+group by t.next_reset
+
+order by t.next_reset

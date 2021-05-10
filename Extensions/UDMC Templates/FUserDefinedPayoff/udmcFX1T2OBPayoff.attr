@@ -1,0 +1,68 @@
+[UDMC Templates]FObject:udmcFX1T2OBPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for FX one touch double binary option.
+#
+# INTERPRETATION
+# Contract where the underlying FX rate  is constrained by two KO-barriers during a 
+# time period and must be above (call) or below (put) a certain level at the expiration date.
+#
+# DEFINITION
+# timeSteps: Number of time steps used in the simulation (#columns in S)
+# strike: Option strike price
+# isCall: If set to Call, the final price must be above the strike price for the payout to be paid out. 
+#         Otherwise the final price must be below the strike price.
+# barrierIsHit: Indicates if the Crossed Status has been set to Confirmed
+#
+#--------------------------------------------
+
+# PARAMETERS
+param matrix(double) timeSteps;
+param double strike;
+param int isCall;
+param int barrierIsHit;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+matrix(double) SLowerHit = S;
+matrix(double) SUpperHit = S;
+double callOrPut = (2.0 * isCall) - 1.0;
+double lowerBarrier = 80.5;
+double upperBarrier = 84.5;
+double optionValue = 0.0;
+int last = length(timeSteps)-1;
+int lowerHit = 0;
+int upperHit = 0;
+int passedStrike = 0;
+
+# MAIN LOOP
+passedStrike = ((callOrPut*S[0,last]) < (callOrPut*strike));
+
+SLowerHit = 0.0 + (S[0,0:last-1]<lowerBarrier);
+SUpperHit = 0.0 + (S[0,0:last-1]>upperBarrier);
+
+lowerHit = (sum(SLowerHit)>0.0);
+upperHit = (sum(SUpperHit)>0.0);
+
+# If Crossed status is set to "Confirmed"
+if(barrierIsHit) 
+{
+     optionValue = 0.0;
+}
+else
+{
+    if((upperHit+lowerHit+passedStrike) > 0)
+    {
+        optionValue = 0.0;
+    }
+    else
+    {
+        optionValue = 1.0*S[0,0];
+    };
+};
+
+cashFlow(0, optionValue);
+
+...

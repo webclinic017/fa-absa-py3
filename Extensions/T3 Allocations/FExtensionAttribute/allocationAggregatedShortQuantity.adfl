@@ -1,0 +1,9 @@
+[T3 Allocations]FInstrument:allocationAggregatedShortQuantity = sumOf(removeNil(tradesInPosition :* "allocationAggregatedShortQuantity")) + 0;
+[T3 Allocations]FMultiInstrumentAndTrades:allocationAggregatedShortQuantity = sumOf(instruments :* "allocationAggregatedShortQuantity" [positionObject]);
+[T3 Allocations]FSingleInstrumentAndTrades:allocationAggregatedShortQuantity = instrument :* "allocationAggregatedShortQuantity" [positionObject];
+[T3 Allocations]FTrade:allocationAggregatedShortQuantity = shunt(object.AllocIsValid, 
+  true->select(object.AllocLongShort, 
+    "Long"->0, 
+    "Short"->object.Quantity), 
+  default->nil);
+[T3 Allocations]FTradeRow:allocationAggregatedShortQuantity = trade:allocationAggregatedShortQuantity;

@@ -1,0 +1,8 @@
+[Prime Services]FInstrumentAndTrades:provision = sumOf(children :* "provision");
+[Prime Services]FSingleInstrumentAndTrades:provision = select(isProvisionInstrument, 
+  true->emptyListToZero(sumOf(tradesInPosition :* "provision")), 
+  false->0);
+[Prime Services]FTrade:provision = py("Provision", context).calculate(object);
+[Prime Services]FTradeRow:provision = select(isProvisionInstrument, 
+  true->trade:provision, 
+  false->0);

@@ -1,0 +1,26 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_Expiry_PrevBus') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_Expiry_PrevBus' and p.type = 'SQL Query' 
+ 
+
+
+
+
+select 
+
+t.trdnbr
+
+from
+trade t,
+instrument i,
+portfolio p
+
+where
+i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid = 'JOB12'
+and maturity_date(i) < today
+and maturity_date >= date_add_banking_day(today,,-1)

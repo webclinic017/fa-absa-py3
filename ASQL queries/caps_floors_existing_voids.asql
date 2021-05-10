@@ -1,0 +1,62 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','caps_floors_existing_voids') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'caps_floors_existing_voids' and p.type = 'SQL Query' 
+
+
+/*
+Purpose                       :  details of existing caps/floors and new instruments/trades for SE adjustment 
+                                 where existing trades were subsequently voided
+Department and Desk           :  IRD desk
+Requester                     :  Parin Gokaldas
+CR number                     :  abitfa-1729 
+Developer                     :  Anil Parbhoo
+*/
+
+
+
+select
+
+et.trdnbr 'existing trade number',
+et.status 'existing trade status',
+nt.trdnbr 'new trade',
+nt.status 'new trade status'
+
+
+
+from
+
+trade et,
+instrument ei,
+portfolio ep,
+trade nt,
+instrument ni
+
+
+where
+
+ni.instype in ('cap','floor')
+and ei.instype in ('cap','floor')
+and et.insaddr=ei.insaddr
+and nt.insaddr=ni.insaddr
+and ni.insid like '%_2y'
+and ei.insid not like '%_2y'
+and nt.text2 = (et.trdnbr)
+and ni.exp_day>Today
+and ei.exp_day>Today
+and et.status not in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','FO Sales')
+/*
+and nt.status not in ('Simulated', 'Void')
+meaning the status of the new trade is still valid
+*/
+and et.prfnbr = ep.prfnbr
+
+/*
+and ep.prfid in ('NLDO' , 'Swap Risk')
+even though the existing trade was in  nldo or swap risk when it was voided it was allocated to a waste portfolio
+*/
+
+
+order by 2

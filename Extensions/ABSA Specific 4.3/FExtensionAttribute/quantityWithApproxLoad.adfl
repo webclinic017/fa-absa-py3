@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FTrade:quantityWithApproxLoad = 
+# Trade quantity. When addInfo 'Approx. load' is set to true returns value of 'Barcap BTB UnitType' addInfo converted to double.
+shunt(object.AdditionalInfo.Approx_46_load, 
+  true->to_double(select(object.AdditionalInfo.Barcap_BTB_UnitType, 
+    nil->0, 
+    default->object.AdditionalInfo.Barcap_BTB_UnitType)), 
+  default->object.Quantity);

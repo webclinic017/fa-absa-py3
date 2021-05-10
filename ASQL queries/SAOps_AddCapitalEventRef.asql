@@ -1,0 +1,20 @@
+select
+ael_i(p,'ASQL_log','SAOps_AddCapitalEventRef') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_AddCapitalEventRef' and p.type = 'SQL Query' 
+
+/*
+Purpose: Set the capital event reference on the settlement
+Department: Settlement Ops
+Requester: FATLM
+Developer: Anwar Banoo
+CR Number: 435873
+*/
+
+select
+    ael_s(,'SAGEN_Set_Additional_Info.main',@1_SettlementId{},'Capital_Event_Ref',@2_AddInfoValue{})    'Result'
+from
+    serverdata s
+where
+    s.srdnbr > 0

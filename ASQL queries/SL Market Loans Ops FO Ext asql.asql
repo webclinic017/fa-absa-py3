@@ -1,0 +1,48 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL Market Loans Ops FO Ext asql') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL Market Loans Ops FO Ext asql' and p.type = 'SQL Query' 
+
+/*
+Purpose: query folder 'SL Market Loans Ops FO Ext' does not work in 2010.2
+Department : Securities Lending
+Desk : Prime Services
+Requester :  Malick, Halima: Absa Capital
+Developer : Anil Parbhoo
+
+*/
+
+
+
+
+
+
+select
+
+t.trdnbr
+
+
+
+from
+trade t,
+instrument i,
+portfolio p,
+party party
+
+where
+
+t.insaddr=i.insaddr
+and i.instype = 'SecurityLoan'
+and t.status = 'FO Confirmed'
+and t.prfnbr=p.prfnbr
+and add_info(p , 'SL_Portfolio_Type')='Loan'
+and t.counterparty_ptynbr = party.ptynbr
+and to_string(add_info(i,'SL_SweepingBatchNo'))=''
+and party.ptyid ~= 'EQ Derivatives Desk'
+and t.trdnbr=t.contract_trdnbr
+
+
+
+

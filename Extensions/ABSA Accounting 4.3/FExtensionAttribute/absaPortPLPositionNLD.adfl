@@ -1,0 +1,9 @@
+[ABSA Accounting 4.3]FDerivative:absaPortPLPositionNLD = profitAndLossPositionEnd / contractSize;
+[ABSA Accounting 4.3]FFuture:absaPortPLPositionNLD = profitAndLossPositionEnd;
+[ABSA Accounting 4.3]FFxSwap:absaPortPLPositionNLD = profitAndLossPositionEnd / (ael("NominalCurr", context).get_nomcurr_rate(object));
+[ABSA Accounting 4.3]FInstrument:absaPortPLPositionNLD = profitAndLossPositionEnd;
+[ABSA Accounting 4.3]FMultiInstrumentAndTrades:absaPortPLPositionNLD = sumOf(unSettledInstrumentsNonZero :* "absaPortPLPositionNLD" [positionObject, endDate, displayCurrency, pLPeriodFX]);
+[ABSA Accounting 4.3]FPortfolioInstrumentAndTrades:absaPortPLPositionNLD = nil;
+[ABSA Accounting 4.3]FSingleInstrumentAndTrades:absaPortPLPositionNLD = select(isCashGrouping, 
+  false->instrument :* "absaPortPLPositionNLD" [positionObject, endDate, displayCurrency, pLPeriodFX]);
+[ABSA Accounting 4.3]FTradeRow:absaPortPLPositionNLD = singleInstrumentAndTradesFromTrades :* "profitAndLossPositionDisplay" [endDate, displayCurrency, pLPeriodFX];

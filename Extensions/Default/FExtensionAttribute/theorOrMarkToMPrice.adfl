@@ -1,0 +1,8 @@
+[Default]FInstrument:theorOrMarkToMPrice = select(isExpired, 
+  true->select(hasMarkToMarketPriceMtmPriceDay, 
+    true->markToMarketPriceMtmPriceDay, 
+    false->theoreticalPrice), 
+  false->theoreticalPrice);
+[Default]FInstrumentMoneyFlow:theorOrMarkToMPrice = select(instrument:isExpired and (instrument.Quotation == "Per Unit Inverse"), 
+  true->invertUnit(instrument :* "theorOrMarkToMPrice" [mtmPriceDay = instrument:expiryDate]), 
+  false->instrument :* "theorOrMarkToMPrice" [mtmPriceDay = instrument:expiryDate]);

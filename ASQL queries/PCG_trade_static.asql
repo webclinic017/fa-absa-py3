@@ -1,0 +1,34 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_trade_static') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_trade_static' and p.type = 'SQL Query' 
+ 
+  select 
+    trd.trdnbr,
+    display_id(trd, 'Curr')                                 'Curr',
+    trd.status,
+    display_id(trd, 'prfnbr')                            'Portfolio',
+    trd.contract_trdnbr,
+    ins.insid,
+    ins.instype = 'Curr' ? 'FxSwap' : to_string(ins.instype)  'instype',
+    ins.mtm_from_feed,
+    time_to_day(ins.updat_time)                             'instr_updat_day',
+    ui.userid                                           'instr_updat_by',
+    time_to_day(trd.updat_time)                             'trd_updat_day',
+    ut.userid                                           'trd_updat_by'    
+from
+    instrument ins,
+    trade trd,
+    user ut,
+    user ui
+where
+    match_filter(trd, @1_Filter{;tradefilter.fltid})
+    and ins.insaddr = trd.insaddr
+    /* and ins.exp_day >= TODAY */
+    and ins.updat_usrnbr = ui.usrnbr
+    and trd.updat_usrnbr = ut.usrnbr
+    and trd.trade_process ~= 32768
+order by 1
+

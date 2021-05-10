@@ -1,0 +1,6 @@
+[SA-CCR (Beta)]FInstrument:saccrStart = select(saccrIsInterestRates(object) or saccrIsCredit(object), 
+  true->saccrInstrumentComponents :* "round(object.SACCRStart, saccrDecimalsDefault)", 
+  false->nil);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrStart = select(isOpenPosition, 
+  true->openInstrument :* "saccrStart", 
+  false->nil);

@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FInstrument:theoreticalDiscountMargin = select(isDiscountMarginSensitive, 
+  true->imply(snoop(theoreticalInstrumentSpotValueFromDiscountMargin, "discountMargin"), theoreticalInstrumentSpotValueFromDiscountMargin, theoreticalInstrumentSpotValueForPrice, discountMarginAccuracy, -1.0, 1.0, 100), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:theoreticalDiscountMargin = instrument:theoreticalDiscountMargin [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:theoreticalDiscountMargin = nil;

@@ -1,0 +1,11 @@
+[Default]FCombInstrMapAndTrades:projectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FDeliverableLinkAndTrades:projectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FInstrumentAndTrades:projectedCashInventoryCurrencies = select(instrumentsForVectorColumn == nil, 
+  true->instrumentsForVectorColumnNil, 
+  false->select(instrumentsSetExternally, 
+    nil->projectedCashInventoryCurrenciesBase, 
+    default->scenarioaxisarray(projectedCashInventoryCurrenciesBase, <["defaultNamedParameterForProjectedPayments"], , , instrumentsSetExternally>)));
+[Default]FLegAndTrades:projectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FTimeBucketAndObject:projectedCashInventoryCurrencies = select(instrumentsForVectorColumn == nil, 
+  true->instrumentsForVectorColumnNil, 
+  false->scenarioaxisarray(rowInstrumentAndTrades:projectedCashInventoryCurrencies [instrumentsForVectorColumn, instrumentsSetExternally, useFxBaseCurrency, fxForwardDate, includeInceptionCash, profitAndLossSeparateHistorical := true], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>, <"timeDistributionDateRule", , "fixedvariant", "CashLadderDate">)[timeBucketCollectionIndex]);

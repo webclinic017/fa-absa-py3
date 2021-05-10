@@ -1,0 +1,19 @@
+[Core Risk]FCashFlowInstrument:fixingForwardValueEstimate = timeBucketsSetExternally :* "fixingForwardValueEstimate" [legsForFixingRiskGroupingReference, fixingRiskGroupingReference, isNominalScalingFixingRisk];
+[Core Risk]FInstrument:fixingForwardValueEstimate = timeBucketsSetExternallyZeroVector;
+[Core Risk]FInstrumentAndTrades:fixingForwardValueEstimate = select(timeBucketsSetExternally, 
+  nil->timeBucketsSetExternallyNilVector, 
+  default->select(fixingShiftValueValid, 
+    true->shunt(isZeroRiskPosition, 
+      true->timeBucketsSetExternallyNilVector, 
+      false->instrument :* "fixingForwardValueEstimate" [positionObject, displayCurrency, filterUnit, timeBucketsSetExternally, fixingRiskGroupingReference, isNominalScalingFixingRisk]), 
+    false->timeBucketsSetExternallyNilVector));
+[Core Risk]FLeg:fixingForwardValueEstimate = lastOrNil(fixingForwardValueEstimates);
+[Core Risk]FLegAndTrades:fixingForwardValueEstimate = timeBucketsSetExternallyNilVector;
+[Core Risk]FMultiInstrumentAndTrades:fixingForwardValueEstimate = select(timeBucketsSetExternally, 
+  nil->timeBucketsSetExternallyNilVector, 
+  default->select(fixingShiftValueValid, 
+    true->timeBucketsSetExternally :* "fixingForwardValueEstimateGrouping" [fixingRiskGroupingReference, isNominalScalingFixingRisk], 
+    false->timeBucketsSetExternallyNilVector));
+[Core Risk]FTimeBucket:fixingForwardValueEstimate = select(fixingForwardEstimateIsValid, 
+  true->(legsForFixingRiskGroupingReference.First) :* "fixingForwardValueEstimate" [timeBucketShiftStartDate, timeBucketShiftPeakDate, timeBucketShiftEndDate, fixingRiskGroupingReference, isNominalScalingFixingRisk], 
+  false->nil);

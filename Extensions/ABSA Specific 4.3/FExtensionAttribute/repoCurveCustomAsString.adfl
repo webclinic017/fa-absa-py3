@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:repoCurveCustomAsString = 
+# #Implemented for Front Arena Upgrade 2013. Front Arena 2010 returned the rpeo curve name and 2013 returned the repo curve ame with the currency seperated by a comma. This is causing issues downstream with column shifts and change in repo curve name representation downstream. This implementation will only return the Repo Curve name with the currency. This should only be used by the Market Risk extracts for their Discount Curve variable.
+select(repoCurveCustom <> nil, 
+  true->repoCurveCustom.First.Name, 
+  default->nil);

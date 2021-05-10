@@ -1,0 +1,66 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       PACE_MM_Find_Barx_ID
+PROJECT                 :       PACE MM
+PURPOSE                 :       This ASQL finds the BARX Id given the FA number and vice versa for trades and cashflows.
+DEPARTMENT AND DESK     :       Money Market Desk
+REQUASTER               :       PACE MM Project
+DEVELOPER               :       Matthias Riedel
+CR NUMBER               :       
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2014-11-27      		Matthias Riedel                Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+In this ASQl one can input(by changing the example) 
+	- a trade number to find the corresponding Barx Id
+	- a cashflow number to find the corresponding Barx Id
+	- a Barx Id of a trade to find the corresponding trade number
+	- a Barx Id of a cashflow to find the corresponding cashflow number
+
+One can search for different objects at one time but one must not empty the fields one is not interessted in.
+*/
+
+
+select t.trdnbr 'Trade number',
+t.optional_key 'BARX Trade ID',
+'' 'Cashflow number',
+'' 'BARX Cashflow ID'
+from trade t 
+where t.trdnbr = @1_Trdnbr{12345}
+ 
+union 
+
+select t.trdnbr 'Trade number',
+'' 'BARX Trade ID',
+to_string(cf.cfwnbr) 'Cashflow number',
+cf.extern_id 'BARX Cashflow ID'
+from trade t, leg l, cashflow cf
+where t.insaddr = l.insaddr
+and l.legnbr = cf.legnbr 
+and cf.cfwnbr  = @2_Cashflownbr{12345}
+ 
+union
+
+select t.trdnbr 'Trade number',
+t.optional_key 'BARX Trade ID',
+'' 'Cashflow number',
+'' 'BARX Cashflow ID'
+from trade t 
+where t.optional_key like @3_BarxTradeID{'BARXMM-1234567890-MMG%'}
+
+union
+
+select t.trdnbr 'Trade number',
+'' 'BARX Trade ID',
+to_string(cf.cfwnbr) 'Cashflow number',
+cf.extern_id 'BARX Cashflow ID'
+from trade t, leg l, cashflow cf
+where t.insaddr = l.insaddr
+and l.legnbr = cf.legnbr 
+and cf.extern_id like @4_BarxCashflowID{'BARXMM-1234567890-MMG%'}

@@ -1,0 +1,96 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_Day1PnL') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_Day1PnL' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{})							'RepDay',
+	date_add_banking_day(@3_ReportDate{},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'	
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+ 
+ /*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+hc.insid=m.hcur	   
+and curr.instype = 'Curr'
+
+/*----------------------------------------------------------------------*/
+select
+t.trdnbr,
+t.status 'status',
+display_id (t,'counterparty_ptynbr') 'Counterparty',
+display_id (t,'prfnbr') 'Portfolio',
+time_to_day(t.execution_time) 'ExecutionDate',
+m.RepDay 'ReportDate',
+maturity_date(t)'MaturityDate',
+days_between(m.RepDay,maturity_date(t),'Act/365')/365 'YearsToMat',
+display_id(t,'curr') 'Currency',
+nominal_amount(t)'Nominal',
+i.instype 'Instrument',
+i.insid 'insid',
+display_id(i,'und_insaddr') 'Undinst',
+i.exercise_type  'ExerciseType',
+i.exotic_type  'ExoticType',
+i.instype='Option'?
+    i.call_option='No'?'Put':'Call':'' 'OptionType',
+i.otc,
+i.strike_price 'Strike',
+
+spot_price(i,,display_id(i,'und_insaddr'),) 'spot',
+mtm_value_fo(t)/fx.fxRepDay		'ZARMtM',
+accumulated_cash(t, m.RepDay,)/fx.fxRepDay   'ZARcash_RepDate',
+
+pl_economic(t,curr.insid,,0,m.RepDay,/*date0*/,/*date1*/,/*date2*/,/*date3*/,1,0,1,)  'PLIncep',
+t.sales_credit      'sales_credit'
+into temp
+
+from 
+Trade t,
+instrument i,
+macros m,
+instrument curr,
+fxrates fx 
+
+where
+t.execution_time>'01/07/2008'
+and t.insaddr=i.insaddr
+and fx.curr = display_id(t,'curr')
+AND fx.curr = curr.insid
+and t.status not in ('Simulated','Void')
+
+/********************************************************************************************/
+Select *
+from temp tp
+where
+tp.ExecutionDate=tp.ReportDate
+and tp.Nominal~=0

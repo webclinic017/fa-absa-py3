@@ -1,0 +1,213 @@
+[Instrument Definition API]FFunction:InsDef.CloseTrade$5
+This method is used when closing a trade in a similar way as when the trade
+action is ran from the instrument definition windows.
+
+Similar UI scenario:
+
+1. Open an existing trade in an instrument definition window  
+2. Open the Close Trade dialog (Actions > Trade > Actions > Close Trade) 
+3. Fill in the dialog fields as appropriate 
+4. Press Ok Press Save New in the instrument definition window for the corrected trade
+
+@param
+The trade to close
+
+@param
+Aquire Day set on the closing trade
+
+@param
+Value Day set on the closing trade
+
+@param
+The closing nominal. A value of 0.0 (default value) will default the closing nominal to the remaining nominal of the open trade.
+
+@param
+Blueprint of payments to be created on the closing trade. If no payments are given, the closing trade will hold a premium. At minimum, the payment type is required for each payment. The amount on payments with *Type='Termination Fee'* and *Amount=0.0* will default to the present value of the closing position. Other attributes of the payment will be defaulted as in the instrument definition window if not set.
+
+@return
+The saved closing trade if save is successful. Exceptions will be raised if the save is not successful.
+
+Example with closing premium::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal=50.0)
+
+
+Example with one closing payment::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+
+	payment = acm.FPayment()
+	payment.Type('Termination Fee')
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal = 50.0,
+		payments = payment)
+
+Example with closing payments::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+	
+	payment1 = acm.FPayment()
+	payment1.Type('Termination Fee')
+
+	payment2 = acm.FPayment()
+	payment2.Type('Cash')
+	payment2.Amout(1000000.0)
+	payment2.Party('Counterparty B')
+
+	payments = acm.FArray()
+	payments.Add(payment1)
+	payments.Add(payment2)
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal = 50.0,
+		payments = payments)
+		
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...
+
+[Instrument Definition API]FMethod:InsDef.CloseTrade$5
+This method is used when closing a trade in a similar way as when the trade
+action is ran from the instrument definition windows.
+
+Similar UI scenario:
+
+1. Open an existing trade in an instrument definition window  
+2. Open the Close Trade dialog (Actions > Trade > Actions > Close Trade) 
+3. Fill in the dialog fields as appropriate 
+4. Press Ok Press Save New in the instrument definition window for the corrected trade
+
+@param
+The trade to close
+
+@param
+Aquire Day set on the closing trade
+
+@param
+Value Day set on the closing trade
+
+@param
+The closing nominal. A value of 0.0 (default value) will default the closing nominal to the remaining nominal of the open trade.
+
+@param
+Blueprint of payments to be created on the closing trade. If no payments are given, the closing trade will hold a premium. At minimum, the payment type is required for each payment. The amount on payments with *Type='Termination Fee'* and *Amount=0.0* will default to the present value of the closing position. Other attributes of the payment will be defaulted as in the instrument definition window if not set.
+
+@return
+The saved closing trade if save is successful. Exceptions will be raised if the save is not successful.
+
+Example with closing premium::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal=50.0)
+
+
+Example with one closing payment::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+
+	payment = acm.FPayment()
+	payment.Type('Termination Fee')
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal = 50.0,
+		payments = payment)
+
+Example with closing payments::
+
+	params = acm.FOrderedDictionary()
+	params['Quantity'] = 100.0
+	params['Acquirer'] = 'Aquirer A'
+	params['Counterparty'] = 'Counterparty A'
+	params['Portfolio'] = 'Portfolio A'
+	params['Status'] = 'FO Confirmed'
+	trade = acm.InsDef.CreateTrade('Stock A', params)
+	 
+	acquireDay = '20181106'
+	valueDay = '20181106'
+	
+	payment1 = acm.FPayment()
+	payment1.Type('Termination Fee')
+
+	payment2 = acm.FPayment()
+	payment2.Type('Cash')
+	payment2.Amout(1000000.0)
+	payment2.Party('Counterparty B')
+
+	payments = acm.FArray()
+	payments.Add(payment1)
+	payments.Add(payment2)
+
+	closing = acm.InsDef.CloseTrade(
+		trade,
+		acquireDay,
+		valueDay,
+		nominal = 50.0,
+		payments = payments)
+		
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

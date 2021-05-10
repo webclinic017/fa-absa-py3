@@ -1,0 +1,62 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','NR_MarketRisk_Barrier_Options') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'NR_MarketRisk_Barrier_Options' and p.type = 'SQL Query' 
+ 
+  SELECT T.TrdNbr,
+        display_id(t,'prfnbr')                                              'Portfolio',
+        I.InsID,
+        I.InsType,
+        display_id(I,'curr')                                                'Currency',
+        Und_I.InsID                                                         'Und_InsID',
+        Und_I.InsType                                                       'Und_InsType',
+        Und_I.spot_banking_days_offset                                      'Spot_Days',
+        I.strike_price,
+        display_id(I,'strike_curr')                                         'Strike_Currency',
+        T.time                                                              'Trade_Time',
+        I.Exp_Day,
+        I.pay_day_offset                                                    'Settle_Days',
+        I.settlement                                                        'Settle_Type',
+        T.Quantity,
+        nominal_amount(t,t.value_day)                                       'Nominal',
+        ael_s(I,'ReturnVolatility_Name')                                    'Mapped_Volatility',
+        ael_s(T,'get_discountcurve',I,'Receive')                            'Discounting_Curve',
+        ael_s(Und_I,'getYCName')                                            'Repo_1',
+        ael_s(T,'get_discountcurve',I,'Receive')                            'Repo_2',
+        I.call_option = 'No' ? 'Put' : 'Call'                               'Call_Put',
+        I.exercise_type                                                     'Exercise_Type',
+        T.Quantity > 0 ? 'Buy' : 'Sell'                                     'Buy_Sell',
+        Ex.double_barrier = 0.00 
+            ? 'Single' 
+            : 'Double'                                                      'Single_Double',
+        I.barrier                                                           'Barrier1',
+        Ex.double_barrier                                                   'Barrier2',
+        Ex.barrier_risk_management                                          'Risk_Management1',
+        Ex.second_barrier_risk_mgmt                                         'Risk_Management2',
+        Ex.barrier_option_type                                              'Barrier_Type',
+        Ex.barrier_monitoring                                               'Barrier_Monitoring',
+        Ex.barrier_monitoring = 'Discrete'
+            ? ael_s(I,'SAGEN_str_functions.Exotic_Build_Date_String')
+            : ''                                                            'Monitoring_Dates',
+        Ex.barrier_crossed_status                                           'Crossed_Status',
+        Ex.barrier_cross_date                                               'Crossed_Date',
+        Ex.barrier_rebate_on_expiry                                         'Rebate',
+        @3_ReportDay{Today}                                                 'Business_Day',
+        Ex.barrier_rebate_on_expiry                                         'Pay_At_Expiry'
+        
+FROM 
+
+    Trade T,
+    Instrument I,
+    Instrument Und_I,
+    Exotic Ex
+    
+WHERE 
+    T.InsAddr = I.InsAddr
+    AND I.Und_InsAddr *= Und_I.InsAddr
+    AND I.InsAddr = Ex.InsAddr
+    AND I.InsType = 'Option'
+    AND match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    AND I.Exp_Day > @3_ReportDay{Today}

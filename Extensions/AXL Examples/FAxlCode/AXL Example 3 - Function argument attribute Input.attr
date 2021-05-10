@@ -1,0 +1,49 @@
+[AXL Examples]FObject:AXL Example 3 - Function argument attribute Input
+//---------------------------------------------------------------------
+//AXL Example 3 - Function argument attribute Input
+//---------------------------------------------------------------------
+
+//This example shows how to declare arguments for the formula and how to use the 
+//Input attribute.
+//The beginning {} defines a dictionary where any parameters and 
+//other metadata can be declared for the formula. 
+//In this dictionary the parameters should be declared
+//at the "Parameters" key. The "Parameters" key should have a list value
+//containing one dictionary for each parameter. A list is declared by using the '[' and ']'.
+//Each parameter must have a "Name" and a "Type" key.
+//The "Name" key value should be a one word identifier without white spaces.
+//The "Type" key value can be one of the following types:
+//Number,Int32,Int64,Double,String,Bool,DateTime or DatePeriod.
+//If the "Type" key value is of Number type the formula needs to compile for
+//all numerical types(Int32,Int64,and Double).
+//To define of what input type the argument is the key "Input" can be used.
+//Valid values for "Input" are: TableValue, FreeDefined and TableFormula. Default is TableValue.
+//TableValue indicates that the argument should be assigned an attribute in the Imdr table.
+//FreeDefined indicates that the argument will be assigned an Adhoc value, for instance 10.0.
+//TableFormula indicated that the argument will be assigned another AXL formula.
+
+//main is the name of the function and main is required for the formula
+//to compile. It is this function that is available to the Data Disposition UI
+//and in this UI the user can assign attributes, values or formulas to the X and Y arguments.
+
+//The actual formula is written after the = sign. In this case one Sum call for X"
+//plus a Sum call for Y. Arguments are referenced by using the $ sign.
+//The function is terminated by the ; sign.
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Number},
+    {Name:Y,Type:Number,Input:FreeDefined}
+  ],
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+  
+}
+main = Aggregate.Sum($X) + Aggregate.Sum($Y);
+
+
+
+...

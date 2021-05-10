@@ -1,0 +1,6 @@
+[Default]FOrderBook:impliedUnderlyingBidPrice = select(underlying, 
+  nil->imply(underlyingPriceInTheoreticalPrice, theoreticalPrice, (pricingPriceFeedMarketOrADS :* "marketPriceBidOrAsk")), 
+  default->imply(underlyingPriceInTheoreticalPrice, theoreticalPrice, (pricingPriceFeedMarketOrADS :* "marketPriceBidOrAsk")) * double(instrument:underlyingPriceInTheoreticalPriceFxUnderlyingToCalculation));
+[Default]FPriceAggregate:impliedUnderlyingBidPrice = select(underlying, 
+  nil->imply(underlyingPriceInTheoreticalPrice, theoreticalPrice, (pricingPriceFeedMarketOrADS :* "marketPriceBidOrAsk")), 
+  default->imply(underlyingPriceInTheoreticalPrice, theoreticalPrice, (pricingPriceFeedMarketOrADS :* "marketPriceBidOrAsk")) * double(instrument:underlyingPriceInTheoreticalPriceFxUnderlyingToCalculation));

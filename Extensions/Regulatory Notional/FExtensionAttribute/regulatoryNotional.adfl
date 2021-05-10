@@ -1,0 +1,107 @@
+[Regulatory Notional]FBasketRepo:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FBill:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FBond:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FBuySellBack:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FCap:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FCertificateOfDeposit:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FCfd:regulatoryNotional = stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal;
+[Regulatory Notional]FCln:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FCombination:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FCommodity:regulatoryNotional = stripDateTimePart(marketSpotPrice) * quotation.QuotationFactor * singleTradePosition.Nominal;
+[Regulatory Notional]FCreditDefaultSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FCurrency:regulatoryNotional = select(singleTradePosition.IsFxSwap, 
+  true->object:fxSwapRegulatoryNotional [singleTradePosition], 
+  default->select(singleTradePosition.CurrencyPair, 
+    nil->denominatedvalue(0, symbol(accountingCurrency), , ), 
+    default->select(singleTradePosition.CurrencyPair.IncludesCurrency(accountingCurrency), 
+      true->select(accountingCurrency == singleTradePosition.Currency, 
+        true->object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency], 
+        false->object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency]), 
+      default->select(abs(object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency]) > abs(object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency]), 
+        true->object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency], 
+        false->object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency]))));
+[Regulatory Notional]FCurrencySwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FDeposit:regulatoryNotional = select(singleTradePosition.AdditionalInfo.Funding_Instype.AsString.Contains("Call"), 
+  true->depositBalance, 
+  default->denominatedvalue(currentNominal, displayCurrencySymbol, , ));
+[Regulatory Notional]FDividendPointIndex:regulatoryNotional = (stripDateTimePart(valuesInPeriod(underlying:dividendForecastDividends, valuationDate, expiryDate, true)) + denominatedvalue(0, symbol(underlying:calculationCurrency), , )) * singleTradePosition.Quantity;
+[Regulatory Notional]FETF:regulatoryNotional = stripDateTimePart(underlying:theorOrMarkToMPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal;
+[Regulatory Notional]FEquityIndex:regulatoryNotional = stripDateTimePart(theorOrMarkToMPrice) * quotation.QuotationFactor * singleTradePosition.Nominal;
+[Regulatory Notional]FFloor:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FFra:regulatoryNotional = shunt(valuationDate > object.StartDate, 
+  true->denominatedvalue(0, symbol(accountingCurrency), , ), 
+  default->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ));
+[Regulatory Notional]FFrn:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FFuture:regulatoryNotional = shunt((singleTradePosition.AdditionalInfo.Barcap_BTB_UnitType <> nil) and (singleTradePosition.AdditionalInfo.Approx_46_load == true), 
+  true->stripDateTimePart(underlyingSpotPrice) * double(singleTradePosition.AdditionalInfo.Barcap_BTB_UnitType.RemoveAll(",")) * underlyingQuotation.QuotationFactor, 
+  default->select(underlyingType, 
+    "Bond"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "RateIndex"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "IndexLinkedBond"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "Curr"->denominatedvalue(singleTradePosition.Nominal, symbol(object.Underlying), , ), 
+    "Swap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "FRA"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "IndexLinkedSwap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "CreditDefaultSwap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "FRN"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    "VarianceSwap"->denominatedvalue(2 * singleTradePosition.Quantity * singleTradePosition.VolatilityStrike, symbol(currency), , ), 
+    "Stock"->select(object.Name.Contains("divfut"), 
+      true->(stripDateTimePart(valuesInPeriod(underlying:dividendForecastDividends, valuationDate, expiryDate, true)) + denominatedvalue(0, symbol(underlying:calculationCurrency), , )) * singleTradePosition.Nominal * singleTradePosition.Quantity, 
+      default->stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal), 
+    default->stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal));
+[Regulatory Notional]FFxRate:regulatoryNotional = select(singleTradePosition.IsFxSwap, 
+  true->object:fxSwapRegulatoryNotional [singleTradePosition], 
+  default->select(currencyPair.IncludesCurrency(accountingCurrency), 
+    true->select(accountingCurrency == domesticCurrency, 
+      true->object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency], 
+      false->object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency]), 
+    default->select(abs(object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency]) > abs(object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency]), 
+      true->object:foreignNominal [singleTradePosition, displayCurrency = accountingCurrency], 
+      false->object:domesticNominal [singleTradePosition, displayCurrency = accountingCurrency])));
+[Regulatory Notional]FFxSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FIndexLinkedBond:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FIndexLinkedSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FInstrument:regulatoryNotional = nil;
+[Regulatory Notional]FOption:regulatoryNotional = shunt((singleTradePosition.AdditionalInfo.Barcap_BTB_UnitType <> nil) and (singleTradePosition.AdditionalInfo.Approx_46_load == true), 
+  true->stripDateTimePart(underlyingSpotPrice) * double(singleTradePosition.AdditionalInfo.Barcap_BTB_UnitType.RemoveAll(",")) * underlyingQuotation.QuotationFactor, 
+  default->select(isForwardStarting or isDigital or (mtmFromFeed and (object.StrikePrice == 0.0)), 
+    true->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+    default->select(underlyingType, 
+      "Bond"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "RateIndex"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "IndexLinkedBond"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "Curr"->denominatedvalue(singleTradePosition.Nominal, symbol(object.Underlying), , ), 
+      "Swap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "FRA"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "IndexLinkedSwap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "CreditDefaultSwap"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "FRN"->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+      "VarianceSwap"->denominatedvalue(2 * singleTradePosition.Quantity * singleTradePosition.VolatilityStrike, symbol(currency), , ), 
+      "EquityIndex"->select(object.Name.Contains("divfut"), 
+        true->(stripDateTimePart(valuesInPeriod(underlying:dividendForecastDividends, valuationDate, expiryDate, true)) + denominatedvalue(0, symbol(underlying:calculationCurrency), , )) * singleTradePosition.Nominal * singleTradePosition.Quantity, 
+        default->select((isAsian and (object.AdditionalInfo.Forward_Start_Type == "Performance")), 
+          true->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+          default->select(isAsian, 
+            true->asianAveragePriceForRegNotional * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal, 
+            default->stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal))), 
+      "Stock"->select(object.Name.Contains("divfut"), 
+        true->(stripDateTimePart(valuesInPeriod(underlying:dividendForecastDividends, valuationDate, expiryDate, true)) + denominatedvalue(0, symbol(underlying:calculationCurrency), , )) * singleTradePosition.Nominal * singleTradePosition.Quantity, 
+        default->select((isAsian and (object.AdditionalInfo.Forward_Start_Type == "Performance")), 
+          true->denominatedvalue(singleTradePosition.Nominal, symbol(currency), , ), 
+          default->select(isAsian, 
+            true->asianAveragePriceForRegNotional * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal, 
+            default->stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Nominal))))));
+[Regulatory Notional]FPortfolioSwap:regulatoryNotional = select(rtmPerformanceLegs.Size, 
+  0->stripDateTimePart(removeNil((object.FundPortfolio.Trades) :* "regulatoryNotionalInDisplayCurrency" [profitAndLossEndFXRates, displayCurrency])) + denominatedvalue(0, displayCurrencySymbol, , ), 
+  default->rtmRegulatoryNotional);
+[Regulatory Notional]FPriceSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FRepo:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );
+[Regulatory Notional]FSecurityLoan:regulatoryNotional = stripDateTimePart(underlyingSpotPrice) * underlyingQuotation.QuotationFactor * singleTradePosition.Quantity * object.RefValue;
+[Regulatory Notional]FStock:regulatoryNotional = stripDateTimePart(theorOrMarkToMPrice) * quotation.QuotationFactor * singleTradePosition.Nominal;
+[Regulatory Notional]FSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FTotalReturnSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FTrade:regulatoryNotional = select((instrument:isExpired) or (status == "Void") or (status == "Terminated"), 
+  true->denominatedvalue(0, symbol(accountingCurrency), , ), 
+  default->instrument:regulatoryNotional [singleTradePosition = object, includeAllTrades = true, profitAndLossEndFXRates]);
+[Regulatory Notional]FVarianceSwap:regulatoryNotional = swapRegulatoryNotional;
+[Regulatory Notional]FZeroBond:regulatoryNotional = denominatedvalue(singleTradePosition.Nominal, symbol(currency), , );

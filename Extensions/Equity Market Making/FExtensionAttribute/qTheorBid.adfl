@@ -1,0 +1,9 @@
+#grouping: default/market making
+
+[Equity Market Making]FQuoteController:qTheorBid = select(instrument:useFIQuoting, 
+  true->qTheorFIBid, 
+  false->select(isStrategyTradingInterface, 
+    true->qTheorStrategyBid, 
+    false->select(useUnderlyingPriceQuoting, 
+      true->qTheorBidAskCachedAtDefer[0], 
+      false->qTheorBidAskWithVolaAddOn[0])));

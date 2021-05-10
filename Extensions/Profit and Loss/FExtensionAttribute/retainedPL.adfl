@@ -1,0 +1,10 @@
+[Profit and Loss]FCombInstrMapAndTrades:retainedPL = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:retainedPL = nil;
+[Profit and Loss]FInstrumentAndTrades:retainedPL = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->retainedPLLive, 
+  "Inception to Historical"->retainedPLEnd, 
+  "Historical to Present"->retainedPLLive - retainedPLStart, 
+  "Historical to Historical"->retainedPLEnd - retainedPLStart);
+[Profit and Loss]FPriceAggregate:retainedPL = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "retainedPL");

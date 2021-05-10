@@ -1,0 +1,5 @@
+[Default]FInstrument:theoreticalValuationModelValue = select(payTypeForward, 
+  true->setDateTimePart(theoreticalModelResult, theoreticalInstrumentValueDate), 
+  false->select(discountModelValueToSpot, 
+    true->repoCurve.DiscountValues(theoreticalModelResult, theoreticalInstrumentValueDate), 
+    default->collapse(theoreticalModelResult)));

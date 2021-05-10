@@ -1,0 +1,52 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Price Swap Resets') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Price Swap Resets' and p.type = 'SQL Query' 
+
+/*
+Purpose:                Reflect price swap reset values between two inclusive dates 
+Department and Desk:    CRT, TCU
+Requester:              Mahlangu, Sizwe
+Developer:              Anil Prabhoo
+CR Number:              CHNG0002108031              
+*/
+
+
+
+
+select
+t.trdnbr,
+t.Status,
+i.insid'Price_Swap_Name',
+ui.insid'Float_Ref',
+
+r.day'Reset_Day',
+r.value'Reset_Value',
+r.read_time'Reset Read Time'
+
+
+
+from
+instrument i,
+instrument ui,
+leg l,
+reset r,
+trade t
+
+
+where
+
+
+ i.insaddr = t.insaddr
+and l.float_rate = ui.insaddr
+and i.instype = 'PriceSwap'
+and t.status not in ('Void','Simulated')
+and i.insaddr = l.insaddr
+and r.legnbr = l.legnbr
+and r.day>=@FROM_reset_day{Yesterday;}
+and r.day<=@TO_reset_day{Today;}
+
+
+order by r.day, ui.insid

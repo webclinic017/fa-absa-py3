@@ -1,0 +1,14 @@
+[Equity Pricing and Risk]FCashFlowInstrument:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FCfd:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FCombination:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FConvertible:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FDepositaryReceipt:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FETF:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FFuture:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FOption:cliquetNextResetDate = select(isCliquet, 
+  true->select(count(cliquetFutureExpiryInfo) > 0, 
+    true->datetime(cliquetFutureExpiryInfo[0]), 
+    false->nil), 
+  false->nil);
+[Equity Pricing and Risk]FStock:cliquetNextResetDate = nil;
+[Equity Pricing and Risk]FVolatilityFuture:cliquetNextResetDate = nil;

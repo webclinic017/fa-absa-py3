@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FInstrument:theoreticalYieldToMaturity = select(ytmCalculationValid, 
+  true->shunt(isFinite(theoreticalInstrumentSpotValueCleanForImpliedCalculations), 
+    true->imply(snoop(theoreticalInstrumentSpotValueCleanFromYield, "yield"), theoreticalInstrumentSpotValueCleanFromYield, theoreticalInstrumentSpotValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, 100), 
+    false->nil), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:theoreticalYieldToMaturity = nil;
+[Fixed Income Pricing and Risk]FOrderBook:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;
+[Fixed Income Pricing and Risk]FPriceAggregate:theoreticalYieldToMaturity = instrument:theoreticalYieldToMaturity;

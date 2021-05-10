@@ -1,0 +1,9 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:preTradePeriodAverageTradeSize = nil;
+[PreAndPostTradeAnalysis]FOrderProgram:preTradePeriodAverageTradeSize = nil;
+[PreAndPostTradeAnalysis]FOwnOrder:preTradePeriodAverageTradeSize = nil;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:preTradePeriodAverageTradeSize = switch(preTradeAnalysisHasPeriod, 
+  false->0, 
+  default->switch(preTradePeriodAverageNumberOfTrades, 
+    0->0.0, 
+    default->preTradeVolumePeriodAverage / preTradePeriodAverageNumberOfTrades));
+[PreAndPostTradeAnalysis]FSalesOrder:preTradePeriodAverageTradeSize = prePostTradeAnalysis:preTradePeriodAverageTradeSize;

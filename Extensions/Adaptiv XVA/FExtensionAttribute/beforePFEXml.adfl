@@ -1,0 +1,12 @@
+[Adaptiv XVA]FCreditBalance:beforePFEXml = select(creditBalanceInstruments :* "cvaDeals", 
+  nil->nil, 
+  default->shunt[positionObject, includeAllTrades](creditBalanceIsEmpty, 
+    true->nil, 
+    false->pfeMessageXML));
+[Adaptiv XVA]FTrade:beforePFEXml = beforePFEXml = switch(incrementalPFE, 
+  nil->nil, 
+  0.0->nil, 
+  default->shunt((nil == matchingCreditBalanceInstrument), 
+    true->nil, 
+    false->matchingCreditBalanceInstrument:beforePFEXml));
+[Adaptiv XVA]FTradeRow:beforePFEXml = trade:beforePFEXml;

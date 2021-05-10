@@ -1,0 +1,13 @@
+[Default]FAttributeSpreadCurve:irCurveInformationForStandardCalculations = select(spreadCurveInstrumentForStandardCalculations, 
+  default->irCurveInfoFromSYCLinkForStandardCalculations, 
+  nil->underlyingIrCurveInformationForStandardCalculations);
+[Default]FBenchmarkCurve:irCurveInformationForStandardCalculations = irCurveInformation;
+[Default]FCompositeCurve:irCurveInformationForStandardCalculations = compositeIrCurveInformation;
+[Default]FInflationCurve:irCurveInformationForStandardCalculations = inflationCurveIrCurveInformation;
+[Default]FInstrumentAndTrades:irCurveInformationForStandardCalculations = yieldCurve :* "irCurveInformationForStandardCalculations" [valuationDate];
+[Default]FInstrumentSpreadCurve:irCurveInformationForStandardCalculations = select(spreadCurveInstrumentForStandardCalculations, 
+  default->irCurveInfoFromSYCLinkForStandardCalculations, 
+  nil->underlyingIrCurveInformationForStandardCalculations);
+[Default]FPriceCurve:irCurveInformationForStandardCalculations = priceCurveInformation;
+[Default]FSeasonalityCurve:irCurveInformationForStandardCalculations = object:seasonalityIrCurveInformation [component = yieldCurveHierarchy.UnderlyingComponent];
+[Default]FSpreadCurve:irCurveInformationForStandardCalculations = object:spreadIrCurveInformation [component = yieldCurveHierarchy.UnderlyingComponent];

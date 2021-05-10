@@ -1,0 +1,10 @@
+[Default]FCurrency:profitAndLossPositionPerCurrency = 0;
+[Default]FDerivative:profitAndLossPositionPerCurrency = switch(closeDerivativesAfterExpiry and object.IsExpiredFullDayAt(valuationDate), 
+  true->0, 
+  false->contractSize * profitAndLossValues.Position);
+[Default]FInstrument:profitAndLossPositionPerCurrency = switch(object.IsExpiredFullDayAt(valuationDateAdjusted + 1.0), 
+  true->0, 
+  false->contractSize * profitAndLossValues.Position);
+[Default]FInstrumentAndTrades:profitAndLossPositionPerCurrency = nil;
+[Default]FSingleInstrumentAndTrades:profitAndLossPositionPerCurrency = instrument :* "profitAndLossPositionPerCurrency" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Default]FTradeRow:profitAndLossPositionPerCurrency = instrument :* "profitAndLossPositionPerCurrency" [singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, taxLotPositionObject];

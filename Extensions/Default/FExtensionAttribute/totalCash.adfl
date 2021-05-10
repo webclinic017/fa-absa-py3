@@ -1,0 +1,12 @@
+[Default]FCombInstrMapAndTrades:totalCash = nil;
+[Default]FDeliverableLinkAndTrades:totalCash = nil;
+[Default]FInstrumentAndTrades:totalCash = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->select(isAssetGrouping, 
+    true->cash + cashInception, 
+    default->totalCashCalculation));
+[Default]FLegAndTrades:totalCash = nil;
+[Default]FPortfolioInstrumentAndTrades:totalCash = totalCashCalculation;
+[Default]FSingleInstrumentAndTrades:totalCash = select(isCashGrouping, 
+  true->plZero, 
+  default->cash + cashInception);

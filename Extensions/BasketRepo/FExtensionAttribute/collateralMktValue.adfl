@@ -1,0 +1,6 @@
+[BasketRepo]FTrade:collateralMktValue = select(isCollateral, 
+  true->abs(object.Nominal) * collateralSpotPrice / 100, 
+  default->select(isBasketRepoReverse, 
+    true->sumOf(getCollateralTrades(object) :* "collateralMktValue"), 
+    default->nil));
+[BasketRepo]FTradeRow:collateralMktValue = trade:collateralMktValue;

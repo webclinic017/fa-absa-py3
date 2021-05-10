@@ -1,0 +1,8 @@
+[Pegasus]FCombInstrMapAndTrades:profitAndLossValuesForwardValueAdjustment = instrument:profitAndLossValuesForwardValueAdjustment;
+[Pegasus]FInstrument:profitAndLossValuesForwardValueAdjustment = select(needsCentralClearingAdjustment, 
+  true->profitAndLossValues.Accrued, 
+  default->plZero);
+[Pegasus]FInstrumentAndTrades:profitAndLossValuesForwardValueAdjustment = sumOf(instruments:profitAndLossValuesForwardValueAdjustment [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);
+[Pegasus]FLegAndTrades:profitAndLossValuesForwardValueAdjustment = instrument:profitAndLossValuesForwardValueAdjustment [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Pegasus]FSingleInstrumentAndTrades:profitAndLossValuesForwardValueAdjustment = instrument:profitAndLossValuesForwardValueAdjustment [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Pegasus]FTradeRow:profitAndLossValuesForwardValueAdjustment = sumOf(instrument:profitAndLossValuesForwardValueAdjustment [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);

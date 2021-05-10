@@ -1,0 +1,7 @@
+[Default]FDepositaryReceipt:startValueForForwardValueCalculationDomestic = select(unit(startValueForForwardValueCalculation) == currency, 
+  true->startValueForForwardValueCalculation, 
+  false->convertToCurrencyValidateDates(startValueForForwardValueCalculation, unit(startValueForForwardValueCalculation) :* "fxForwardRate" [fxForwardDate = date(startValueForForwardValueCalculation), fxToCurrency = currency], symbol(currency)));
+[Default]FFxRate:startValueForForwardValueCalculationDomestic = collapse(startValueForForwardValueCalculation);
+[Default]FInstrument:startValueForForwardValueCalculationDomestic = select(unit(startValueForForwardValueCalculation) == currency, 
+  true->collapse(startValueForForwardValueCalculation), 
+  false->object:convertSourceValuesToTargetCurrency [sourceValue = startValueForForwardValueCalculation, targetToCurrency = currency, priceSource, doSplitAll]);

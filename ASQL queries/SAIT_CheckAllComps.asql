@@ -1,0 +1,97 @@
+/* TBR_SAIT_CheckAllComps: last updated on Fri Aug 21 17:23:39 2009. Extracted by Stowaway on 04/09/2009.*/
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAIT_CheckAllComps') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAIT_CheckAllComps' and p.type = 'SQL Query' 
+ 
+  select
+    'User'                                  'Section',
+    u.userid                                'ID',
+    u.name                                  'Name',
+    org.orgid                               'Organisation',
+    g.grpid                                 'Group',
+    p.profid                                'Profile',
+    p.description                           'ProfileDescription'
+    
+into
+    UserAccess
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    UserProfileLink upl,
+    UserProfile p/*,
+    ProfileComponent profc,
+    Component c*/
+
+where
+    /*u.userid = @User{ABAW339;User.userid}
+and */u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and u.usrnbr = upl.usrnbr
+and p.profnbr = upl.profnbr
+and p.profid like '%ALL_COMPONENTS%' 
+/*and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr*/
+
+
+
+
+
+select
+    'Group'                                 'Section',   
+    u.name                                  'Name',                              
+    g.grpid                                 'ID',
+    org.orgid                               'Organisation',
+    g.description                           'Group',
+    p.profid                                'Profile',
+    p.description                           'ProfileDescription'
+    /*c.type                                  'ComponentType',
+    c.compname                              'ComponentName'*/
+    /*profc2.allow_write,
+    profc2.allow_create*/   
+
+into
+    UserAccess
+
+    
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    GroupProfileLink gpl,
+    UserProfile p
+    /*ProfileComponent profc,
+    Component c*/
+
+where
+    /*u.userid = @User{ABAW339;User.userid}
+and */u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and g.grpnbr = gpl.grpnbr
+and gpl.profnbr = p.profnbr
+and p.profid like '%ALL_COMPONENTS%' 
+/*and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr*/
+
+
+
+
+select
+    t.Section,   
+    t.Name,
+    t.ID,
+    t.Organisation,
+    t.Group,
+    t.Profile,
+    t.ProfileDescription
+    
+from
+    UserAccess t
+    
+order by 2
+
+
+

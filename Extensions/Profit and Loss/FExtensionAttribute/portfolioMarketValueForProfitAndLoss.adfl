@@ -1,0 +1,19 @@
+[Profit and Loss]FCashFlowInstrument:portfolioMarketValueForProfitAndLoss = select(valuesOnSpot, 
+  true->shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, includeAllTrades, legs, positionObject, plSpotGroupingReference, positionTradeQuantities](moveSpotPositionTypeForProfitAndLoss, 
+    "None"->collapse(marketInstrumentPositionValuesSimpleForProfitAndLoss), 
+    "Full"->collapse(marketInstrumentPositionValuesForProfitAndLoss), 
+    "Repo"->collapse(marketSpotValueForProfitAndLossRepo)), 
+  false->shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, includeAllTrades, legs, positionObject, plSpotGroupingReference, positionTradeQuantities](moveSpotPositionTypeForProfitAndLoss, 
+    "None"->stripDateTimePart(collapse(marketInstrumentPositionValuesSimpleForProfitAndLoss)), 
+    "Full"->collapse(marketInstrumentPositionTradeValuesForProfitAndLoss), 
+    "Repo"->collapse(marketValueForProfitAndLossRepo)));
+[Profit and Loss]FCombination:portfolioMarketValueForProfitAndLoss = select(valuesOnSpot, 
+  true->select(needsLegInformation, 
+    true->marketInstrumentPositionValuesForProfitAndLoss, 
+    false->marketInstrumentPositionValuesSimpleForProfitAndLoss), 
+  false->marketInstrumentPositionTradeValuesForProfitAndLoss);
+[Profit and Loss]FDerivative:portfolioMarketValueForProfitAndLoss = collapse(marketInstrumentPositionValuesSimpleForProfitAndLoss);
+[Profit and Loss]FFxRate:portfolioMarketValueForProfitAndLoss = collapse(marketInstrumentPositionTradeValuesForProfitAndLoss);
+[Profit and Loss]FInstrument:portfolioMarketValueForProfitAndLoss = select(valuesOnSpot, 
+  true->marketInstrumentPositionValuesSimpleForProfitAndLoss, 
+  false->marketInstrumentPositionTradeValuesForProfitAndLoss);

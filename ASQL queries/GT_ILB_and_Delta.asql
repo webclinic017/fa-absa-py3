@@ -1,0 +1,220 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_ILB_and_Delta') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_ILB_and_Delta' and p.type = 'SQL Query' 
+
+/*
+coded by ap
+
+works for previous date
+
+defined trade numbers
+
+*/
+
+select 
+s.srdnbr,
+@report_date{Today;}'rd',
+
+date_add_banking_day(@report_date{Today;},'ZAR',1)'demand',
+
+date_add_delta(@report_date{Today;},0,1,0)'1m',
+date_add_delta(@report_date{Today;},0,2,0)'2m',
+date_add_delta(@report_date{Today;},0,3,0)'3m',
+date_add_delta(@report_date{Today;},0,4,0)'4m',
+date_add_delta(@report_date{Today;},0,5,0)'5m',
+date_add_delta(@report_date{Today;},0,6,0)'6m',
+date_add_delta(@report_date{Today;},0,7,0)'7m',
+date_add_delta(@report_date{Today;},0,8,0)'8m',
+date_add_delta(@report_date{Today;},0,9,0)'9m',
+date_add_delta(@report_date{Today;},0,10,0)'10m',
+date_add_delta(@report_date{Today;},0,11,0)'11m',
+date_add_delta(@report_date{Today;},0,12,0)'12m',
+date_add_delta(@report_date{Today;},0,13,0)'13m',
+date_add_delta(@report_date{Today;},0,14,0)'14m',
+date_add_delta(@report_date{Today;},0,15,0)'15m',
+date_add_delta(@report_date{Today;},0,16,0)'16m',
+date_add_delta(@report_date{Today;},0,17,0)'17m',
+date_add_delta(@report_date{Today;},0,18,0)'18m',
+date_add_delta(@report_date{Today;},0,19,0)'19m',
+date_add_delta(@report_date{Today;},0,20,0)'20m',
+date_add_delta(@report_date{Today;},0,21,0)'21m',
+date_add_delta(@report_date{Today;},0,22,0)'22m',
+date_add_delta(@report_date{Today;},0,23,0)'23m',
+date_add_delta(@report_date{Today;},0,24,0)'24m',
+
+date_add_delta(@report_date{Today;},0,0,3)'3y',
+date_add_delta(@report_date{Today;},0,0,4)'4y',
+date_add_delta(@report_date{Today;},0,0,5)'5y',
+date_add_delta(@report_date{Today;},0,0,6)'6y',
+date_add_delta(@report_date{Today;},0,0,7)'7y',
+date_add_delta(@report_date{Today;},0,0,8)'8y',
+date_add_delta(@report_date{Today;},0,0,9)'9y',
+date_add_delta(@report_date{Today;},0,0,10)'10y',
+date_add_delta(@report_date{Today;},0,0,11)'11y',
+date_add_delta(@report_date{Today;},0,0,12)'12y',
+date_add_delta(@report_date{Today;},0,0,13)'13y',
+date_add_delta(@report_date{Today;},0,0,14)'14y',
+date_add_delta(@report_date{Today;},0,0,15)'15y',
+date_add_delta(@report_date{Today;},0,0,16)'16y',
+date_add_delta(@report_date{Today;},0,0,17)'17y',
+date_add_delta(@report_date{Today;},0,0,18)'18y',
+date_add_delta(@report_date{Today;},0,0,19)'19y',
+date_add_delta(@report_date{Today;},0,0,20)'20y'
+
+
+
+
+
+
+
+into temp
+
+
+from 
+
+serverdata s
+
+/*------ select from latest price table---------*/
+
+Select
+to_date(@report_date{Today;})'date',
+i.insid,
+t.trdnbr,
+
+t.value_day'settlement',
+(t.quantity*1000000)'nominal',
+i.instype='FRN' ? 0 : p.settle'MtM_Yield',
+
+t.value_day=i.exp_day ? t.quantity*-1000000 : 
+ dirty_from_yield(i,date_add_banking_day(@report_date{Today;},'ZAR',3),,,p.settle)*10000*t.quantity'Dirty_MtM',
+ dirty_from_yield(i,date_add_banking_day(@report_date{Today;},'ZAR',3),,,p.settle+0.01)*10000*t.quantity'Dirty_MtM_1BPS',
+display_id(t,'prfnbr')'portfolio',
+i.exp_day
+
+into tradedetails
+
+from
+
+instrument i,
+trade t,
+price p,
+party cp
+
+
+
+where
+
+i.insaddr=t.insaddr
+/*and match_filter(t,@filter{;TradeFilter.fltid})*/
+and i.exp_day>to_date(@report_date{Today;})
+and t.value_day<=to_date(@report_date{Today;})
+and i.instype in ('bond','IndexLinkedBond')
+
+/*and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')*/
+and i.insaddr=p.insaddr
+and p.ptynbr=cp.ptynbr
+and cp.ptyid='SPOT'
+and p.day=@report_date{Today;}
+and i.instype in ('IndexLinkedBond')
+and match_filter (t,'GT_RR_ILS_ILB_FRN')
+
+
+
+
+
+
+/*--------select from temp---*/
+
+
+select
+t.date,
+t.insid,
+'Yes' ? t.trdnbr : '''trdnbr',
+'Yes' ? t.settlement : '' 'settlement',
+t.nominal,
+t.MtM_Yield,
+
+t.Dirty_MtM,
+t.Dirty_MtM_1BPS,
+t.Dirty_MtM-t.Dirty_MtM_1BPS'delta',
+'Yes' ? t.portfolio : '''portfolio',
+t.exp_day
+
+into summary
+
+from tradedetails t
+
+order by t.insid,4/*t.settlement*/
+
+/*------*/
+
+select
+
+
+t.insid,
+
+sum(t.delta)'delta',
+ sum(t.exp_day = dd.demand ? t.delta: 0) '1d',
+ sum(t.exp_day > dd.demand ? (t.exp_day <= dd.1m ? t.delta: 0 ) : 0) '1m',
+ sum(t.exp_day > dd.1m ? (t.exp_day <= dd.2m ? t.delta: 0 ) : 0) '2m',
+ sum(t.exp_day > dd.2m ? (t.exp_day <= dd.3m ? t.delta: 0 ) : 0) '3m',
+ sum(t.exp_day > dd.3m ? (t.exp_day <= dd.4m ? t.delta: 0 ) : 0) '4m',
+ sum(t.exp_day > dd.4m ? (t.exp_day <= dd.5m ? t.delta: 0 ) : 0) '5m',
+ sum(t.exp_day > dd.5m ? (t.exp_day <= dd.6m ? t.delta: 0 ) : 0) '6m',
+ sum(t.exp_day > dd.6m ? (t.exp_day <= dd.7m ? t.delta: 0 ) : 0) '7m',
+ sum(t.exp_day > dd.7m ? (t.exp_day <= dd.8m ? t.delta: 0 ) : 0) '8m',
+ sum(t.exp_day > dd.8m ? (t.exp_day <= dd.9m ? t.delta: 0 ) : 0) '9m',
+ sum(t.exp_day > dd.9m ? (t.exp_day <= dd.10m ? t.delta: 0 ) : 0) '10m',
+ sum(t.exp_day > dd.10m ? (t.exp_day <= dd.11m ? t.delta: 0 ) : 0) '11m',
+ sum(t.exp_day > dd.11m ? (t.exp_day <= dd.12m ? t.delta: 0 ) : 0) '12m',
+ sum(t.exp_day > dd.12m ? (t.exp_day <= dd.13m ? t.delta: 0 ) : 0) '13m',
+ sum(t.exp_day > dd.13m ? (t.exp_day <= dd.14m ? t.delta: 0 ) : 0) '14m',
+ sum(t.exp_day > dd.14m ? (t.exp_day <= dd.15m ? t.delta: 0 ) : 0) '15m',
+ sum(t.exp_day > dd.15m ? (t.exp_day <= dd.16m ? t.delta: 0 ) : 0) '16m',
+ sum(t.exp_day > dd.16m ? (t.exp_day <= dd.17m ? t.delta: 0 ) : 0) '17m',
+ sum(t.exp_day > dd.17m ? (t.exp_day <= dd.18m ? t.delta: 0 ) : 0) '18m',
+ sum(t.exp_day > dd.18m ? (t.exp_day <= dd.19m ? t.delta: 0 ) : 0) '19m',
+ sum(t.exp_day > dd.19m ? (t.exp_day <= dd.20m ? t.delta: 0 ) : 0) '20m',
+ sum(t.exp_day > dd.20m ? (t.exp_day <= dd.21m ? t.delta: 0 ) : 0) '21m',
+ sum(t.exp_day > dd.21m ? (t.exp_day <= dd.22m ? t.delta: 0 ) : 0) '22m',
+ sum(t.exp_day > dd.22m ? (t.exp_day <= dd.23m ? t.delta: 0 ) : 0) '23m',
+ sum(t.exp_day > dd.23m ? (t.exp_day <= dd.24m ? t.delta: 0 ) : 0) '24m',
+ 
+ sum(t.exp_day > dd.24m ? (t.exp_day <= dd.3y ? t.delta: 0 ) : 0) '3y',
+ sum(t.exp_day > dd.3y ? (t.exp_day <= dd.4y ? t.delta: 0 ) : 0) '4y',
+ sum(t.exp_day > dd.4y ? (t.exp_day <= dd.5y ? t.delta: 0 ) : 0) '5y',
+ sum(t.exp_day > dd.5y ? (t.exp_day <= dd.6y ? t.delta: 0 ) : 0) '6y',
+ sum(t.exp_day > dd.6y ? (t.exp_day <= dd.7y ? t.delta: 0 ) : 0) '7y',
+ sum(t.exp_day > dd.7y ? (t.exp_day <= dd.8y ? t.delta: 0 ) : 0) '8y',
+ sum(t.exp_day > dd.8y ? (t.exp_day <= dd.9y ? t.delta: 0 ) : 0) '9y',
+ sum(t.exp_day > dd.9y ? (t.exp_day <= dd.10y ? t.delta: 0 ) : 0) '10y',
+ sum(t.exp_day > dd.10y ? (t.exp_day <= dd.11y ? t.delta: 0 ) : 0) '11y',
+ sum(t.exp_day > dd.11y ? (t.exp_day <= dd.12y ? t.delta: 0 ) : 0) '12y',
+ sum(t.exp_day > dd.12y ? (t.exp_day <= dd.13y ? t.delta: 0 ) : 0) '13y',
+ sum(t.exp_day > dd.13y ? (t.exp_day <= dd.14y ? t.delta: 0 ) : 0) '14y',
+ sum(t.exp_day > dd.14y ? (t.exp_day <= dd.15y ? t.delta: 0 ) : 0) '15y',
+ sum(t.exp_day > dd.15y ? (t.exp_day <= dd.16y ? t.delta: 0 ) : 0) '16y',
+ sum(t.exp_day > dd.16y ? (t.exp_day <= dd.17y ? t.delta: 0 ) : 0) '17y',
+ sum(t.exp_day > dd.17y ? (t.exp_day <= dd.18y ? t.delta: 0 ) : 0) '18y',
+ sum(t.exp_day > dd.18y ? (t.exp_day <= dd.19y ? t.delta: 0 ) : 0) '19y',
+ sum(t.exp_day > dd.19y ? (t.exp_day <= dd.20y ? t.delta: 0 ) : 0) '20y',
+  
+ sum(t.exp_day > dd.20y ? t.delta: 0) '20y_plus',
+t.trdnbr,
+t.settlement,
+sum(t.nominal)'nominal',
+t.MtM_Yield,
+t.exp_day,
+t.date
+
+
+from summary t,
+temp dd
+
+group by t.insid
+
+order by  t.insid

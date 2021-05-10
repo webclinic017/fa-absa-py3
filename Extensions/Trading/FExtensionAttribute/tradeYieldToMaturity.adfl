@@ -1,0 +1,5 @@
+[Trading]FInstrumentAndTrades:tradeYieldToMaturity = trade:tradeYieldToMaturity;
+[Trading]FMultiInstrumentAndTrades:tradeYieldToMaturity = nil;
+[Trading]FTrade:tradeYieldToMaturity = select(instrument.IsCashFlowInstrument, 
+  true->instrument :* "marketYieldToMaturity" [marketPrice = denominatedvalue(object.Price, instrument:currency, , instrument.SpotDateInverted(object.AcquireDay, )), instrumentSpotDate = object.AcquireDay], 
+  false->nil);

@@ -1,0 +1,231 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_BA_Inter_Div_Cust_Liab') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_BA_Inter_Div_Cust_Liab' and p.type = 'SQL Query' 
+/*
+
+name = SAMM_BA_Inter_Div_Cust_Liab
+query to reflect trades for given maturity dates of following product citeria
+only Bankers Acceptance
+only cost center 9802 = portfolio id is 'MONY 9802'
+ony Primary BA issues
+issues consideration is not a cash flow but a dr or a cr
+
+*/
+
+
+
+
+select
+    @From_Mat_Date{Yesterday;}          'FromMatDate',
+    @To_Mat_Date{Today;}                'ToMatDate',
+    @From_Trans_Date{Yesterday;}        'FromTransDate',
+    @To_Trans_Date{Today;}              'ToTransDate',
+    to_double(@InterDiv_G_Bank_BF_Bal{0;})         'InterDiv_G_Bank_BF_Bal',
+    to_double(@CustLiab_G_Bank_BF_Bal{0;})         'CustLiab_G_Bank_BF_Bal',
+    to_double(@InterDiv_MLS_Bank_BF_Bal{0;})       'InterDiv_MLS_Bank_BF_Bal',
+    to_double(@CustLiab_MLS_Bank_BF_Bal{0;})       'CustLiab_MLS_Bank_BF_Bal',
+    to_double(@InterDiv_COR_Bank_BF_Bal{0;})       'InterDiv_COR_Bank_BF_Bal',
+    to_double(@CustLiab_COR_Bank_BF_Bal{0;})       'CustLiab_COR_Bank_BF_Bal',
+    to_double(@InterDiv_Private_Bank_BF_Bal{0;})   'InterDiv_Private_Bank_BF_Bal',
+    to_double(@CustLiab_Private_Bank_BF_Bal{0;})   'CustLiab_Private_Bank_BF_Bal'
+
+into
+    temp
+
+from
+   instrument i
+    
+where i.insaddr = 1
+
+/*-----transaction date trade selection into summary ----------------------*/
+
+
+select
+
+t.trdnbr,
+i.insid,
+add_info(t,'MM_Instype')'product',
+p.prfid'Portfolio',
+party.ptyid'CounterParty',
+
+t.value_day'Settlement',
+-(t.premium)'IssueConsideration',/* not cah flow but a dr or a cr*/
+(t.quantity*1000000)'IssueNominal',
+(0.00)'MaturityNominal',
+
+
+i.exp_day'Maturity',
+broker.ptyid'Branch',
+add_info(t,'Brok Div')'Division',
+t.optional_key'reference'
+
+
+
+into summary
+
+from
+
+instrument i,
+trade t,
+portfolio p,
+party party,
+party broker fill,
+temp tt 
+
+
+
+where
+i.insaddr=t.insaddr
+and p.prfid in ('MONB 0681','MONY 9802')
+and t.counterparty_ptynbr=party.ptynbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype in ('Bill')
+
+
+and t.value_day between tt.FromTransDate and tt.ToTransDate
+and t.prfnbr=p.prfnbr
+and t.broker_ptynbr=broker.ptynbr
+and add_info(t,'MM_Instype')='BA'
+and add_info(t,'MM_Primary_Issue')='Yes'
+
+
+
+order by 11
+
+/*-----maturity date trade selection into summary ----------------------*/
+
+
+select
+
+t.trdnbr,
+i.insid,
+add_info(t,'MM_Instype')'product',
+p.prfid'Portfolio',
+party.ptyid'CounterParty',
+
+t.value_day'Settlement',
+(0.00)'IssueConsideration',
+(0.00)'IssueNominal',
+(t.quantity*1000000)'MaturityNominal',
+
+
+i.exp_day'Maturity',
+broker.ptyid'Branch',
+add_info(t,'Brok Div')'Division',
+t.optional_key'reference'
+
+
+
+into summary
+
+from
+
+instrument i,
+trade t,
+portfolio p,
+party party,
+party broker fill,
+temp tt 
+
+
+
+where
+i.insaddr=t.insaddr
+and p.prfid in ('MONB 0681','MONY 9802')
+and t.counterparty_ptynbr=party.ptynbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype in ('Bill')
+
+and i.exp_day between tt.FromMatDate and tt.ToMatDate
+
+and t.prfnbr=p.prfnbr
+and t.broker_ptynbr=broker.ptynbr
+and add_info(t,'MM_Instype')='BA'
+and add_info(t,'MM_Primary_Issue')='Yes'
+
+
+
+order by 11
+
+
+
+
+
+/*----------------------*/
+
+select
+
+s.trdnbr,
+s.Settlement,
+s.Maturity,
+s.portfolio,
+s.Division'Division',
+sum(s.IssueConsideration)'IssueConsideration',
+sum(s.IssueNominal)'IssueNominal',
+sum(s.MaturityNominal)'MaturityNominal'
+
+into total
+
+
+from
+
+summary s
+
+
+group by s.Division
+
+
+
+
+/*------select from table = total--------*/
+
+
+select
+Today'Report Date',
+s.division'Division',
+s.Division='G Bank' ? tt.InterDiv_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.InterDiv_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.InterDiv_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.InterDiv_Private_Bank_BF_Bal : 0.00 )))'Inter_Div_BF_Bal',
+s.IssueConsideration'InterDiv_Issues',
+s.MaturityNominal'InterDiv_Maturities',
+(s.Division='G Bank' ? tt.InterDiv_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.InterDiv_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.InterDiv_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.InterDiv_Private_Bank_BF_Bal : 0.00 ))))+(s.IssueConsideration)-(s.MaturityNominal)'InterDiv_Total',
+
+
+s.Division='G Bank' ? tt.CustLiab_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.CustLiab_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.CustLiab_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.CustLiab_Private_Bank_BF_Bal : 0.00 )))'CustLiab_BF_Bal',
+s.IssueNominal 'Cust_Liability_Issues',
+s.MaturityNominal 'Cust_Liability_Maturities',
+(s.Division='G Bank' ? tt.CustLiab_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.CustLiab_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.CustLiab_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.CustLiab_Private_Bank_BF_Bal : 0.00 ))))+(s.IssueNominal)-(s.MaturityNominal)'Cust_Liability_Total'
+
+
+
+
+from 
+total s,
+temp tt
+
+
+union
+
+select
+Today'Report Date',
+'Grand Total' /*s.division'Division'*/ ,
+sum(s.Division='G Bank' ? tt.InterDiv_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.InterDiv_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.InterDiv_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.InterDiv_Private_Bank_BF_Bal : 0.00 ))))'Inter_Div_BF_Bal',
+sum(s.IssueConsideration)'InterDiv_Issues',
+sum(s.MaturityNominal)'InterDiv_Maturities',
+sum((s.Division='G Bank' ? tt.InterDiv_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.InterDiv_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.InterDiv_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.InterDiv_Private_Bank_BF_Bal : 0.00 ))))+(s.IssueConsideration)-(s.MaturityNominal))'InterDiv_Total',
+
+
+sum(s.Division='G Bank' ? tt.CustLiab_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.CustLiab_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.CustLiab_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.CustLiab_Private_Bank_BF_Bal : 0.00 ))))'CustLiab_BF_Bal',
+sum(s.IssueNominal) 'Cust_Liability_Issues',
+sum(s.MaturityNominal) 'Cust_Liability_Maturities',
+sum((s.Division='G Bank' ? tt.CustLiab_G_Bank_BF_Bal : (s.Division='MLS Bank' ? tt.CustLiab_MLS_Bank_BF_Bal : (s.Division='COR Bank' ? tt.CustLiab_COR_Bank_BF_Bal : (s.Division='Private Bank' ? tt.CustLiab_Private_Bank_BF_Bal : 0.00 ))))+(s.IssueNominal)-(s.MaturityNominal))'Cust_Liability_Total'
+
+
+
+
+from 
+total s,
+temp tt
+
+group by 1

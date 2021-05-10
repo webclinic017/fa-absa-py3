@@ -1,0 +1,40 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_ExoticMonitorDates_email') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_ExoticMonitorDates_email' and p.type = 'SQL Query' 
+
+
+
+/*  SC Email sent to specific recipients indicating exotic monitoring dates according to specified trade filter 2007-09-18  */
+
+
+select
+	@Date{today}			'Date',
+	tf.fltid				'tf'
+
+into
+	temp
+
+FROM
+	TradeFilter tf
+
+WHERE
+	tf.fltid = @TradeFilter{NLD_All_Trades_OPEN;Tradefilter.fltid}
+
+
+select
+	t.Date,
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User1{'leanieo@absa.co.za';})	'User1',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User2{'etiennes@absa.co.za';})	'User2',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User3{'herman.levin@absa.co.za';})	'User3',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User4{'salonette.abrie@absa.co.za';})	'User4',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User5{'Fulu.Mudau@absa.co.za';})	'User5',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User6{'justinn@absa.co.za';})	'User6',
+	ael_s(,'NLD_ExoticMonitorDates_email.CheckInstruments', t.tf, t.Date, @User7{'emlind.assur@absa.co.za';})	'User7'
+	
+from
+	temp t
+

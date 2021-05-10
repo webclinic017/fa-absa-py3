@@ -1,0 +1,5 @@
+[_PortfolioTrading_exts]FInstrumentAndTrades:inputValueNormalized = switch(actionInverseVariable, 
+  nil->0, 
+  default->select(needsConversion, 
+    true->convertToCurrency(inputValueDenominated, object:theoreticalValueMtmFxRates [fxRateInstrument = fxRateParentReversed], symbol(parent:displayCurrency), filterUnit).Number, 
+    default->actionInverseVariable));

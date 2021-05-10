@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:openingProvision = sumOf(children :* "openingProvision");
+[Prime Services]FSingleInstrumentAndTrades:openingProvision = select(allFundingPortfolios and isProvisionInstrument, 
+  true->py("Provision", context).calculate_provision_start_end(tradesInPosition, instrument, fundingInstruments, profitAndLossStartDate, previousBusinessDateStart), 
+  false->0);

@@ -1,0 +1,10 @@
+[_brokerage_risk_exts]FDeposit:netLiquidationValues = currencyZero;
+[_brokerage_risk_exts]FFuture:netLiquidationValues = currencyZero;
+[_brokerage_risk_exts]FInstrument:netLiquidationValues = switch(portfolio:portfolioType, 
+  "Cash Account"->currencyZero, 
+  "Financing Account"->currencyZero, 
+  default->shunt(instrument.PayType, 
+    "Future"->currencyZero, 
+    default->max(0, netPosition / stdPosition) * marketInstrumentPositionValues * timeDistributionFactor));
+[_brokerage_risk_exts]FMultiInstrumentAndTrades:netLiquidationValues = sumOf(openInstruments :* "netLiquidationValues" [filterUnit, groupingSpotDiscountDate, positionObject, priceSource, valuesOnSpotOverride]);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:netLiquidationValues = openInstrument :* "netLiquidationValues" [filterUnit, groupingSpotDiscountDate, positionObject, priceSource, valuesOnSpotOverride];

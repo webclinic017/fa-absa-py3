@@ -1,0 +1,255 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','.Print/Trade') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = '.Print/Trade' and p.type = 'SQL Query' 
+/* Standard_Queries:1.0.0 */
+
+/*Name:	.Print/Trade
+
+EDIT HISTORY
+
+Date	Who	What
+---------------------------------------------------------------------------
+990119  DC      Added portfolio column
+981202	DC	Used display_id()
+980304	MiHa	SPR-8343: Corrected payment to us 2.
+970613  AGY	Added temporary tables to handle multiple currencies
+970421  AGY	Added field bo_fx_rate
+970416  AGY	Set ump to zero in present_value
+960510	MaS	Added CP reference, Contract Trade No and Hedge CF Ref.
+960509  MaS	Added ExternalId field.
+950927	CB	Removed portfolio column and changed layout of report
+950220  FRD	Removed type check in where clause and adjusted payments.
+941227	Eva	Added fill to updator user.
+941102	CE	Created
+
+*/
+
+select
+	ccy.insid			'Currency',
+	used_price(ccy,TODAY,ic.insid)	'Fx',
+	currency_included(t,ccy.insid)	'Incl'
+into
+	TMP1
+from
+	front.trade t,
+	front.instrument i,
+	front.instrument ic,
+	front.instrument ccy
+where
+	t.trdnbr = @trdnbr
+and	i.insaddr = t.insaddr
+and	ccy.instype = 'Curr'
+and	i.curr = ic.insaddr
+
+group by 1
+having currency_included(t,ccy.insid) > 0
+
+
+select
+	sum(present_value(t,,,,TMP1.Currency,0) * TMP1.Fx)	'SumPV'
+into
+	TMP2
+from
+	TMP1,
+	front.trade t
+where
+	t.trdnbr = @trdnbr
+
+group by
+
+
+select	/*FO and BO */
+	i.insid     	    	    		'Instr',
+	display_id(i,'curr')			'InsCurr',
+   	t.creat_time	    	    		'ctime',
+    	t.updat_time	    	    		'utime',
+    	display_id(t,'creat_usrnbr')   	  	'cuser',
+    	display_id(t,'updat_usrnbr')  		'uuser',
+    	display_id(t,'curr')   	  	  	'TCurr',
+    	t.quantity  	    	  	  	'Quant',
+	t.price					'Price',
+	t.acquire_day				'AcquireDay',
+	t.value_day				'ValueDay',
+    	(t.acquirer_ptynbr > 0 ?
+	display_id(t,'acquirer_ptynbr') : 'none') 'Acquirer',
+     	(t.counterparty_ptynbr > 0 ?
+	display_id(t,'counterparty_ptynbr') : 'none')  'Counter',
+	t.your_ref				'CpRef',
+	t.trdnbr   	    	   		'Trdnbr',
+    	display_id(t,'trader_usrnbr')   	'Trader',
+	display_id(t,'prfnbr')			'Portfolio',
+
+	TMP2.SumPV				'PresentValue',
+
+	t.premium				'Premium',
+	credit_util(t)				'CreditUtil',
+	''					'CreditLimit',
+    	i.contr_size * t.quantity   		'Nominal',
+        t.bo_trdnbr	    	    		'BoTrdnbr',
+    	t.fee 	    	    	    		'BrokerFee',
+    	(t.broker_ptynbr > 0 ?  
+    	display_id(t,'broker_ptynbr') : 'none') 'Broker',
+	t.status    	    	    		'Status',
+
+	(t.optkey1_chlnbr > 0 ?
+	c1.list : '')				'TradeKeyList1',
+	(t.optkey1_chlnbr > 0 ?
+	display_id(t,'optkey1_chlnbr') :'' )	'TradeKey1',
+	(t.optkey2_chlnbr > 0 ?
+	c2.list :'' )				'TradeKeyList2',
+	(t.optkey2_chlnbr > 0 ?
+	display_id(t,'optkey2_chlnbr') :'' )	'TradeKey2',
+	(t.optkey3_chlnbr > 0 ?
+	c3.list :'' )				'TradeKeyList3',
+	(t.optkey3_chlnbr > 0 ?
+	display_id(t,'optkey3_chlnbr') :'' )	'TradeKey3',
+	(t.optkey4_chlnbr > 0 ?
+	c4.list :'' )				'TradeKeyList4',
+	(t.optkey4_chlnbr > 0 ?
+	display_id(t,'optkey4_chlnbr') :'' )	'TradeKey4',
+
+	t.type					'Type',
+	t.time					'Time',
+
+	(t.rec1_accnbr > 0 ?
+	display_id(t,'rec1_accnbr') : 'none')	'PaymentsToUs1',
+	(t.rec2_accnbr > 0 ?
+	display_id(t,'rec2_accnbr') : 'none')	'PaymentsToUs2',
+	(t.pay1_accnbr > 0 ?
+	display_id(t,'pay1_accnbr') : 'none')	'PaymentsToCp1',
+	(t.pay2_accnbr > 0 ?
+	display_id(t,'pay2_accnbr') : 'none')	'PaymentsToCp2',
+
+	(t.document_type_chlnbr > 0 ?
+	display_id(t,'document_type_chlnbr') : 'none')	'Document',
+	(t.guarantor_ptynbr > 0 ?
+	display_id(t,'guarantor_ptynbr') : 'none')	'Guarantor',
+	(t.calcagent)               'CalcAgent',
+	t.opening_bo_trdnbr			'BORef',
+	t.contract_trdnbr			'ContrTrNo',
+	t.cfnetting				'CFNetting',
+	t.hedge_trdnbr				'HedgeRef',
+	t.hedge_cfwnbr				'HedgeCfRef',
+	t.special_terms				'SpecialTerms',
+	t.trx_trdnbr				'TransRef',
+	t.bo_fx_rate				'BOFXRate',
+	t.optional_key				'ExternalID',
+    	t.text1 	    	    		'FreeText1',
+    	t.text2 	    	    		'FreeText2',
+
+	''					'A_Counterpart',
+	''					'A_Type',
+	''					'A_Payday',
+	0.0					'A_Amount',
+	''					'A_Curr',
+	''					'A_Account',
+	''					'A_Text',
+	i.exp_day				'ExDay'
+
+from
+	TMP2,
+        front.trade 		t,
+	front.instrument 	i,
+	front.choicelist	c1,
+	front.choicelist	c2,
+	front.choicelist	c3,
+	front.choicelist	c4
+where
+        t.trdnbr = @trdnbr
+and 	i.insaddr = t.insaddr
+and	c1.seqnbr =* t.optkey1_chlnbr 
+and	c2.seqnbr =* t.optkey2_chlnbr 
+and	c3.seqnbr =* t.optkey3_chlnbr 
+and	c4.seqnbr =* t.optkey4_chlnbr 
+
+
+union
+
+select	/*Additional payments*/
+	i.insid     	    	    	'Instr',
+	display_id(i,'curr')		'InsCurr',
+   	t.creat_time	    	    	'ctime',
+    	t.updat_time	    	    	'utime',
+    	''   	    	    		'cuser',
+    	''   	    	    		'uuser',
+    	''  	    	    		'TCurr',
+    	t.quantity  	    	    	'Quant',
+	t.price				'Price',
+	t.acquire_day			'AcquireDay',
+	t.value_day			'ValueDay',
+    	''  	    	   		'Acquirer',
+    	''  	    	    		'Counter',
+	''				'CpRef',
+	t.trdnbr   	    	   	'Trdnbr',
+    	''   	    	    		'Trader',
+	''				'Portfolio',
+	0.00				'PresentValue',
+	t.premium			'Premium',
+	credit_util(t)			'CreditUtil',
+	''				'CreditLimit',
+    	i.contr_size * t.quantity   	'Nominal',
+        t.bo_trdnbr	    	    	'BoTrdnbr',
+    	t.fee 	    	    	    	'BrokerFee',
+    	''   	    			'Broker',
+    	t.status    	    	    	'Status',
+	''				'TradeKeyList1',
+	''				'TradeKey1',
+	''				'TradeKeyList2',
+	''				'TradeKey2',
+	''				'TradeKeyList3',
+	''				'TradeKey3',
+	''				'TradeKeyList4',
+	''				'TradeKey4',
+
+	t.type				'Type',
+	t.time				'Time',
+	''				'PaymentsToUs1',
+	''				'PaymentsToUs2',
+	''				'PaymentsToCp1',
+	''				'PaymentsToCp2',
+	''				'Document',
+	''				'Guarantor',
+	(t.calcagent)	'CalcAgent',
+	t.opening_bo_trdnbr		'BORef',
+	t.contract_trdnbr		'ContrTrNo',
+	t.cfnetting			'CFNetting',
+	t.hedge_trdnbr			'HedgeRef',
+	t.hedge_cfwnbr			'HedgeCfRef',
+	t.special_terms			'SpecialTerms',
+	t.trx_trdnbr			'TransRef',
+	t.bo_fx_rate			'BOFXRate',
+	t.optional_key			'ExternalID',
+    	t.text1 	    	    	'FreeText1',
+    	t.text2 	    	    	'FreeText2',
+
+	(pay.paynbr > 0 ?
+	display_id(pay,'ptynbr') : '')	'A_Counterpart',
+	(pay.paynbr > 0 ?
+	 pay.type: '')			'A_Type',
+	(pay.paynbr > 0 ?
+	pay.payday : '')		'A_Payday',
+	(pay.paynbr > 0 ?
+	pay.amount : 0.0)		'A_Amount',
+	display_id(pay,'curr')		'A_Curr',
+	display_id(pay,'accnbr')	'A_Account',
+	pay.text			'A_Text',
+	i.exp_day			'ExDay'
+
+
+from
+        front.trade 		t,
+	front.instrument 	i,
+	front.payment 		pay
+
+where
+        t.trdnbr = @trdnbr
+and 	i.insaddr = t.insaddr
+and	pay.trdnbr =* t.trdnbr
+
+;
+
+
+

@@ -1,0 +1,20 @@
+[Default]FDerivative:inventoryPosition = select(timeBucketsSetExternally, 
+  nil->0.0, 
+  default->timeBucketsSetExternally :* "0.0");
+[Default]FETF:inventoryPosition = inventoryPosition = select(timeBucketsSetExternally, 
+  nil->riskPosition, 
+  default->inventoryPosition(tradesInPosition, inventoryPositionReference, timeBucketsSetExternally :* "object.EndDate", tradeStatusInclusionMaskDefault));
+[Default]FInstrument:inventoryPosition = select(timeBucketsSetExternally, 
+  nil->riskPosition, 
+  default->inventoryPosition(tradesInPosition, inventoryPositionReference, timeBucketsSetExternally :* "object.EndDate", tradeStatusInclusionMaskDefault));
+[Default]FInstrumentAndTrades:inventoryPosition = shunt(0 == count(inventoryPositionOpenInstrument), 
+  true->timeBucketsSetExternallyZero, 
+  false->inventoryPositionOpenInstrument :* "collapse(inventoryPosition)" [positionObject, instrumentGroupingReference, timeBucketsSetExternally]);
+[Default]FMultiInstrumentAndTrades:inventoryPosition = select(timeBucketsSetExternally, 
+  nil->nil, 
+  default->select(instrumentGroupingReference, 
+    nil->timeBucketsSetExternallyNilVector, 
+    default->shunt(0 == count(inventoryPositionOpenInstruments), 
+      true->timeBucketsSetExternally :* "0.0", 
+      false->sumOf(inventoryPositionOpenInstruments :* "collapse(inventoryPosition)" [instrumentGroupingReference, positionObject, timeBucketsSetExternally]))));
+[Default]FPortfolioInstrumentAndTrades:inventoryPosition = timeBucketsSetExternallyNilVector;

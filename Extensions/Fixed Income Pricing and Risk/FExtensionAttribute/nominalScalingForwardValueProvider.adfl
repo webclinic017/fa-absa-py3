@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FLeg:nominalScalingForwardValueProvider = select(nominalScalingEstimateType, 
+  "None"->nil, 
+  "Category"->DiscontinuousModel(nominalScalingObservations, nominalScalingValue), 
+  default->select(nominalScalingReference, 
+    nil->nil, 
+    default->nominalScalingReference:referenceProvider [priceSource, doSplitAll, discountingType, forwardValuationObservations = nominalScalingObservations, calculationCurrency := nominalScalingCurrency]));

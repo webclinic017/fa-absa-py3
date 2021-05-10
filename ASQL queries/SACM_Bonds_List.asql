@@ -1,0 +1,43 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Bonds_List') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Bonds_List' and p.type = 'SQL Query' 
+select
+i.insid,
+i.extern_id1'bond',
+mtm_price(i),
+lp.settle'last_price',
+mtm_price(i)-lp.settle'diff_mtm-last_price',
+
+cl.entry'val group',
+cl2.entry'price finding group',
+i.mtm_from_feed,
+add_info(i,'ExCoup1')'Ex Coup1',
+add_info(i,'ExCoup2')'Ex Coup2'
+
+from
+
+instrument i,
+lastprice lp,
+choicelist cl,
+party party,
+choicelist cl2 fill
+
+
+where
+
+i.instype in ('bond','IndexLinkedBond')
+and i.generic~='Yes'
+and (i.insid not like '%BD%'
+and i.insid not like 'NO%'
+and i.insid not like '%FRN%'
+and i.insid not like '%CPNCD%')
+and i.exp_day>=Today
+and i.insaddr=lp.insaddr
+and lp.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and i.product_chlnbr=cl.seqnbr
+and i.price_finding_chlnbr=cl2.seqnbr
+and i.insid not in ('ZAR/COJ_TEST','ZAR/K001','ZAR/R150','ZAR/R178 - No Trading','ZAR/SP05','udeshtekwini')

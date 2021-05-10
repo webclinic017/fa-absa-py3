@@ -1,0 +1,173 @@
+[Automated Trading]FObject:PriceLevelCatcher
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CreatePermission=User
+  DialogPanel=SetupDialog
+  DisplayName=Price Level Catcher
+  EditPermission=User
+  Granularity=1
+  InheritsFrom=FAgent
+  StartState=Start
+  TradingEnabled=Yes
+
+State LongWait =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State ShortWait =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Start =
+  Description=
+  OnEntry=CreateOrder
+  OnExit=<none>
+
+State Stop =
+  Description=
+  OnEntry=CleanUp
+  OnExit=<none>
+
+State Strike =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+Transitions =
+  t0=Start -> inputOk / <none> -> LongWait
+  t1=LongWait -> priceMatchAndQuantityAbove / <none> -> ShortWait
+  t2=ShortWait -> notPriceMatch / <none> -> LongWait
+  t3=ShortWait -> okToSend / SendOrder -> Strike
+  t4=Strike -> orderDone / <none> -> Stop
+
+Panel DefaultParameters =
+  DisplayName=Default Parameters
+  Orientation=Vertical
+  Variables=reference, account
+
+Panel OrderBook =
+  DisplayName=Order Book
+  Orientation=Vertical
+  Variables=orderBook
+
+Panel Performance =
+  DisplayName=Performance
+  Orientation=Vertical
+  Variables=position, averagePrice
+
+Panel SendParameters =
+  DisplayName=Send Parameters
+  Orientation=Vertical
+  Variables=buyOrSell, orderPrice, orderQuantity, triggerQuantity
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=OrderBook, SendParameters, DefaultParameters
+
+Enums =
+  EnumDirection=Buy, Sell
+
+Conditions =
+  inputOk=orderBook.TradingInterface.IsAvailable and (orderPrice > 0) and (orderQuantity > 0) and (triggerQuantity > 0)
+  notPriceMatch=not priceMatch
+  okToSend=priceMatch and (not aboveTriggerQuantity)
+  orderDone=order.IsOrderDone or order.IsOrderDeleted
+  priceMatchAndQuantityAbove=priceMatch and aboveTriggerQuantity
+
+Actions =
+  CleanUp=!CleanUp
+  CreateOrder=!CreateOrder
+  SendOrder=!SendOrder
+
+ActionLists =
+
+Variable account =
+  Description=The account of the order
+  DisplayName=Order Account
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderAccount", context)
+
+Variable averagePrice =
+  Description=The average price of all orders.
+  DisplayName=Avg Price
+  Domain=double
+  Type=ReadOnly
+  Value=agentFilledValue / agentFilledQuantityFromOrders
+
+Variable buyOrSell =
+  Description=The direction of the order
+  DisplayName=Buy / Sell
+  Domain=EnumDirection
+  Mandatory=No
+  Type=InputFixed
+  Value="Buy"
+
+Variable order =
+  DisplayName=Order
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable orderBook =
+  Description=The Order Book
+  DisplayName=Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable orderIsAsk =
+  Type=ReadOnly
+  Value=not orderIsBid
+
+Variable orderIsBid =
+  Type=ReadOnly
+  Value=buyOrSell.IsEqual("Buy")
+
+Variable orderPrice =
+  Description=The price of the order
+  DisplayName=Price
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable orderQuantity =
+  Description=The quantity of the order
+  DisplayName=Quantity
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable position =
+  Description=The total position af all orders
+  DisplayName=Position
+  Domain=double
+  Type=ReadOnly
+  Value=sumOf(tradingSessionOrders :* "filledQuantityFromOrder * bidOrAskSign")
+
+Variable reference =
+  Description=The reference of the order
+  DisplayName=Order Reference
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=orderBook.GetDefaultValueEx("ownOrderReference", context)
+
+Variable triggerQuantity =
+  Description=The maximum quantity on opposite side which triggers the order to be sent.
+  DisplayName=Trigger Quantity
+  Domain=double
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+<end>

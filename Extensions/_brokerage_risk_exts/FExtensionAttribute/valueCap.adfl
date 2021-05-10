@@ -1,0 +1,7 @@
+[_brokerage_risk_exts]FCurrency:valueCap = shunt(valueCapCondition <> nil, 
+  true->convertToCurrency(denominatedvalue(valueCapCurve.MinValue, valueCapCurve.Currency, , ), valueCapFxRates, displayCurrencySymbol), 
+  false->currencyZero);
+[_brokerage_risk_exts]FInstrument:valueCap = shunt((collateralPosition > 0) and (valueCapCondition <> nil), 
+  true->convertToCurrency(denominatedvalue(valueCapCurve.MinValue, valueCapCurve.Currency, , ), valueCapFxRates, displayCurrencySymbol), 
+  false->currencyZero);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:valueCap = convertToCurrency(instrument:valueCap [portfolio, positionObject], portfolioFxRates, displayCurrencySymbol);

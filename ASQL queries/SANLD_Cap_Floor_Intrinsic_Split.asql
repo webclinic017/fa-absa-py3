@@ -1,0 +1,161 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Cap_Floor_Intrinsic_Split') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Cap_Floor_Intrinsic_Split' and p.type = 'SQL Query' 
+/*
+
+coded by AP on the 31 March 2005
+
+request from erm to split the intrinsic value from the time value for caps and floors
+
+macro values default = tarde filter
+
+query works for current date and time i.e assumes all the yild cuves and volatility surfaces have been updated and calculated
+
+
+2005-07-21 change the sorting
+
+*/
+
+
+
+
+
+
+select 
+date_add_banking_day(Today,,0)'today',
+t.trdnbr,
+port.prfid'portfolio',
+i.instype,
+i.insid,
+ 1000000*t.quantity*cf.nominal_factor'Nominal',
+i.exp_day,
+forward_rate(cf)'forward_rate',
+cf.cfwnbr,
+cf.strike_rate,
+cf.start_day,
+cf.end_day,
+discount_factor(cf)'disc_factor',
+i.instype='fra' and cf.start_day<=Today ? 0 : t.quantity*cf.nominal_factor*projected_cf(cf)'projected_cf',
+t.quantity*cf.nominal_factor*present_value(cf) 'present_value'
+
+
+into summary 
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+cashflow cf,
+portfolio port
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=port.prfnbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+/*and match_filter(t,'NLDO')*/
+and i.exp_day>=Today
+and cf.end_day>Today
+and i.instype in ('Cap','Floor')
+and i.insaddr=l.insaddr
+and l.legnbr=cf.legnbr
+/*
+and port.prfid='ERM NLD'
+*/
+
+and match_filter(t,@Filter{SANLD_ERM_Cap_Floor;TradeFilter.fltid})
+
+order by i.instype, i.exp_day
+
+/*-------------------------------------*/
+
+select 
+s.today'today',
+s.trdnbr,
+s.portfolio,
+s.instype,
+s.insid,
+s.Nominal,
+s.exp_day'ins_exp_day',
+s.cfwnbr,
+s.forward_rate,
+
+s.strike_rate,
+s.start_day,
+s.end_day,
+s.disc_factor,
+s.projected_cf'projected_cf',
+s.present_value'present_value',
+
+(s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500'intrinsic',
+s.present_value-((s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500)'Time_value'
+
+
+from summary s
+
+order by s.instype,s.trdnbr,s.start_day, s.exp_day
+
+
+union
+
+select 
+s.today'today',
+s.trdnbr,
+s.portfolio,
+s.instype,
+'Total by trade'/*s.insid*/,
+s.Nominal,
+s.exp_day'ins_exp_day',
+s.cfwnbr,
+s.forward_rate,
+
+s.strike_rate,
+s.start_day,
+s.end_day,
+s.disc_factor,
+sum(s.projected_cf)'projected_cf',
+sum(s.present_value)'present_value',
+
+sum((s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500)'intrinsic',
+sum(s.present_value-((s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500))'Time_value'
+
+
+from summary s
+
+group by s.trdnbr
+
+order by s.instype,s.trdnbr, s.exp_day
+
+union
+
+select 
+s.today'today',
+s.trdnbr,
+s.portfolio,
+s.instype,
+'Grand Total of All Trades'/*s.insid*/,
+s.Nominal,
+s.exp_day'ins_exp_day',
+s.cfwnbr,
+s.forward_rate,
+
+s.strike_rate,
+s.start_day,
+s.end_day,
+s.disc_factor,
+sum(s.projected_cf)'projected_cf',
+sum(s.present_value)'present_value',
+
+sum((s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500)'intrinsic',
+sum(s.present_value-((s.instype='cap' ? ((s.forward_rate-s.strike_rate)>0 ? (s.forward_rate-s.strike_rate) : 0 ) : ((s.strike_rate-s.forward_rate)>0 ? (s.strike_rate-s.forward_rate) : 0 )) * s.Nominal*s.disc_factor*(days_between(s.start_day,s.end_day,'Act/365'))/36500))'Time_value'
+
+
+from summary s
+
+group by s.today
+

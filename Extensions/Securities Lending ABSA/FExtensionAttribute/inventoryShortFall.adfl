@@ -1,0 +1,13 @@
+[Securities Lending ABSA]FDerivative:inventoryShortFall = select(timeBucketsSetExternally, 
+  nil->0.0, 
+  default->timeBucketsSetExternally :* "0.0");
+[Securities Lending ABSA]FInstrument:inventoryShortFall = select(timeBucketsSetExternally, 
+  nil->riskPosition, 
+  default->inventoryPosition(externalLoanTradesInPosition, inventoryPositionReference, timeBucketsSetExternally :* "object.EndDate", tradeStatusInclusionMaskDefault));
+[Securities Lending ABSA]FInstrumentAndTrades:inventoryShortFall = instrument :* "inventoryShortFall" [positionObject, instrumentGroupingReference, timeBucketsSetExternally];
+[Securities Lending ABSA]FMultiInstrumentAndTrades:inventoryShortFall = select(timeBucketsSetExternally, 
+  nil->nil, 
+  default->select(instrumentGroupingReference, 
+    nil->timeBucketsSetExternally :* "nil", 
+    default->min(0, stockPosition + sumOf(instruments :* "inventoryShortFall" [positionObject, instrumentGroupingReference, timeBucketsSetExternally]))));
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:inventoryShortFall = timeBucketsSetExternallyNilVector;

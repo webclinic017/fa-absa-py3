@@ -1,0 +1,51 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_RECON_BONDS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_RECON_BONDS' and p.type = 'SQL Query' 
+select
+
+t.trdnbr					'TradeID',
+i.insid						'Insid',
+i.und_instype = 'None' ? 'None' :  und.insid  	'UndInsId',
+port.prfid					'Portfolio',
+acq.ptyid					'Desk',
+t.status = 'FO Confirmed' ? 'FO Confirmed' : t.status					'Status',
+u.userid					'Trader',
+cp.ptyid					'CP',
+i.instype = 'Bond' ? 'Bond' : i.instype		'InsType',
+i.und_instype = 'Bond' ? 'Bond' : i.und_instype		'UndInstype',
+time_to_day(t.time)				'DealDate',
+i.exp_day					'MaturityDate',
+t.value_day					'ValueDay',
+TODAY			 			'LatUpdated',
+nominal_amount(t, today)			'Nominal',
+(t.value_day <= today and i.exp_day >= today)  ? 'S'
+	: t.value_day > today ? 'U' : ''	'Sett_Unsett'
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument und,
+party cp,
+party acq,
+portfolio port,
+user u
+
+where
+
+	i.insaddr = t.insaddr
+and	t.acquirer_ptynbr = acq.ptynbr
+and	t.counterparty_ptynbr = cp.ptynbr
+and	t.prfnbr = port.prfnbr
+and	i.und_insaddr *= und.insaddr
+and	t.trader_usrnbr *= u.usrnbr
+and	i.exp_day >= TODAY
+and	i.instype = 'Bond'
+
+

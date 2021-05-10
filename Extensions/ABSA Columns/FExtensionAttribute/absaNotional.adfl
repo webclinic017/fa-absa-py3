@@ -1,0 +1,13 @@
+[ABSA Columns]FInstrument:absaNotional = select(underlying, 
+  nil->nil, 
+  default->(profitAndLossPositionEnd * underlying:marketPrice) / underlying:eqQuoteFactor);
+[ABSA Columns]FOption:absaNotional = denominatedvalue(select(isAsian and (addInfo.Forward_Start_Type == "Performance"), 
+  true->select(exotic.AverageStrikeType == "Fix", 
+    true->profitAndLossPositionEnd * underlying:marketPrice / denominatedvalue(absoluteStrikePriceInUnderlyingQuotation, strikeCurrency, , valuationDate), 
+    false->select(averageStrikeSoFar > 0, 
+      false->profitAndLossPositionEnd, 
+      true->profitAndLossPositionEnd * underlying:marketPrice / denominatedvalue(averageStrikeSoFar, strikeCurrency, , valuationDate))), 
+  false->select(underlying, 
+    nil->nil, 
+    default->(profitAndLossPositionEnd * underlying:marketPrice) / underlying:eqQuoteFactor)), strikeCurrency, , valuationDate);
+[ABSA Columns]FSingleInstrumentAndTrades:absaNotional = instrument :* "absaNotional" [positionObject, profitAndLossStartDate, profitAndLossEndDate, displayCurrency, pLPeriodFX];

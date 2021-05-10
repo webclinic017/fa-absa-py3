@@ -1,0 +1,60 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CBFETR_Static_Report_Account') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CBFETR_Static_Report_Account' and p.type = 'SQL Query' 
+
+/*
+Purpose: This ASQL reports all the Account static that is needed
+for BOPCUS 3 reporting. Operations will be able to highlight
+any missing static data and get it fixed.
+
+Date            Who                 CR Number       What
+2013-08-17      Heinrich Cronje     CHNG0001209844  Created
+*/
+
+select
+    p.ptynbr,
+    add_info(p,'BarCap_SMS_CP_SDSID')   'BarCap_SMS_CP_SDSID',
+    p.ptyid,
+    display_id(p,'free2_chlnbr')    'Foreign_Party',
+    ssi.settleid,
+    a.name,
+    display_id(a,'correspondent_bank_ptynbr')       'Correspondent_Bank',
+    a.account,
+    display_id(a,'curr')    'Account_Currency',
+    pa.alias    'BIC_Code',
+    to_string(ssir.effective_to)    'effective_to'
+into
+    temp
+from
+    party p,
+    settleinstruction ssi,
+    settleinstructionrule ssir,
+    account a,
+    partyalias pa
+where
+        p.not_trading = 'No'
+    and p.type not in ('Issuer', 'Market', 'MtM Market')
+    and ('All' in (@Counterparty{All;party.ptyid*}) or p.ptyid in (@Counterparty{All;party.ptyid*}))
+    and p.ptynbr *= ssi.ptynbr
+    and ssi.seqnbr *= ssir.settle_seqnbr
+    and ssir.accnbr *= a.accnbr
+    and a.bic_seqnbr *= pa.seqnbr
+
+select
+    t.ptynbr,
+    t.BarCap_SMS_CP_SDSID,
+    t.ptyid,
+    t.Foreign_Party,
+    t.settleid,
+    t.name,
+    t.Correspondent_Bank,
+    t.account,
+    t.Account_Currency,
+    t.BIC_Code
+from
+    temp t
+where
+    t.effective_to in ('0000-01-01','')

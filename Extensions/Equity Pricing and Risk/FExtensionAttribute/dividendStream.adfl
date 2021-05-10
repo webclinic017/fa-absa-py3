@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FDerivative:dividendStream = select(instrumentHasDividends, 
+  true->actualDividendStream, 
+  default->underlying:dividendStream);
+[Equity Pricing and Risk]FInstrument:dividendStream = actualDividendStream;
+[Equity Pricing and Risk]FInstrumentAndTrades:dividendStream = instrument:dividendStream;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:dividendStream = nil;
+[Equity Pricing and Risk]FPriceAggregate:dividendStream = instrument:dividendStream;

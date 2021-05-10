@@ -1,0 +1,354 @@
+/*
+Purpose                       :  To Find Breaks in DRA Transaksies, Added trade filter.
+Department and Desk           :  OPS
+Requester                     :  Sipho Ndlalane 
+Developer                     :  Ickin Vural, Willie van der Bank
+CR Number                     :  C000000476504,C000000519695,C000000563992
+
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_DRA_Since_Inception') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_DRA_Since_Inception' and p.type = 'SQL Query' 
+
+/*trades table*/ 
+Select
+    t.trdnbr
+into trades
+from
+    trade t,
+    portfolio p,
+    party party,
+    instrument i
+where
+        t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.insaddr = t.insaddr
+    and i.instype in ('Bond','IndexLinkedBond','FRN','BuySellback','Repo/Reverse')
+    and t.prfnbr=p.prfnbr
+    and t.counterparty_ptynbr=party.ptynbr
+    and match_filter(t, @Filter{SACM_DRA_Since_Inception;tradefilter.fltid})
+    and (t.creat_time >= @Trades_From_Date{Today;} or time_to_day(t.time)=@Capture_Date{Today;})
+    
+/*temp tables*/
+
+select
+    t.value_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    i.insid,
+    t.quantity*1000000'Nominal',
+    p.prfid,
+    t.premium'premium',
+    party.ptyid'CP'
+
+into temp
+
+from
+    instrument i,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and time_to_day(t.time)=@Capture_Date{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+    t.value_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    ui.insid,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+    p.prfid,
+    t.premium'premium'/* premium is same for bsb and repos */,
+    party.ptyid'CP'
+
+into temp
+
+from
+    instrument i,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party,
+    instrument ui
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('BuySellback','Repo/Reverse')
+and time_to_day(t.time)=@Capture_Date{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+    i.exp_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    ui.insid,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1) 'Nominal',
+    p.prfid,
+    i.instype='BuySellback' ? i.ref_value*t.quantity : (t.premium*-1)+(l.fixed_rate*t.premium*days_between(t.value_day,i.exp_day,'Act/365')/36500)*-1'premium',
+    party.ptyid'CP'
+
+into temp
+
+
+from
+    instrument i,
+    leg l,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party,
+    instrument ui
+
+
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('BuySellback','Repo/Reverse')
+and time_to_day(t.time)=@Capture_Date{Today;}
+and i.insaddr*=l.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+
+order by i.instype, ui.insid
+
+select
+    t.value_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    i.insid,
+    t.quantity*1000000'Nominal',
+    p.prfid,
+    t.premium'premium',
+    party.ptyid'CP'
+
+into temp2
+
+from
+    instrument i,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and t.creat_time >= @Trades_From_Date{Today;}
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+    t.value_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    ui.insid,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+    p.prfid,
+    t.premium'premium'/* premium is same for bsb and repos */,
+    party.ptyid'CP'
+
+into temp2
+
+from
+    instrument i,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party,
+    instrument ui
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and t.creat_time >= @Trades_From_Date{Today;}
+
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+    i.exp_day'Settlement',
+    t.trdnbr,
+    t.status,
+    i.instype,
+    ui.insid,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1) 'Nominal',
+    p.prfid,
+    i.instype='BuySellback' ? i.ref_value*t.quantity : (t.premium*-1)+(l.fixed_rate*t.premium*days_between(t.value_day,i.exp_day,'Act/365')/36500)*-1'premium',
+    party.ptyid'CP'
+
+into temp2
+
+from
+    instrument i,
+    leg l,
+    trade t,
+    trades ts,
+    portfolio p,
+    party party,
+    instrument ui
+
+where
+
+    i.insaddr=t.insaddr
+and ts.trdnbr = t.trdnbr
+and i.instype in ('BuySellback','Repo/Reverse')
+and i.insaddr*=l.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and t.creat_time >= @Trades_From_Date{Today;}
+
+order by i.instype, ui.insid
+
+
+/*----select all------*/
+
+
+select
+    @Capture_Date{Today;}'Capture_Date',
+    t.Settlement,
+    t.trdnbr,
+    'YES' ? t.status : '' 'status',
+    'YES' ? t.instype : '' 'instype',
+    t.insid,
+    t.Nominal,
+    t.prfid,
+    t.premium,
+    'YES' ? t.CP : '' 'CP'
+from 
+
+temp t
+
+order by  5/*t.instype*/, 2, t.trdnbr
+
+
+union
+
+select
+    @Capture_Date{Today;}'Capture_Date',
+    t.Settlement,
+    t.trdnbr,
+    'Sub total by bond'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    sum(t.Nominal),
+    t.prfid,
+    sum(t.premium),
+     '' /* 'CP'*/
+
+from 
+
+temp t
+
+group by t.insid
+order by t.insid
+
+union
+
+select
+    @Capture_Date{Today;}'Capture_Date',
+    t.Settlement,
+    t.trdnbr,
+    'Grand Total'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    sum(t.Nominal),
+    t.prfid,
+    sum(t.premium),
+     '' /* 'CP'*/
+
+from 
+
+temp t
+
+group by 1
+
+order by 1
+
+union
+
+select
+    @Capture_Date{Today;}'Capture_Date',
+    t.Settlement,
+    t.trdnbr,
+    'Sub total by bond since Inception'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    sum(t.Nominal),
+    t.prfid,
+    sum(t.premium),
+     '' /* 'CP'*/
+
+from 
+
+temp2 t
+
+group by t.insid
+order by t.insid
+
+union
+
+select
+    @Capture_Date{Today;}'Capture_Date',
+    t.Settlement,
+    t.trdnbr,
+    'Grand Total since Inception'/*t.status*/,
+    ' ' /*t.instype*/,
+    t.insid,
+    sum(t.Nominal),
+    t.prfid,
+    sum(t.premium),
+     '' /* 'CP'*/
+
+from 
+
+temp2 t
+
+group by 4
+
+/*order by 1*/

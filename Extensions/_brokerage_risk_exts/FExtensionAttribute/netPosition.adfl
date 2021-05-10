@@ -1,0 +1,9 @@
+[_brokerage_risk_exts]FDeposit:netPosition = 0.0;
+[_brokerage_risk_exts]FInstrument:netPosition = switch(stdPosition <> 0, 
+  false->max(0, min(collateralPosition, totalPosition)), 
+  default->switch((totalPosition >= 0) and (stdPosition <= 0), 
+    true->0.0, 
+    default->switch(stdPosition > 0, 
+      true->stdPosition, 
+      default->totalPosition)));
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:netPosition = instrument:netPosition [portfolio, positionObject];

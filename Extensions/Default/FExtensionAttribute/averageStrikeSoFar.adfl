@@ -1,0 +1,6 @@
+[Default]FInstrument:averageStrikeSoFar = nil;
+[Default]FOption:averageStrikeSoFar = select(isAsian and useAverageStrikeDates, 
+  false->nil, 
+  default->select(baseValuationOnUnderlyingComponents, 
+    false->asianAverage(asianHistoricalAverageStrikeEvents, asianHistoricalStrikeWeight, unit(storedStrike), datetime(storedStrike), exoticAverageMethodTypeIsArithmetic), 
+    default->asianBasketAverage(asianBasketHistoricalAverageStrikeEvents, asianBasketHistoricalStrikeWeight, basketWeightsForHistoricalCalculations, unit(strikeValue), datetime(strikeValue), exoticAverageMethodTypeIsArithmetic)));

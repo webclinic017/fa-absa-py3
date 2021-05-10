@@ -1,0 +1,24 @@
+[Default]FDeliverableLinkAndTrades:tradedInterest = nil;
+[Default]FInstrumentAndTrades:tradedInterest = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->tradedInterestLive, 
+  "Inception to Historical"->tradedInterestEnd, 
+  "Historical to Present"->tradedInterestLive - tradedInterestStart, 
+  "Historical to Historical"->tradedInterestEnd - tradedInterestStart);
+[Default]FPriceAggregate:tradedInterest = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "tradedInterest");
+[Default]FSettlement:tradedInterest = select(object.Type, 
+  "Security Nominal"->select(isPartOfDvP and (instrument <> nil), 
+    true->select(instrument.IsSecurity, 
+      true->select(settlementTradedInterestCurrency, 
+        "Instrument Curr"->collapse(tradedInterestInInstrumentCurr), 
+        "Settlement Curr"->collapse(tradedInterestInSettlementCurr)), 
+      false->nil), 
+    false->nil), 
+  "Security DvP"->select(tradedInterestChildrenNilRemoved.IsEmpty, 
+    true->nil, 
+    false->sumOf(tradedInterestChildrenNilRemoved)), 
+  default->nil);
+[Default]FTrade:tradedInterest = scalar(switch(flatAccrued, 
+  true->instrumentSpotZero, 
+  false->-object.Quantity * sumOf(instrument:instrumentAccruedInterestEndPerCurrency [profitAndLossEndDate := object.ValueDay, accountingParameters, valuesOnSpotOverride = "P/L Until Spot OFF", settleOnPayDay = false])), 0);

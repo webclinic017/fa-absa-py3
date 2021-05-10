@@ -1,0 +1,26 @@
+select
+    i.instype,
+ 
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 1 ? '0-1' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 8 ? '2-8' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 30 ? '9-30' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 90 ? '31-90 1m-3m' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 180 ? '91-180 3m-6m' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 365 ? '181-365 6m-1yr' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 730 ? '366-730 1yr-2yr' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 1095 ? '731-1095 2yr-3yr' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 1460 ? '1096-1460 3yr-4yr' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 1825 ? '1461-1825 4yr-5yr' :
+    days_between(@ReportDate{Today},i.exp_day, 'Act/365') <= 3650 ? '1826-3650 5yr-10yr' :
+                                                                    '>3650 >10yr' 'TTM',
+
+    sum(vega(t))    'Vega'
+
+from    
+    trade t,
+    instrument i
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr 
+
+group by 1,2

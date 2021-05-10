@@ -1,0 +1,125 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','NLD_Barriers') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'NLD_Barriers' and p.type = 'SQL Query' 
+
+/*
+Date        Who             Log#    CR#         What
+2009-08-04  Heinrich Cronje 1758    70379       Corrected calculation of HVal
+
+Purpose:                Getting all trades where the option type is Digital or the exotic
+                        type is Other. Left join Instrument to Exotic as well.
+Department and Desk:    PCG NLD
+Requester:              Leanie Olivier
+Developer:              Heinrich Cronje
+CR Number:              227641
+*/
+
+/*********** Macros ***********/
+select
+    to_date(today)   'RepDay'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*********** FX Rates ***********/
+select
+	curr.insid  'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)	'fxRepDay'
+into
+	fxrates
+from
+	instrument  hc,
+	instrument  curr,
+	macros  m
+where
+	    hc.insid = 'ZAR'
+	and curr.instype = 'Curr'
+
+/*********** List of Trades ***********/
+select 
+    t.trdnbr,
+    cl.entry 'TradeArea',
+    t.optional_key  'DT_Ref',
+    cl2.entry   'PF_Group',
+    p.prfid,
+    i.insid,
+    maturity_date(i)    'Maturity',
+    display_id(i,'curr')    'curr',
+    ui.insid 'Underlying',
+    i.barrier,
+    e.barrier_crossed_status 'Barrier_Crossed_Status',
+    (i.mtm_from_feed = 'YES') ? 'YES':'NO'  'Mtm_from_feed',
+    i.instype,
+    display_id(t,'curr')    'tcurr',
+    t.value_day,
+	sum(i.instype = 'Option' ? 
+        /*HVal*/
+        time_to_day(t.time) <= m.RepDay ?
+            (i.exp_day > m.RepDay ?
+                (i.und_instype = 'Bond' ?
+                    (1/fx.fxRepDay)*mtm_value_bo(t,m.RepDay) : (1/fx.fxRepDay)*mtm_value_fo(t,m.RepDay,curr.insid,2,0,1)) 
+            : (t.value_day > m.RepDay ? 
+                (curr.insid=display_id(t,'curr') ?
+                    t.premium/fx.fxRepDay : 0.00) 
+            : 0.00)) 
+        : 0.00
+        +
+        /*HPayment*/
+        (i.und_instype = 'Bond' ?
+                0.00 : ael_f(,'SAGEN_LA_Option_Calc.calc_HPayment',t.trdnbr,m.RepDay,'ZAR'))
+    : mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)/fx.fxRepDay)    'HvalCalc',
+    i.instype = 'Option' ? sum(display_id(i,'curr')~=display_id(t,'curr') ? ael_f(,'SAGEN_LA_Option_Calc.calc_HPremium',t.trdnbr,m.RepDay,'ZAR') : 0.00) : sum(0.00) 'HPrem'
+into
+    temp
+from
+    trade   t,
+    instrument i,
+    instrument ui,
+    exotic e,
+    portfolio p,
+    choicelist cl,
+    choicelist cl2,
+    macros m,
+    fxrates fx,
+    instrument curr
+where
+        match_filter(t,@1_Filter{;tradefilter.fltid})
+    and t.insaddr = i.insaddr
+    and t.optkey1_chlnbr *= cl.seqnbr
+    and i.und_insaddr = ui.insaddr
+    and e.insaddr =* i.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.price_finding_chlnbr *= cl2.seqnbr
+    and curr.instype = 'Curr'
+    and currency_included(t,curr.insid) = 1
+    and fx.curr = curr.insid
+    and (i.digital = 'Yes'
+    or i.exotic_type = 'Other')
+
+group by t.trdnbr
+
+/*********** Final ***********/
+select
+    t.trdnbr,
+    t.TradeArea,
+    t.DT_Ref,
+    t.PF_Group,
+    t.prfid,
+    t.insid,
+    t.Maturity,
+    t.curr,
+    t.Underlying,
+    t.barrier,
+    t.Barrier_Crossed_Status,
+    t.Mtm_from_feed,
+    t.instype = 'Option' ? (t.curr = t.tcurr and m.RepDay < t.value_day ? t.HvalCalc + t.HPrem : t.HvalCalc) : t.HvalCalc	'HVal'
+from
+    temp t,
+    macros m

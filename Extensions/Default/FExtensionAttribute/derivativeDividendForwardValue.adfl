@@ -1,0 +1,10 @@
+[Default]FCashFlowDerivativeInstrument:derivativeDividendForwardValue = select(dividendForecast, 
+  nil->0, 
+  default->object:underlyingDividendsDiscounted [dividendSensitivityStartDate, dividendSensitivityEndDate, doSplitAll, calculationCurrency, priceSource, carryStartDate = carryEndDate]);
+[Default]FDerivative:derivativeDividendForwardValue = select(dividendForecast, 
+  nil->0, 
+  default->object:underlyingDividendsDiscounted [dividendSensitivityStartDate, dividendSensitivityEndDate, doSplitAll, calculationCurrency, priceSource, carryStartDate = carryEndDate, basketMomentMatchingUseDividendYield := false, underlyingFutureObservationDate]);
+[Default]FInstrument:derivativeDividendForwardValue = nil;
+[Default]FInstrumentAndTrades:derivativeDividendForwardValue = instrument:derivativeDividendForwardValue [priceSource];
+[Default]FMultiInstrumentAndTrades:derivativeDividendForwardValue = nil;
+[Default]FPriceAggregate:derivativeDividendForwardValue = instrument:derivativeDividendForwardValue [priceSource];

@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:NoOfContracts = sumOf(tradesInPosition :* "NoOfContracts" [positionObject]);
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:NoOfContracts = sumOf(tradesInPosition :* "NoOfContracts" [positionObject]);
+[ABSA Specific 4.3]FTrade:NoOfContracts = switch(trdDate <= profitAndLossEndDate, 
+  true->switch(instrument:sl_isExpired, 
+    true->0, 
+    false->sl_quantity), 
+  false->0);

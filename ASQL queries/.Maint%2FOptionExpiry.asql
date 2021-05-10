@@ -1,0 +1,148 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','.Maint/OptionExpiry') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = '.Maint/OptionExpiry' and p.type = 'SQL Query' 
+/* Standard_Queries:1.0.0 */
+
+/*
+	.Maint/OptionExpiry
+
+Displays option and warrant trades with expiry between the input dates.
+Exercise events for Bermudan options are also included.
+
+Variables:
+----------
+1_Filter	A trade filter. The trade filter makes the general
+		selection of trades.
+2_StartDate	Trades in instrument with expiry date from and including 
+		this date are included.
+3_EndDate	Trades in instrument with expiry date up until and including 
+		this date are included.
+
+No unions used
+
+Columns:
+--------
+Expiry		The expiry date of the instrument
+ExpiryBerm	If the instrument has multiple exercise events within
+		the input dates these are listed here
+TrdNbr		The trade number
+ExcersiseType	The exercise type of the option
+C/P		Call or put
+UnsInsType	Underlying instrument type
+Instrument	The instrument name
+Curr		Currency of the instrument
+Nominal		The nominal amount of the trade expressed in Curr
+Strike		The strike price of the option
+UndPrice	The underlying forward price currently used. The 
+		market price of the underlying is used where applicable.
+PV		The present value of the trade
+UndInstrument	The instrument name of the underlying
+Settlement	The settlement type of the option
+Cparty/Exch	The counterparty
+Trader		The trader of the trade
+Portfolio	The portfolio of the trade
+*/
+/*---------------------------------------------------------------------
+	Selecting exp days into temporary table
+---------------------------------------------------------------------*/
+SELECT
+	i.exp_day					'Expiry',
+	t.trdnbr					'TrdNbr',
+	'Yes' ? i.exercise_type : ''			'ExerciseType',
+	i.call_option ? 'Call' : 'Put'			'C_P',
+	ui.instype					'UndInsType',
+	i.insid						'Instrument',
+	display_id(i,'curr')				'Curr',
+	nominal_amount(t)	 			'Nominal',
+	i.strike_price					'Strike',
+	used_und_frw_price(i,1)				'UndPrice',
+	present_value(t)				'PV',
+	ui.insid					'UndInstrument',
+	i.settlement					'Settlement',
+	display_id(t,'counterparty_ptynbr')		'Cparty_Exch',
+	display_id(t, 'trader_usrnbr')			'Trader',
+	display_id(t, 'prfnbr')				'Portfolio'
+INTO
+	data			
+FROM
+	instrument i,
+	trade t,
+	instrument ui
+WHERE
+	    i.insaddr = t.insaddr
+	AND i.instype in ('Option', 'Warrant')
+	AND i.exp_day >= @2_StartDate{TODAY}
+	AND i.exp_day <= @3_EndDate{TOMORROW} 
+	AND match_filter(t,@1_Filter{;tradefilter.fltid})
+	AND i.und_insaddr = ui.insaddr
+
+ORDER BY 1
+
+/*---------------------------------------------------------------------
+	Selecting exercise events into temporary table
+---------------------------------------------------------------------*/
+SELECT
+	e.day						'Expiry',
+	t.trdnbr					'TrdNbr',
+	'Yes' ? i.exercise_type : ''			'ExerciseType',
+	'Yes' ? e.type : ''				'C_P',
+	ui.instype					'UndInsType',
+	i.insid						'Instrument',
+	display_id(i,'curr')				'Curr',
+	nominal_amount(t)	 			'Nominal',
+	e.strike					'Strike',
+	used_und_frw_price(i,1)				'UndPrice',
+	present_value(t)				'PV',
+	ui.insid					'UndInstrument',
+	i.settlement					'Settlement',
+	display_id(t,'counterparty_ptynbr')		'Cparty_Exch',
+	display_id(t, 'trader_usrnbr')			'Trader',
+	display_id(t, 'prfnbr')				'Portfolio'
+INTO
+	data
+FROM
+	instrument i,
+	trade t,
+	instrument ui,
+	exerciseevent e
+
+WHERE
+	    i.insaddr = t.insaddr
+	AND i.instype in ('Option', 'Warrant')
+	AND i.exp_day >= @2_StartDate{TODAY}
+	AND e.day >= @2_StartDate{TODAY}
+	AND e.day <= @3_EndDate{}
+	AND i.exercise_type = 'Bermudan'
+	AND match_filter(t,@1_Filter{;tradefilter.fltid})
+	AND i.und_insaddr = ui.insaddr
+	AND i.insaddr = e.insaddr
+
+ORDER BY 1
+
+/*---------------------------------------------------------------------
+	Displaying result
+---------------------------------------------------------------------*/
+SELECT
+	Expiry						'Expiry',
+	TrdNbr						'TrdNbr',
+	ExerciseType					'ExerciseType',
+	C_P						'C/P',
+	UndInsType					'UndInsType',
+	Instrument					'Instrument',
+	Curr						'Curr',
+	Nominal						'Nominal',
+	Strike						'Strike',
+	UndPrice					'UndPrice',
+	PV						'PV',
+	UndInstrument					'UndInstrument',
+	Settlement					'Settlement',
+	Cparty_Exch					'Cparty/Exch',
+	Trader						'Trader',
+	Portfolio					'Portfolio'
+FROM
+	data
+
+ORDER BY 1

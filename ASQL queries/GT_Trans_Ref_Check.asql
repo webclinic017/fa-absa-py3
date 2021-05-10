@@ -1,0 +1,28 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Trans_Ref_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Trans_Ref_Check' and p.type = 'SQL Query' 
+
+
+/*
+query to check defintion or absence of 'trans ref' column for a macro defined TF
+*/
+
+select
+
+t.trdnbr,
+t.trdnbr-t.trx_trdnbr'diff',
+t.trx_trdnbr,
+
+i.insid
+
+from
+
+trade t,
+instrument i
+
+where
+i.insaddr=t.insaddr
+and match_filter(t,@filter{GT_Risk_Trades;TradeFilter.fltid})

@@ -1,0 +1,13 @@
+[Default]FBuySellBack:marketInstrumentValuesOnAcquireDateForProfitAndLoss = underlying:marketInstrumentValuesOnAcquireDateForProfitAndLossToday [marketSpotValuesForProfitAndLoss, positionAdjustmentDates, moveCoupons = false, moveFixedAmounts = false, positionFlatAccruedAdjustment = false, valuationBaseDateTimeInput];
+[Default]FCashFlowInstrument:marketInstrumentValuesOnAcquireDateForProfitAndLoss = select(valuesOnSpot, 
+  true->marketInstrumentValuesOnAcquireDateForProfitAndLossViaSpot, 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->marketInstrumentValuesOnAcquireDateForProfitAndLossViaAccountingDate, 
+    false->marketInstrumentValuesOnAcquireDateForProfitAndLossToday));
+[Default]FCombination:marketInstrumentValuesOnAcquireDateForProfitAndLoss = select(valuesOnSpot, 
+  true->collapse(marketInstrumentValuesOnAcquireDateForProfitAndLossViaSpot), 
+  false->select(("Accounting Date" == instrumentReportDate) and needsLegInformation, 
+    true->collapse(marketInstrumentValuesOnAcquireDateForProfitAndLossViaAccountingDate), 
+    false->collapse(marketInstrumentValuesOnAcquireDateForProfitAndLossToday)));
+[Default]FFxRate:marketInstrumentValuesOnAcquireDateForProfitAndLoss = object:moveValueFlat [priceSource, valuationBaseDateTimeInput, moveStartValue = marketSpotValuesForProfitAndLoss, moveToDate = positionAdjustmentDates];
+[Default]FInstrument:marketInstrumentValuesOnAcquireDateForProfitAndLoss = moveValue(marketSpotValuesForProfitAndLoss, valuationOrSpotDate, instrumentSpotDate, positionAdjustmentDates, repoCurveForProfitAndLoss);

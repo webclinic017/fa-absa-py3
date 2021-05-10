@@ -1,0 +1,18 @@
+[AMI APT]FCap:aptUnitValue = denominatedvalue(1, displayCurrency, , valuationDate);
+[AMI APT]FCreditDefaultSwap:aptUnitValue = denominatedvalue(1, displayCurrency, , valuationDate);
+[AMI APT]FCurrencySwap:aptUnitValue = denominatedvalue(1, payLegCurrency, , valuationDate);
+[AMI APT]FFloor:aptUnitValue = denominatedvalue(1, displayCurrency, , valuationDate);
+[AMI APT]FFuture:aptUnitValue = select(isInterestRateFuture, 
+  true->denominatedvalue(1, displayCurrency, , valuationDate), 
+  default->select(double(aptTheoreticalOrMarketOrMtMPrice) == 0, 
+    true->denominatedvalue(0, displayCurrency, , valuationDate), 
+    default->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = aptTheoreticalOrMarketOrMtMPrice, priceSource]));
+[AMI APT]FInstrument:aptUnitValue = select(double(aptTheoreticalOrMarketOrMtMPrice) == 0, 
+  true->denominatedvalue(0, displayCurrency, , valuationDate), 
+  default->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = aptTheoreticalOrMarketOrMtMPrice, priceSource]);
+[AMI APT]FSingleInstrumentAndTrades:aptUnitValue = select(aptIsForward, 
+  true->select(double(averagePrice) == 0, 
+    true->denominatedvalue(0, displayCurrency, , valuationDate), 
+    default->instrument:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = averagePrice, priceSource]), 
+  default->instrument:aptUnitValue);
+[AMI APT]FSwap:aptUnitValue = denominatedvalue(1, displayCurrency, , valuationDate);

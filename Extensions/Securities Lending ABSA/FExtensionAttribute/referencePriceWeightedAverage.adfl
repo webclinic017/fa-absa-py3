@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrumentAndTrades:referencePriceWeightedAverage = sumOf(tradesInPosition :* "referencePriceWeightedAverage * sl_quantity") / sweepingPosition;
+[Securities Lending ABSA]FTrade:referencePriceWeightedAverage = switch(sl_instype, 
+  "SecurityLoan"->switch((sl_startDate <= profitAndLossEndDate) and not (instrument:sl_isExpired) and (sl_quantity > 0), 
+    true->instrument.RefPrice, 
+    false->0), 
+  default->nil);

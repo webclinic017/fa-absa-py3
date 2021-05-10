@@ -1,0 +1,337 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       NOP_RISK_REPORT
+PROJECT                 :       NOP Reporting
+PURPOSE                 :       This ASQL will be used in Multiple Trade Filters to produce the NOP Report.
+DEPARTMENT AND DESK     :       Market Risk
+REQUASTER               :       Rishaan Ramnarain
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       XXXXXXXXXX
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2013-09-06      XXXXXXXXXX      Heinrich Cronje                 Initial Implementation
+                                                                include Cancellation Trades in their recon.
+2014-02-18      CHNG0001745394  Heinrich Cronje                 Added section for Price Swap Float Ref due 
+                                                                to include_currency not picking up floar reference 
+                                                                instrument's currecy.
+2015-12-01      CHNG0003300843  Chris Human on                  Added combination links to bring in additional currencies
+                                behalf of Heinrich Cronje                     
+2016-02-02	MINT 484	Brendan Bosman(bosmanbr)	Adding features to remove absolete currencies
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    First all FX Rates are determined based ont he Home Currency input.
+    All Trades are selected with taking into account all currencies that is linked to the trade.
+    Additional Currency Legs are manufactured based on:
+        Randised Futures
+        Total Return Swaps
+        FX Option Strike Currency
+    Remove all ZAR exposure except on Currency Swaps
+    Data is then selected and Home Currency conversion applied.
+*/
+select
+ael_i(p,'ASQL_log','NOP_RISK_REPORT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'NOP_RISK_REPORT' and p.type = 'SQL Query' 
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                        Macros
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    @3_ReportDate{Today}    'RepDate',
+    @4_HomeCurrency{ZAR; instrument.insid where instype = 'Curr'}   'hcur'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                        FXRates
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    hc.insid    'hcurr',
+    cur.insid  'curr',
+    1 / used_price(cur, m.RepDate, hc.insid)   'fxRepDay'
+into
+    fxRates
+from
+    instrument hc,
+    instrument cur,
+    macros m
+where
+        hc.insid = m.hcur
+    and cur.instype = 'Curr'
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                        Selection of Trades - All Currencies on the Trade
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    ccy.insid   'recordCurr'
+into
+    allTrades
+from
+    trade t,
+    instrument ccy
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and currency_included(t,ccy.insid) = 1
+    and ccy.instype = 'Curr'
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                Randised Futures - Non ZAR Leg
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    add_info(i,'CBOT Reference')    'CBOT'
+into
+    randizedFutures
+from
+    allTrades a,
+    trade t,
+    instrument i
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and i.instype = 'Future/Forward'
+    and a.recordCurr = 'ZAR'
+    and add_info(i,'CBOT Reference') ~= ''
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                            Adding Randised Futures Non ZAR Leg All Trades
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    r.trdnbr,
+    display_id(i,'curr')    'recordCurr'
+into
+    allTrades
+from
+    randizedFutures r,
+    instrument i
+where
+    r.CBOT = i.insid
+    
+/*--------------------------------------------------------------------------------------------------------------------------
+                                            Total Return Swap - Index Reference Leg
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    display_id(indexRef, 'curr')    'recordCurr'
+into
+    allTrades
+from
+    allTrades a,
+    trade t,
+    instrument i,
+    leg l,
+    instrument indexRef
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and i.instype = 'TotalReturnSwap'
+    and l.type = 'Total Return'
+    and l.index_ref = indexRef.insaddr
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                            Total Return Swap - Underlyings of the equity index
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    display_id(underlyings, 'curr')    'recordCurr'
+into
+    allTrades
+from
+    allTrades a,
+    trade t,
+    instrument i,
+    leg l,
+    instrument indexRef,
+    combinationlink cl,
+    instrument underlyings
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and i.instype = 'TotalReturnSwap'
+    and l.index_ref = indexRef.insaddr
+    and indexRef.insaddr = cl.owner_insaddr
+    and cl.member_insaddr = underlyings.insaddr
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                FX Options - Strike Currency Leg
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    display_id(i,'strike_curr') 'recordCurr'
+into
+    allTrades
+from
+    allTrades a,
+    trade t,
+    instrument i
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and i.instype = 'Option'
+    and i.und_instype = 'Curr'
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                           Price Swap - Price Reference (Float Rate) Leg
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    display_id(floatRate,'curr') 'recordCurr'
+into
+    allTrades
+from
+    allTrades a,
+    trade t,
+    instrument i,
+    leg l,
+    instrument floatRate
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and i.instype = 'PriceSwap'
+    and i.insaddr = l.insaddr
+    and l.float_rate = floatRate.insaddr
+    
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                1. Remove trades with only ZAR currency
+						2. Added with MINT 484: remove obsolete currencies
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    a.trdnbr,
+    a.recordCurr
+into
+    selectedTrades
+from
+    allTrades a,
+    trade t,
+    instrument i
+where
+        a.trdnbr = t.trdnbr
+    and t.insaddr = i.insaddr
+    and ((i.instype = 'CurrSwap') or (i.instype ~= 'CurrSwap' and a.recordCurr ~= 'ZAR'))
+    and a.recordCurr not in (@5_ExcludeCurrencies{;instrument.insid* where instype = 'Curr'})
+
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                        Data Result
+--------------------------------------------------------------------------------------------------------------------------*/
+select distinct
+    a.trdnbr    'TradeID',
+    to_date(t.time)  'TradeDate',
+    add_info(t,'Source Ctpy Id') ~= '' ? add_info(t,'Source Ctpy Id') : p.ptynbr 'CptyNbr',
+    display_id(t,'prfnbr')  'Book',
+    i.insaddr   'InsAddr',
+    add_info(p,'BarCap_SMS_CP_SDSID')  'SDSID',
+    add_info(t,'Source Ctpy Name') ~= '' ? add_info(t,'Source Ctpy Name') : p.ptyid 'Counterparty',
+    i.insid,
+    1 = 1 ? i.instype : ''  'InsType',
+    maturity_date(t) 'Expiry',
+    a.recordCurr    'Currency',
+    ael_f(,'NOP_Calculation.get_NOP_Notional_Amount',t.trdnbr, a.recordCurr, m.RepDate, nominal_amount(t, to_date(t.time)))   'Amount',
+    ael_f(,'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation','Defualt','FTradeSheet',t.trdnbr,'Trade','Portfolio Present Value Per Currency',a.recordCurr,1,,)   'PV',
+    ael_f(,'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation','Defualt','FTradeSheet',t.trdnbr,'Trade','Portfolio Cash Vector',a.recordCurr,1,,)   'Cash',
+    /*ael_f(,'NOP_Calculation.get_NOP_FX_TPL_DELTA_CASH','FTradeSheet',t.trdnbr,'Trade','Portfolio FX Tpl Delta Cash',a.recordCurr,1,i.instype,i.und_instype,m.repDate)   'FX_TPL_DELTA_CASH',*/
+    ael_f(,'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation','Defualt','FTradeSheet',t.trdnbr,'Trade','Linked Currency Equivalent',a.recordCurr,1,,)   'Linked_currency_equiv',
+    fx.hcurr 'HCurr',
+    fx.fxRepDay  'FxRepDay',
+    t.prfnbr    'BookId',
+    1 = 1 ? i.und_instype : '' 'UndInsType',
+    p.type = 'Intern Dept' ? 'Yes' : 'No'   'Internal_Party',
+    add_info(t,'Source Trade Type') = '' ? 'None' : add_info(t,'Source Trade Type') 'SourceTradeType'
+into
+    data
+from
+    selectedTrades a,
+    trade t,
+    instrument i,
+    leg l,
+    party p,
+    macros m,
+    fxRates fx
+where
+        a.trdnbr = t.trdnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.insaddr = i.insaddr
+    and i.insaddr *= l.insaddr
+    and fx.curr = a.recordCurr
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                    FX_TPL_DELTA_CASH Calculation
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    d.TradeID,
+    d.TradeDate,
+    d.CptyNbr,
+    d.Book,
+    d.InsAddr,
+    d.SDSID,
+    d.Counterparty,
+    d.insid,
+    d.InsType,
+    d.Expiry,
+    d.Currency,
+    d.Amount,
+    d.PV,
+    d.Cash,
+    ael_f(,'NOP_Calculation.get_NOP_FX_TPL_DELTA_CASH','FTradeSheet',d.TradeId,'Trade',d.Currency,1,d.InsType,d.UndInsType,m.repDate,d.Cash)   'FX_TPL_DELTA_CASH',
+    d.Linked_currency_equiv,
+    d.HCurr,
+    d.FxRepDay,
+    d.BookId,
+    d.Internal_Party,
+    d.SourceTradeType
+    
+into
+    fxTPLDeltaCash
+from
+    data d,
+    macros m
+
+/*--------------------------------------------------------------------------------------------------------------------------
+                                                        Final Result
+--------------------------------------------------------------------------------------------------------------------------*/
+select
+    d.TradeID,
+    d.FX_TPL_DELTA_CASH > 0 ? 'Purchase'
+        : d.FX_TPL_DELTA_CASH < 0 ? 'Sale'
+            : d.Linked_currency_equiv > 0 ? 'Purchase' : 'Sale'   'BuySell',
+    d.TradeDate,
+    d.CptyNbr,
+    d.Book,
+    d.InsAddr,
+    d.SDSID,
+    d.Counterparty,
+    d.insid,
+    d.InsType,
+    d.Expiry,
+    d.Currency,
+    d.Amount,
+    d.PV,
+    '0'  'Delta',
+    d.Cash,
+    d.FX_TPL_DELTA_CASH,
+    d.Linked_currency_equiv,
+    d.HCurr,
+    d.FxRepDay,
+    d.Amount / d.FxRepDay   'HAmount',
+    d.PV / d.FxRepDay   'HPV',
+    d.Cash / d.FxRepDay 'HCash',
+    d.FX_TPL_DELTA_CASH / d.FxRepDay 'HFX_TPL_DELTA_CASH',
+    d.Linked_currency_equiv / d.FxRepDay    'HLinked_currency_equiv',
+    d.BookId,
+    d.Internal_Party,
+    d.SourceTradeType
+from
+    fxTPLDeltaCash d

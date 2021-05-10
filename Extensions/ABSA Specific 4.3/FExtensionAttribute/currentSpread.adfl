@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrument:currentSpread = legs :* "currentSpread";
+[ABSA Specific 4.3]FTrade:currentSpread = instrument:currentSpread [0];
+[ABSA Specific 4.3]FTradeRow:currentSpread = select(count(trade.Instrument.Legs) == 1, 
+  true->trade:currentSpread [0], 
+  default->nil);

@@ -1,0 +1,13 @@
+[_securities_lending_exts]FInstrument:secLendSalesNotes = py("FSecLendHooks", context).SalesNotes(object, realTimeClock).First;
+[_securities_lending_exts]FMultiInstrumentAndTrades:secLendSalesNotes = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendSalesNotes));
+[_securities_lending_exts]FPortfolioInstrumentAndTrades:secLendSalesNotes = nil;
+[_securities_lending_exts]FPriceLevelRow:secLendSalesNotes = nil;
+[_securities_lending_exts]FSecurityLoan:secLendSalesNotes = underlying:secLendSalesNotes;
+[_securities_lending_exts]FSingleInstrumentAndTrades:secLendSalesNotes = nil;
+[_securities_lending_exts]FTrade:secLendSalesNotes = nil;
+[_securities_lending_exts]FTradeRow:secLendSalesNotes = nil;
+[_securities_lending_exts]FUndefinedObject:secLendSalesNotes = nil;

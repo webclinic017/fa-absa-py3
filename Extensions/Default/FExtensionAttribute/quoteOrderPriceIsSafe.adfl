@@ -1,0 +1,5 @@
+[Default]QuoteAndHedge:quoteOrderPriceIsSafe = switch(quoteLegUsedOrderBook.PriceFeed.IsValidPrice(quoteLegCalculatedPriceRounded), 
+  true->switch(quoteLegMaxPriceDifference.IsNumber, 
+    true->IsPriceRational(quoteLegUsedOrderBook.PriceFeed, quoteLegCalculatedPriceRounded, quoteLegMaxPriceDifference / 100.0, quoteLegUsedOrderBook.PriceFeed.LastPrice), 
+    false->true), 
+  false->false);

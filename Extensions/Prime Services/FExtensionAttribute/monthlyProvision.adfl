@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:monthlyProvision = sumOf(children :* "monthlyProvision");
+[Prime Services]FSingleInstrumentAndTrades:monthlyProvision = select(allFundingPortfolios and isProvisionInstrument, 
+  true->py("Provision", context).calculate_provision_start_end(tradesInPosition, instrument, fundingInstruments, lastBusinessDayOfPreviousMonth, profitAndLossEndDate), 
+  false->0);

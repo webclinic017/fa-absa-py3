@@ -1,0 +1,9 @@
+[Core Pricing]FCurrency:presentValueCurrencies = rowObject:theoreticalValue [valuesOnSpotOverride := "P/L Until Spot OFF", displayCurrency := currencyOrFxBaseCurrency, filterUnit := object];
+[Core Pricing]FInstrumentAndTrades:presentValueCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->currenciesForVectorColumn :* "presentValueCurrencies" [rowObject := object, useFxBaseCurrency]);
+[Core Pricing]FTimeBucketAndObject:presentValueCurrencies = select(currenciesForVectorColumn == nil, 
+  true->currenciesForVectorColumnNil, 
+  false->select(timeBucketCollection.Size > 1, 
+    true->scenarioaxisarray(rowInstrumentAndTrades:presentValueCurrencies [currenciesForVectorColumn, useFxBaseCurrency], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>, <"timeDistributionDateRule", , "fixedvariant", "TheoreticalValueProjectionDate">)[timeBucketCollectionIndex], 
+    false->rowInstrumentAndTrades:presentValueCurrencies [currenciesForVectorColumn, useFxBaseCurrency]));

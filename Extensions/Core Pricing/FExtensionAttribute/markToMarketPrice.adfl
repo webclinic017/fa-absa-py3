@@ -1,0 +1,9 @@
+[Core Pricing]FBuySellBack:markToMarketPrice = collapse(markToMarketPriceMultiCurrency);
+[Core Pricing]FCashFlowInstrument:markToMarketPrice = collapse(markToMarketPriceMultiCurrency);
+[Core Pricing]FCombination:markToMarketPrice = collapse(markToMarketPriceMultiCurrency);
+[Core Pricing]FInstrument:markToMarketPrice = collapse(markToMarketPriceAsDenominatedValue);
+[Core Pricing]FInstrumentAndTrades:markToMarketPrice = shunt(portfoliosAccountingParameters.Size == 1, 
+  true->instrument:markToMarketPrice [accountingParameters = portfoliosAccountingParameters.First], 
+  default->instrument:markToMarketPrice);
+[Core Pricing]FMultiInstrumentAndTrades:markToMarketPrice = nil;
+[Core Pricing]FPriceAggregate:markToMarketPrice = instrument:markToMarketPrice;

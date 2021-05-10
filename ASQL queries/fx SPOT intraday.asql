@@ -1,0 +1,71 @@
+/*
+
+coded by Anil Parbhoo
+to monitor fx spot rates fpr fOX and Reuters pricing intra day
+
+*/
+
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','fx SPOT intraday') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'fx SPOT intraday' and p.type = 'SQL Query' 
+
+select
+
+i.insid'curr1',
+pldcurr.insid'curr2',
+to_string(i.insid,'_',pldcurr.insid)'curr1_curr2',
+i.insid = 'USD' ? pldcurr.insid : i.insid 'curr',
+lp.day,
+p.ptyid'price market',
+sp.ptyid'source party',
+lp.bid,
+lp.ask,
+lp.ask - lp.bid'spread',
+lp.last,
+lp.settle,
+lp.updat_time,
+display_id(lp, 'updat_usrnbr')'update user',
+
+((lp.bid+lp.ask)/2)-lp.settle 'settle check',
+
+pld.idp_code,
+pd.disid,
+cl.entry'service',
+pld.start_time,
+pld.stop_time
+
+
+from
+
+instrument i,
+
+lastprice lp,
+party p,
+PriceLinkDefinition pld,
+party sp,
+instrument pldcurr,
+pricedistributor pd,
+choicelist cl
+
+
+where
+
+i.instype = 'curr'
+and i.insaddr = lp.insaddr
+and pld.insaddr = i.insaddr
+and pld.curr = pldcurr.insaddr
+and pld.source_ptynbr = sp.ptynbr
+and sp.ptyid = @Market{SPOT; party.ptyid where type ='Market'} 
+and lp.ptynbr = p.ptynbr
+and p.ptyid = @Market{SPOT; party.ptyid where type ='Market'} 
+and lp.curr = pld.curr
+and pd.disid = @Distributor{FOX_PRICING; pricedistributor.disid}
+and pd.disnbr = pld.disnbr
+and pld.service = cl.seqnbr
+
+order by i.insid, pldcurr.insid

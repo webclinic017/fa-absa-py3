@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:theoreticalValuesUndiscountedInstrumentPart = select(valuesOnSpot, 
+  true->collapse(theoreticalValuesUndiscountedInstrumentPartForSpot), 
+  false->select("Accounting Date" == instrumentReportDate, 
+    true->theoreticalPositionValues + interestFromTodayToAccountingDate, 
+    false->theoreticalPositionValues));

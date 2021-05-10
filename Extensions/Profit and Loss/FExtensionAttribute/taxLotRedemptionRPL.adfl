@@ -1,0 +1,7 @@
+[Profit and Loss]FCashFlowMoneyFlow:taxLotRedemptionRPL = select(isOffParCostRealization, 
+  true->shunt(trade:currency == currency, 
+    true->taxLotProjectedMoneyFlow * (1 + trade:plOriginalPremiumNoHistFX / (trade:nominal * indexFactor)), 
+    false->nil), 
+  false->nil);
+[Profit and Loss]FMoneyFlow:taxLotRedemptionRPL = nil;
+[Profit and Loss]FMoneyFlowAndTrades:taxLotRedemptionRPL = moneyFlow:taxLotRedemptionRPL [tradesInPosition];

@@ -1,0 +1,10 @@
+[Profit and Loss]FCombInstrMapAndTrades:profitAndLossPositionDisplay = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:profitAndLossPositionDisplay = nil;
+[Profit and Loss]FInstrumentAndTrades:profitAndLossPositionDisplay = assetProfitAndLossPeriodPosition;
+[Profit and Loss]FMultiInstrumentAndTrades:profitAndLossPositionDisplay = select(isCashGrouping, 
+  true->cashProfitAndLossPosition, 
+  default->select(dispPosOnMultiRow, 
+    true->assetProfitAndLossPositionSum));
+[Profit and Loss]FPriceAggregate:profitAndLossPositionDisplay = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "profitAndLossPositionDisplay");

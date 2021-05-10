@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FCap:unitGoalValueForPar = nil;
+[Fixed Income Pricing and Risk]FFloor:unitGoalValueForPar = nil;
+[Fixed Income Pricing and Risk]FFreeDefinedCashFlow:unitGoalValueForPar = select((numberOfPayLegs > 0) and (numberOfReceiveLegs > 0), 
+  true->0, 
+  false->select(maxOf(legs :* "nominalAtEnd"), 
+    false->0, 
+    true->100.0));
+[Fixed Income Pricing and Risk]FInstrument:unitGoalValueForPar = select(object.IsOnBalanceSheet, 
+  true->100.0, 
+  false->0.0);
+[Fixed Income Pricing and Risk]FSecurityLoan:unitGoalValueForPar = 0.0;

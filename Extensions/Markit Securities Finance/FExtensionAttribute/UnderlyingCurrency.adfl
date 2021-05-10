@@ -1,0 +1,7 @@
+[Markit Securities Finance]FObject:UnderlyingCurrency = select(object == nil, 
+  true->nil, 
+  false->select(object.ClassName, 
+    "FMultiInstrumentAndTrades"->object.SingleInstrumentOrSingleTrade.Currency, 
+    "FTradeRow"->object.Instrument.Currency, 
+    "FSingleInstrumentAndTrades"->object.Instrument.Currency, 
+    default->nil));

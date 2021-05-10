@@ -1,0 +1,4 @@
+[Default]FInstrumentAndTrades:fxDisplayToBase = fxDisplayToBaseFXRate :* "fxSpotRate";
+[Default]FTimeBucketAndObject:fxDisplayToBase = select((timeBucketShiftPeakDate < valuationSystemDate) or timeBucketIsInceptionToEndBucket, 
+  true->nil, 
+  false->fxDisplayToBaseFXRate :* "fxForwardRate" [fxForwardDate := timeBucketShiftPeakDate]);

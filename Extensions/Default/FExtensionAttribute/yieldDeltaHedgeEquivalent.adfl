@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:yieldDeltaHedgeEquivalent = select(yieldDeltaHedgeAlternativeChosen, 
+  nil->nil, 
+  default->switch(double(yieldDeltaHedgeSingleInstrumentAndTrades :* "interestRateDelta") == 0, 
+    true->0, 
+    false->interestRateDelta / yieldDeltaHedgeSingleInstrumentAndTrades :* "interestRateDelta" [displayCurrency]));

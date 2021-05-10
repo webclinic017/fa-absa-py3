@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MoneyMarketProductType') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MoneyMarketProductType' and p.type = 'SQL Query' 
+
+
+
+select 
+Distinct(Add_Info(t,'MM_Instype')) 'Product',
+i.insid,
+i.instype,
+i.exp_day = 0 ? '0000-01-01' : i.exp_day  'exp_day'
+
+from 
+
+instrument i,
+trade t
+
+where i.insaddr = t.insaddr
+and i.instype in ('Bill','Deposit','CD','FRN')
+and Add_Info(t,'MM_Instype') ~= ''
+and i.exp_day > '2008-12-31'
+and t.status not in ('Void','Simulated')
+
+Union
+
+select 
+Distinct(Add_Info(t,'Funding Instype')) 'Product',
+i.insid,
+i.instype,
+i.exp_day = 0 ? '0000-01-01' : i.exp_day  'exp_day'
+
+from 
+
+instrument i,
+trade t
+
+where i.insaddr = t.insaddr
+and i.instype in ('Bill','Deposit','CD','FRN')
+and i.exp_day > '2008-12-31'
+and Add_Info(t,'Funding Instype') ~= ''
+and t.status not in ('Void','Simulated')

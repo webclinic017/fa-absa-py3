@@ -1,0 +1,15 @@
+[Core Pricing]FCashFlowInstrument:intrinsicOptionValues = select(count(positionTradeQuantities) > 0, 
+  true->shift(embeddedOptionValues, snoop(embeddedOptionValues, volatilityRiskFactorNames), mul [0.0]), 
+  false->baseDateZero);
+[Core Pricing]FCombInstrMapAndTrades:intrinsicOptionValues = select(isOpenPosition, 
+  true->combinationInstrumentMapFactor * instrument :* "intrinsicOptionValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionTradeQuantities, filterUnit, groupingSpotDiscountDate], 
+  false->baseDateZero);
+[Core Pricing]FInstrument:intrinsicOptionValues = baseDateZero;
+[Core Pricing]FInstrumentAndTrades:intrinsicOptionValues = select(isOpenPosition, 
+  true->openInstrument :* "collapse(intrinsicOptionValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate], 
+  false->spotHandlingZero);
+[Core Pricing]FMultiInstrumentAndTrades:intrinsicOptionValues = sumOf(openInstruments :* "collapse(intrinsicOptionValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate]);
+[Core Pricing]FOption:intrinsicOptionValues = object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = intrinsicOptionValuesUndiscounted];
+[Core Pricing]FTradeRow:intrinsicOptionValues = select(isOpenPosition, 
+  true->instrument :* "intrinsicOptionValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate], 
+  false->baseDateZero);

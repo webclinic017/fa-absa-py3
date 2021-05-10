@@ -1,0 +1,40 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_MODIFIED_TODAY') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_MODIFIED_TODAY' and p.type = 'SQL Query' 
+ 
+  select
+	t.trdnbr
+from
+	trade	t,
+	instrument	i,
+	portfolio port
+where
+	t.insaddr = i.insaddr
+    and	t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed', 'Terminated')
+    and t.prfnbr = port.prfnbr
+    and port.prfid in ('Swap Flow', 
+                        'MAN_Swap', 
+                        'PRIME', 
+                        'STIRT - FRA Trading', 
+                        'MAN_Swap_2', 
+                        'CPI', 
+                        'LTFX', 
+                        'ERM_IRP', 
+                        'ERM_LTFX', 
+                        '0545', 
+                        'ERM_PRIME', 
+                        'ERM_CPI', 
+                        'PT_FI_OPTIONS', 
+                        'PT_IRS', 
+                        'LTFX_BASIS_PROP', 
+                        'Swap Risk') 
+
+    and	(
+        (time_to_day(i.updat_time) >= TODAY and	time_to_day(i.creat_time) < TODAY)
+    or 
+        (time_to_day(t.updat_time) >= TODAY and	time_to_day(t.creat_time) < TODAY)
+        )
+

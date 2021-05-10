@@ -1,0 +1,5 @@
+[Core Pricing]FCashFlowInstrument:interestFromTodayToAccountingDate = riskPosition * sumOf(interestAccrued(object, accountingInclusionDate, legInformations, staticLegInformations, , "Today", historicalFXChoice, historicalFXDay, true, valuationDate, roundingInformation, , settleOnPayDay)) / contractSize;
+[Core Pricing]FCombination:interestFromTodayToAccountingDate = select(needsLegInformation, 
+  true->riskPosition * sumOf(interestAccrued(object, accountingInclusionDate, legInformations, staticLegInformations, , "Today", historicalFXChoice, historicalFXDay, true, valuationDate, roundingInformation, roundingInformationsPerLeg)) / contractSize, 
+  false->denominatedvalue(0, currency, , ));
+[Core Pricing]FInstrument:interestFromTodayToAccountingDate = denominatedvalue(0, currency, , );

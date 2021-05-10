@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:psInceptionTPL = sumOf(children :* "psInceptionTPL");
+[Prime Services]FSingleInstrumentAndTrades:psInceptionTPL = select(isCFDPortfolio, 
+  true->(object :* "tPL" [profitAndLossStartDate = smallDate]) + denominatedvalue(inceptionFunding, displayCurrency, nil, nil) + denominatedvalue(inceptionExecutionFee, displayCurrency, nil, nil), 
+  default->select(instrumentType, 
+    "Deposit"->plZero, 
+    default->(object :* "tPL" [profitAndLossStartDate = smallDate]) + denominatedvalue(provision, displayCurrency, nil, nil) + denominatedvalue(inceptionFunding, displayCurrency, nil, nil)));

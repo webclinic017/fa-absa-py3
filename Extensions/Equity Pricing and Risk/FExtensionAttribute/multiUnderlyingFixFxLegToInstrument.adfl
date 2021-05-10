@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FOption:multiUnderlyingFixFxLegToInstrument = select(isQuanto, 
+  true->select(strikeCurrency == underlying:currency, 
+    true->select(isForwardStarting, 
+      true->underlyingInstrumentMaps :* "fixFXRate" [isForwardStarting := true, forwardStartDateTime], 
+      false->underlyingInstrumentMaps :* "fixFXRate" [isForwardStarting := false]), 
+    false->throwError("The strike currency of the option must equal the underlying combination currency for quanto basket options.")), 
+  false->nil);

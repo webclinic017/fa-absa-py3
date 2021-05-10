@@ -1,0 +1,5 @@
+[CFDLimits]FInstrument:average3m = py("PriceSearch", context).returnPrice(object, "3m Average Volume", profitAndLossEndDate);
+[CFDLimits]FMultiInstrumentAndTrades:average3m = select(object.Instruments.Size == 1, 
+  true->firstInstrument:average3m, 
+  false->nil);
+[CFDLimits]FSingleInstrumentAndTrades:average3m = instrument:average3m;

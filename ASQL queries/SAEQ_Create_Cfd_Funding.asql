@@ -1,0 +1,53 @@
+/* Usage code for this ASQL */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Create_Cfd_Funding') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Create_Cfd_Funding' and p.type = 'SQL Query' 
+
+
+
+select
+	t.trdnbr,
+	p.prfid,
+	/*mtm_value_fo(t, @Date{today}, 'ZAR', 1, 0, 0)*/ t.premium			'PLIncep',
+	t.fee                                                               'Fee',
+	ael_s(,'SAGEN_str_functions.concat', p.prfid, '_Funding', '')		'new_prfid',
+	@ABUser{;user.userid}                                               'ABUser',
+	@Date{today}                                                        'Date'
+
+into
+	temp
+
+from
+	Trade t,
+	Portfolio p,
+	Instrument i
+
+where
+	i.insaddr = t.insaddr
+and	t.prfnbr = p.prfnbr
+and p.prfid like '%CFD'
+and	t.value_day = @Date{today}
+and	t.status not in ('Terminated', 'Simulated', 'Void')
+and ('All' IN (@Portfolio{99999_CFD; portfolio.prfid*})
+or  p.prfid IN (@Portfolio{99999_CFD; portfolio.prfid*}))
+
+
+
+
+select
+	t.prfid,
+	sum(t.PLIncep + t.Fee)          'PLIncep',
+	ael_s(,'as_test_cfds.CreateFunding',t.new_prfid, sum(t.PLIncep + t.Fee), t.Date, t.ABUser)		'Funding',
+	t.ABUser
+
+
+from
+	temp t
+
+group by t.prfid
+
+
+

@@ -1,0 +1,34 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_CFD_ActivityReportData') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_CFD_ActivityReportData' and p.type = 'SQL Query' 
+ 
+  SELECT T.TrdNbr                                             'Trade_No',
+       display_id(T,'insaddr')                              'Instrument',
+       Und.ISIN                                               'ISIN',
+       Add_Info(Und,'SEDOL') = '' ? '' : Add_Info(Und,'SEDOL')  'Sedol',
+       display_id(T,'counterparty_ptynbr')                  'Counterparty',
+       display_id(T,'Curr')                                 'Curr',
+       I.InsType                                            'Type',
+       to_date(T.Time)                                      'Trade_Date',
+       to_date(T.value_day)                                 'Value_Date',
+       T.quantity < 0.00 ? 'Buy' : 'Sell'                   'BuySell',
+       abs(T.quantity)                                      'Quantity',
+       T.Price                                              'Clean_Price',
+       ((T.Price * (T.quantity * -1)) * -1)/100             'Principle_Cons',
+       (T.Fee * -1)                                         'Commission',
+       ((T.Price * (T.quantity * -1)) * -1)/100 + (T.Fee * -1) 'Net_Cons'
+        /*,T.quantity < 0.00 ? ((((ABS(T.Quantity)*T.Price)/100)+T.Fee)/ABS(T.Quantity))
+                         : ((((ABS(T.Quantity)*T.Price)/100)-T.Fee)/ABS(T.Quantity)) 'CFD Price'*/
+
+FROM
+        Trade T,
+        Instrument I,
+        Instrument Und
+WHERE
+        T.insaddr = I.Insaddr
+        AND I.und_insaddr = Und.InsAddr
+        AND match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+        AND to_date(T.time) = to_date(@3_ReportDate{yesterday})

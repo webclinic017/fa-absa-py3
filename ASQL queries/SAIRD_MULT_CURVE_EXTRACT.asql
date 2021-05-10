@@ -1,0 +1,81 @@
+/* *******Deployments************* 
+Purpose               : Amended output to display 10 decimals for the rates
+Department and Desk   : FO/MO
+Requester             : Martin van der Walt
+Developer             : Anwar Banoo
+CR Number             : 217673
+***********************************/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_MULT_CURVE_EXTRACT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_MULT_CURVE_EXTRACT' and p.type = 'SQL Query' 
+/*
+
+query = Daily_DFs_non_buss_days_for_AttributeSpreadCurves
+*/
+
+/*Generate sequence 0-9*/
+
+select
+	p1.ptynbr,
+	count(p2.ptynbr)-1	'Nbr'
+into
+	TMP
+from
+	party p1,
+	party p2
+where
+	p1.ptynbr<p2.ptynbr
+and	p1.ptynbr < 500
+and	p2.ptynbr < 500
+group by p1.ptynbr
+
+/*Generate sequence 1-1000*/
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+	t1.Nbr<10
+and	t2.Nbr<10
+and	t3.Nbr<150
+
+/*Calculate result by scenario*/
+
+select
+	date_add_delta(TODAY,s.Nbr,0,0)		'Date',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Discount',i.insid), 10)	'CURVE1',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc2.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Discount',i.insid), 10)	'CURVE2',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc3.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Discount',i.insid), 10)	'CURVE3',
+	s.Nbr,
+	@Daycount{} 'DayCount',
+	today	'Data_Date',
+	@YieldCurve1{}	'CURVE 1',
+	@YieldCurve2{}	'CURVE 2',
+	@YieldCurve3{}	'CURVE 3',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Spot Rate',i.insid), 10)	'CURVE1',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc2.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Spot Rate',i.insid), 10)	'CURVE2',
+	convert('double', ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc3.yield_curve_name,TODAY,date_add_delta(TODAY,s.Nbr,0,0),'Annual Comp',@Daycount{Act/365;'Act/360','30E/360','Act/365'},'Spot Rate',i.insid), 10)	'CURVE3'
+	
+from
+	SCEN		s,
+	yieldcurve	yc,
+	yieldcurve	yc2,
+	yieldcurve	yc3,
+	instrument	i
+where
+	yc.yield_curve_name=@YieldCurve1{;yieldcurve.yield_curve_name}
+and	yc2.yield_curve_name=@YieldCurve2{;yieldcurve.yield_curve_name}
+and	yc3.yield_curve_name=@YieldCurve3{;yieldcurve.yield_curve_name}
+and	s.Nbr<=@Nbr_7000_is_29years[8000]
+and 	i.insid=@Instrument{;instrument.insid}
+
+order by 5

@@ -1,0 +1,7 @@
+[Default]FFrn:theoreticalPriceFromSpread = nil;
+[Default]FFuture:theoreticalPriceFromSpread = select(isFutureOnNotional, 
+  true->instrument :* "theoreticalPriceFromGrossBasis" [grossBasisSpread, ctdPrice, underlying], 
+  false->nil);
+[Default]FInstrument:theoreticalPriceFromSpread = instrument :* "theoreticalInstrumentSpotPriceFromYield" [yieldValue, quotation];
+[Default]FOrderBook:theoreticalPriceFromSpread = instrument :* "theoreticalPriceFromSpread" [yieldValue];
+[Default]FTradingInterface:theoreticalPriceFromSpread = instrument :* "theoreticalPriceFromSpread" [yieldValue];

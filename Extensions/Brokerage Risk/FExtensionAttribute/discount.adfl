@@ -1,0 +1,6 @@
+[Brokerage Risk]FCurrency:discount = 100 - haircut;
+[Brokerage Risk]FDeposit:discount = 100 - haircut;
+[Brokerage Risk]FInstrument:discount = shunt(collateralPosition > 0, 
+  true->100 - haircut, 
+  false->0.0);
+[Brokerage Risk]FSingleInstrumentAndTrades:discount = instrument:discount [portfolio, positionObject];

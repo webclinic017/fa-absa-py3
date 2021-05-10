@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','TBR_FRA_CONFO_PDF') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'TBR_FRA_CONFO_PDF' and p.type = 'SQL Query'
+
+/* 
+    Name      : FRA_CONFO_PDF
+    Purpose   : Build confirmations for FRA's in PDF 
+    Developer : Tshepo Mabena
+    Date      : 17-09-2008
+*/
+
+
+select
+	ael_s(,'FRA_CONFO_PDF.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

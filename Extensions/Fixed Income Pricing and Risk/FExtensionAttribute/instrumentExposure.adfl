@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:instrumentExposure = select(legsInCurrency.Size > 0, 
+  true->sumOf(legsInCurrency :* "instrumentExposure" [timeDistributionBucket]), 
+  false->0.0);
+[Fixed Income Pricing and Risk]FInstrument:instrumentExposure = 1.0;
+[Fixed Income Pricing and Risk]FLeg:instrumentExposure = staticLegInformation.LegExposure(legInformation, valuationDate, instrumentSpotOrStartDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment, roundingInformation);

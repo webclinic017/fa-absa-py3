@@ -1,0 +1,24 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_SM_Status_Change') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_SM_Status_Change' and p.type = 'SQL Query' 
+
+/*
+Date        Who             CR Nbr      What
+2009-02-09  Heinrich Cronje             Created
+
+Description
+This ASQL calles an AEL that gets all the
+Security Nominal settlements in status
+Authorised and change their status to Closed.
+This is to get the Maturity settlement generated
+*/
+
+select
+    ael_s(,'SAGEN_SM_Status_Change.SAGEN_SM_SecNom')
+from
+    serverdata s
+where
+    s.srdnbr > 0

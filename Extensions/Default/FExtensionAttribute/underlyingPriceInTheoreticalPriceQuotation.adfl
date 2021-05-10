@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingPriceInTheoreticalPriceQuotation = select(usePerUnitQuotation or isDeltaStrikeQuotation, 
+  true->getObject("FQuotation", "Per Unit"), 
+  false->select(underlyingForwardPriceIsParRate or underlyingForwardValueFromInterestComponent, 
+    true->getObject("FQuotation", "Coupon"), 
+    false->select(depositaryReceiptButNotFxRate, 
+      true->quotation, 
+      false->strikeQuotation)));

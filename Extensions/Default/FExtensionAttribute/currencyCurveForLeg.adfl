@@ -1,0 +1,5 @@
+[Default]FLeg:currencyCurveForLeg = select(("Fx Rate" == nominalScalingEstimateType) or ("Fx Rate" == fixingEstimateType), 
+  true->select(nominalScalingEstimateType, 
+    "Fx Rate"->currency:fxDiscountCurve, 
+    default->currency:discountCurve), 
+  false->nil);

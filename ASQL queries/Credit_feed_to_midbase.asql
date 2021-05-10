@@ -1,0 +1,26 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Credit_feed_to_midbase') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Credit_feed_to_midbase' and p.type = 'SQL Query' 
+
+
+select
+    i.insid                                     'Instrument',
+    i.insid = 'SACPI' ? ael_d(,'FirstDayOfMonth',date_add_delta(@Date{today},,-2,))
+                      : @Date{today}            'Date',
+    i.insid = 'SACPI' ? used_price(i, ael_d(,'FirstDayOfMonth',date_add_delta(@Date{today},,-2,)), c.insid, , , 'internal')
+                      : used_price(i, @Date{today}, c.insid, , , 'SPOT')                'Price',
+    i.insid = 'SACPI' ? 'M' : 'D'               'Frequency'
+    
+from
+    Instrument i,
+    Instrument c
+    
+where
+    match_filter(i, @1_Filter{Credit_feed_to_midbase;tradefilter.fltid})
+and i.curr = c.insaddr
+/*and i.insid in ('SACPI', 'ZAR/Investec_Global_Strategic_Equity', 'ZAR-GEMS', 'ZAR/ISPERFORMER', 'EUR/CER', 'USD/Corals_ER', 'ZAR/AC_ZPCI Beta Index', 'ZAR/STEFI', 'ZAR/GOVI')*/
+
+order by 4

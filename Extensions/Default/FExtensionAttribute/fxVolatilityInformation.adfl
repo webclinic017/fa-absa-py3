@@ -1,0 +1,11 @@
+[Default]FCashFlowInformation:fxVolatilityInformation = legInformation.FxVolatilityInformation;
+[Default]FDerivative:fxVolatilityInformation = mappedFXVolatilityLink :* "fxVolatilityInformation";
+[Default]FInstrument:fxVolatilityInformation = nil;
+[Default]FInstrumentAndTrades:fxVolatilityInformation = instrument:fxVolatilityInformation;
+[Default]FLeg:fxVolatilityInformation = mappedFXVolatilityLink :* "fxVolatilityInformation";
+[Default]FLegAndTrades:fxVolatilityInformation = leg:fxVolatilityInformationForLeg;
+[Default]FLegInformation:fxVolatilityInformation = object.FxVolatilityInformation;
+[Default]FMappingLink:fxVolatilityInformation = fxVolatilityInformationHierarchy;
+[Default]FVolatilityStructureHierarchy:fxVolatilityInformation = select(constantVolatilityTermStructure, 
+  true->volatilityAdjustValuationDate(fxVolatilityStructure :* "fxVolatilityStructureInformation" [component = underlyingVolatilityHierarchy], parameterDateOffset), 
+  false->fxVolatilityStructure :* "fxVolatilityStructureInformation" [component = underlyingVolatilityHierarchy]);

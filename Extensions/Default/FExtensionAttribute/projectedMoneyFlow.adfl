@@ -1,0 +1,15 @@
+[Default]FCashFlowMoneyFlow:projectedMoneyFlow = projectedMoneyFlowAtPayDay;
+[Default]FMoneyFlow:projectedMoneyFlow = select(doSettlementFxScaling, 
+  true->projectedMoneyFlowAtPayDay, 
+  false->nil);
+[Default]FMoneyFlowAndTrades:projectedMoneyFlow = moneyFlow:projectedMoneyFlow [doSettlementFxScaling, tradesInPosition, taxLotValuation, onlyObservedValues];
+[Default]FMultiMoneyFlowAndTrades:projectedMoneyFlow = select(doSettlementFxScaling, 
+  true->shunt(allMoneyFlowsSettled, 
+    true->shunt(allSettledMoneyFlowsCanBeAggregated, 
+      true->sumOf(moneyFlows :* "projectedMoneyFlowNoTimeOrType" [doSettlementFxScaling, tradesInPosition, taxLotValuation, onlyObservedValues]), 
+      false->nil), 
+    false->shunt(allMoneyFlowsCanBeAggregated, 
+      true->sumOf(moneyFlows :* "projectedMoneyFlow" [doSettlementFxScaling, tradesInPosition, taxLotValuation, onlyObservedValues]), 
+      false->nil)), 
+  false->nil);
+[Default]FResetMoneyFlow:projectedMoneyFlow = nil;

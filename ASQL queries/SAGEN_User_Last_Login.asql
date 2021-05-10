@@ -1,0 +1,41 @@
+/* update_method=0 */
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','SAGEN_User_Last_Login') 'Name' 
+ into ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_User_Last_Login' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Date                : 2020-01-10
+    Purpose             : Report showing the last time a user logged into Prod
+    Department and Desk : Markets business and Markets IT
+    Requester           : Marsha de Wet and Jochem Melis
+    Developer           : Bhavnisha Sarawan
+    CR Number           : 
+------------------------------------------------------------------*/
+select
+    ul.creat_usrnbr,
+    max(ul.creat_time)
+into
+    temp_maxtime
+from
+    userlog ul
+where
+    ul.type = 'Login'
+group by ul.creat_usrnbr
+
+select 
+    tm.max                          'MaxTime',
+    u.userid                        'FA_ID',
+    u.name                          'Name',
+    u.email                         'Email',
+    display_id(u,'grpnbr')          'Group',
+    u.creat_time                    'ProfileCreateTime',
+    display_id(u,'license_type')    'LicenseType'
+from
+    temp_maxtime tm,
+    user u
+where 
+        tm.creat_usrnbr =* u.usrnbr
+    and u.license_type not in (7,10)
+    and u.creat_time < date_add_delta(TODAY, 0, -3, 0)

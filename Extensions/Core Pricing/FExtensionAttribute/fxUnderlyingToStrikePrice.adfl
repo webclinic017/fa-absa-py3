@@ -1,0 +1,4 @@
+[Core Pricing]FInstrument:fxUnderlyingToStrikePrice = 1.0;
+[Core Pricing]FOption:fxUnderlyingToStrikePrice = select(strikeCurrency == underlying:currency, 
+  true->1.0, 
+  false->(underlying:currency).UnitValueToUnitQuote((underlying:currency) :* "fxForwardRate" [fxForwardDate = underlying:instrumentSpotDate, fxToCurrency := strikeCurrency], valuationDate, nominalFactor));

@@ -1,0 +1,10 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCapLimit = hedgeCapLimitZero + hedgeCapLimit_calc;
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCapLimit = hedgeCapLimitZero + hedgeCapLimit_calc;
+[HedgeAccountingMod]FTradeRow:hedgeCapLimit = switch((isNIHHR or isCashFlowHR), 
+  true->switch(tradeHedgeType, 
+    "Hypo"->hedgeCapLimitHypo, 
+    "Hypo Close"->hedgeCapLimitHypo, 
+    "External"->hedgeCapLimitExternal, 
+    "Close Zero"->hedgeCapLimitZero, 
+    default->denominatedvalue(0, displayCurrencySymbol, , )), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));

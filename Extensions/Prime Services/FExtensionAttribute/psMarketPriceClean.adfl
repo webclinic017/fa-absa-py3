@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:psMarketPriceClean = nil;
+[Prime Services]FSingleInstrumentAndTrades:psMarketPriceClean = 
+# Filter out NaNs coming from irrelevant instrument types as well as expired instruments.
+switch(marketPriceClean.Number, 
+  nan->nil, 
+  default->marketPriceClean);

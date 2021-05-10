@@ -1,0 +1,12 @@
+[Default]FFxRate:underlyingForwardValueFromSpotTransform = select(isReciprocal, 
+  true->shunt[forwardValueDate, spotValueToTransform, priceSource](currencyPairSpotDate == forwardValueDate, 
+    true->denominatedvalue(inv(spotValueToTransform), foreignCurrency, , datetime(spotValueToTransform)), 
+    false->(domesticCurrency:fxDiscountCurve).DiscountValue(denominatedvalue(inv(spotValueToTransform), foreignCurrency, , datetime(spotValueToTransform)), forwardValueDate) * (foreignCurrency:fxDiscountCurve).Discount(currencyPairSpotDate, forwardValueDate)), 
+  default->shunt[forwardValueDate, spotValueToTransform, priceSource](currencyPairSpotDate == forwardValueDate, 
+    true->spotValueToTransform, 
+    false->(domesticCurrency:fxDiscountCurve).DiscountValue(spotValueToTransform, forwardValueDate) * (foreignCurrency:fxDiscountCurve).Discount(currencyPairSpotDate, forwardValueDate)));
+[Default]FInstrument:underlyingForwardValueFromSpotTransform = underlying :* "underlyingForwardValueFromSpotTransform" [forwardPriceDate := forwardPriceDateForUnderlyingForwardPrice, spotValueToTransform = underlyingPriceInTheoreticalPrice, priceSource];
+[Default]FInstrumentAndTrades:underlyingForwardValueFromSpotTransform = select(hasUnderlyingForwardValueFromSpot, 
+  false->nil, 
+  true->instrument :* "underlyingForwardValueFromSpotTransform" [priceSource, underlyingPriceInTheoreticalPrice]);
+[Default]FMultiInstrumentAndTrades:underlyingForwardValueFromSpotTransform = nil;

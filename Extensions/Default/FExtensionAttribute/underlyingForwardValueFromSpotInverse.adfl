@@ -1,0 +1,14 @@
+[Default]FFxRate:underlyingForwardValueFromSpotInverse = select(isReciprocal, 
+  true->shunt[forwardValueDate, underlyingForwardValueFromSpotInverseVariable](currencyPairSpotDate == forwardValueDate, 
+    true->denominatedvalue(inv(underlyingForwardValueFromSpotInverseVariableValue), foreignCurrency, , datetime(underlyingForwardValueFromSpotInverseVariableValue)), 
+    false->(foreignCurrency:fxDiscountCurve).DiscountValue(denominatedvalue(inv(underlyingForwardValueFromSpotInverseVariableValue), foreignCurrency, , datetime(underlyingForwardValueFromSpotInverseVariableValue)), currencyPairSpotDate) * (domesticCurrency:fxDiscountCurve).Discount(forwardValueDate, currencyPairSpotDate)), 
+  default->shunt[forwardValueDate, underlyingForwardValueFromSpotInverseVariable](currencyPairSpotDate == forwardValueDate, 
+    true->underlyingForwardValueFromSpotInverseVariableValue, 
+    false->(domesticCurrency:fxDiscountCurve).DiscountValue(underlyingForwardValueFromSpotInverseVariableValue, currencyPairSpotDate) * (foreignCurrency:fxDiscountCurve).Discount(forwardValueDate, currencyPairSpotDate)));
+[Default]FInstrument:underlyingForwardValueFromSpotInverse = select(isFXOption, 
+  false->nil, 
+  true->underlying :* "underlyingForwardValueFromSpotInverse" [forwardPriceDate := expiryDate, underlyingForwardValueFromSpotInverseVariable]);
+[Default]FInstrumentAndTrades:underlyingForwardValueFromSpotInverse = select(hasUnderlyingForwardValueFromSpot, 
+  true->instrument :* "underlyingForwardValueFromSpotInverse" [underlyingForwardValueFromSpotInverseVariable], 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:underlyingForwardValueFromSpotInverse = nil;

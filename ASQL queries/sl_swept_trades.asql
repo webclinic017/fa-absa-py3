@@ -1,0 +1,21 @@
+/*-----------------------------------------------------------------------------
+PROJECT                 :  Security Borrowing and Lending
+PURPOSE                 :  Returns all trades created by the sweeping process
+DEPATMENT AND DESK      :  Prime Services, Securities Lending
+REQUESTER               :  Linda Breytenbach
+DEVELOPER               :  Francois Truter
+CR NUMBER               :  371587
+-----------------------------------------------------------------------------*/
+
+SELECT  Trade.trdnbr
+FROM    Trade,
+        Instrument,
+        AdditionalInfo,
+        AdditionalInfoSpec
+WHERE   Trade.insaddr = Instrument.insaddr
+AND     Instrument.instype = 'SecurityLoan'
+AND     Trade.status NOT IN ('Confirmed Void', 'Simulated', 'Void')
+AND     AdditionalInfo.recaddr = Instrument.insaddr
+AND     AdditionalInfo.addinf_specnbr = AdditionalInfoSpec.specnbr
+AND     AdditionalInfoSpec.field_name = 'SL_SweepingBatchNo'
+AND     to_int(AdditionalInfo.value) > 0

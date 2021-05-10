@@ -1,0 +1,21 @@
+[Default]FCashFlowInstrument:carryCost = select(isCarryCostSensitive, 
+  true->select(object.Generic, 
+    true->object:instrumentForwardValueCarryCost [priceSource, forwardValueDate = carryEndDate, calculationCurrency, defaultContingentForCarryCost, includeCallablePartInUnderlying, isCarryCostSensitive, discountingType, useSpotProxy = true], 
+    false->impliedCarryCost(startValueForCarryCost, object:issuerContingentForwardValue [priceSource, forwardValueDate = carryEndDate, calculationCurrency, defaultContingentForCarryCost, includeEmbeddedOption = includeCallablePartInUnderlying, discountingType], legInformations, staticLegInformations, contractSize, valuationDate, roundingInformation)), 
+  false->0.0);
+[Default]FDepositaryReceipt:carryCost = underlying:instrumentForwardValueCarryCost [priceSource, doSplitAll, forwardValueDate = carryEndDate, calculationCurrency, startValueForForwardValueCalculation];
+[Default]FDerivative:carryCost = select(isCarryCostSensitive, 
+  true->select(baseValuationOnUnderlyingComponents, 
+    true->basketMoments["BasketCarryCost"], 
+    default->underlying :* "carryCost" [underlyingFutureObservationDate, priceSource, carryEndDate, calculationCurrency, defaultContingentForCarryCost, includeCallablePartInUnderlying, isCarryCostSensitive, discountingType, doSplitAll, forwardValueDividendData, useSpotProxy = true]), 
+  false->0.0);
+[Default]FDividendPointIndex:carryCost = object:instrumentForwardValueCarryCost [underlyingFutureObservationDate, priceSource, forwardValueDate = carryEndDate, calculationCurrency, discountingType, doSplitAll, forwardValueDividendData];
+[Default]FFxRate:carryCost = underlying:instrumentForwardValueCarryCost [underlyingFutureObservationDate, priceSource, forwardValueDate = carryEndDate, calculationCurrency, discountingType, doSplitAll, useSpotProxy = true];
+[Default]FInstrument:carryCost = object:instrumentForwardValueCarryCost [underlyingFutureObservationDate, priceSource, forwardValueDate = carryEndDate, calculationCurrency, discountingType, doSplitAll, forwardValueDividendData, useSpotProxy = true];
+[Default]FOption:carryCost = select(isCarryCostSensitive, 
+  true->select(isForwardStarting, 
+    true->collapse(forwardStartCarryCost), 
+    false->select(baseValuationOnUnderlyingComponents, 
+      true->basketMoments["BasketCarryCost"], 
+      false->underlying :* "carryCost" [underlyingFutureObservationDate, priceSource, carryEndDate, calculationCurrency, defaultContingentForCarryCost, includeCallablePartInUnderlying, isCarryCostSensitive, discountingType, doSplitAll, forwardValueDividendData, useSpotProxy = true])), 
+  false->0.0);

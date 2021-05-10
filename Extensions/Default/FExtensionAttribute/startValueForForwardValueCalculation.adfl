@@ -1,0 +1,14 @@
+[Default]FCfd:startValueForForwardValueCalculation = startValueForForwardCalculationInCalculationCurrency - dividendsStartValueForForwardCalculationsInCalculationCurrency;
+[Default]FCombination:startValueForForwardValueCalculation = shunt[priceSource, doSplitAll, calculationCurrency, underlyingFutureObservationDate, discountingType, forwardPriceDate, forwardValueDate](splitCombination, 
+  false->collapse(startValueForForwardCalculationInCalculationCurrency), 
+  true->startValueForForwardCalculationInCalculationCurrency - dividendsStartValueForForwardCalculationsInCalculationCurrency);
+[Default]FDepositaryReceipt:startValueForForwardValueCalculation = 
+# This code should be moved to theoreticalOrMarketInstrumentValue of FDepositaryReceipt
+select(priceBase, 
+  "None"->underlying:startValueForForwardCalculationCore [priceSource, doSplitAll, underlyingFutureObservationDate, discountingType, calculationCurrency] * conversionRatio, 
+  "Theoretical"->underlying:startValueForForwardCalculationCore [priceSource, doSplitAll, underlyingFutureObservationDate, discountingType, calculationCurrency] * conversionRatio, 
+  default->collapse(startValueForForwardCalculationCore));
+[Default]FDividendPointIndex:startValueForForwardValueCalculation = collapse(startValueForForwardCalculationInCalculationCurrency);
+[Default]FEquityIndex:startValueForForwardValueCalculation = collapse(startValueForForwardCalculationCore);
+[Default]FFxRate:startValueForForwardValueCalculation = collapse(startValueForForwardCalculationCore);
+[Default]FInstrument:startValueForForwardValueCalculation = collapse(startValueForForwardCalculationCore);

@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FInstrument:undValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(undValueInstrument, valuesOnSpot));
+[ABSA Greeks 4.3]FInstrumentAndTrades:undValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->instrument :* "undValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter]));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:undValues = unSettledInstrumentsNonZero :* "undValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter];

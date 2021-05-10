@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:currencyGroupingReferenceNoCurrencyPair = parentCurrencyGroupingReferenceNoCurrencyPair;
+[Default]FMultiInstrumentAndTrades:currencyGroupingReferenceNoCurrencyPair = select(nil == groupingReference, 
+  true->parentCurrencyGroupingReferenceNoCurrencyPair, 
+  false->select(groupingReference.IsKindOf("FCurrency"), 
+    true->groupingReference, 
+    false->parentCurrencyGroupingReferenceNoCurrencyPair));
+[Default]FPortfolioInstrumentAndTrades:currencyGroupingReferenceNoCurrencyPair = nil;

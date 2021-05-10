@@ -1,0 +1,14 @@
+[Core Risk]FInstrument:priceGammaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select(priceGreekRiskFactorNodeCount == 1, 
+    true->select(priceGreekIncludeQuoteScaling, 
+      true->select(isSupportingQuoteScaling and singlePriceGreekRiskFactorIsSupportingQuoteScaling and not almostZero(singlePriceGreekRiskFactorValueToQuoteFactor, 1e-10), 
+        true->spotValueToQuoteFactor * convertToCurrency(priceGammaPercentValuesInstrument, priceGreekFxRates, currencySymbol, filterUnit) / square(singlePriceGreekRiskFactorValueToQuoteFactor * singlePriceGreekRiskFactorValueInInstrumentCurrency * percentAdjustmentFactor), 
+        false->denominatedValueZero), 
+      false->convertToCurrency(priceGammaPercentValuesInstrument, priceGreekFxRates, currencySymbol, filterUnit) / square(singlePriceGreekRiskFactorValueInInstrumentCurrency * percentAdjustmentFactor)), 
+    false->denominatedValueZero));
+[Core Risk]FInstrumentAndTrades:priceGammaInstrument = select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceGammaInstrumentIRD [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling], 
+  false->openInstrumentOrInstrument :* "priceGammaInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement, priceGreekIncludeQuoteScaling, normalizeFxRisk]) * combinationInstrumentMapFactorForPriceGreeks;
+[Core Risk]FMultiInstrumentAndTrades:priceGammaInstrument = nil;
+[Core Risk]FPriceAggregate:priceGammaInstrument = instrument :* "priceGammaInstrument" [priceSource, priceGreekIncludeQuoteScaling, normalizeFxRisk];

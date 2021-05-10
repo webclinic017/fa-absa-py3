@@ -1,0 +1,33 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','kk_NT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'kk_NT' and p.type = 'SQL Query' 
+
+
+
+select
+    t.trdnbr,
+    t.time,
+    i.insid,
+    nominal_amount(t),
+    l.start_day,
+    l.start_period.count,
+    l.start_period.unit,
+    l.end_day,
+    l.end_period.count,
+    l.end_period.unit,
+    l.payleg,
+    l.type
+from
+    trade t,
+    instrument i,
+    leg l
+where
+    match_filter(t,@Filter{;Tradefilter.fltid})
+and t.time >= @DayFrom{;}
+and t.time < @DayTo{;}
+and i.insaddr = t.insaddr
+and l.insaddr =* i.insaddr
+and l.payleg = 'No'

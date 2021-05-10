@@ -1,0 +1,72 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GT_Previous_Rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GT_Previous_Rates' and p.type = 'SQL Query' 
+ 
+  select
+@date{Yesterday;}'date',
+
+i.insid,
+p.settle'rate'
+
+
+from
+instrument i,
+price p,
+party party
+
+where
+
+i.insaddr=p.insaddr
+and p.day= @date{Yesterday;}
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+
+and i.insid in ('ZAR-JIBAR-ON-DEP',
+'ZAR-JIBAR-1M',
+'ZAR-JIBAR-3M',
+'ZAR/FRA/JI/1X4',
+'ZAR/FRA/JI/2X5',
+'ZAR/FRA/JI/3X6',
+'ZAR/FRA/JI/3X6',
+'ZAR/FRA/JI/4X7',
+'ZAR/FRA/JI/5X8',
+'ZAR/FRA/JI/6X9',
+'ZAR/FRA/JI/7X10',
+'ZAR/FRA/JI/8X11',
+'ZAR/FRA/JI/9X12',
+'ZAR/FRA/JI/12X15',
+'ZAR/FRA/JI/15X18',
+'ZAR/FRA/JI/18X21',
+'ZAR/FRA/JI/21X24',
+'ZAR/IRS/GEN/2Y',
+'ZAR/IRS/GEN/3Y',
+'ZAR/IRS/GEN/4Y',
+'ZAR/IRS/GEN/5Y',
+'ZAR/IRS/GEN/6Y',
+'ZAR/IRS/GEN/7Y',
+'ZAR/IRS/GEN/8Y',
+'ZAR/IRS/GEN/9Y',
+'ZAR/IRS/GEN/10Y',
+'ZAR/IRS/GEN/12Y',
+'ZAR/IRS/GEN/15Y',
+'ZAR/IRS/GEN/20Y',
+'ZAR/IRS/GEN/25Y',
+'ZAR/IRS/GEN/30Y',
+'ZAR/R153',
+'ZAR/R195',
+'ZAR/R195P',
+'ZAR/R196',
+'ZAR/R157',
+'ZAR/R186',
+'ZAR/R204',
+'ZAR/R208',
+'ZAR/R203',
+'ZAR/R207',
+'ZAR/R209'
+
+)
+
+order by i.insid

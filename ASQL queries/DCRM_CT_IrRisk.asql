@@ -1,0 +1,111 @@
+/*------------------------------------------------------------------
+    DCRM_CT_IrRisk
+
+    This query calculate the shift in PV for the credit trades when 
+    the benchmark instuments of the used yieldcurves are shifted.
+    The result is used in the DCRM Hedge Feeds.
+
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_IrRisk') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_IrRisk' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})               'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	Select all the discount curves used in the trade filter by trdnbr and currency
+------------------------------------------------------------------*/
+select distinct
+    t.trdnbr,
+    curr.insaddr                                        'InsCurr',
+    ael_s(i,'DCRM_IRD.getDiscountCurve',curr.insid)     'Curve'
+into
+    getCurves
+from
+    trade t, 
+    instrument curr,
+    instrument i,
+    macros m
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and i.exp_day >= m.ValueDate  
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+/*------------------------------------------------------------------
+	Select all the discount curves used in the trade filter by trdnbr and currency
+------------------------------------------------------------------*/
+select distinct
+    t.trdnbr,
+    curr.insaddr                                          'InsCurr',
+    ael_s(und,'DCRM_IRD.getDiscountCurve',curr.insid)     'Curve'
+into
+    getCurves
+from
+    trade t, 
+    instrument curr,
+    instrument und,
+    CombinationLink cl,
+    instrument i,
+    macros m
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day >= m.ValueDate
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+/*------------------------------------------------------------------
+	Calculate the shift in PV for the credit trades when 
+    the benchmark instuments of the used yieldcurves are shifted.
+------------------------------------------------------------------*/
+select
+    gc.trdnbr                                                                    'TradeID',
+    ins.insaddr                                                                  'TenorID',
+    ael_f(ins, 'DCRM_IRD.bm_delta_trade',gc.trdnbr ,yc.yield_curve_name,0.01)    'IR01'
+from
+    yieldcurve  yc,
+    benchmark   bm,
+    instrument  ins,
+    getCurves   gc
+where
+    yc.yield_curve_name  = gc.Curve
+and ins.curr = gc.InsCurr
+and bm.yield_curve_seqnbr = yc.seqnbr
+and bm.instrument = ins.insaddr
+

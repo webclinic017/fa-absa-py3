@@ -1,0 +1,87 @@
+/*
+Purpose                       :  Created new report for IRD desk
+Department and Desk           :  PCG SM Fixed Income
+Requester                     :  Hendrik Jansen Van Rensburg
+Developer                     :  Ickin Vural
+CR Number                     :  269939 (2310)
+*/
+
+
+SELECT
+    ael_i(p,'ASQL_log','IRD_Risk') 'Name'
+INTO  
+    ASQL_LOG_TEMP
+FROM 
+    TextObject p 
+WHERE 
+    p.name = 'IRD_Risk' and p.type = 'SQL Query' 
+
+
+select
+
+    t.trdnbr,
+    i.instype,
+    l.rolling_period.count 'rolling_period_count',
+    l.rolling_period.unit  'rolling_period_unit',
+    r.type,
+    r.day,
+    r.start_day,
+    r.end_day,
+    display_id(l,'float_rate') 'float_rate',
+    display_id(t,'curr') 'curr',
+    to_string(convert('double',(nominal_amount(cf) * t.quantity),0))               'Total_Nominal',
+    l.reset_period.count 'reset_period_count',
+    reset_period.unit 'reset_period_unit'
+   
+    
+into
+        Temp
+    
+from
+    Instrument i,
+    Instrument c,
+    Trade t,
+    Leg l,
+    CashFlow cf,
+    Reset r,
+    yieldcurve    yc
+
+where
+    match_filter(t, @1_Filter{IRD_SWAPS_ALL;tradefilter.fltid}, @2_TrdNbrs{})
+and t.trdnbr = to_double(IRD_SHORT_END_PROV_FINAL_II.ExcludeBasisTrades(t.trdnbr))
+and yc.yield_curve_name=@7_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name}
+and i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and cf.cfwnbr = r.cfwnbr
+and r.type in ('Single','Compound', 'Weighted')        
+and l.type = 'Float'
+and l.curr = c.insaddr
+and i.instype ~= 'CurrSwap'
+and r.day >= to_date(@3_RepDate{TODAY})
+and r.day <= to_date(date_add_delta(@3_RepDate{TODAY},0,@4_Num_Months_to_adj{9},0)) 
+
+
+select
+
+    t.trdnbr,
+    t.rolling_period_count,
+    t.rolling_period_unit,
+    t.type,
+    t.day,
+    t.start_day,
+    t.float_rate,
+    float_rate like '%-1M' ? Total_Nominal : '0'   	'Nominal 1m',
+    float_rate like '%-3M' ? Total_Nominal : '0' 	'Nominal 3m',            
+    float_rate like '%-6M' ? Total_Nominal : '0' 	'Nominal 6m',            
+    float_rate like '%-9M' ? Total_Nominal : '0'	'Nominal 9m',            
+    float_rate like '%-12M' ? Total_Nominal: '0'    'Nominal 12m',
+    t.curr,
+    t.reset_period_count,
+    t.reset_period_unit
+    
+from
+
+    Temp t
+    
+    

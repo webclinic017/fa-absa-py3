@@ -1,0 +1,9 @@
+[Default]FCashFlowMoneyFlow:cashAnalysisFixedRate = select(hasCashAnalysisFixedRate and not isTotalReturn, 
+  true->select(fixedRateFromTheoreticalPrice, 
+    true->double(instrument:parCoupon), 
+    false->select(cashFlowInformation, 
+      nil->nil, 
+      default->cashFlowInformation:totalFixedRate)), 
+  false->nil);
+[Default]FMoneyFlow:cashAnalysisFixedRate = nil;
+[Default]FMoneyFlowAndTrades:cashAnalysisFixedRate = moneyFlow:cashAnalysisFixedRate;

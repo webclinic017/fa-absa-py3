@@ -1,0 +1,6 @@
+[_securities_lending_exts]FInstrumentAndTrades:inventoryPositionOrPositionsWithPortfolioParametrization = shunt(0 == count(inventoryPositionOpenInstrument), 
+  true->timeBucketsSetExternallyZeroPosition, 
+  false->inventoryPositionOpenInstrument :* "collapse(inventoryPosition)" [positionObject, instrumentGroupingReference, timeBucketsSetExternally, tradedPortfolio = fixedPhysicalPortfolio]);
+[_securities_lending_exts]FMultiInstrumentAndTrades:inventoryPositionOrPositionsWithPortfolioParametrization = shunt(0 == count(inventoryPositionOpenInstruments), 
+  true->timeBucketsSetExternallyZeroPosition, 
+  false->sumOf(inventoryPositionOpenInstruments :* "collapse(inventoryPosition)" [positionObject, instrumentGroupingReference, timeBucketsSetExternally, tradedPortfolio = fixedPhysicalPortfolio]));

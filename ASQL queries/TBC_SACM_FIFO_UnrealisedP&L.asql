@@ -1,0 +1,82 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_FIFO_UnrealisedP&L') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_FIFO_UnrealisedP&L' and p.type = 'SQL Query' 
+/*FIFO based accounting report for Capital Markets*/
+/*Created by Charmain Alves on 15 March 2004*/
+
+select
+
+display_id(t,'prfnbr')		'Portfolio',
+i.insid				'Instrument',
+t.trdnbr			'TradeNbr',
+Nominal_amount(t)		'Nominal',
+''				'TradeDate',
+t.value_day			'SettlementDate',
+t.price				'TradeYTM',
+sum(t.premium)			'Premium',
+clean_from_yield(i,t.value_day,,,t.price)	'CleanPrice',
+abs(t.premium/nominal_amount(t)*100)-(clean_from_yield(i,t.value_day,,,t.price))	'Accrued',
+abs(t.premium/nominal_amount(t)*100)						'DirtyPrice',
+sum(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100)			'CleanPremium',
+sum(to_double(add_info(t,'FIFO_POS')))						'Open_FIFO',
+sum(to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,t.value_day,,,t.price)/100)	'FIFOCleanOpen',
+sum((interest_accrued(t)/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS')))))								'CurrentIntAccr',
+sum((-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100))/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS'))))		'OrigPurchInt',
+interest_settled(t)<=0.00 ? sum((-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100))/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS')))) : '0.00'	'CurrPurchInt',
+mtm_price(i)									'MtM_price',
+clean_from_yield(i,today,,,mtm_price(i))	'CleanMtMPrice',
+sum(to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,today,,,mtm_price(i))/100)			'CleanMtMValue',
+sum((to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,today,,,mtm_price(i))/100)-(to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,t.value_day,,,t.price)/100))	'UnRealMtm',
+sum(t.premium/nominal_amount(t)*(nominal_amount(t)-to_double(add_info(t,'FIFO_POS'))))											'RealPremium',
+sum(((to_double(add_info(t,'FIFO_POS')))-Nominal_amount(t))*clean_from_yield(i,t.value_day,,,t.price)/100)								'RealClean'
+
+from	
+trade		t,
+instrument	i
+
+where
+	i.insaddr=t.insaddr
+and	match_filter(t,@Portfolio{;tradefilter.fltid},@TradeNumber{})
+and	add_info(t,'FIFO_POS') ~= '0.0'
+
+group by 1,2
+
+union
+
+select
+
+display_id(t,'prfnbr')		'Portfolio',
+i.insid				'Instrument',
+t.trdnbr			'TradeNbr',
+Nominal_amount(t)		'Nominal',
+convert('date',time_to_day(t.time))		'TradeDate',
+t.value_day			'SettlementDate',
+t.price				'TradeYTM',
+t.premium			'Premium',
+clean_from_yield(i,t.value_day,,,t.price)	'CleanPrice',
+abs(t.premium/nominal_amount(t)*100)-(clean_from_yield(i,t.value_day,,,t.price))	'Accrued',
+abs(t.premium/nominal_amount(t)*100)						'DirtyPrice',
+clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100			'CleanPremium',
+to_double(add_info(t,'FIFO_POS'))						'Open_FIFO',
+to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,t.value_day,,,t.price)/100	'FIFOCleanOpen',
+(interest_accrued(t))/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS')))									'CurrentIntAccr',
+(-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100))/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS')))		'OrigPurchInt',
+interest_settled(t)<=0.00 ? (-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100))/nominal_amount(t)*(to_double(add_info(t,'FIFO_POS'))) : '0.00'	'CurrPurchInt',
+mtm_price(i)									'MtM_price',
+clean_from_yield(i,today,,,mtm_price(i))	'CleanMtMPrice',
+to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,today,,,mtm_price(i))/100			'CleanMtMValue',
+(to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,today,,,mtm_price(i))/100)-(to_double(add_info(t,'FIFO_POS'))*clean_from_yield(i,t.value_day,,,t.price)/100)	'UnRealMtm',
+t.premium/nominal_amount(t)*(nominal_amount(t)-to_double(add_info(t,'FIFO_POS')))											'RealPremium',
+((to_double(add_info(t,'FIFO_POS')))-Nominal_amount(t))*clean_from_yield(i,t.value_day,,,t.price)/100									'RealClean'
+from	
+trade		t,
+instrument	i
+
+where
+	i.insaddr=t.insaddr
+and	match_filter(t,@Portfolio{;tradefilter.fltid},@TradeNumber{})
+and	add_info(t,'FIFO_POS') ~= '0.0'
+

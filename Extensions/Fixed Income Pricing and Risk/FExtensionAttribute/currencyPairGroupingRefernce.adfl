@@ -1,0 +1,8 @@
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:currencyPairGroupingRefernce = select(parent, 
+  nil->nil, 
+  default->parentCurrencyPairGroupingReference);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:currencyPairGroupingRefernce = select(groupingReference, 
+  nil->parentCurrencyPairGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCurrencyPair"), 
+    true->groupingReference:weakerCurrency, 
+    false->parentCurrencyPairGroupingReference));

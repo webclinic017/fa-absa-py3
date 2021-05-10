@@ -1,0 +1,9 @@
+[Default]FInstrument:spotPriceAsUnderlying = select(hasMappedUnderlyingFuture, 
+  true->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = startValueForForwardValueCalculation, priceSource, doSplitAll], 
+  false->select(isPerUnitQuoted, 
+    true->object.UnitValueToUnitQuote(theoreticalInstrumentValueAtSpotInCalculationCurrency, valuationDate, nominalFactor), 
+    false->select(isCouponQuoted, 
+      true->timesHundred(parRate), 
+      false->select(isCallableCashFlowInstrument and not includeCallablePartInUnderlying, 
+        true->collapse(theoreticalLegComponentsSpotPriceAsUnderlying), 
+        false->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = theoreticalInstrumentValueAtSpotInCalculationCurrency, priceSource, doSplitAll]))));

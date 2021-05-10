@@ -1,0 +1,5 @@
+#grouping: default/market making
+
+[Equity Market Making]FQuoteController:qPriority = select(instrument.IsKindOf("FOption"), 
+  true->abs(qPriceDelta) * qPriorityTick / qPrioritySpread, 
+  false->qPriorityManual);

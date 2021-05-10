@@ -1,0 +1,5 @@
+[ABSA Accounting 4.3]FCashFlow:referenceRateAccrued = object :* "referenceRateInterest" [periodFromDate = max(object.StartDate, periodFromDate), periodToDate];
+[ABSA Accounting 4.3]FInstrument:referenceRateAccrued = firstLeg :* "referenceRateAccrued" [periodFromDate, periodToDate];
+[ABSA Accounting 4.3]FInstrumentAndTrades:referenceRateAccrued = sumOf((children) :* "referenceRateAccrued");
+[ABSA Accounting 4.3]FLeg:referenceRateAccrued = stripDateTimePart((currentCashFlowPL) :* "referenceRateAccrued" [periodFromDate, periodToDate]);
+[ABSA Accounting 4.3]FTradeRow:referenceRateAccrued = convertToCurrency((instrument :* "referenceRateAccrued" [periodFromDate = trade:pLStartDateAccounting, periodToDate = instrument:pLEndDateAccruedAccounting]) * trade.Quantity, collapse(profitAndLossLiveInterestFXRates), displayCurrencySymbol, filterUnit);

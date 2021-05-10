@@ -1,0 +1,8 @@
+[Prime Services]FInstrumentAndTrades:dateRangeEquityBrokerage = sumOf(children :* "dateRangeEquityBrokerage" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FSingleInstrumentAndTrades:dateRangeEquityBrokerage = sumOf(tradesInPosition :* "dateRangeEquityBrokerage" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FTrade:dateRangeEquityBrokerage = switch(isFundingPortfolio, 
+  true->switch(fundingPortfolioType, 
+    "General"->py("PS_TradeFees", context).ReturnFee([object], "Brokerage Vatable", profitAndLossStartDate, profitAndLossEndDate), 
+    default->0), 
+  false->0);
+[Prime Services]FTradeRow:dateRangeEquityBrokerage = trade :* "dateRangeEquityBrokerage" [profitAndLossStartDate, profitAndLossEndDate];

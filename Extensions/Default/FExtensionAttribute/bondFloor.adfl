@@ -1,0 +1,7 @@
+[Default]FCashFlowInstrument:bondFloor = max(bondOnlyValue, bondFloorToPut);
+[Default]FInstrument:bondFloor = nil;
+[Default]FInstrumentAndTrades:bondFloor = openInstrumentOrInstrument :* "bondFloor" [priceSource, filterCurrency];
+[Default]FMultiInstrumentAndTrades:bondFloor = nil;
+[Default]FOrderBook:bondFloor = instrument :* "bondFloor" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Default]FPriceAggregate:bondFloor = priceFeed:bondFloor [priceSource];
+[Default]FPriceFeed:bondFloor = instrument :* "bondFloor" [priceSource, quotation] * fxInstrumentToPriceFeed;

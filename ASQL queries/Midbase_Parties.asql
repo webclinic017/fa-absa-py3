@@ -1,0 +1,45 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Midbase_Parties') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Midbase_Parties' and p.type = 'SQL Query' 
+
+
+/* This extract supplies data to the Midbase scheduled job: Atlas_Balance_report
+   Step 2. This is to replace the current linked server SQL job that is not sufficient.*/
+
+SELECT distinct 
+	p.ptyid,
+	p.ptynbr 'CODE',
+	ael_i(,'SAGEN_str_functions.getPartyENUM', p.ptyid) 'type',
+	fullname 'DESCRIPTION',
+	parent_ptynbr,
+	fullname2,
+	attention,
+	address,
+	address2,
+	zipcode,
+	city,
+	country,
+	telephone,
+	fax,
+	contact1,
+	bis_status,
+	relation_chlnbr,
+	legal_form_chlnbr,
+	document_type_chlnbr,
+	p.document_date = 0 ? '0000-01-01' : p.document_date  'document_date' ,
+	rating_agency_chlnbr,
+	rating_chlnbr,
+	p.rating_date = 0 ? '0000-01-01' : p.rating_date  'rating_date' ,
+	user_rating_chlnbr,
+	hostid,
+	ptyid2,
+	risk_country_chlnbr,
+	issuer                     
+FROM 
+	party p
+WHERE 
+	p.type ~= 'None'
+order by p.ptyid

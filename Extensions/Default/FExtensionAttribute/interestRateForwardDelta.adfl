@@ -1,0 +1,3 @@
+[Default]FInstrumentAndTrades:interestRateForwardDelta = shunt((timeBucketsSetExternally <> nil) and (interestRateForwardDeltaSingleCurrency <> nil), 
+  true->differential(shift(object:theoreticalValue [filterUnit := nil, displayCurrency], snoop(object:theoreticalValue [filterUnit := nil, displayCurrency], yieldCurveRiskFactorNames, ^interestRateForwardDeltaCurrencyFilter), shiftCurveForwardBuckets interestRateForwardDeltaParams), object:theoreticalValue [filterUnit := nil, displayCurrency], abs(fixedYieldShift) / 0.01), 
+  false->timeBucketsSetExternallyNilVector);

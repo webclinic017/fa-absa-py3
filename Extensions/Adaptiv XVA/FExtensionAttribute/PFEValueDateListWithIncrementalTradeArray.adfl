@@ -1,0 +1,10 @@
+[Adaptiv XVA]FCreditBalance:PFEValueDateListWithIncrementalTradeArray = scenarioaxis(PFEValueDateList, <["incrementalTrdsList"], , , incTrds>, <"includeAllTrades", , , true>);
+[Adaptiv XVA]FInstrumentAndTrades:PFEValueDateListWithIncrementalTradeArray = select(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:PFEValueDateListWithIncrementalTradeArray [incTrds := incrementalTrdsList]);
+[Adaptiv XVA]FMultiInstrumentAndTrades:PFEValueDateListWithIncrementalTradeArray = flattenAndRemoveNil(select(matchingCreditBalanceInstruments.Size == 1, 
+  false->nil, 
+  true->matchingCreditBalanceInstruments :* "PFEValueDateListWithIncrementalTradeArray" [incTrds := incrementalTrdsList]));
+[Adaptiv XVA]FSingleInstrumentAndTrades:PFEValueDateListWithIncrementalTradeArray = select(matchingCreditBalanceInstrument == nil, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:PFEValueDateListWithIncrementalTradeArray [incTrds := incrementalTrdsList]);

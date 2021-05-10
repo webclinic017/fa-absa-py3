@@ -1,0 +1,17 @@
+[Prime Services]FCashFlow:unsettledFees = select(object.Leg.CategoryChlItem, 
+  "Fee"->select((object.StartDate <= profitAndLossEndDate) and (object.PayDate > profitAndLossEndDate), 
+    true->object.FixedAmount, 
+    default->0.0), 
+  default->0.0);
+[Prime Services]FInstrumentAndTrades:unsettledFees = emptyListToZero(sumOf((tradesInPosition.Filter(voidFilter)) :* "unsettledFees" [profitAndLossEndDate]));
+[Prime Services]FLeg:unsettledFees = emptyListToZero(sumOf((object.CashFlows) :* "unsettledFees" [profitAndLossEndDate]));
+[Prime Services]FLegAndTrades:unsettledFees = emptyListToZero(sumOf((leg.CashFlows) :* "unsettledFees" [profitAndLossEndDate]));
+[Prime Services]FMultiInstrumentAndTrades:unsettledFees = emptyListToZero(sumOf(children :* "unsettledFees" [profitAndLossEndDate]));
+[Prime Services]FPayment:unsettledFees = select(object.Type, 
+  "Broker Fee"->select((object.ValidFrom <= profitAndLossEndDate) and (object.PayDay > profitAndLossEndDate), 
+    true->object.Amount, 
+    default->0.0), 
+  default->0.0);
+[Prime Services]FTrade:unsettledFees = select(object.Instrument.InsType, 
+  "Portfolio Swap"->-object.Quantity * emptyListToZero(sumOf(instrument:legs :* "unsettledFees" [profitAndLossEndDate])), 
+  default->emptyListToZero(sumOf((object.Payments) :* "unsettledFees" [profitAndLossEndDate])));

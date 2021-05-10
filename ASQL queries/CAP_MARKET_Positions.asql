@@ -1,0 +1,406 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP_MARKET_Positions') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP_MARKET_Positions' and p.type = 'SQL Query' 
+ 
+  
+/*
+Description
+
+bonds and repos settlement positions per portfolio per bond
+
+Date:                   2010-01-27, 2010-07-05, 2011-02-03, 2011-06-21, 2011-07-14
+Purpose:                Moved portfolios Portfolio Managers and PM Loans Waste to ptyid list for Grouping SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios
+                        Moved portfolios Abacas_S1_CP and Abacas_S2_CP to SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios
+                        Excluded portflios Africa_Bonds and GT Sub Debt from query
+                        Moved portfolio GT Simulated Senior Debt to ptyid list for Grouping SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios.
+                        Renamed portfolio 9803AFS to 9803AFS OUTRIGHT.
+                        Added Security Loan under portfolios: 'SBL SNP Bond Collateral Loans' and 'SBL_MAPPS_Bonds'
+                        Added logic to test the portolio on the trade - This uses an AEL called CAP_MARKET_Portfolios and a filter CAP_MARKET_Portfolio
+                        ABITFA1456 - Added Security Loan under portfolios: 'Prime optimize' and 'SBL_Complex FICC Structured Bond Loans'
+Department and Desk:    PCG FI, PCG FI, PCG FI, Ops, Ops
+Requester:              Mthetho Mhlafu, Sipho Ndlalane, Sipho Ndlalane, Sipho Ndlalane, Sipho Ndlalane
+Developer:              Heinrich Cronje, Ickin Vural, Jaysen Naicker, Heinrich Cronje, Willie van der Bank,Tshepo Mabena, Douglas Finkel,Tshepo Mabena, Aaeda Salejee
+CR Number:              212408, 362436, 563668, 691103, 713291,780642,835961,168798,[C407945(2012-08-23)]
+*/
+ 
+
+select
+    ael_s(p,'CAP_MARKET_Portfolios.ValidPortfolio') ? 'SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios': 'All other Portfolios'	'Grouping',
+    @Day{Today} 'Day',
+    t.trdnbr,
+    t.status,
+    i.instype = 'Bond' ? 'Bond' : i.instype  'Type',
+    i.insid,
+    i.start_day,
+    i.exp_day,
+    t.quantity*1000000'Nominal',
+    p.prfid,
+    party.ptyid'CP'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party
+where
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    /* Remove CM Script Lending portfolio, Louw Harmse 11 Apr 08*/
+    /*and p.prfid ~= 'Capital Market Script Lending'*/
+    and p.prfid not in ('Capital Market Script Lending', 'Africa_Bonds', 'GT Sub Debt')
+    and t.counterparty_ptynbr = party.ptynbr
+    and (i.instype in ('Bond','IndexLinkedBond')
+    or (i.instype in ('Bill','Deposit') and add_info(t, 'MM_Instype') = 'Comm Paper'))
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+
+order by /*i.instype,*/ i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+select
+    ael_s(p,'CAP_MARKET_Portfolios.ValidPortfolio') ? 'SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios': 'All other Portfolios'	'Grouping',
+    @Day{Today} 'Day',
+    t.trdnbr,
+    t.status,
+    i.instype = 'Bond' ? 'Bond' : i.instype  'Type',
+    ui.insid,
+    ui.start_day,
+    ui.exp_day,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value) * t.quantity 'Nominal',
+    p.prfid,
+    party.ptyid'CP'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui
+where
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    /*and p.prfid ~= 'Capital Market Script Lending'*/
+    and p.prfid not in ('Capital Market Script Lending', 'Africa_Bonds', 'GT Sub Debt')
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.und_insaddr = ui.insaddr
+    and i.instype in ('BuySellback','Repo/Reverse')
+    and ui.instype in  ('Bond','IndexLinkedBond')
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and @IncludeBSB{Yes;'Yes','No'} = 'Yes'
+
+order by /*i.instype,*/ ui.insid
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+select
+    ael_s(p,'CAP_MARKET_Portfolios.ValidPortfolio') ? 'SF Carries&Repos,SPV,ABS2,9803,GT Senior Debt Portfolios': 'All other Portfolios'	'Grouping',
+    @Day{Today} 'Day',
+    t.trdnbr,
+    t.status,
+    i.instype = 'Bond' ? 'Bond' : i.instype  'Type',
+    ui.insid,
+    ui.start_day,
+    ui.exp_day,
+    (i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1)'Nominal',
+    p.prfid,
+    party.ptyid'CP'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui
+where
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    /*and p.prfid ~= 'Capital Market Script Lending'*/
+    and p.prfid not in ('Capital Market Script Lending', 'Africa_Bonds', 'GT Sub Debt')
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.und_insaddr = ui.insaddr
+    and i.instype in ('BuySellback','Repo/Reverse')
+    and ui.instype in  ('Bond','IndexLinkedBond')
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day = @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    and @IncludeBSB{Yes;'Yes','No'} = 'Yes'
+
+order by /*i.instype,*/ ui.insid
+
+/*------ Security Loan -------*/
+/*------ CASH1 -------*/
+select
+    'All other Portfolios'	'Grouping',
+    @Day{Today}     'Day',
+    t.trdnbr,
+    t.status,
+    i.instype = 'SecurityLoan' ? 'SecurityLoan' : i.instype  'Type',
+    ui.insid,
+    ui.start_day,
+    ui.exp_day,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr)       'Nominal',
+    p.prfid,
+    party.ptyid    'CP'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui
+where
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and p.prfid in ('SBL SNP Bond Collateral Loans','SBL_MAPPS_Bonds','DERV3','Portfolio Risk Management','MM Rates Trading','MONY 9802','Conduit Trading','Prime optimize','SBL Complex FICC SNP Bond Collateral Lo')
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.und_insaddr = ui.insaddr
+    and i.instype in ('SecurityLoan')
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    
+    
+order by /*i.instype,*/ ui.insid
+
+/*------ Security Loan -------*/
+/*------ CASH2 -------*/
+select
+    'All other Portfolios'	'Grouping',
+    @Day{Today}     'Day',
+    t.trdnbr,
+    t.status,
+    i.instype = 'SecurityLoan' ? 'SecurityLoan' : i.instype  'Type',
+    ui.insid,
+    ui.start_day,
+    ui.exp_day,
+    ael_f(,'SAGEN_IT_Functions.getFaceValue',t.trdnbr)*(-1)       'Nominal',
+    p.prfid,
+    party.ptyid    'CP'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    portfolio p,
+    party party,
+    instrument ui
+where
+        i.insaddr = t.insaddr
+    and t.prfnbr = p.prfnbr
+    and p.prfid in ('SBL SNP Bond Collateral Loans','SBL_MAPPS_Bonds','DERV3','Portfolio Risk Management','MM Rates Trading','MONY 9802','Conduit Trading','Prime optimize','SBL Complex FICC SNP Bond Collateral Lo')
+    and t.counterparty_ptynbr = party.ptynbr
+    and i.und_insaddr = ui.insaddr
+    and i.instype in ('SecurityLoan')
+    and i.open_end ~= 'Open End'
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and i.exp_day >= @Day{Today}
+    and t.value_day =< @Day{Today}
+    and time_to_day(t.time) <= @Day{Today}
+    
+    
+order by /*i.instype,*/ ui.insid
+
+/* -------------- all trades ---------------*/
+select
+    t.Grouping 	'Grouping',
+    t.cp 'Day',
+    t.type  'Type',
+    t.insid,
+    to_string(t.trdnbr) 'start_day',
+    t.exp_day,
+    t.Nominal'Nominal',
+    t.prfid
+into
+    trades
+from 
+    temp t
+    
+order by t.insid,t.prfid
+
+/*------- Security Loan ---------------*/
+select
+    t.Grouping	 'Grouping',
+    @Day{Today}  'Day',
+    t.type       'Type',
+    t.insid,
+    to_string(t.start_day) 'start_day',
+    t.exp_day,
+    sum(t.Nominal)         'Nominal',
+    t.prfid
+into
+    SecurityLoan
+from 
+    temp t
+where
+    t.type in ('SecurityLoan')    
+
+group by t.type,t.prfid,t.insid
+order by t.insid,t.prfid
+
+/*----place bonds per type per portfolio into bondport---------*/
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    t.type 'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid
+into
+    bondtypeport
+from 
+    temp t
+
+group by t.type,t.prfid,t.insid
+order by t.insid,t.prfid
+
+/*----place bonds per portfolio into bondport---------*/
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    ''  'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid
+into
+    bondport
+from 
+    temp t
+
+group by t.prfid,t.insid
+order by t.insid,t.prfid
+
+/*----place bonds into  bonds---------*/
+select
+    t.Grouping	'Grouping',
+    @Day{Today} 'Day',
+    ''  'Type',
+    t.insid,
+    to_string(t.start_day)'start_day',
+    t.exp_day,
+    sum(t.Nominal)'Nominal',
+    t.prfid
+into
+    bonds
+from 
+    temp t
+
+group by t.Grouping,t.insid 
+order by t.Grouping,t.insid,t.prfid
+
+/*--select from trades,bondtypeport bondport and bonds-----------*/
+select
+    @Day{Today} 'Position as at',
+    t.Grouping	'Grouping',
+    'Per Trade' 'Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    t.type  'Type' ,
+    t.Nominal,
+    t.prfid 'Portfolio'
+from 
+    trades t
+where
+        (round(t.Nominal)>0 or round(t.Nominal)<-0)
+    and @ShowDetailPerTrade{No;'Yes','No'} = 'Yes'
+
+order by t.Grouping,t.insid ,t.prfid,t.Type
+
+union 
+
+select
+    @Day{Today} 'Position as at',
+    t.Grouping	'Grouping',
+    'Per Type&Portfolio''Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    t.type  'Type' ,
+    t.Nominal,
+    t.prfid 'Portfolio'
+from 
+    bondtypeport t
+where
+        (round(t.Nominal)>0 or round(t.Nominal)<-0)
+    and @SplitSpotBSB{No;'Yes','No'} = 'Yes'
+
+group by t.Grouping,t.insid ,t.Type,t.prfid
+order by t.Grouping,t.insid ,t.prfid,t.Type
+
+union
+
+select
+    @Day{Today} 'Position as at',
+    t.Grouping	'Grouping',
+    'Per Portfolio''Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    '' 'Type',
+    t.Nominal,
+    t.prfid 'Portfolio'
+from 
+    bondport t
+where
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+    and @IncludeDetailPerPortfolio{No;'Yes','No'} = 'Yes'
+
+group by t.Grouping,t.insid ,t.prfid
+
+union
+
+select
+    @Day{Today} 'Position as at',
+    t.Grouping	'Grouping',
+    'Total' 'Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    '' 'Type',
+    t.Nominal,
+    '' 'Portfolio'
+from 
+    bonds t,
+    SecurityLoan sl
+where 
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+     and sl.Grouping = t.Grouping
+     
+group by t.Grouping, t.insid 
+
+union
+
+select
+    @Day{Today} 'Position as at',
+    t.Grouping	'Grouping',
+    'Total' 'Report Section',
+    t.insid 'Instrument',
+    t.start_day  'Instrument Start',
+    t.exp_day 'Instrument Expiry',
+    '' 'Type',
+    t.Nominal,
+    '' 'Portfolio'
+from 
+    bonds t
+where 
+    (round(t.Nominal)>0 or round(t.Nominal)<-0)
+    and t.Grouping not in ('All other Portfolios')
+
+     
+group by t.Grouping, t.insid 

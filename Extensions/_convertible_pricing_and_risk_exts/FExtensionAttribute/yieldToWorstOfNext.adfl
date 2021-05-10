@@ -1,0 +1,9 @@
+[_convertible_pricing_and_risk_exts]FInstrument:yieldToWorstOfNext = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->minOf(flattenAndRemoveNil([marketYieldToNextPut, marketYieldToNextCall, marketYieldToMaturity]))), 
+  false->nil);
+[_convertible_pricing_and_risk_exts]FInstrumentAndTrades:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";
+[_convertible_pricing_and_risk_exts]FMultiInstrumentAndTrades:yieldToWorstOfNext = nil;
+[_convertible_pricing_and_risk_exts]FOrderBook:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";
+[_convertible_pricing_and_risk_exts]FPriceFeed:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";

@@ -1,0 +1,15 @@
+[Securities Lending ABSA]FCertificateOfDeposit:sobRegulatoryNotional = denominatedvalue(singleTradePosition.Quantity, symbol(currency), , );
+[Securities Lending ABSA]FDeposit:sobRegulatoryNotional = regulatoryNotional;
+[Securities Lending ABSA]FETF:sobRegulatoryNotional = denominatedvalue(object.UsedPrice(currency.Calendar.AdjustBankingDays(valuationDate, -1), currency, "SPOT") * quotationFactor * singleTradePosition.Quantity, currency, , );
+[Securities Lending ABSA]FInstrument:sobRegulatoryNotional = markToMarketPriceYesterday * quotationFactor * singleTradePosition.Quantity;
+[Securities Lending ABSA]FSecurityLoan:sobRegulatoryNotional = select(underlyingType, 
+  "Bond"->denominatedvalue(sl_quantity * py("sl_all_in_price", context).sl_all_in_price(underlying, dateAddDelta(valuationDate, 0, 0, -1)), symbol(currency), , ), 
+  "IndexLinkedBond"->denominatedvalue(sl_quantity * py("sl_all_in_price", context).sl_all_in_price(underlying, dateAddDelta(valuationDate, 0, 0, -1)), symbol(currency), , ), 
+  "FRN"->denominatedvalue(sl_quantity * py("sl_all_in_price", context).sl_all_in_price(underlying, dateAddDelta(valuationDate, 0, 0, -1)), symbol(currency), , ), 
+  "ETF"->denominatedvalue(underlying.UsedPrice(underlyingCurrency.Calendar.AdjustBankingDays(valuationDate, -1), underlyingCurrency, "SPOT") * underlying:quotationFactor * singleTradePosition.Quantity * object.RefValue, underlyingCurrency, , ), 
+  default->underlying:markToMarketPriceYesterday * underlying:quotationFactor * singleTradePosition.Quantity * object.RefValue);
+[Securities Lending ABSA]FTrade:sobRegulatoryNotional = shunt((instrument:isExpiredFullDay) or (status == "Void") or (status == "Terminated"), 
+  true->denominatedvalue(0, symbol(accountingCurrency), , ), 
+  default->select(slIsCollateral or (instrument.InsType == "SecurityLoan"), 
+    true->instrument:sobRegulatoryNotional [singleTradePosition = object, includeAllTrades = true, profitAndLossEndFXRates], 
+    default->denominatedvalue(0, symbol(accountingCurrency), , )));

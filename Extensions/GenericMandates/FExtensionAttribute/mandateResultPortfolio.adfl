@@ -1,0 +1,7 @@
+[GenericMandates]FInstrumentAndTrades:mandateResultPortfolio = 
+# Check if the parent passes the mandate
+switch(minOf(children :* "mandateResultPortfolio"), 
+  1->1, 
+  default->0);
+[GenericMandates]FTrade:mandateResultPortfolio = mandateAllowedMap.At(mandateDisplayPortfolio.AsString);
+[GenericMandates]FTradeRow:mandateResultPortfolio = trade:mandateResultPortfolio;

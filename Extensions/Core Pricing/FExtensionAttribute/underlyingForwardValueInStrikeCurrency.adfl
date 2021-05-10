@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:underlyingForwardValueInStrikeCurrency = select(forwardValueProviderTargetInTheoreticalPrice, 
+  nil->nil, 
+  default->select(forwardValuationDateInTheoreticalPrice, 
+    nil->nil, 
+    default->select(useUnderlyingFutureProvider, 
+      true->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, underlyingForUnderlyingForwardPriceInTheoreticalPriceCurrency) * underlyingForwardPriceFxConversion, 
+      false->ProviderValue(forwardValueProviderTargetInTheoreticalPrice, forwardValuationDateInTheoreticalPrice, calculationCurrency))));

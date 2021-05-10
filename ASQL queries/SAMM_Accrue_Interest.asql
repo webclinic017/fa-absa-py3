@@ -1,0 +1,339 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Accrue_Interest') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Accrue_Interest' and p.type = 'SQL Query' 
+/*
+Description
+-----------
+This report shows the Interest Accrued and Settled for the Period specified.
+
+
+
+Macros:
+-------
+1_Filter 		: Tradefilter
+2_TrdNbrs  		: List Trade Numbers instead of Filter
+3_Curr			: Only interest in this currency will be included
+4_StartDate		: Date1 (Incl).  To run report since inception, make StartDate = "smalldate"
+5_EndDate		: Date2 (Excl)
+6_YearEnd		: Date3 (Excl)
+7_ShowTOTALDESK		: Show Total by Desk
+8_ShowTOTALPortfolio	: Show Total by Portfolio
+9_ShowTOTALCpty		: Show Total by Desk, Portfolio and Cpty
+10_ShowDetails		: Show Details of all trades (no totals)
+
+
+
+Rows:
+-----
+Total by Desk: Totals all Trades by Desk / Acquirer
+Total by Portfolio: Totals by portfolio name
+Total by Cpty : Totals by Desk, Portfolio and Cpty
+Details:  Shows all trade details
+
+Columns:
+--------
+Section		: Section Name
+TrdNbr		: Trade Number
+Desk		: Acquirer
+Product		: Product
+Portfolio	: Physical Portfolio
+Cpty		: Counterparty to the Trade
+Insid		: Instrument ID
+Curr		: Interest Currency
+Nominal		: Nominal Amount of Leg	as at EndDate
+Premium		: Consideration of trade
+Discount Rate	: Trade price expressed in discount
+Discount	: Nominal-Premium
+DailyDisc	: Discount of product/tenor 
+PeriodDisc	: Discount of product/tenor * Period given by Report Start and Report End Dates(exclusive)
+AccruedDisc	: Discount of product/tenor * Period given by Report Start and Instrument End Dates(exclusive)
+WrittenoffDisc	: Discount of product/tenor * Period given by Instrument Start and Report End Dates(exclusive) accounts for instruments started within Reporting period
+SettledDisc	: For matured Products nominal+premium
+YTD		: Interest Settled for the current Financial Year ie from 31/03/2003 (this data set is incorrect as data takeon is effective 01/09/2003)
+Tenor		: Period of Product
+Instr_StartDate	: Start Date of Instrument
+Instr_MatDate	: Maturity Date of Instrument.  For call deposits this is equal to the END DATE
+Status		: Trade Status
+StartDate	: Report StartDate
+EndDate		: Report EndDate
+
+
+
+ 
+*/
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT distinct
+	@3_Curr{ZAR;instrument.insid where instype = 'Curr'}	'Curr',
+	@ReportCurr{ZAR;instrument.insid where instype='Curr'}	'Hcur',
+	@4_StartDate{yesterday}			'd0',
+	@5_EndDate{today}			'd1',
+	@6_YearEnd{}				'd2',
+	@7_ShowTOTALDESK{Yes;'Yes','No'}			'TOTALDESK',
+	@8_ShowTOTALPortfolio{Yes;'Yes','No'}			'TOTALPortfolio',
+	@9_ShowTOTALCpty{Yes;'Yes','No'}			'TOTALCpty',
+	@10_ShowDetails{Yes;'Yes','No'}				'det'
+
+	
+INTO
+	macros
+FROM
+	serverdata s
+  
+WHERE
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.d1= today ? used_price(hc, m.d1, curr.insid) : mtm_price(hc, m.d1, curr.insid)				'fx0'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+
+/*----------------------------------------------------
+	Interest Accrual for Bills, Zeros
+	Manual Calc
+----------------------------------------------------*/
+
+select
+	
+        t.trdnbr				'TrdNbr',
+	display_id(t,'acquirer_ptynbr')  	'Desk',
+	add_info(t,'MM_Instype')='' ? i.instype : add_info(t,'MM_Instype') 'Product',
+	display_id(t,'prfnbr')			'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+        i.insid					'Insid',
+	m.curr					'Curr',
+	i.exp_day < m.d1 ? 0.0 : t.quantity*i.contr_size 'Nominal',
+	i.exp_day < m.d1 ? 0.0 : t.premium	'Premium',
+	i.exp_day < m.d1 ? 0.0 : t.price	'DiscountRate',
+	i.exp_day < m.d1 ? 0.0 : days_between(m.d1, i.exp_day, 'Act/365')			'RemTenor',
+	i.exp_day < m.d1 ? 0.0 : (t.value_day > l.start_day ? days_between(t.value_day, i.exp_day, 'Act/365') : days_between(l.start_day, i.exp_day, 'Act/365'))			'Tenor',
+	i.exp_day < m.d1 ? 0.0 : ((t.quantity*i.contr_size)+t.premium) 'Discount',
+	i.exp_day < m.d1 ? 0.0 : (t.quantity*i.contr_size+t.premium)/(t.value_day > l.start_day ? days_between(t.value_day, i.exp_day, 'Act/365') : days_between(l.start_day, i.exp_day, 'Act/365')) 'DailyDisc',
+	(t.quantity*i.contr_size+t.premium)/days_between(t.value_day, i.exp_day, 'Act/365') *(i.exp_day < m.d0 ? 0.0 :(days_between((t.value_day > m.d0 ? t.value_day : m.d0),(i.exp_day < m.d1 ? i.exp_day : m.d1), 'Act/365')))  'PeriodDisc',
+	(t.quantity*i.contr_size+t.premium)/(t.value_day > l.start_day ? days_between(t.value_day, i.exp_day, 'Act/365') : days_between(l.start_day, i.exp_day, 'Act/365'))*(days_between((i.exp_day < m.d1 ? i.exp_day : m.d1), i.exp_day, 'Act/365'))  'AccruedDisc',
+	((t.quantity*i.contr_size)+t.premium)-(t.quantity*i.contr_size+t.premium)/(t.value_day > l.start_day ? days_between(t.value_day, i.exp_day, 'Act/365') : days_between(l.start_day, i.exp_day, 'Act/365'))*(days_between((i.exp_day < m.d1 ? i.exp_day : m.d1), i.exp_day, 'Act/365')) 'WrittenoffDisc',
+	i.exp_day <= TODAY ? ((t.quantity*i.contr_size)+t.premium) : 0.0	'SettledDisc',
+	(t.quantity*i.contr_size+t.premium)/days_between(t.value_day, i.exp_day, 'Act/365')*(days_between((t.value_day > m.d2 ? t.value_day : m.d2),(i.exp_day < m.d1 ? i.exp_day : m.d1), 'Act/365'))  'YTD',	
+	t.value_day > l.start_day ? t.value_day : l.start_day		'start_day', 
+	present_value(t) 'Market_Value',
+	l.type = 'Call Float' ? m.d1 : l.end_day  'end_day',
+	t.status,
+	m.d0  'StartDate',
+	m.d1  'EndDate',
+	fx.fx0,
+	i.exp_day
+into 
+temp
+
+from
+        instrument i,
+	instrument curr,
+        trade t,
+        leg l,
+	macros m,
+	fxrates fx
+
+where
+        i.insaddr = t.insaddr
+and     l.insaddr = i.insaddr
+and	currency_included(l,m.curr) = 1
+and 	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+and	time_to_day(t.time) < m.d1
+and	i.exp_day > m.d2
+/*and	years_remaining(t,m.d1) > 0.0*/
+and 	i.instype in ('Bill','Zero','Deposit')
+and	t.value_day ~= i.exp_day
+AND 	curr.instype = 'Curr'
+AND 	currency_included(t, curr.insid) = 1
+AND 	fx.curr = curr.insid
+
+group by t.trdnbr
+
+
+
+/****************************************************************************
+	FINAL DISPLAY
+**************************************************************************/
+
+select
+'Total By Desk'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+(sum(t.Nominal * t.DiscountRate) / sum(t.Nominal)) 'WADRate',
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+(sum(t.Nominal  * t.RemTenor) / sum(t.Nominal)) 'Rem Tenor',
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+sum(t.SettledDisc) 'SettledDisc',
+sum(t.YTD) 'YTD',
+sum(t.Market_Value) 'MarketValue',
+t.status,
+t.StartDate,
+t.EndDate
+
+from
+temp t,
+macros m
+
+where
+m.TOTALDESK in ('Yes','YES','yes','Y','y')
+
+Group by t.Desk
+
+union
+
+select
+'Total By Portfolio'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+(sum(t.Nominal * t.DiscountRate) / sum(t.Nominal)) 'WADRate',
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+(sum(t.Nominal  * t.RemTenor) / sum(t.Nominal)) 'Rem Tenor',
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+sum(t.SettledDisc) 'SettledDisc',
+sum(t.YTD) 'YTD',
+sum(t.Market_Value) 'MarketValue',
+t.status,
+t.StartDate,
+t.EndDate
+
+from
+temp t,
+macros m
+
+where
+m.TOTALPortfolio in ('Yes','YES','yes','Y','y')
+
+Group by t.Portfolio
+
+union
+
+select
+'Total By Product'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+(sum(t.Nominal * t.DiscountRate) / sum(t.Nominal)) 'WADRate',
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+(sum(t.Nominal  * t.RemTenor) / sum(t.Nominal)) 'Rem Tenor',
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+sum(t.SettledDisc) 'SettledDisc',
+sum(t.YTD) 'YTD',
+sum(t.Market_Value) 'MarketValue',
+t.status,
+t.StartDate,
+t.EndDate
+
+
+from
+temp t,
+macros m
+
+where
+m.TOTALCpty in ('Yes','YES','yes','Y','y')
+
+Group by t.Portfolio,t.Product
+
+union
+
+select
+'Details'  'Section',
+t.TrdNbr,
+t.Desk,
+t.Product,
+t.Portfolio,
+t.Cpty,
+t.Insid,
+t.Curr,
+sum(t.Nominal)  'Nominal',
+sum(t.Premium) 'Premium',
+t.DiscountRate,
+(sum(t.Nominal * t.DiscountRate) / sum(t.Nominal)) 'WADRate',
+t.start_day  'Instr_StartDate',
+t.end_day 'Instr_MatDate',
+t.Tenor,
+t.exp_day < TODAY ? 0 : (sum(t.Nominal  * t.RemTenor) / sum(t.Nominal)) 'Rem Tenor',
+sum(t.Discount) 'Discount',
+sum(t.DailyDisc) 'DailyDisc',
+sum(t.PeriodDisc) 'PeriodDisc',
+sum(t.AccruedDisc) 'AccruedDisc',
+sum(t.WrittenoffDisc) 'WrittenoffDisc',
+sum(t.SettledDisc) 'SettledDisc',
+sum(t.YTD) 'YTD',
+t.Market_Value  'MarketValue',
+t.status,
+t.StartDate,
+t.EndDate
+
+
+from
+temp t,
+macros m
+
+where
+m.det in ('Yes','YES','yes','Y','y')
+
+  

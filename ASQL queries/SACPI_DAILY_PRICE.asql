@@ -1,0 +1,17 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACPI_DAILY_PRICE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACPI_DAILY_PRICE' and p.type = 'SQL Query' 
+
+
+/*-----------------------------------------
+	Add Daily SACPI Price	
+-------------------------------------------*/
+select
+	ael_s(,'SACPI_Daily_Price.ADD_DAILY_PRICE')			'SACPI'
+from
+	serverdata s
+where
+	s.srdnbr > 0

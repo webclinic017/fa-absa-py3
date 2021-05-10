@@ -1,0 +1,30 @@
+/*-----------------------------------------------------------------------------
+PURPOSE                 :  Used by Trade Filter TM_9808_not_DRA1
+DEPATMENT AND DESK      :  SM PCG RATES & OPTIONS
+REQUESTER               :  Mthetho Mhlafu
+DEVELOPER               :  Francois Truter
+CR NUMBER               :  493581
+-----------------------------------------------------------------------------
+
+HISTORY
+=============================================================================
+Date       Change no Developer          Description
+-----------------------------------------------------------------------------
+           364984    Francois Truter    Initial Implementation
+2010-11-16 493581    Francois Truter    Excluded Group Treasury
+-----------------------------------------------------------------------------*/
+
+SELECT  Trade.trdnbr
+FROM    Trade,
+        Instrument,
+        Portfolio,
+        Party Counterparty
+WHERE   Trade.insaddr = Instrument.insaddr
+AND     Trade.prfnbr = Portfolio.prfnbr
+AND     Trade.counterparty_ptynbr = Counterparty.ptynbr
+AND     Portfolio.prfid = 'JOB12'
+AND     Trade.status IN ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+AND     Instrument.instype IN ('BuySellback', 'FRN', 'Repo/Reverse')
+AND     Instrument.exp_day >= '2008-12-31'
+AND     Counterparty.ptyid NOT IN ('DRA TRANSAKSIES', 'GROUP TREASURY', 'BARCLAYS BANK PLC')
+AND     (Trade.mirror_trdnbr IS NULL OR Trade.mirror_trdnbr = 0)

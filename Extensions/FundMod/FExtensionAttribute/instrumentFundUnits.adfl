@@ -1,0 +1,7 @@
+[FundMod]FFund:instrumentFundUnits = select(fundPortfolio, 
+  nil->nan, 
+  default->portfolioInstrumentAndTrades :* "fundUnits" [priceSource, isSplitAllGrouped]);
+[FundMod]FInstrument:instrumentFundUnits = nil;
+[FundMod]FInstrumentAndTrades:instrumentFundUnits = nil;
+[FundMod]FSingleInstrumentAndTrades:instrumentFundUnits = openInstrumentOrInstrument :* "collapse(instrumentFundUnits)" [priceSource, isSplitAllGrouped];
+[FundMod]FTradeRow:instrumentFundUnits = instrument:instrumentFundUnits [priceSource, isSplitAllGrouped];

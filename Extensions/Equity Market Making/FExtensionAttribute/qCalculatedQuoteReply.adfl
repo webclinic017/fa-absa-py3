@@ -1,0 +1,10 @@
+[Equity Market Making]FQuoteController:qCalculatedQuoteReply = select(qIsPriceSpecifierEnabled, 
+  true->switch(qPriceSpecifier, 
+    "Price"->qCalculatedQuoteReplyPrice, 
+    "Yield"->qCalculatedQuoteReplyYTM, 
+    "Spread"->qCalculatedQuoteReplyYTMSpread, 
+    "Ref Price"->qCalculatedQuoteReplyRefPrice, 
+    "FX Rate"->qCalculatedQuoteReplyFxRate, 
+    "Discount Margin"->qCalculatedQuoteReplyYTMDiscountMargin, 
+    default->qCalculatedQuoteReplyDefault), 
+  default->collapse(qCalculatedQuoteReplyDefault));

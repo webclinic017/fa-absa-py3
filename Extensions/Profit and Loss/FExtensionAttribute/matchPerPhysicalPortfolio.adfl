@@ -1,0 +1,10 @@
+[Profit and Loss]FObject:matchPerPhysicalPortfolio = nilObject:matchPerPhysicalPortfolio [positionObject];
+[Profit and Loss]FPosition:matchPerPhysicalPortfolio = nilObject:matchPerPhysicalPortfolio [positionObject];
+[Profit and Loss]FPositionSpecification:matchPerPhysicalPortfolio = value(hasUniquePortfolioAttribute(object));
+[Profit and Loss]FUndefinedObject:matchPerPhysicalPortfolio[positionObject] = select(positionSpecification, 
+  nil->select(portfolio, 
+    nil->true, 
+    default->select(portfolio:isPhysicalPortfolio, 
+      true->true, 
+      false->"Match Per Physical Portfolio" == tradeFilterMatchChoice)), 
+  default->positionSpecification:matchPerPhysicalPortfolio);

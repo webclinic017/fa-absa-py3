@@ -1,0 +1,26 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','GT_CPI_DailyCurve') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'GT_CPI_DailyCurve' and p.type = 'SQL Query'
+
+/* 
+    Department and Desk : PCG
+    Purpose             : To provide daily CPI curves to Group Treasury
+    Developer           : Tshepo Mabena
+    Requester           : Gregory Davis
+    CR Number           : 837641
+*/
+
+
+select
+	ael_s(,'GT_CPI_DailyCurve.ASQL')	 'OpenFile'
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 
+
+

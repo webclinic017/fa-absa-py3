@@ -1,0 +1,7 @@
+[Brokerage Risk]FInstrument:maintenanceMargins = switch(spanInstruments.HasKey(object.Oid) and maintenanceMarginInSpan, 
+  true->currencyZero, 
+  false->maintenanceMarginSimpleModel);
+[Brokerage Risk]FLegAndTrades:maintenanceMargins = nil;
+[Brokerage Risk]FMultiInstrumentAndTrades:maintenanceMargins = sumOf(openInstruments :* "collapse(maintenanceMargins)" [priceSource, valuesOnSpotOverride, positionObject]);
+[Brokerage Risk]FSingleInstrumentAndTrades:maintenanceMargins = instrument:maintenanceMargins [portfolio, priceSource, valuesOnSpotOverride, positionObject];
+[Brokerage Risk]FTradeRow:maintenanceMargins = openInstrument :* "maintenanceMargins" [priceSource, valuesOnSpotOverride, singleTradePosition, includeAllTrades];

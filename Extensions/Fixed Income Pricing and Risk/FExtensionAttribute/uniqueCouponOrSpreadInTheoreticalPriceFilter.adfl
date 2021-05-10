@@ -1,0 +1,16 @@
+[Fixed Income Pricing and Risk]FInstrument:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(isGenericCouponOrSpreadQuoted, 
+  true->[object], 
+  false->select(exerciseEvents, 
+    nil->select(isBasisSwap, 
+      true->insPayLeg, 
+      false->legs), 
+    default->flattenAndRemoveDuplicates([legs, object])));
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:uniqueCouponOrSpreadInTheoreticalPriceFilter = instrumentOrLotFromLotMap :* "collapse(uniqueCouponOrSpreadInTheoreticalPriceFilter)";
+[Fixed Income Pricing and Risk]FLeg:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(isGenericCouponOrSpreadQuoted, 
+  true->select(isFixedLeg, 
+    true->[instrument], 
+    false->[]), 
+  false->[object]);
+[Fixed Income Pricing and Risk]FTotalReturnSwap:uniqueCouponOrSpreadInTheoreticalPriceFilter = select(object.TotalReturnFundingLeg, 
+  nil->[], 
+  default->[object.TotalReturnFundingLeg]);

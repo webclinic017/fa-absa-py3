@@ -1,0 +1,4 @@
+[Treasury Pricing and Risk]FInstrumentAndTrades:fxDisplayToBase = fxDisplayToBaseFXRate :* "fxSpotRate";
+[Treasury Pricing and Risk]FTimeBucketAndObject:fxDisplayToBase = select((timeBucketShiftPeakDate < valuationSystemDate) or timeBucketIsInceptionToEndBucket, 
+  true->nil, 
+  false->fxDisplayToBaseFXRate :* "fxForwardRate" [fxForwardDate := timeBucketShiftPeakDate]);

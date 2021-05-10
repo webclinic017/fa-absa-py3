@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrument:externalLoanTradesInPosition = [];
+[Securities Lending ABSA]FInstrumentAndTrades:externalLoanTradesInPosition = flattenAndRemoveNil(tradesInPosition :* "externalLoanTradesInPosition");
+[Securities Lending ABSA]FSecurityLoan:externalLoanTradesInPosition = flattenAndRemoveNil(tradesInPosition :* "externalLoanTradesInPosition");
+[Securities Lending ABSA]FTrade:externalLoanTradesInPosition = select(sl_instype, 
+  "SecurityLoan"->select(isExternalLoan, 
+    true->object));

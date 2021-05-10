@@ -1,0 +1,5 @@
+[ABSA FX]FInstrumentAndTrades:projectedRiskflowsBaseCurrency = switch(projectedRiskflows.Unit == accountingCurrency.Name, 
+  true->convertToCurrency(projectedRiskflows, object :* "denominatedValueZeroUSDZAR", fxBaseCurrency, ), 
+  default->convertToCurrency(projectedRiskflows, object :* "profitAndLossEndFXRates" [displayCurrency = fxBaseCurrency], fxBaseCurrency, ));
+[ABSA FX]FPortfolioInstrumentAndTrades:projectedRiskflowsBaseCurrency = sumOf((object.Children) :* "projectedRiskflowsBaseCurrency");
+[ABSA FX]FTimeBucketAndObject:projectedRiskflowsBaseCurrency = convertToCurrency(projectedRiskflows, rowObject:profitAndLossEndFXRates [displayCurrency = fxBaseCurrency], fxBaseCurrency, );

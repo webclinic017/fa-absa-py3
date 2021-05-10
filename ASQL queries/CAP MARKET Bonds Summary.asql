@@ -1,0 +1,278 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CAP MARKET Bonds Summary') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET Bonds Summary' and p.type = 'SQL Query' 
+ 
+/*
+
+name = Bonds_Summary
+coded by = ap
+
+last updated = 1 april 2003
+2003-08-27 trades with acquirer = ABACAS have been excluded
+
+2004-03-01 Anil  incorporate P&L for bond positions that expire the following day
+2004-03-12 Anil  Change the BOY P&L to only reflect the Clean P&L on Not settled trades as at 31 March 2003
+		 The BOY clean P&L on settled trades have been incorporated in the aggregation where the aggregated trades yield was replaced with the mtM yield as at 31 Mar 2003	
+
+2005-05-20 Anil Adjust clean pl to discount to today
+
+2006-01-03 build NOP positions for settled bonds
+
+
+*/
+
+
+
+
+/*----------SET UP------------------*/
+select
+s.srdnbr,
+date_add_banking_day('2006-01-01',,0)'YE',
+date_add_banking_day(@upto{Today;},,3)'vdate'
+
+into
+temp
+
+from
+serverdata s
+
+
+/*----------------------------current settled bonds--------------*/
+
+select
+
+p.prfid 'port',
+display_id(i,'issuer_ptynbr')	'Issuer',
+i.extern_id1 'insid',
+
+
+sum(t.quantity*1000000)'Nominal',
+
+
+sum((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))'Capital_Value',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))'Acc_Int_MtM',
+sum(Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)'Dirty_MtM',
+
+
+sum((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+sum((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+sum(t.premium)'Consideration',
+
+sum(((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Cap_PL',
+sum((((Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))+((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Int_PL',
+sum(((Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+(t.premium))'PL',
+sum(interest_accrued(i,date_add_delta(@upto{Today;},-1),@upto{Today;})*t.quantity)				'AccInt_Today'
+
+
+into
+settled
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt/*,
+choicelist c,
+party acq*/
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+
+and i.instype in ('Bond','IndexLinkedBond')
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and p.prfid not in ('9803AFS','9803HFT','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4') 
+
+and i.exp_day >= @upto{Today;}
+and t.value_day <= @upto{Today;}
+and time_to_day(t.time) <= @upto{Today;}    /*for backdating report */
+/*and time_to_day(t.creat_time) not in  (/*'2006-08-29','2006-08-30','2006-08-31')*/
+
+
+and trdnbr ~= 831644
+
+
+
+
+
+Group by 1/*i.externid1 and then by c.entry*/
+
+/*-----------------settled bonds into summary --------------*/
+
+select
+
+t2.port,
+(0.00)'NOT_sett_pl',
+sum(t2.Cap_PL)'sett_cap_pl',
+
+sum(t2.Int_PL)'sett_int_pl',
+sum(t2.PL)'sett_pl',
+(0.00) 'BOY_pl'
+
+
+
+into summary
+
+from
+settled t2
+
+group by 1
+
+/*-------------- not settled trades allocated to temp table -------------- */
+
+select
+@upto{Today;} 'Today',
+port.prfid'Port',
+t.creat_time'DealDate',
+'YES' ? i.extern_id1 : '' 'Bond',
+'YES' ? t.trdnbr : '' 'Trdnbr',
+t.optional_key'STT_ref',
+/*party.ptyid'Ptyid',*/
+
+(t.quantity*1000000)'Nom',
+
+t.value_day'Settle',
+
+t.price'Yield_Trade',
+
+t.premium'premium',
+
+t.value_day=i.exp_day ? t.quantity*-1000000 : clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1'CleanTrade',
+
+mtm_price(i,@upto{Today;})'MtM_Yield',
+
+yc_rate(yc,@upto{Today;},t.value_day,'Simple','Act/365','Spot Rate')*100'Carry',
+
+(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,@upto{Today;}) : forward_ytm(i,t.value_day)) : mtm_price(i,@upto{Today;})) 'Implied_Yield',
+
+t.value_day=i.exp_day ? t.quantity*1000000 : ((clean_from_yield(i,t.value_day,,, mtm_price(i,@upto{Today;})))  *10000*t.quantity) 'CleanMtM',
+
+t.value_day=i.exp_day ? (t.quantity*1000000)+(t.quantity*-1000000) :
+(((clean_from_yield(i,t.value_day,,, mtm_price(i,@upto{Today;})  )*10000*t.quantity))+
+(clean_from_yield(i,t.value_day,,,t.price)*10000*t.quantity*-1))*
+(yc_rate(yc,@upto{Today;},t.value_day,'Discount','Act/365','Discount'))'Clean_PL'
+
+
+into notsettled
+
+
+
+from
+
+
+yieldcurve yc,
+instrument i,
+trade t,
+/*party party,*/
+portfolio port,
+/*choicelist c,*/ temp tt/*,
+party acq*/
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=port.prfnbr
+
+and yc.yield_curve_name='ZAR_Bond_Repo_YC'
+and i.instype in ('Bond','IndexLinkedBond')
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+and port.prfid not in ('9803AFS','9803HFT','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4') 
+
+and i.exp_day >= @upto{Today;}
+and t.value_day > @upto{Today;}
+and time_to_day(t.time)<= @upto{Today;}    /*for backdating report */
+/*and time_to_day(t.creat_time) not in  (/*'2006-08-29','2006-08-30','2006-08-31')*/
+
+
+and trdnbr ~= 831644
+
+
+
+
+
+/*------------------transfer from not settled into summary----------*/
+
+select
+t2.port,
+sum(t2.Clean_PL)'NOT_sett_pl',
+(0.00)'sett_cap_pl',
+(0.00)'sett_int_pl',
+(0.00)'sett_pl',
+(0.00) 'BOY_pl'
+
+into summary
+
+from
+notsettled t2
+
+group by 1
+/*-------------define BOY PL---------*/
+select
+p.prfid	'Port',
+(0.00) 'NOT_sett_pl',
+(0.00) 'sett_cap_pl',
+(0.00) 'sett_int_pl',
+(0.00) 'sett_pl',
+p.prfid = 'DERV' ?  /*43913.18*/  43913 : 
+p.prfid = 'DERV2' ?  /*1.70*/ 0.0  : 
+p.prfid = 'DERV3' ?  /* -7673238.90 */  -7673239 : 
+p.prfid = 'FOREX' ?    /*581592.00 */ 581592 : 
+p.prfid = 'FOREX FWD BONDS' ?     /*1912451.00*/ 1912451 : 
+p.prfid = 'FOREX SPOT BONDS' ?     /* 578147.00*/ 578148: 
+p.prfid = 'GTRA' ?      /*-1200650*/1200650 : 
+p.prfid = 'JOB1' ?    /*-22283.62*/ -22284 : 
+p.prfid = 'JOB10' ?   /* -11768.18*/-11769  : 
+p.prfid = 'JOB11' ?   /* -1060401.46 */-1020357 : 
+p.prfid = 'JOB2' ?   /*-0.10 */ 0.0: 
+p.prfid = 'JOB3' ?   /* 0.40 */0.0 : 
+p.prfid = 'JOB4' ?    /* -3549.37 */-3549 : 
+p.prfid = 'JOB5' ?    /* 0.10 */0.0 : 
+p.prfid = 'JOB6' ?    /* 0.19*/ 0.0 :  
+p.prfid = 'JOB8' ?      -1099.29  : 
+p.prfid = 'JOBX1' ?    /* -0.40*/0.0 : 
+p.prfid = 'MONY 9802' ?    /*-0.31*/0.0   : 
+0.00 'BOY_pl'
+
+into summary
+from 
+portfolio p
+where
+p.prfid in ('DERV' ,'DERV2','DERV3' ,'FOREX' ,'FOREX FWD BONDS' ,'FOREX SPOT BONDS','GTRA','JOB1', 'JOB10' , 
+'JOB11' , 'JOB2' ,'JOB3' , 'JOB4' , 'JOB5' , 'JOB6' , 'JOB8' ,'JOBX1' ,'MONY 9802' )
+
+
+select 
+@upto{Today;} 'Date',
+s.port,
+sum(s.BOY_pl)'BOY_pl',
+sum(s.NOT_sett_pl)'NOT_sett_pl',
+sum(s.sett_cap_pl)'sett_cap_pl',
+sum(s.sett_int_pl)'sett_int_pl',
+sum(s.NOT_sett_pl+s.sett_cap_pl+s.BOY_pl)'CAP_PL',
+sum(s.NOT_sett_pl+s.sett_cap_pl+s.sett_int_pl+s.BOY_pl)'PL'
+
+
+from summary s
+
+group by 2
+
+union
+
+
+select 
+@upto{Today;} 'Date',
+s.port,
+sum(s.BOY_pl),
+sum(s.NOT_sett_pl),
+sum(s.sett_cap_pl),
+sum(s.sett_int_pl),
+sum(s.NOT_sett_pl+s.sett_cap_pl+s.BOY_pl)'CAP_PL',
+sum(s.NOT_sett_pl+s.sett_cap_pl+s.sett_int_pl+s.BOY_pl)'PL'
+
+
+from summary s
+
+group by 1

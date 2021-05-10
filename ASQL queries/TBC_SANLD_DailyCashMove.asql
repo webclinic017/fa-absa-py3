@@ -1,0 +1,147 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SANLD_DailyCashMove') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SANLD_DailyCashMove' and p.type = 'SQL Query' 
+
+/*Sjane vd Straaten 2006-10-17 :  ON cash movement per currency*/
+
+select 
+	to_date(@reportdate{})	                                'repdate',
+	date_add_banking_day((to_date(@reportdate{})), , -1)    'prevrepdate'
+into
+	macro
+from
+	serverdata s
+where
+	srdnbr = 1
+ 
+select
+	/*t.trdnbr			        'Trdnbr',
+	t.optional_key              'ExternID',
+	i.instype			        'Instype',*/
+	c.insid                     'LegCurr',
+	/*i.insid				        'Insid',
+	i.exp_day	                'ExpiryDay',*/
+	mtm_price(c,m.repdate,'ZAR')         'SpotConvZAR_RepDate',
+	mtm_price(c,m.prevrepdate,'ZAR')         'SpotConvZAR_PrevRepDate',
+	mtm_price(c,m.repdate,'ZAR')-used_price(c,m.prevrepdate,'ZAR') 'SpotMove',
+    m.repdate                   'RepDate',
+	accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')		'Cash_RepDate',
+	accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')*(mtm_price(c,m.repdate,'ZAR')-mtm_price(c,m.prevrepdate,'ZAR'))  'Cash_RepDate_ZAR',
+	m.prevrepdate                   'PrevRepDate',
+	(accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')*mtm_price(c,m.repdate,'ZAR')-accumulated_cash(t, m.prevrepdate, c.insid, 2, 0, , 1, 'None')*mtm_price(c,m.prevrepdate,'ZAR'))'ChangeCashON_ZAR'
+into temp
+
+from
+	trade t,
+	instrument i,
+	instrument c,
+	macro m
+
+where
+    t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and i.instype = 'Curr'
+and c.instype = 'Curr'
+and t.curr = c.insaddr
+and c.insaddr in (t.curr,i.insaddr)
+
+select
+	/*t.trdnbr			        'Trdnbr',
+	t.optional_key              'ExternID',
+	i.instype			        'Instype',*/
+	i.insid                      'LegCurr',
+	/*i.insid				        'Insid',
+	i.exp_day	                'ExpiryDay',*/
+	mtm_price(i,m.repdate,'ZAR')         'SpotConvZAR_RepDate',
+	mtm_price(i,m.prevrepdate,'ZAR')         'SpotConvZAR_PrevRepDate',
+	mtm_price(i,m.repdate,'ZAR')-mtm_price(i,m.prevrepdate,'ZAR') 'SpotMove',
+    m.repdate                   'RepDate',
+	accumulated_cash(t, m.repdate, i.insid, 2, 0, , 1, 'None')		'Cash_RepDate',
+	accumulated_cash(t, m.repdate, i.insid, 2, 0, , 1, 'None')*(mtm_price(i,m.repdate,'ZAR')-mtm_price(i,m.prevrepdate,'ZAR'))  'Cash_RepDate_ZAR',
+	m.prevrepdate                   'PrevRepDate',
+	(accumulated_cash(t, m.repdate, i.insid, 2, 0, , 1, 'None')*mtm_price(i,m.repdate,'ZAR')-accumulated_cash(t, m.prevrepdate, i.insid, 2, 0, , 1, 'None')*mtm_price(i,m.prevrepdate,'ZAR'))'ChangeCashON_ZAR'
+into temp
+
+from
+	trade t,
+	instrument i,
+	instrument c,
+	macro m
+
+where
+    t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and i.instype = 'Curr'
+and c.instype = 'Curr'
+and t.curr = c.insaddr
+
+select
+	/*t.trdnbr			        'Trdnbr',
+	t.optional_key              'ExternID',
+	i.instype			        'Instype',*/
+	display_id(t, 'Curr')       'LegCurr',
+	/*i.insid				        'Insid',
+	i.exp_day	                'ExpiryDay',*/
+	mtm_price(c,m.repdate,'ZAR')         'SpotConvZAR_RepDate',
+	mtm_price(c,m.prevrepdate,'ZAR')         'SpotConvZAR_PrevRepDate',
+	mtm_price(c,m.repdate,'ZAR')-used_price(c,m.prevrepdate,'ZAR') 'SpotMove',
+    m.repdate                   'RepDate',
+    accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')		'Cash_RepDate',
+	accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')*(mtm_price(c,m.repdate,'ZAR')-mtm_price(c,m.prevrepdate,'ZAR'))  'Cash_RepDate_ZAR',
+	m.prevrepdate                   'PrevRepDate',
+	(accumulated_cash(t, m.repdate, c.insid, 2, 0, , 1, 'None')*mtm_price(c,m.repdate,'ZAR')-accumulated_cash(t, m.prevrepdate, c.insid, 2, 0, , 1, 'None')*mtm_price(c,m.prevrepdate,'ZAR'))'ChangeCashON_ZAR'
+	
+	
+into temp
+
+from
+	trade t,
+	instrument i,
+	instrument c,
+	macro m
+
+where
+    t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and i.instype = 'Option'
+and c.instype = 'Curr'
+and	t.curr = c.insaddr
+
+
+select 
+    t.LegCurr,
+    t.SpotConvZAR_RepDate,
+	t.SpotConvZAR_PrevRepDate,
+	t.SpotMove,
+    t.RepDate,
+    sum(t.Cash_RepDate)     'Cash_RepDate',
+    sum(t.Cash_RepDate_ZAR) 'Cash_RepDate_ZAR',
+    t.PrevRepDate,
+    sum(t.ChangeCashON_ZAR) 'ChangeCashON_ZAR'
+    
+
+from 
+    temp t
+    
+group by 1
+    
+union
+
+select 
+    'TOTAL',
+    t.SpotConvZAR_RepDate,
+	t.SpotConvZAR_PrevRepDate,
+	t.SpotMove,
+    t.RepDate,
+    0.00 'Cash_RepDate',
+    sum(t.Cash_RepDate_ZAR) 'Cash_RepDate_ZAR',
+    t.PrevRepDate,
+    sum(t.ChangeCashON_ZAR) 'ChangeCashON_ZAR'
+    
+from
+    temp t
+group by 1
+

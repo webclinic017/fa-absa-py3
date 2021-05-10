@@ -1,0 +1,11 @@
+[Default]FBasketTradingInterface:capabilityChoiceList = acm.Capabilities.IntersectChoiceLists(membersTrading :* "capabilityChoiceList" [capabilitySource, capabilityObject, capabilityAttribute]);
+[Default]FCombOrderBook:capabilityChoiceList = acm.Capabilities.IntersectChoiceLists(legOrderBooks :* "capabilityChoiceList" [capabilitySource, capabilityObject, capabilityAttribute]);
+[Default]FGroupingOrder:capabilityChoiceList = nil;
+[Default]FInternalMarketOrder:capabilityChoiceList = acm.Capabilities.MergeChoiceLists(removeNil([capabilityChoiceListImpl, movedCapabilityChoiceList]));
+[Default]FMultiOrderBook:capabilityChoiceList = acm.Capabilities.IntersectChoiceLists(memberOrderBooks :* "capabilityChoiceList" [capabilitySource, capabilityObject, capabilityAttribute]);
+[Default]FMultiTradingInterface:capabilityChoiceList = acm.Capabilities.IntersectChoiceLists(membersTrading :* "capabilityChoiceList" [capabilitySource, capabilityObject, capabilityAttribute]);
+[Default]FObject:capabilityChoiceList = nil;
+[Default]FOrderBook:capabilityChoiceList = trading:capabilityChoiceList [capabilitySource, capabilityObject, capabilityAttribute];
+[Default]FOrderBookDealReport:capabilityChoiceList = trading:capabilityChoiceList [capabilityObject, capabilityAttribute];
+[Default]FOwnOrder:capabilityChoiceList = collapse(capabilityChoiceListImpl);
+[Default]FTradingInterface:capabilityChoiceList = acm.Capabilities.GetChoiceList(capabilities, capabilityObject, capabilityAttribute);

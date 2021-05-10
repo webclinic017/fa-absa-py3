@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:hullAndWhiteExpiryDateForCouponToValue = select(isMultiExercise, 
+  true->select(count(arrayAny(expiryDateForCouponToValue)) > 0, 
+    true->arrayAny(expiryDateForCouponToValue)[0], 
+    false->nil), 
+  false->expiryDateForCouponToValue);

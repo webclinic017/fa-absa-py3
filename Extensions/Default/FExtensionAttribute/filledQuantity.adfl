@@ -1,0 +1,6 @@
+[Default]ExecutionAlgo:filledQuantity = algoDoneQuantity;
+[Default]FOrderProgram:filledQuantity = sumOf(memberOrders :* "filledQuantity");
+[Default]FOwnCombOrder:filledQuantity = switch(filledValue, 
+  0->0, 
+  default->(filledValue / filledAndActiveValue) * totalQuantity);
+[Default]FOwnOrder:filledQuantity = object.FilledQuantity;

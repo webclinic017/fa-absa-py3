@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:jumpToDefaultCashValues = select(0 == defaultSensitiveLegs.Size, 
+  true->currencyZero, 
+  false->shunt(object.IsDefaulted(instrumentSpotDate), 
+    true->currencyZero, 
+    false->denominatedValueOrBasket(positionValue(positionTradeQuantities, creditJTDCash, contractSize, timeDistributionFactor))));
+[Default]FCombInstrMapAndTrades:jumpToDefaultCashValues = combinationInstrumentMapFactor * openInstrument :* "collapse(jumpToDefaultCashValues)" [creditIssuerGroupingReference, positionTradeQuantities, filterUnit, groupingSpotDiscountDate];
+[Default]FInstrument:jumpToDefaultCashValues = currencyZero;
+[Default]FInstrumentAndTrades:jumpToDefaultCashValues = openInstrument :* "collapse(jumpToDefaultCashValues)" [creditIssuerGroupingReference, positionObject, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:jumpToDefaultCashValues = sumOf(openInstruments :* "collapse(jumpToDefaultCashValues)" [creditIssuerGroupingReference, positionObject, filterUnit, groupingSpotDiscountDate]);

@@ -1,0 +1,73 @@
+[UDMCUtilMod]FObject:udmcSingleBarrierPayoff
+# ------------------------------------------
+# PAYOFF EXPRESSION
+# Single Barrier Payoff
+#
+# INTERPRETATION
+# A Single Barrier Option is a Barrier Option on single underlying. 
+# Call:         max(S-K,0);
+# Put:          max(K-S,0);
+
+# DEFINITIONS
+# S: Spot price;
+# K: Strike price, 'Strike' field;
+# Barrier: Barrier level, defined in 'Barrier' field of the Barrier Exotics tab;
+# Observation days: Exotic Events of type 'Barrier date';
+# Option type: 'Barrier Type' in the Barrier Exotics tab.
+# ------------------------------------------
+
+# PARAMETERS
+param double K;
+param double barrier;
+param double fixFXRate;
+param int isUp;
+param int isIn;
+param int isCall;
+param int isQuanto;
+param int isCrossed;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES 
+double callOrPut = 2.0 * isCall - 1.0;
+double fx = isQuanto * (fixFXRate - 1.0) + 1.0;
+double hasPassedBarrierCriteria = 0.0;
+double s = 0.0;
+double k = 0.0;
+
+# MAIN LOOP
+if(isUp and isIn){
+    hasPassedBarrierCriteria = 1.0 * (max(S)>barrier or isCrossed );
+};
+if(isUp and not isIn){
+    hasPassedBarrierCriteria = 1.0 * (max(S)<barrier and not isCrossed );
+};
+if(not isUp and isIn){
+    hasPassedBarrierCriteria = 1.0 * (min(S)<barrier or isCrossed );
+};
+if(not isUp and not isIn){
+    hasPassedBarrierCriteria = 1.0 * (min(S)>barrier and not isCrossed );
+};
+s = S[length(S)-1]; # last element of the process
+k = K;
+
+# CASHFLOW
+cashFlow(0, fx * max(0.0,hasPassedBarrierCriteria * callOrPut * (s - k)));
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# barrier: 'Barrier' field in Barrier exotic tab; 
+# isUp: has 1 or 0 value, dependent on if the Barrier is Up or Down;
+# isIn: has 1 or 0 value, dependent on if the Barrier is In or Out;
+# isCrossed: has 1 or 0 value, dependent on if barrier 'Crossed Status' is confirmed or not;
+# fixFXRate: fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# fx - FX Rate value if the type of the option is Quanto, 1.0 otherwise;
+# hasPassedBarrierCriteria: gives 0 or 1, dependent on if the barrier is reached or 'Crossed Status' is confirmed.
+# ------------------------------------------
+
+...

@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FFxRate:currencyExposureCurrency = py("CurrencyExposure", context).GetZarExposureCurrency(currencyPair);
+[ABSA Specific 4.3]FInstrument:currencyExposureCurrency = select(object.Underlying.IsKindOf("FCurrency"), 
+  true->object.Underlying, 
+  default->nil);
+[ABSA Specific 4.3]FInstrumentAndTrades:currencyExposureCurrency = select(groupingReference.IsKindOf("FCurrencyPair"), 
+  true->py("CurrencyExposure", context).GetZarExposureCurrency(groupingReference), 
+  default->nil);

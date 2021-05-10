@@ -1,0 +1,9 @@
+[Default]FGroupingOrder:preTradePeriodAverageNumberOfTrades = nil;
+[Default]FOrderProgram:preTradePeriodAverageNumberOfTrades = nil;
+[Default]FOwnOrder:preTradePeriodAverageNumberOfTrades = nil;
+[Default]FPrePostTradeAnalysis:preTradePeriodAverageNumberOfTrades = switch(preTradeVolumePattern, 
+  nil->0, 
+  default->switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+    true->preTradeVolumePattern.PeriodDealCount(preTradeAnalysisStartTime, preTradeAnalysisEndTime, true) + preTradeVolumePattern.PeriodDealCount(preTradeAnalysisStartTime, preTradeAnalysisEndTime, false), 
+    false->preTradeVolumePattern.PeriodDealCount(preTradeAnalysisStartTime, preTradeAnalysisEndTime, false)));
+[Default]FSalesOrder:preTradePeriodAverageNumberOfTrades = prePostTradeAnalysis:preTradePeriodAverageNumberOfTrades;

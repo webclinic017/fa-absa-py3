@@ -1,0 +1,9 @@
+[Securities Lending ABSA]FInstrument:slDividendFactor = shunt(hasDividendsInForecast, 
+  true->dividendForecast.DividendFactors(profitAndLossStartDate, profitAndLossEndDate).At(0).Number, 
+  false->nil);
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slDividendFactor = select(groupingReference.IsKindOf("FInstrument"), 
+  true->groupingReference:slDividendFactor, 
+  false->parent:slDividendFactor);
+[Securities Lending ABSA]FSecurityLoan:slDividendFactor = underlying:slDividendFactor;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slDividendFactor = instrument:slDividendFactor;
+[Securities Lending ABSA]FTrade:slDividendFactor = instrument:slDividendFactor;

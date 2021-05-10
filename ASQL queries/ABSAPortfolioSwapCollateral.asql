@@ -1,0 +1,150 @@
+/*
+Purpose: [Created for CFD_Project to pull up collateral specific data],[Updated to run on filter and include only CFDs]
+Department: [Collateral],[Collateral]
+Requester: [Lisa Nel],[Andrew Smit]
+Developer: [Willie van der Bank],[Willie van der Bank]
+CR Number: [(23/10/2010)],[777244 23/09/2011]
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select ael_i(p,'ASQL_log','ABSAPortfolioSwapCollateral') 'Name'
+into ASQL_LOG_TEMP
+from TextObject p
+where p.name = 'ABSAPortfolioSwapCollateral' and p.type = 'SQL Query' 
+
+select
+    to_date(@1_Date{Today;})         'Date',
+    to_date(@2_Previous_Buss_Day{Yesterday;})     'Previous_Buss_Day',
+    s.srdnbr
+into macro
+from
+    serverdata s
+
+/*Call Account transactions*/
+/*All CFD call accounts*/
+select
+    p.prfid,
+    add_info(parp,'PSClientCallAcc')   'SPCallAcc',
+    add_info(parp,'PSClientName')  'SPClient'
+into StockPortfolios
+from
+    portfolio p,
+    portfolio parp,
+    PortfolioLink pl
+where
+        p.prfnbr = pl.member_prfnbr
+    and parp.prfnbr = pl.owner_prfnbr
+    and add_info(p,'PS_PortfolioType') = 'CFD'
+
+select
+    'CallAcc'           'Section',
+    p.SPClient          'Client',
+    ''                  'Portfolio_Swap',
+    ''                  'YMtM',
+    ''                  'Margin_Portfolio',
+    ''                  'Required_Margin',
+    ''                  'Available_Margin',
+    ''                  'Available_Trading_Capacity',
+    i.insid             'Call_Account',
+    cf.fixed_amount     'Transaction',
+    cf.pay_day          'Transaction_Date'
+from
+    instrument i,
+    leg l,
+    cashflow cf,
+    StockPortfolios p,
+    macro m
+where
+        i.insid = p.SPCallAcc
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and cf.type = 'Fixed Amount'
+    and cf.pay_day = m.Date
+    
+union
+
+/*Margin Account*/
+select
+    distinct
+    'MarginAccYesterday'                                                                                                'Section',
+    display_id(t,'counterparty_ptynbr')                                                                                 'Client',
+    ''                                                                                                                  'Portfolio_Swap',
+    ''                                                                                                                  'YMtM',
+    display_id(pl,'owner_prfnbr')                                                                                       'Margin_Portfolio',
+    ael_s(,'ABSAPortfolioSwapCollateral.Required_Margin',display_id(pl,'owner_prfnbr'),m.Previous_Buss_Day)             'Required_Margin',
+    ael_s(,'ABSAPortfolioSwapCollateral.Available_Margin',display_id(pl,'owner_prfnbr'),m.Previous_Buss_Day)            'Available_Margin',
+    ael_s(,'ABSAPortfolioSwapCollateral.Available_Trading_Capacity',display_id(pl,'owner_prfnbr'),m.Previous_Buss_Day)  'Available_Trading_Capacity',
+    ''                                                                                                                  'Call_Account',
+    0.0                                                                                                                 'Transaction',
+    m.Previous_Buss_Day                                                                                                 'Transaction_Date'
+from
+    instrument i,
+    macro m,
+    portfolio p,
+    PortfolioLink pl,
+    trade t
+where
+        i.instype = 'Portfolio Swap'
+    and i.fund_prfnbr = p.prfnbr
+    and p.prfnbr = pl.member_prfnbr
+    and t.insaddr = i.insaddr
+    and add_info(p,'PS_PortfolioType') = 'CFD'
+    and match_filter(t, @Filter{ABSAPortfolioSwapCollateral;tradefilter.fltid})
+    
+union
+
+select
+    distinct
+    'MarginAccToday'                                                                                        'Section',
+    display_id(t,'counterparty_ptynbr')                                                                     'Client',
+    ''                                                                                                      'Portfolio_Swap',
+    ''                                                                                                      'YMtM',
+    display_id(pl,'owner_prfnbr')                                                                           'Margin_Portfolio',
+    ael_s(,'ABSAPortfolioSwapCollateral.Required_Margin',display_id(pl,'owner_prfnbr'),m.Date)              'Required_Margin',
+    ael_s(,'ABSAPortfolioSwapCollateral.Available_Margin',display_id(pl,'owner_prfnbr'),m.Date)             'Available_Margin',
+    ael_s(,'ABSAPortfolioSwapCollateral.Available_Trading_Capacity',display_id(pl,'owner_prfnbr'),m.Date)   'Available_Trading_Capacity',
+    ''                                                                                                      'Call_Account',
+    0.0                                                                                                     'Transaction',
+    m.Date                                                                                                  'Transaction_Date'
+from
+    instrument i,
+    macro m,
+    portfolio p,
+    PortfolioLink pl,
+    trade t
+where
+        i.instype = 'Portfolio Swap'
+    and i.fund_prfnbr = p.prfnbr
+    and p.prfnbr = pl.member_prfnbr
+    and t.insaddr = i.insaddr
+    and add_info(p,'PS_PortfolioType') = 'CFD'
+    and match_filter(t, @Filter{ABSAPortfolioSwapCollateral;tradefilter.fltid})
+   
+union
+
+/*Portfolio Swaps*/
+select
+    'PortSwap'                                          'Section',
+    display_id(t,'counterparty_ptynbr')                 'Client',
+    i.insid                                             'Portfolio_Swap',
+    ael_s(,'ABSAPortfolioSwapCollateral.YMtM',i.insid,Previous_Buss_Day)  'YMtM',
+    ''                                                  'Margin_Portfolio',
+    ''                                                  'Required_Margin',
+    ''                                                  'Available_Margin',
+    ''                                                  'Available_Trading_Capacity',
+    ''                                                  'Call_Account',
+    0.0                                                 'Transaction',
+    m.Previous_Buss_Day                                 'Transaction_Date'
+from
+    instrument i,
+    macro m,
+    portfolio p,
+    PortfolioLink pl,
+    trade t
+where
+        i.instype = 'Portfolio Swap'
+    and i.fund_prfnbr = p.prfnbr
+    and p.prfnbr = pl.member_prfnbr
+    and t.insaddr = i.insaddr
+    and add_info(p,'PS_PortfolioType') = 'CFD'
+    and match_filter(t, @Filter{ABSAPortfolioSwapCollateral;tradefilter.fltid})

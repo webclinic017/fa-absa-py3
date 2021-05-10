@@ -1,0 +1,6 @@
+[Default]FEvaluator:riskFactorTargets = usedDimensionItems(riskFactorDimension, dimensionItems(riskFactorInstances, riskFactorDimension, scenarioBuilder, riskFactorCreatorCache), node(object));
+[Default]FInstrumentAndTrades:riskFactorTargets = select(riskFactorTargetsInclusionHook, 
+  nil->flattenAndRemoveDuplicates(riskFactorTargetNodes :* "riskFactorTargets" [riskFactorInstances, riskFactorDimension]), 
+  default->select(object :* riskFactorTargetsInclusionHook, 
+    true->flattenAndRemoveDuplicates(riskFactorTargetNodes :* "riskFactorTargets" [riskFactorInstances, riskFactorDimension]), 
+    false->[]));

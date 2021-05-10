@@ -1,0 +1,21 @@
+/* Select portfolios according to status.
+
+History
+===============================================================================
+Date       CR Number      Developer         Description
+-------------------------------------------------------------------------------
+2014-08-08 CHNG0002219328 Vojtech Sidorin   Refactor
+
+*/
+
+SELECT
+    p.prfid 'Name',
+    add_info(p, 'Portfolio Status') 'Status',
+    display_id(p,'owner_ptynbr') 'Owner',
+    ael_s(, 'SAIT_Portfolios.get_tree', p.prfid) 'Tree'
+FROM
+    portfolio p
+WHERE
+    add_info(p, 'Portfolio Status') = @portfolio_status{Dormant; choicelist.entry WHERE list = 'Portfolio Status'}
+ORDER BY
+    p.prfid

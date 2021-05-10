@@ -1,0 +1,90 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536,316586,456915,522873,677357
+*/
+
+select
+ael_i(p,'ASQL_log','MR_Forward_Curve') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MR_Forward_Curve' and p.type = 'SQL Query'
+
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Forward_Curve.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Forward_Curve.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+
+
+/*---This part was commented out as the Forward Curve will come through on the Spot Commodity Instruments---*/
+/*
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Forward_Curve.Write',@1_path{'f:\'},@2_FileName{'MR_Forward_Curve.csv'})     'BuildConfirmation'
+Into
+    macro
+from
+    Context c,
+    ContextLink cl,
+    YieldCurve yc
+where  
+    c.name = 'ACMB Global'
+and c.seqnbr = cl.context_seqnbr
+and cl.name = yc.yield_curve_name
+and cl.type = 'Repo'
+and yc.yield_curve_type in ('Benchmark','Instrument Spread')
+
+
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Forward_Curve.Write',@1_path{'f:\'},@2_FileName{'MR_Forward_Curve.csv'})     'BuildConfirmation'
+Into
+    macro
+from
+    YieldCurve yc
+where  
+    yc.yield_curve_name in ('USD/COPPER/COMEX_Curve','USD/GOLD/COMEX_Curve','USD/PLAT/NYMEX_Curve',
+                            'USD/SILVER/COMEX_Curve','ZAR/BEAN/SAFEX_Curve','ZAR/COPP/SAFEX_Curve','ZAR/CORN/SAFEX_Curve',
+                            'ZAR/GOLD/SAFEX_Curve','ZAR/MEAL/SAFEX_Curve','ZAR/PLAT/SAFEX_Curve','ZAR/SILV/SAFEX_Curve','ZAR/WTIO/SAFEX_Curve',
+                            'USD/WHEAT','ZAR/WOPT/SAFEX','ZAR/YOPT/SAFEX')
+*/
+/*---This part was commented out as the Forward Curve will come through on the Spot Commodity Instruments---*/
+
+
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Forward_Curve.Write',@1_path{'f:\'},@2_FileName{'MR_Forward_Curve.csv'},@3_PositionName{'MR_Forward_Curve_PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i
+Where (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('Commodity')
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful' 'BuildConfirmation'
+Into
+    Macro
+From
+ serverdata s
+Where
+ s.srdnbr > 0
+
+
+
+Select * From Macro
+Where Process In ('Create File','Close File')

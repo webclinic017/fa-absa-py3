@@ -1,0 +1,5 @@
+[FRTB Components]FInstrument:frtbResidualRiskTypes = select("None" <> frtbResidualRiskType, 
+  true->frtbResidualRiskType, 
+  false->nil);
+[FRTB Components]FInstrumentAndTrades:frtbResidualRiskTypes = removeNil([instrument:frtbResidualRiskTypes]);
+[FRTB Components]FMultiInstrumentAndTrades:frtbResidualRiskTypes = flattenRemoveDuplicatesAndRemoveNil(instruments :* "frtbResidualRiskTypes");

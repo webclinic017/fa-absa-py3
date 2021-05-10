@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:dividendsStartValueForForwardCalculationsInCalculationCurrency = select(useExplicitRepoCurve, 
+  true->object:dividendsStartValueForForwardCalculations [doSplitAll, priceSource, underlyingFutureObservationDate, forwardValueDate, instrumentForwardValueStartDate = startValueForForwardValueCalculationDate, dividendCurrencyForForwardValueCalculation = calculationCurrency, dividendRepoCurveForForwardValueCalculation = repoCurve, startValueForForwardValueCalculationDateOverride], 
+  false->select(calculationCurrency == currency, 
+    true->collapse(dividendsStartValueForForwardCalculationsInInstrumentCurrency), 
+    false->dividendsStartValueForForwardCalculationsInInstrumentCurrency * currency :* "fxForwardRate" [fxForwardDate = startValueForForwardValueCalculationDate, fxToCurrency = calculationCurrency]));

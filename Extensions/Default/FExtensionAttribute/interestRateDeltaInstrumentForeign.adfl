@@ -1,0 +1,6 @@
+[Default]FInstrumentAndTrades:interestRateDeltaInstrumentForeign = select(foreignCurrency == nil, 
+  true->nil, 
+  false->instrument :* "interestRateDeltaInstrumentPerCurrency" [interestRateDeltaCurrency := foreignCurrency]);
+[Default]FTradeRow:interestRateDeltaInstrumentForeign = select(foreignCurrency == nil, 
+  true->nil, 
+  false->instrument :* "interestRateDeltaInstrumentPerCurrency" [currency = tradeRowCurrency, interestRateDeltaCurrency := foreignCurrency]);

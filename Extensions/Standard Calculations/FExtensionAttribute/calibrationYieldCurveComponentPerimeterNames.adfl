@@ -1,0 +1,7 @@
+[Standard Calculations]FInstrument:calibrationYieldCurveComponentPerimeterNames = select(hybridUsesPriceCurveInCalibration, 
+  true->nil, 
+  default->select(hybridUsesRepoCurveInCalibration, 
+    true->select(object.UseExplicitRepoCurve(currency), 
+      true->calibrationYieldCurveComponentPerimeterWithCurve, 
+      false->calibrationYieldCurveComponentPerimeter), 
+    false->calibrationYieldCurveComponentPerimeterWithCurve));

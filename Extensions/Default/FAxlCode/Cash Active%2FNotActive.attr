@@ -1,0 +1,30 @@
+[Default]FObject:Cash Active/NotActive
+
+{
+}
+
+sumSettledCash = If(&'settledCashExtAttr', &'amount', 0.0);
+
+{
+}
+sumSettledCashIsZero = Compare.IsEqual(Modify(Aggregate.Sum(@sumSettledCash()),  AttributeDimensions = AttributeList(['curr'])), 0.0);
+
+{
+}
+allSettled = Compare.IsEqual(Aggregate.Unique(&'settledCashExtAttr'), True);
+
+{
+}
+allActive = Compare.IsEqual(Aggregate.Unique(&'activeCashExtAttr'), True);
+
+{
+  DisplayInformation:
+  {
+    Label:'Active/NotActive',
+    GroupLabel:'Cash',
+    Description:'Partition used on Account level to group Account in group for Active, where unsettled cash settlements exist or there is a balance, vs group for NotActive, where no unsettled cash settlements exist and the balance is 0.'
+  }
+}
+main = If(@allSettled(), If(@sumSettledCashIsZero(), 'NotActive', 'Active'), If(@allActive(), 'Active', 'Rest'));
+
+...

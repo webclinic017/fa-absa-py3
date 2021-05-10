@@ -1,0 +1,5 @@
+[Default]FInstrument:benchmarkUseOnlyClosePriceAsMarketPrice = select(useMtmForHistoricalDate, 
+  true->select(isHistoricalMode, 
+    true->true, 
+    false->benchmarkPriceFeed.PriceReadDate < valuationSystemDate), 
+  false->false);

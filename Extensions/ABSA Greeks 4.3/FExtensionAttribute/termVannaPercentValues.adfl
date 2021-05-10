@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FInstrument:termVannaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(termVannaPercentValuesInstrument, valuesOnSpot));
+[ABSA Greeks 4.3]FInstrumentAndTrades:termVannaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->instrument :* "termVannaPercentValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter] * riskPosition));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:termVannaPercentValues = sumOf(children :* "termVannaPercentValues");

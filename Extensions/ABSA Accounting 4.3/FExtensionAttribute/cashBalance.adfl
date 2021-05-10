@@ -1,0 +1,7 @@
+[ABSA Accounting 4.3]FDeposit:cashBalance = switch(redemptionAmountProjectedCashFlow.IsKindOf("FDenominatedValue"), 
+  true->-(futureCallRateProjectedCashFlows + denominatedvalue(redemptionAmountProjectedCashFlow.Number, displayCurrencySymbol, "CashFlow", nil)), 
+  default->-futureCallRateProjectedCashFlows);
+[ABSA Accounting 4.3]FInstrument:cashBalance = nil;
+[ABSA Accounting 4.3]FMultiInstrumentAndTrades:cashBalance = convertToCurrency((openInstruments :* "cashBalance" * riskPositionsNonZero), profitAndLossEndFXRates, displayCurrency, filterUnit);
+[ABSA Accounting 4.3]FTrade:cashBalance = instrument:cashBalance * (object.Quantity / abs(object.Quantity));
+[ABSA Accounting 4.3]FTradeRow:cashBalance = trade :* "cashBalance";

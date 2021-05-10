@@ -1,0 +1,12 @@
+[ABSA Specific 4.3]FBuySellBack:faceValuePosition = switch(expiryDate == profitAndLossEndDate, 
+  true->0, 
+  false->faceValueDefaultPosition);
+[ABSA Specific 4.3]FInstrument:faceValuePosition = nominalValueDefaultPosition;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:faceValuePosition = sumOf(instruments :* "faceValuePosition" [positionObject]);
+[ABSA Specific 4.3]FRepo:faceValuePosition = switch((openEnd <> "Open End") and (expiryDate == profitAndLossEndDate), 
+  true->0, 
+  false->faceValueDefaultPosition);
+[ABSA Specific 4.3]FSecurityLoan:faceValuePosition = switch((openEnd <> "Open End") and (expiryDate == profitAndLossEndDate), 
+  true->0, 
+  false->faceValueDefaultPosition);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:faceValuePosition = instrument :* "faceValuePosition" [positionObject];

@@ -1,0 +1,95 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Prev_Date_PV_Disc_Ins') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Prev_Date_PV_Disc_Ins' and p.type = 'SQL Query' 
+
+SElect
+to_date(@report_date{Yesterday;})'date',
+s.srdnbr
+
+into temp1
+from serverdata s
+
+
+/* discount prices selected from price table */
+
+select
+(sd.date)'date',
+t.trdnbr,
+i.insid,
+i.exp_day,
+t.Quantity*i.contr_size'nom',
+
+p.settle 'disc_rate',
+t.value_day,
+t.premium
+
+into temp
+
+
+from
+
+instrument i,
+trade t,
+yieldcurve yc,
+price p,
+temp1 sd
+
+where
+
+i.insaddr=t.insaddr
+and i.insaddr=p.insaddr
+and match_filter(t,@Filter{Test_SAMM_ABS1_9803_AFS2;TradeFilter.fltid})
+and yc.yield_curve_name=@curve{ZAR_MM;yc.yield_curve_name}
+ and p.day=sd.date
+ and i.exp_day>sd.date
+ and time_to_day(t.creat_time)<=sd.date
+
+
+
+
+
+/*----------------*/
+
+
+select
+
+t.date,
+t.trdnbr,
+t.insid,
+t.value_day,
+t.exp_day,
+t.nom,
+
+t.disc_rate,
+1-((t.disc_rate+0)*(t.exp_day-t.date)/36500)'df',
+t.nom*(1-((t.disc_rate+0)*(t.exp_day-t.date)/36500))'calc_pv',
+t.nom*(1-((t.disc_rate+1)*(t.exp_day-t.date)/36500))'pv+100',
+t.nom-(((t.nom+t.premium)/(t.exp_day-t.value_day))*(t.exp_day-t.date))'BV'
+
+from temp t
+
+order by t.exp_day
+
+union
+
+select
+
+t.date,
+t.trdnbr,
+'Total'/*t.insid*/,
+t.value_day,
+t.exp_day,
+sum(t.nom),
+
+t.disc_rate,
+1-((t.disc_rate+0)*(t.exp_day-t.date)/36500)'df',
+sum(t.nom*(1-((t.disc_rate+0)*(t.exp_day-t.date)/36500)))'calc_pv',
+sum(t.nom*(1-((t.disc_rate+1)*(t.exp_day-t.date)/36500)))'pv+100',
+sum(t.nom-(((t.nom+t.premium)/(t.exp_day-t.value_day))*(t.exp_day-t.date)))'BV'
+
+from temp t
+
+group by t.date

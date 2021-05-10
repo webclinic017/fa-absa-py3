@@ -1,0 +1,4 @@
+[Cash Analysis]FMoneyFlowAndTrades:moneyFlowEventFaceValue = select((moneyFlow.PayDate == instrument.ExpiryDate) and ((moneyFlow.Type <> "Security Nominal") and (moneyFlow.Type <> "Premium") and (moneyFlow.Type <> "Coupon") and (moneyFlow.Type <> "Coupon transfer")), 
+  true->-1 * tradeFaceValue, 
+  default->tradeFaceValue);
+[Cash Analysis]FMultiMoneyFlowAndTrades:moneyFlowEventFaceValue = nil;

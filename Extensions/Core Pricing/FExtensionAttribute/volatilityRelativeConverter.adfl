@@ -1,0 +1,7 @@
+[Core Pricing]FObject:volatilityRelativeConverter[instrument, fromQuotation, fromStrikeType, relativeConversionValueModel, priceSource, doSplitAll] = select(relativeValueTypeFromStrikeType(fromStrikeType), 
+  "None"->nil, 
+  default->select(fromQuotation.Type, 
+    "Coupon"->CreateRelativeConverter(instrument, perUnitQuotation, instrument:quoteConversionFromConverter [quoteConversionFromQuotation = perUnitQuotation, priceSource, doSplitAll], ConstantValueModel(underlyingForwardCoupon), relativeValueTypeFromStrikeType(fromStrikeType)), 
+    default->select((relativeConversionValueModel == nil), 
+      true->nil, 
+      default->CreateRelativeConverter(instrument, fromQuotation, instrument:quoteConversionFromConverter [quoteConversionFromQuotation = fromQuotation, priceSource, doSplitAll], relativeConversionValueModel, relativeValueTypeFromStrikeType(fromStrikeType)))));

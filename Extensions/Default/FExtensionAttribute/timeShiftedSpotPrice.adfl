@@ -1,0 +1,6 @@
+[Default]FFuture:timeShiftedSpotPrice = select(isFinite(marketPrice), 
+  false->denominatedvalue(nan, currency, , valuationDate), 
+  default->marketPrice);
+[Default]FInstrument:timeShiftedSpotPrice = select(isFinite(marketPrice), 
+  false->denominatedvalue(nan, currency, , valuationDate), 
+  default->marketPrice - dividendsNonDiscounted);

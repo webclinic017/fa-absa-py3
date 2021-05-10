@@ -1,0 +1,12 @@
+select
+    'trade',
+    t.trdnbr
+    
+from
+    Trade t,
+    instrument i
+    
+where
+    t.insaddr = i.insaddr
+and i.instype ~= 'Stock'
+and time_to_day(t.time) >= today

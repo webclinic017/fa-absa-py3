@@ -1,0 +1,7 @@
+[Core Pricing]FCashFlowInstrument:theoreticalLegCashFlowRightDate = select(hasRightToAllCashFlows, 
+  true->smallDate, 
+  false->select(accruedArrear, 
+    true->theoreticalLegCashFlowRightDate(valuationDate, staticLegInformations), 
+    false->valuationDateRightDate));
+[Core Pricing]FInstrument:theoreticalLegCashFlowRightDate = valuationDateRightDate;
+[Core Pricing]FLeg:theoreticalLegCashFlowRightDate = instrument:theoreticalLegCashFlowRightDate;

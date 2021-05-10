@@ -1,0 +1,6 @@
+[Default]FInstrument:benchmarkVolatilityStructureRiskFactorNamesModified = 
+# Standard Calculations can set a filter as a unique volatility structure
+select(volatilityGreekFilter.IsKindOf("FVolatilityStructure"), 
+  true->addArrays(benchmarkVolatilityStructureRiskFactorNames, ["benchmarkSpreadVolatilityStructure"]), 
+  false->benchmarkVolatilityStructureRiskFactorNames);
+[Default]FInstrumentAndTrades:benchmarkVolatilityStructureRiskFactorNamesModified = instrument:benchmarkVolatilityStructureRiskFactorNamesModified [volatilityGreekFilter];

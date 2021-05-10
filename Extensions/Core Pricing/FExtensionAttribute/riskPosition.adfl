@@ -1,0 +1,13 @@
+[Core Pricing]FCombInstrMapAndTrades:riskPosition = tradedInstrument :* "riskPosition" [tradesInPosition, includeAllTrades] * combinationInstrumentMapFactor;
+[Core Pricing]FDeliverableLinkAndTrades:riskPosition = tradedInstrument :* "riskPosition" [tradesInPosition] * combinationInstrumentMapFactor;
+[Core Pricing]FFund:riskPosition = object.TradeQuantity(tradesInRiskPositions, valuationDate, tradeStatusInclusionMaskDefault);
+[Core Pricing]FFxRate:riskPosition = (currencyPairForeignCurrency:fxDiscountCurve).DiscountValuesAsDouble(futurePositions, instrumentSpotOrStartDate);
+[Core Pricing]FInstrument:riskPosition = select(tradesInPosition, 
+  nil->0, 
+  default->riskPositionBase * timeDistributionFactor);
+[Core Pricing]FLegAndTrades:riskPosition = tradedInstrument :* "riskPosition" [tradesInPosition, includeAllTrades] * combinationInstrumentMapFactor;
+[Core Pricing]FMultiInstrumentAndTrades:riskPosition = nil;
+[Core Pricing]FPreciousMetalRate:riskPosition = (commodityVariant:underlyingDiscountCurve).DiscountValuesAsDouble(futurePositions * contractSize, instrumentSpotOrStartDate);
+[Core Pricing]FPriceAggregate:riskPosition = instrument :* "riskPosition" [positionObject, valuesOnSpotOverride];
+[Core Pricing]FSingleInstrumentAndTrades:riskPosition = instrument :* "riskPosition" [positionObject, valuesOnSpotOverride, valuationDate];
+[Core Pricing]FTradeRow:riskPosition = instrument :* "riskPosition" [valuesOnSpotOverride, singleTradePosition, includeAllTrades, valuationDate];

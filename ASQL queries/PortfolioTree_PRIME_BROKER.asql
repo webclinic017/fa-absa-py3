@@ -1,0 +1,115 @@
+select
+    ael_i(p,'ASQL_log','PortfolioTree_PRIME BROKER') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'PortfolioTree_PRIME BROKER' and p.type = 'SQL Query'
+
+/* 
+    Name      : PortfolioTree_PRIME BROKER
+    Purpose   : Present the portfolio structure under the compound portfolio PRIME BROKER
+    Developer : Kenneth Danielsson
+    Date      : 2013-05-06
+    CR Number : CHNG0001079398
+*/
+
+select distinct
+p.prfid		                          'PortfolioName',
+display_id(p, 'owner_ptynbr')         'Owner',
+pp.prfid	                          'PortfolioParentName',
+pp.compound	                          'IsParentCompound',
+ppp.prfid	                          'TwoLevelsDeepPortfolio',
+pppp.prfid	                          'ThreeLevelsDeepPortfolio',
+ppppp.prfid	                          'FourLevelsDeepPortfolio',
+pppppp.prfid	                      'FiveLevelsDeepPortfolio',
+ppppppp.prfid	                      'SixLevelsDeepPortfolio',
+pppppppp.prfid	                      'SevenLevelsDeepPortfolio',
+ppppppppp.prfid	                      'EightLevelsDeepPortfolio',
+pppppppppp.prfid	                  'NinthLevelsDeepPortfolio',
+ppppppppppp.prfid	                  'TenthLevelsDeepPortfolio',
+pppppppppppp.prfid	                  'EleventhLevelsDeepPortfolio',
+ppppppppppppp.prfid	                  'TwelfthLevelsDeepPortfolio',
+pppppppppppppp.prfid	              'ThirteenthLevelsDeepPortfolio',
+ppppppppppppppp.prfid	              'FourteenthLevelsDeepPortfolio',
+pppppppppppppppp.prfid	              'FifteenthLevelsDeepPortfolio',
+Haschild.lnknbr is null ? 'Yes':'No'  'LowestLevel',
+p.prfnbr
+from 
+	portfolio p,
+	portfolio pp,
+	portfolio ppp,
+	portfolio pppp,
+	portfolio ppppp,
+    portfolio pppppp,
+    portfolio ppppppp,
+    portfolio pppppppp,
+    portfolio ppppppppp,
+    portfolio pppppppppp,
+    portfolio ppppppppppp,
+    portfolio pppppppppppp,
+    portfolio ppppppppppppp,
+    portfolio pppppppppppppp,
+    portfolio ppppppppppppppp,
+    portfolio pppppppppppppppp,
+	portfolioLink pl,
+	portfolioLink pl2,
+	portfolioLink pl3,
+	portfolioLink pl4,
+    portfolioLink pl5,
+    portfolioLink pl6,
+    portfolioLink pl7,
+    portfolioLink pl8,
+    portfolioLink pl9,
+    portfolioLink pl10,
+    portfolioLink pl11,
+    portfolioLink pl12,
+    portfolioLink pl13,
+    portfolioLink pl14,
+    portfolioLink pl15,
+    portfolioLink HasChild
+where	p.prfnbr *= pl.member_prfnbr
+and	pl.owner_prfnbr *= pp.prfnbr
+and p.prfnbr *= HasChild.owner_prfnbr
+and	pp.prfnbr *= pl2.member_prfnbr
+and	pl2.owner_prfnbr *= ppp.prfnbr
+and	ppp.prfnbr *= pl3.member_prfnbr
+and	pl3.owner_prfnbr *= pppp.prfnbr
+and	pppp.prfnbr *= pl4.member_prfnbr
+and	pl4.owner_prfnbr *= ppppp.prfnbr
+and	ppppp.prfnbr *= pl5.member_prfnbr
+and	pl5.owner_prfnbr *= pppppp.prfnbr
+and	pppppp.prfnbr *= pl6.member_prfnbr
+and	pl6.owner_prfnbr *= ppppppp.prfnbr
+and	ppppppp.prfnbr *= pl7.member_prfnbr
+and	pl7.owner_prfnbr *= pppppppp.prfnbr
+and	pppppppp.prfnbr *= pl8.member_prfnbr
+and	pl8.owner_prfnbr *= ppppppppp.prfnbr
+and	ppppppppp.prfnbr *= pl9.member_prfnbr
+and	pl9.owner_prfnbr *= pppppppppp.prfnbr
+and	pppppppppp.prfnbr *= pl10.member_prfnbr
+and	pl10.owner_prfnbr *= ppppppppppp.prfnbr
+and	ppppppppppp.prfnbr *= pl11.member_prfnbr
+and	pl11.owner_prfnbr *= pppppppppppp.prfnbr
+and	pppppppppppp.prfnbr *= pl12.member_prfnbr
+and	pl12.owner_prfnbr *= ppppppppppppp.prfnbr
+and	ppppppppppppp.prfnbr *= pl13.member_prfnbr
+and	pl13.owner_prfnbr *= pppppppppppppp.prfnbr
+and	pppppppppppppp.prfnbr *= pl14.member_prfnbr
+and	pl14.owner_prfnbr *= ppppppppppppppp.prfnbr
+and	ppppppppppppppp.prfnbr *= pl15.member_prfnbr
+and	pl15.owner_prfnbr *= pppppppppppppppp.prfnbr
+and (p.prfid in ('PRIME BROKER')
+or pp.prfid in ('PRIME BROKER')
+or ppp.prfid in ('PRIME BROKER')
+or pppp.prfid in ('PRIME BROKER')
+or ppppp.prfid in ('PRIME BROKER')
+or pppppp.prfid in ('PRIME BROKER')
+or ppppppp.prfid in ('PRIME BROKER')
+or pppppppp.prfid in ('PRIME BROKER')
+or ppppppppp.prfid in ('PRIME BROKER')
+or pppppppppp.prfid in ('PRIME BROKER')
+or ppppppppppp.prfid in ('PRIME BROKER')
+or pppppppppppp.prfid in ('PRIME BROKER')
+or ppppppppppppp.prfid in ('PRIME BROKER')
+or pppppppppppppp.prfid in ('PRIME BROKER')
+or ppppppppppppppp.prfid in ('PRIME BROKER')
+or pppppppppppppppp.prfid in ('PRIME BROKER'))

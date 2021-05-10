@@ -1,0 +1,5 @@
+#grouping: extension attribute classification/api
+
+[Quote Conversion Wrappers]FInstrument:quoteConversionWrapperQuoteToUnitValue[quoteConversionWrapperFromQuotation, quoteConversionWrapperFromQuote, quoteConversionWrapperDoRounding, quoteConversionWrapperRoundingInformation, quoteConversionWrapperDoRsaRounding, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll] = select(quoteConversionWrapperDoRounding and hasCleanPriceRounding, 
+  true->object:quoteConversionWrapperQuoteToUnitValueBase [quoteConversionWrapperQuotation = cleanQuotation, quoteConversionQuote = quoteConversionWrapperQuoteToRoundedCleanQuote, quoteConversionWrapperDoRsaRounding = false, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll], 
+  false->object:quoteConversionWrapperQuoteToUnitValueBase [quoteConversionWrapperQuotation = quoteConversionWrapperFromQuotation, quoteConversionQuote = quoteConversionWrapperFromQuote, quoteConversionWrapperRoundingInformation, quoteConversionWrapperDoRsaRounding, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll]);

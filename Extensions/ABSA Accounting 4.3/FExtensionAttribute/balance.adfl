@@ -1,0 +1,19 @@
+[ABSA Accounting 4.3]FDeposit:balance = redemptionAmountProjectedCashFlow = switch(redemptionAmountProjectedCashFlow.IsKindOf("FDenominatedValue"), 
+  true->redemptionAmountProjectedCashFlow, 
+  false->displayCurrencyZero), convertToCurrency((-redemptionAmountProjectedCashFlow - firstLeg:balance [profitAndLossEndDate]) * riskPosition, profitAndLossEndFXRates, displayCurrencySymbol);
+[ABSA Accounting 4.3]FInstrument:balance = 
+# Upgrade 2013.3 note: Absa's extension attribute `balance` requires an immediate refactoring as Balance is defined only for Call Accounts. A nice example to refer is `cashBalance` extension attribute.
+select(count(legs), 
+  0->displayCurrencyZero, 
+  default->convertToCurrency(-(firstLeg :* "balance" [profitAndLossEndDate]) * riskPosition, profitAndLossEndFXRates, displayCurrencySymbol));
+[ABSA Accounting 4.3]FInstrumentAndTrades:balance = instrument :* "balance" [profitAndLossEndDate, positionObject, priceSource, valuesOnSpotOverride, profitAndLossEndFXRates, displayCurrency, displayCurrencyZero];
+[ABSA Accounting 4.3]FLeg:balance = sumOf((futureAdjustableCashFlows) :* "projectedCashFlow" [legInformation]);
+[ABSA Accounting 4.3]FMultiInstrumentAndTrades:balance = sumOf(instruments :* "balance" [profitAndLossEndDate, positionObject, priceSource, valuesOnSpotOverride, profitAndLossEndFXRates, displayCurrency, displayCurrencyZero]);
+[ABSA Accounting 4.3]FTrade:balance = switch(object.Instrument.InsType, 
+  "Deposit"->switch(object.Instrument.OpenEnd, 
+    "None"->0.0, 
+    default->instrument :* "-redemptionAmountProjectedCashFlow - firstLeg:balance [profitAndLossEndDate]" * object.Quantity), 
+  default->0.0);
+[ABSA Accounting 4.3]FTradeRow:balance = balanceBase = stripDateTimePart(trade:balance), switch(balanceBase, 
+  0->displayCurrencyZero, 
+  default->convertToCurrency(balanceBase, profitAndLossEndFXRates, displayCurrencySymbol));

@@ -1,0 +1,7 @@
+[Automated Trading]ExecutionAlgo:orderBestQuantity = switch(currentOrder, 
+  nil->0, 
+  default->switch(currentOrder.IsOrderActive, 
+    true->switch(joinPriceDepth.IsPriceBest(currentOrder.Price), 
+      true->currentOrder.MovedQuantity, 
+      default->0), 
+    default->0));

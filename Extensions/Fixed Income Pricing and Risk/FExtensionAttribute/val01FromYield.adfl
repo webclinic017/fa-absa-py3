@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:val01FromYield = select(isSecurity, 
+  true->object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) - ytmShift] - object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) + ytmShift], 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:val01FromYield = object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) - ytmShift, instrumentSpotDate] - object:theoreticalInstrumentSpotValueDirtyFromYield [yield = double(yieldValue) + ytmShift, instrumentSpotDate];
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:val01FromYield = instrument:val01FromYield;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:val01FromYield = nil;

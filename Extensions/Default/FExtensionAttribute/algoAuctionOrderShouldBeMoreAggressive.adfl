@@ -1,0 +1,5 @@
+[Default]ExecutionAlgo:algoAuctionOrderShouldBeMoreAggressive = switch(currentOrderActive, 
+  true->select(algoIsBuy, 
+    true->((not algoAuctionSliceIsPriceLimited) and (algoAuctionCurrentOrderPrice < algoAuctionEquilibriumPrice)) or (algoAuctionSliceIsPriceLimited and (algoAuctionCurrentOrderPrice < algoAuctionPriceLimitTickAdjusted)), 
+    false->((not algoAuctionSliceIsPriceLimited) and (algoAuctionCurrentOrderPrice > algoAuctionEquilibriumPrice)) or (algoAuctionSliceIsPriceLimited and (algoAuctionCurrentOrderPrice > algoAuctionPriceLimitTickAdjusted)), 
+    default->false));

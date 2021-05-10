@@ -1,0 +1,5 @@
+[Adaptiv XVA]FInstrument:cvaCollateralAssetList = select(cvaIsOpenCollateralPostion, 
+  true->cvaCollateralAsset, 
+  false->nil);
+[Adaptiv XVA]FInstrumentAndTrades:cvaCollateralAssetList = instrument :* "cvaCollateralAssetList" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral, collateralAgreement, useHaircutFactor];
+[Adaptiv XVA]FMultiInstrumentAndTrades:cvaCollateralAssetList = instruments :* "cvaCollateralAssetList" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral, collateralAgreement, useHaircutFactor];

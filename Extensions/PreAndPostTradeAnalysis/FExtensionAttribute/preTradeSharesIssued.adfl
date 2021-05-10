@@ -1,0 +1,8 @@
+[PreAndPostTradeAnalysis]FOrderBook:preTradeSharesIssued = object.SharesIssued;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:preTradeSharesIssued = switch(homeTrading, 
+  nil->0, 
+  default->homeTrading :* "preTradeSharesIssued");
+[PreAndPostTradeAnalysis]FSalesOrder:preTradeSharesIssued = prePostTradeAnalysis:preTradeSharesIssued;
+[PreAndPostTradeAnalysis]FTradingInterface:preTradeSharesIssued = select(storedOrderBook, 
+  nil->0, 
+  default->storedOrderBook:preTradeSharesIssued);

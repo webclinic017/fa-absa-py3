@@ -1,0 +1,10 @@
+[Core Pricing]FMultiInstrumentAndTrades:fxDisplayToPortfolio = select(portfolio:currency, 
+  nil->nil, 
+  default->switch(displayCurrency == (portfolio:currency), 
+    true->1.0, 
+    default->(portfolio:currency) :* "immediateOrSpotFxRate" [fxToCurrency = displayCurrency]));
+[Core Pricing]FSingleInstrumentAndTrades:fxDisplayToPortfolio = select(portfolio:currency, 
+  nil->nil, 
+  default->switch(displayCurrency == (portfolio:currency), 
+    true->1.0, 
+    default->(portfolio:currency) :* "immediateOrSpotFxRate" [fxToCurrency = displayCurrency]));

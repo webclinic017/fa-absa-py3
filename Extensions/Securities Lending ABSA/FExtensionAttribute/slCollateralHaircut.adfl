@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:slCollateralHaircut = select(slIsCollateralEquity, 
+  true->slCollateralHaircutEquity, 
+  default->select(slIsCollateralBond, 
+    true->slCollateralHaircutBond, 
+    default->select(slIsCollateralCash, 
+      true->slCollateralHaircutCash, 
+      default->nil)));

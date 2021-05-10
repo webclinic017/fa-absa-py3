@@ -1,0 +1,65 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','OIS_BmpBM_CalcBasis') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'OIS_BmpBM_CalcBasis' and p.type = 'SQL Query' 
+
+ /* 
+    ================================================================
+    asql used to calc benchmark deltas
+    done by simulating a 1bp bump on benchmark to calc basis
+    Name                Date            CR Number    
+    Ntuthuko Matthews   10-Jul-2013     CHNG0001163466
+    ================================================================
+*/
+ 
+select 
+      ael_f(,'OIS_utils.shiftCurve',@05_ShiftYieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *},@04_BmLevel,@02_Filter) 'pv0'
+into temp1
+from TextObject p 
+where p.name = 'OIS_BmpBM_CalcBasis' and p.type = 'SQL Query' 
+
+select
+    TODAY                                   'RepDate',
+    @02_Filter{SAMR_FI_CCS_13324499;tradefilter.fltid}  'filter',
+    yc.yield_curve_name                     'yc',
+    yp.date_period.count 'date_period_count',
+    yp.date_period.unit 'date_period_unit',
+    ael_d(yp, 'dirk_utils.sprd_point_maturity')    'mat',
+    ael_f(ys, 'dirk_utils.basis_delta',@02_Filter{SAMR_FI_CCS_13324499;tradefilter.fltid},yc.yield_curve_name) 'pv01',
+    display_id(ys,'creat_usrnbr') 'creat_usrnbr'  
+into
+    Temp
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *})
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr        
+    and ael_d(yp, 'OIS_utils.sprd_point_maturity') < to_date(@03_EndDate{BIGDATE;})
+    
+
+select 
+      ael_d(,'OIS_utils.revertshiftCurve',@05_ShiftYieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *},@04_BmLevel) 
+into temp2
+from TextObject p 
+where p.name = 'PCG_Benchmark_deltas' and p.type = 'SQL Query' 
+
+select
+        t.RepDate,
+        t.filter,
+        t.yc,
+        t.date_period_count 'date_period.count',
+        t.date_period_unit 'date_period.unit',
+        t.mat,
+        t.pv01
+
+from
+    Temp t
+where
+    t.creat_usrnbr ~= 'ATS'
+    
+order by 3,6

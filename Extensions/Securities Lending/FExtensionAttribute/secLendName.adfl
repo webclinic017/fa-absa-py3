@@ -1,0 +1,12 @@
+[Securities Lending]FInstrument:secLendName = object.Name;
+[Securities Lending]FMultiInstrumentAndTrades:secLendName = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendName));
+[Securities Lending]FOrderBook:secLendName = instrument:secLendName;
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendName = nil;
+[Securities Lending]FPriceLevelRow:secLendName = instrument:secLendName;
+[Securities Lending]FSecurityLoan:secLendName = underlying:secLendName;
+[Securities Lending]FSingleInstrumentAndTrades:secLendName = instrument:secLendName;
+[Securities Lending]FUndefinedObject:secLendName = nil;

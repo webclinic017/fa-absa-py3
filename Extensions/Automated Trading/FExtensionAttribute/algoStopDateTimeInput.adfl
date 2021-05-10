@@ -1,0 +1,5 @@
+[Automated Trading]ExecutionAlgo:algoStopDateTimeInput = switch(isValidDateTime(stopTimeInput), 
+  false->nil, 
+  default->switch((algoStopTimeInputDays > 0) and (algoStopTimeInputDays < 1), 
+    true->realDateNow() + utcToLocal(stopTimeInput), 
+    default->stopTimeInput));

@@ -1,0 +1,91 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Next_Reset') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Next_Reset' and p.type = 'SQL Query' 
+
+/*
+coded by AP on 2008-06-19 - one day before payday
+
+*/
+
+select
+'Yes' ? t.trdnbr : ' ' 'trdnbr',
+'Yes' ? i.instype : ' ' 'instype',
+ri.insid'index',
+r.day,
+cf.start_day,
+cf.end_day,
+projected_cf(cf,cf.start_day,cf.end_day)*t.quantity'projected_cf',
+
+(Nominal_amount(t,r.day,,)*l.nominal_factor)'Nominal',
+
+t.status,
+'Yes' ? display_id(t,'prfnbr'): ' ' 'portfolio',
+(projected_cf(cf,cf.start_day,cf.end_day)*t.quantity < 0 ? -1 : 1)* abs(Nominal_amount(t,r.day,,)*l.nominal_factor) 'cf_Nominal'
+
+from
+trade t,
+instrument i,
+leg l,
+instrument  ri,
+reset r,
+cashflow cf
+
+where
+t.insaddr=i.insaddr
+and i.insaddr=l.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_all_trades;tradefilter.fltid})
+and i.exp_day>Today
+and l.type='Float'
+and l.float_rate=ri.insaddr
+and t.status not in ('Simulated','Terminated','Void')
+and l.legnbr=cf.legnbr
+and cf.cfwnbr=r.cfwnbr
+and r.day between @start_day{Today;} and @end_day{Tomorrow;}
+
+
+order by r.day,2/*i.instype*/,ri.insid
+
+
+union
+
+select
+' ' /*t.trdnbr*/,
+'by day/index' /*i.instype*/,
+ri.insid'index',
+r.day,
+cf.start_day,
+cf.end_day,
+sum(projected_cf(cf,cf.start_day,cf.end_day)*t.quantity)'projected_cf',
+
+sum((Nominal_amount(t,r.day,,)*l.nominal_factor))'Nominal',
+
+t.status,
+' ' /*display_id(t,'prfnbr')*/'portfolio',
+sum((projected_cf(cf,cf.start_day,cf.end_day)*t.quantity < 0 ? -1 : 1)* abs(Nominal_amount(t,r.day,,)*l.nominal_factor)) 'cf_Nominal'
+
+from
+trade t,
+instrument i,
+leg l,
+instrument  ri,
+reset r,
+cashflow cf
+
+where
+t.insaddr=i.insaddr
+and i.insaddr=l.insaddr
+and match_filter(t,@filter{LA_FUND_TOTAL_all_trades;tradefilter.fltid})
+and i.exp_day>Today
+and l.type='Float'
+and l.float_rate=ri.insaddr
+and t.status not in ('Simulated','Terminated','Void')
+and l.legnbr=cf.legnbr
+and cf.cfwnbr=r.cfwnbr
+and r.day between @start_day{Today;} and @end_day{Tomorrow;}
+
+group by r.day,ri.insid
+
+order by r.day,ri.insid

@@ -1,0 +1,34 @@
+select
+    t.trdnbr,
+    t.creat_time,
+    t.value_day,
+    t.status,
+    p.prfid,
+    present_value(t,,,,curr.insid,1,,,'None'),
+    display_id(i,'curr'),
+    nominal_amount(t),
+    0.01 * sum(accumulated_cash(t, TODAY, curr.insid)) 'cash_pv01',
+     0.01 * sum(present_value(t, TODAY, '2099-01-01', '2099-01-01', curr.insid)) 'pv_pv01',
+     mtm_price(i,YESTERDAY,'ZAR'),
+     present_value(t,,,,i.insid)/t.quantity				'Discount'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    instrument curr,
+    party a,
+    portfolio p
+where
+        t.insaddr = i.insaddr
+    and i.instype = 'Curr'
+    and t.disc_type_chlnbr = ''
+    and t.acquirer_ptynbr = a.ptynbr
+    and a.ptyid = 'MIDAS DUAL KEY'
+    and t.status not in ('Void')
+    and t.value_day >= today
+    and p.prfnbr = t.prfnbr 
+    and i.curr = curr.insaddr
+    and t.trdnbr not in (43335356,43335354,39271467,43335355,43335353,39271466,44622976,44622975,43335612,43725878)
+
+select * from temp

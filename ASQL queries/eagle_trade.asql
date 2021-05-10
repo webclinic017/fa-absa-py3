@@ -1,0 +1,838 @@
+/*
+'''
+Purpose                 :Credit Risk Risk feed files
+Department and Desk     :IT
+Requester:              :Kim Madeley
+Developer               :Kim Madeley
+CR Number               :467876
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-09-14     CHNG0003954971   Victor Mofokeng    Nico Louw          Added Functionality for Zero Couopon Swaps.
+2018-05-08						Gavin Brennan	   Nico Louw		  Added functionality for Float-Float Swaps.
+'''
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','eagle_trade') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'eagle_trade' and p.type = 'SQL Query' 
+ 
+
+select 
+
+t.trdnbr,
+min(l.end_day) 'MinEndDay'
+
+into tempMin
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+portfolio pt
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and pt.prfnbr = t.prfnbr
+and i.instype in ('Swap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+
+group by 1
+
+ 
+select
+
+distinct 
+/*i.instype,*/
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+/*t.version_id                                                        'ORIG_TRADE_VERSION',*/
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                         'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+''                                                                  'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                'OPTION_END_DATE',
+'CASH'                                                              'SETTLEMENT_TYPE',
+i.start_day = '0000-01-01' ?  
+ael_s(i,'Eagle_Date.MinDate',l.start_day) 
+: ael_s(i,'Eagle_Date.CDate',i.start_day)                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap')  ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                                           'EXTERNAL_PRODUCT_TYPE',   
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap') ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype                                                           'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+''                                                                  'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+''                                                                  'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+''                                                                  'OPTION_EXERCISED_FLAG',
+''                                                                  'OPTION_EXERCISED_DATE',
+/*mtm_value_fo(t,@Date{},display_id(i,'curr'))                            'NPV_VALUE',*/
+add_info(pt,'MTM_From_External') = 'Yes' and 
+add_info(t,'ExternalVal') ~= '' ? to_double(add_info(t,'ExternalVal')) :
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                        'NPV_VALUE',	
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+i.instype in ('CAP', 'FLOOR') ? 'CAP_FLOOR' :
+i.instype = 'IndexLinkedSwap' ? 'INFL_SWP' :
+i.instype = 'CurrSwap' ? 'XCCY_SWP'  :
+i.instype = 'Swap' ? ael_s(,'Eagle_IRD_Functions.EagleTradeTTSProductType',t) :
+i.instype = 'FRA' ? i.instype : i.instype 'TTS_PRODUCT_TYPE'
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+portfolio pt,
+tempMin tm
+
+where 
+
+    t.insaddr = i.insaddr
+and tm.trdnbr = t.trdnbr
+and tm.MinEndDay = l.end_day
+and i.insaddr = l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and pt.prfnbr = t.prfnbr
+and i.instype in ('Swap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+
+ union
+ 
+
+  select
+
+/****NEW FIELDS Start*/
+distinct 
+/*i.instype,*/
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+/*t.version_id                                                        'ORIG_TRADE_VERSION',*/
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                         'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+''                                                                  'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                'OPTION_END_DATE',
+'CASH'                                                              'SETTLEMENT_TYPE',
+i.start_day = '0000-01-01' ?  
+ael_s(i,'Eagle_Date.MinDate',l.start_day) 
+: ael_s(i,'Eagle_Date.CDate',i.start_day)                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap')  ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                                           'EXTERNAL_PRODUCT_TYPE',   
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap') ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype                                                           'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+''                                                                  'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+''                                                                  'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+''                                                                  'OPTION_EXERCISED_FLAG',
+''                                                                  'OPTION_EXERCISED_DATE',
+/*mtm_value_fo(t,@Date{},display_id(i,'curr'))                            'NPV_VALUE',*/
+add_info(pt,'MTM_From_External') = 'Yes' and 
+add_info(t,'ExternalVal') ~= '' ? to_double(add_info(t,'ExternalVal')) :
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                        'NPV_VALUE',	
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+/*convert('time', TODAY, '%Y%m%d')                                    'ACCOUNTING_DATE'*/
+i.instype in ('CAP', 'FLOOR') ? 'CAP_FLOOR' :
+i.instype = 'IndexLinkedSwap' ? 'INFL_SWP' :
+i.instype = 'CurrSwap' ? 'XCCY_SWP'  :
+i.instype = 'Swap' ? 'IR_SWP'  :
+i.instype = 'FRA' ? i.instype  : i.instype                          'TTS_PRODUCT_TYPE'  
+/*display_id(l,'float_rate'),
+ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 2) 'FLOAT_RATE_INDEX',
+l.rolling_period.count,
+l.rolling_period.unit,
+ael_s(,'RollingPeriod.RP', l) = '0d' ? 'Z' : 
+ael_s(,'RollingPeriod.RP', l) = '1m' ? 'M' : 
+ael_s(,'RollingPeriod.RP', l) = '1y' ? 'A' : 
+ael_s(,'RollingPeriod.RP', l) = '3m' ? 'Q' : 
+ael_s(,'RollingPeriod.RP', l) = '0d' ? 'Z' : 
+ael_s(,'RollingPeriod.RP', l) = '6m' ? 'S' : 
+*/
+
+
+
+/****NEW FIELDS END*/
+/*
+'AppDate'                                'AppDate',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype in ('CAP', 'Floor') ? 'IRG' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'TradeType',
+t.trdnbr                                 'TradeId',
+'Version'                                'Version',
+t.optional_key                           'ExtTradeId',
+i.insid                                  'DealId',
+display_id(t,'counterparty_ptynbr')      'Company',
+display_id(t,'acquirer_ptynbr')          'Desk',
+display_id(t,'prfnbr')                   'Book',
+'RSA'                                    'Location',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'SubType',
+'None'                                   'MMType',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                   'ProductType',
+t.counterparty_ptynbr                    'CustID',
+display_id(t,'counterparty_ptynbr')      'CustName',
+'AcctSchema'                             'AcctSchema',
+'Comments'                               'Comments',
+time_to_day(t.time)                      'tradedate',
+l.start_day                              'EffDate',
+l.end_day                                'MatDate',
+display_id(t,'broker_ptynbr')            'Broker',
+i.exercise_type                               'OptStyle',
+i.exp_day                            'expirydate',
+'PV'                                    'TradeNPV',
+'PhyCashSettle'      'PhyCashSettle',
+'CashSetCCY'      'CashSetCCY',
+'Price'      'Price',
+l.payleg = 'YES' ? 'Pay' : 'Receive'      'PayRec',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price      'Strike',
+i.call_option = 'No' ? 'PUT':'CALL'	      'CallPut',
+'Float1'      'Float1',
+'Text1'      'Text1',
+'Text2'      'Text2',
+'RiskComponent'      'RiskComponent',
+i.instype = 'SWAP' ? 'SWAP' : i.instype     'TTSProdType',
+'Option_Exp_Date      '      'Option_Exp_Date      ',
+'PModel'      'PModel',
+'InstStyle'      'InstStyle',
+'SETTLEDATA_StlMode'      'SETTLEDATA_StlMode',
+'SETTLEDATA_StlDate   '      'SETTLEDATA_StlDate   ',
+'SETTLEDATA_StlCcy'      'SETTLEDATA_StlCcy',
+'Option_Exercised'      'Option_Exercised',
+'Option_Exercised_Date'      'Option_Exercised_Date'
+
+*/
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+portfolio pt
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and pt.prfnbr = t.prfnbr
+and i.instype in ('CAP', 'Floor', 'CurrSwap','IndexLinkedSwap')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insid not in ('ZAR/IRS/F-F/Settlement penalties')
+
+union
+
+ 
+  select
+
+/****NEW FIELDS Start*/
+distinct 
+/*i.instype,*/
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+/*t.version_id                                                        'ORIG_TRADE_VERSION',*/
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                         'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+''                                                                  'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                'OPTION_END_DATE',
+'CASH'                                                              'SETTLEMENT_TYPE',
+i.start_day = '0000-01-01' ?  
+ael_s(i,'Eagle_Date.MinDate',l.start_day) 
+: ael_s(i,'Eagle_Date.CDate',i.start_day)                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap')  ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                                           'EXTERNAL_PRODUCT_TYPE',   
+i.instype = 'FRA' ? 'FRA' : i.instype in ('SWAP', 'IndexLinkedSwap') ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype                                                           'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+''                                                                  'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+''                                                                  'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+''                                                                  'OPTION_EXERCISED_FLAG',
+''                                                                  'OPTION_EXERCISED_DATE',
+/*mtm_value_fo(t,@Date{},display_id(i,'curr'))                            'NPV_VALUE',*/
+add_info(pt,'MTM_From_External') = 'Yes' and 
+add_info(t,'ExternalVal') ~= '' ? to_double(add_info(t,'ExternalVal')) :
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                        'NPV_VALUE',
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+/*convert('time', TODAY, '%Y%m%d')                                    'ACCOUNTING_DATE'*/
+i.instype in ('CAP', 'FLOOR') ? 'CAP_FLOOR' :
+i.instype = 'IndexLinkedSwap' ? 'INFL_SWP' :
+i.instype = 'CurrSwap' ? 'XCCY_SWP'  :
+i.instype = 'Swap' ? 'IR_SWP'  :
+i.instype = 'FRA' ? i.instype  : i.instype                          'TTS_PRODUCT_TYPE'  
+/*display_id(l,'float_rate'),
+ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 2) 'FLOAT_RATE_INDEX',
+l.rolling_period.count,
+l.rolling_period.unit,
+ael_s(,'RollingPeriod.RP', l) = '0d' ? 'Z' : 
+ael_s(,'RollingPeriod.RP', l) = '1m' ? 'M' : 
+ael_s(,'RollingPeriod.RP', l) = '1y' ? 'A' : 
+ael_s(,'RollingPeriod.RP', l) = '3m' ? 'Q' : 
+ael_s(,'RollingPeriod.RP', l) = '0d' ? 'Z' : 
+ael_s(,'RollingPeriod.RP', l) = '6m' ? 'S' : 
+*/
+
+
+
+
+/*
+'AppDate'                                'AppDate',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype in ('CAP', 'Floor') ? 'IRG' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'TradeType',
+t.trdnbr                                 'TradeId',
+'Version'                                'Version',
+t.optional_key                           'ExtTradeId',
+i.insid                                  'DealId',
+display_id(t,'counterparty_ptynbr')      'Company',
+display_id(t,'acquirer_ptynbr')          'Desk',
+display_id(t,'prfnbr')                   'Book',
+'RSA'                                    'Location',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'SubType',
+'None'                                   'MMType',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                   'ProductType',
+t.counterparty_ptynbr                    'CustID',
+display_id(t,'counterparty_ptynbr')      'CustName',
+'AcctSchema'                             'AcctSchema',
+'Comments'                               'Comments',
+time_to_day(t.time)                      'tradedate',
+l.start_day                              'EffDate',
+l.end_day                                'MatDate',
+display_id(t,'broker_ptynbr')            'Broker',
+i.exercise_type                               'OptStyle',
+i.exp_day                            'expirydate',
+'PV'                                    'TradeNPV',
+'PhyCashSettle'      'PhyCashSettle',
+'CashSetCCY'      'CashSetCCY',
+'Price'      'Price',
+l.payleg = 'YES' ? 'Pay' : 'Receive'      'PayRec',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price      'Strike',
+i.call_option = 'No' ? 'PUT':'CALL'	      'CallPut',
+'Float1'      'Float1',
+'Text1'      'Text1',
+'Text2'      'Text2',
+'RiskComponent'      'RiskComponent',
+i.instype = 'SWAP' ? 'SWAP' : i.instype     'TTSProdType',
+'Option_Exp_Date      '      'Option_Exp_Date      ',
+'PModel'      'PModel',
+'InstStyle'      'InstStyle',
+'SETTLEDATA_StlMode'      'SETTLEDATA_StlMode',
+'SETTLEDATA_StlDate   '      'SETTLEDATA_StlDate   ',
+'SETTLEDATA_StlCcy'      'SETTLEDATA_StlCcy',
+'Option_Exercised'      'Option_Exercised',
+'Option_Exercised_Date'      'Option_Exercised_Date'
+
+*/
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+portfolio pt
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and pt.prfnbr = t.prfnbr
+and i.instype in ('FRA')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/* and mtm_value_fo(t,@Date{TODAY},display_id(i,'curr')) ~= 0 */
+and p.ptyid not in ('FMAINTENANCE')
+
+
+union
+
+
+
+/*
+select
+
+
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                        'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_SMS_CP_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                          'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_END_DATE',
+'CASH'                                                                  'SETTLEMENT_TYPE',
+i.instype = 'Option' ? convert('time', t.value_day, '%Y%m%d')
+ : convert('time', l.start_day, '%Y%m%d')                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+'OPTION'                                                            'EXTERNAL_PRODUCT_TYPE',   
+'BOND-OPTION'                                                       'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+'YIELD'                                                             'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+'BSFT'                                                              'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+'N'                                                                  'OPTION_EXERCISED_FLAG',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXERCISED_DATE',
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                           'NPV_VALUE',
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+convert('time', t.value_day, '%Y%m%d')                              'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+
+'BOND_OPT'                                                          'TTS_PRODUCT_TYPE'  
+
+display_id(l,'float_rate'),
+ael_s(,'SAGEN_str_functions.split_string', display_id(l,'float_rate'), '-', 2) 'FLOAT_RATE_INDEX',
+l.rolling_period.count,
+l.rolling_period.unit,
+ael_s(,'RollingPeriod.RP', l) 'RollingPeriod'*/
+
+
+
+
+
+/*/****NEW FIELDS END*/
+/*
+'AppDate'                                'AppDate',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype in ('CAP', 'Floor') ? 'IRG' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'TradeType',
+t.trdnbr                                 'TradeId',
+'Version'                                'Version',
+t.optional_key                           'ExtTradeId',
+i.insid                                  'DealId',
+display_id(t,'counterparty_ptynbr')      'Company',
+display_id(t,'acquirer_ptynbr')          'Desk',
+display_id(t,'prfnbr')                   'Book',
+'RSA'                                    'Location',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWOPT' :
+i.instype                                'SubType',
+'None'                                   'MMType',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                   'ProductType',
+t.counterparty_ptynbr                    'CustID',
+display_id(t,'counterparty_ptynbr')      'CustName',
+'AcctSchema'                             'AcctSchema',
+'Comments'                               'Comments',
+time_to_day(t.time)                      'tradedate',
+l.start_day                              'EffDate',
+l.end_day                                'MatDate',
+display_id(t,'broker_ptynbr')            'Broker',
+i.exercise_type                               'OptStyle',
+i.exp_day                            'expirydate',
+'PV'                                    'TradeNPV',
+'PhyCashSettle'      'PhyCashSettle',
+'CashSetCCY'      'CashSetCCY',
+'Price'      'Price',
+l.payleg = 'YES' ? 'Pay' : 'Receive'      'PayRec',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price      'Strike',
+i.call_option = 'No' ? 'PUT':'CALL'	      'CallPut',
+'Float1'      'Float1',
+'Text1'      'Text1',
+'Text2'      'Text2',
+'RiskComponent'      'RiskComponent',
+i.instype = 'SWAP' ? 'SWAP' : i.instype     'TTSProdType',
+'Option_Exp_Date      '      'Option_Exp_Date      ',
+'PModel'      'PModel',
+'InstStyle'      'InstStyle',
+'SETTLEDATA_StlMode'      'SETTLEDATA_StlMode',
+'SETTLEDATA_StlDate   '      'SETTLEDATA_StlDate   ',
+'SETTLEDATA_StlCcy'      'SETTLEDATA_StlCcy',
+'Option_Exercised'      'Option_Exercised',
+'Option_Exercised_Date'      'Option_Exercised_Date'
+
+
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p
+
+where 
+
+    t.insaddr = i.insaddr
+and i.insaddr *= l.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Option')
+and i.und_instype = 'BOND'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @2_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and p.ptyid not in ('FMAINTENANCE')
+*/
+
+/*
+select
+
+
+distinct 
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+                                                
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                         'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+''                                                                  'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                               'OPTION_END_DATE',
+'CASH'                                                              'SETTLEMENT_TYPE',
+i.instype = 'Option' ? convert('time', t.value_day, '%Y%m%d')
+ : (i.start_day = '0000-01-01' ? ael_s(,'Eagle_Date.CDate',t.value_day) 
+: ael_s(,'Eagle_Date.CDate',i.start_day))                         'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                               'MATURITY_DATE',
+i.strike_price                                                      'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+'SWAP'                                                              'EXTERNAL_PRODUCT_TYPE',   
+'IRSWAP'                                                              'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+''                                                                  'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+''                                                                  'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+''                                                                  'OPTION_EXERCISED_FLAG',
+''                                                                  'OPTION_EXERCISED_DATE',
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                             'NPV_VALUE',
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+'IR_SWP'                                                            'TTS_PRODUCT_TYPE'  
+
+
+
+
+from
+
+trade t,
+instrument i,
+party p
+
+where 
+
+    t.insaddr = i.insaddr
+and p.ptynbr = t.counterparty_ptynbr    
+and i.instype in ('FreeDefCF')
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and p.ptyid ~= 'FMAINTENANCE'
+and add_info(p,'BarCap_Eagle_Incl') = 'Yes'
+and t.trdnbr in (746101,746106,754505,836282,1279710,1234027)
+*/
+
+
+
+select
+
+distinct
+/*i.instype,*/
+/****NEW FIELDS Start*/
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+/*t.version_id                                                        'ORIG_TRADE_VERSION',*/
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                        'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+i.exercise_type = 'American' ? 'AMER' : i.exercise_type = 'Bermudan' ? 'BERM' : i.exercise_type = 'European' ? 'EURO' : 'None'                          'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_END_DATE',
+i.settlement = 'Physical Delivery' ?  'PHYS' : i.settlement = 'Cash' ? 'CASH' : 'None'            'SETTLEMENT_TYPE',
+ael_s(,'Eagle_Date.CDate',l.start_day)                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',und.exp_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+i.instype = 'Option' ? (i.call_option = 'No' ? 'P':'C') : ''        'OPTION_TYPE',
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'SWAP' : 
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+i.instype = 'CurrSwap' ? 'SWAP' :
+i.instype                                                           'EXTERNAL_PRODUCT_TYPE',   
+i.instype = 'FRA' ? 'FRA' : i.instype = 'SWAP' ? 'IRSWAP' : 
+i.instype = 'CurrSwap' ? 'CCYSWAP' :
+i.instype = 'CAP' ? 'CAP' :
+i.instype = 'Floor' ? 'FLOOR' :
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'SWAPTION' :
+i.instype                                                           'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'YIELD' : ''    'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+'BSFT'                                                              'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+'N'                                                                  'OPTION_EXERCISED_FLAG',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                 'OPTION_EXERCISED_DATE',
+/*mtm_value_fo(t,@Date{},display_id(i,'curr'))                            'NPV_VALUE',*/
+add_info(pt,'MTM_From_External') = 'Yes' and 
+add_info(t,'ExternalVal') ~= '' ? to_double(add_info(t,'ExternalVal')) :
+mtm_value_fo(t,@Date{},display_id(i,'curr'))                        'NPV_VALUE',
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+convert('time', t.value_day, '%Y%m%d')                              'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+/*convert('time', TODAY, '%Y%m%d')                                   'ACCOUNTING_DATE'*/
+i.exercise_type in ('American','Bermudan')  ? 'SWAPTION_A' :
+i.exercise_type = 'European' ? 'SWAPTION_E' : 'None'              'TTS_PRODUCT_TYPE'  
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+instrument und,
+portfolio pt
+
+where 
+
+    t.insaddr = i.insaddr
+and und.insaddr = l.insaddr
+and und.insaddr = i.und_insaddr
+and pt.prfnbr = t.prfnbr
+and p.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Option')
+and i.und_instype = 'SWAP'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and p.ptyid not in ('FMAINTENANCE')
+
+
+union
+
+
+select
+
+/****NEW FIELDS Start*/
+t.trdnbr                                                            'SOURCE_TRADE_ID',
+/*t.version_id                                                        'ORIG_TRADE_VERSION',*/
+convert('time', TODAY, '%Y%m%d')                                    'EXTRACT_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_DATE',
+convert('string', display_id(t,'prfnbr'),15)                        'BOOK',
+''                                                                  'GROUP_ID',
+add_info(p,'BarCap_Eagle_SDSID')                                   'SDS_COUNTERPARTY_ID',
+t.counterparty_ptynbr                                                'ABSA_COUNTERPARTY_ID',
+t.quantity < 0 ? 'SELL' : 'BUY'                                     'BUY_OR_SELL',
+''                                                                   'OPTION_STYLE',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_END_DATE',
+i.settlement = 'Physical Delivery' ?  'PHYS' : i.settlement = 'Cash' ? 'CASH' : 'None'                                                                   'SETTLEMENT_TYPE',
+ael_s(,'Eagle_Date.CDate',l.start_day)                           'EFFECTIVE_DATE',
+ael_s(,'Eagle_Date.CDate',l.end_day)                                'MATURITY_DATE',
+i.instype in ('CAP', 'FLOOR') ? l.strike : i.strike_price           'STRIKE_PERCENT',
+''                                                                  'OPTION_TYPE',
+i.call_option = 'Yes' ? 'CAP' : 'FLOOR'                            'EXTERNAL_PRODUCT_TYPE',   
+i.call_option = 'Yes' ? 'CAP' : 'FLOOR'                            'EXTERNAL_PRODUCT_SUB_TYPE',
+''                                                                  'RISK_PRODUCT_TYPE',
+0.00                                                                'COUPON_RATE',
+(i.und_instype = 'SWAP' and i.instype = 'Option') ? 'YIELD' : ''    'INSTRUMENT_STYLE',
+''                                                                  'COUNTRY_OF_ISSUE',
+t.price                                                             'PRICE',
+''                                                              'PRICING_MODEL',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                                'OPTION_EXPIRY_DATE',
+''                                                                  'OPTION_EXERCISED_FLAG',
+''                                                                    'OPTION_EXERCISED_DATE',
+/*present_value(t)                           'NPV_VALUE',*/
+add_info(pt,'MTM_From_External') = 'Yes' and 
+add_info(t,'ExternalVal') ~= '' ? to_double(add_info(t,'ExternalVal')) :
+present_value(t)                         'NPV_VALUE',
+display_id(i,'curr')                                                'NPV_CCY',
+display_id(i,'curr')                                                'SETTLEMENT_CCY',
+ael_s(,'Eagle_Date.CDate',i.exp_day)                              'SETTLEMENT_DATE',
+convert('string', display_id(t,'broker_ptynbr'), 20)                'BROKER_ID',
+add_info(p,'BarCap_SMS_LE_SDSID')                                   'LEGAL_ENTITY',
+''                                                                  'LOCATION_CODE',
+''                                                                  'TERM_EFF_DATE',
+convert('time', t.time, '%Y%m%d')                                   'TRADE_TIME',
+'CAP_FLOOR'                                                         'TTS_PRODUCT_TYPE'  
+
+
+
+from
+
+trade t,
+instrument i,
+leg l,
+party p,
+instrument und,
+portfolio pt
+
+where 
+
+    t.insaddr = i.insaddr
+and und.insaddr = l.insaddr
+and und.insaddr = i.und_insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and pt.prfnbr = t.prfnbr
+and i.instype in ('Option')
+and i.und_instype = 'FRA'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= Today
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and p.ptyid not in ('FMAINTENANCE')
+
+

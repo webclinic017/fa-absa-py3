@@ -1,0 +1,35 @@
+[Default]FObject:Cash Failed To Pay
+{
+}
+
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+}
+
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+}
+
+failedPay = If(And(&'unSettledCashExtAttr', And(@isValueDayBeforeToday(), @isAmountNegative())), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Failed To Pay',
+    GroupLabel:'Cash',
+    Description:'Total unsettled cash with value day before today and negative amount.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@failedPay()), AttributeDimensions = AttributeList(['curr']));
+
+...

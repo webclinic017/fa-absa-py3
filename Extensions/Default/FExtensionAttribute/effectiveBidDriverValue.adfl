@@ -1,0 +1,6 @@
+[Default]FQuoteController:effectiveBidDriverValue = proposedSpreadData :* "effectiveBidDriverValue" [qQuoteContext, qOffsetController = qMultiQuoteController];
+[Default]FQuoteSetting:effectiveBidDriverValue = shunt(proposedQuoteDriverBid, 
+  "Offset"->shunt(qOffsetSettings, 
+    nil->proposedDriverValueBid, 
+    default->proposedDriverValueBid + (qOffsetSettings :* "effectiveBidDriverValue" [qQuoteContext])), 
+  default->proposedDriverValueBid);

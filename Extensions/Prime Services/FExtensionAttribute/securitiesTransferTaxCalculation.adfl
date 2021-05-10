@@ -1,0 +1,3 @@
+[Prime Services]FTrade:securitiesTransferTaxCalculation = switch((object.Quantity > 0) and (instrument.InsType == "Stock") and (fundingPortfolioType == "General"), 
+  true->-1 * abs(object.Price * object.Quantity / instrument:eqQuoteFactor) * securitiesTransferTaxRate, 
+  default->0);

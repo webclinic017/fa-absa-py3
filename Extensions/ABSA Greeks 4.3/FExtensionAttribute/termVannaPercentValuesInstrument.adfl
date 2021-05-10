@@ -1,0 +1,11 @@
+[ABSA Greeks 4.3]FCombInstrMap:termVannaPercentValuesInstrument = select(count(priceGreekRiskFactorNodes) > 0, 
+  true->timeDistributionFactor * instrument :* "termVannaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekShiftFilter, useGreekBetaFactors] * weight * instrument:contractSize * fxLegToInstrumentOnLegSpotDay, 
+  false->instrumentSpotZero);
+[ABSA Greeks 4.3]FCombination:termVannaPercentValuesInstrument = select(splitCombination, 
+  true->select(count(priceGreekRiskFactorNodes) > 0, 
+    true->sumOf((instrumentMaps) :* "termVannaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekShiftFilter, useGreekBetaFactors]) / combinationDivisionFactor, 
+    false->instrumentSpotZero), 
+  false->differential(vegaPriceGreekRiskFactorsShiftedUp, vegaValuesInstrumentForPriceShift, 1, valuationModelSpecificRelativePriceShift * 100));
+[ABSA Greeks 4.3]FInstrument:termVannaPercentValuesInstrument = select(count(priceGreekRiskFactorNodes) > 0, 
+  true->differential(termVegaPriceGreekRiskFactorsShiftedUp, termVegaValuesInstrumentForPriceShift, 1, valuationModelSpecificRelativePriceShift * 100), 
+  false->spotHandlingZero);

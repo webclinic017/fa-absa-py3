@@ -1,0 +1,8 @@
+[Core Pricing]FCurrency:theoreticalOrMarketInstrumentValueUsesTheoreticalCalculation = false;
+[Core Pricing]FInstrument:theoreticalOrMarketInstrumentValueUsesTheoreticalCalculation[priceSource, doSplitAll, useBidAskValuation] = select(isCalculatedTheoretically, 
+  true->select(valuationBasedOnMarkToMarketPrice, 
+    true->shunt[priceSource, doSplitAll, useBidAskValuation](hasMarkToMarketPriceToday, 
+      false->collapse(theoreticalOrPriceBaseInstrumentValueUsesTheoreticalCalculation), 
+      true->false), 
+    false->collapse(theoreticalOrPriceBaseInstrumentValueUsesTheoreticalCalculation)), 
+  false->false);

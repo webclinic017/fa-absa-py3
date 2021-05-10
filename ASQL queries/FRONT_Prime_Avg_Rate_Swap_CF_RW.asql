@@ -1,0 +1,273 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_Prime_Avg_Rate_Swap_CF_RW') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_Prime_Avg_Rate_Swap_CF_RW' and p.type = 'SQL Query' 
+/*
+Query	:	FRONT_Prime_Avg_Rate_Swap_CF_ki
+Purpose	:	Displays details of mortising, average and prime swaps.
+History	:
+	2003-11-24 - Russel Webber - Tidied up layout, added cashflow type.
+*/
+
+select
+	i.insid							'ins',
+	lp.settle 						'price',
+	c.insid							'curr_price',
+	i.insid='USD' ? (c.insid='ZAR' ? lp.settle : 1) : 1	'USD',
+	to_date('1900-01-02')					'SMALLDATE'
+into 
+	temp
+from
+	instrument i,
+	lastprice lp,
+	instrument c
+where
+	i.insaddr=lp.insaddr
+and 	i.insid = 'USD' 
+and 	lp.curr=c.insaddr
+and 	c.insid='ZAR'
+and 	display_id(lp,'ptynbr') = 'SPOT'
+
+
+/*----------------------------------------------------*/
+select
+
+	t.trdnbr						'TRN ID',
+	i.free_text						'CONTRACT',
+	projected_cf(l)>0 
+		? 'RCV' 
+		: 'PAY' 					'TYPE',
+	l.type='Fixed' 
+		? 'FXD' 
+		: 'VAR' 					'INT TYPE',
+	l.type='Fixed' 
+		? 'ZARMM/FXD' 
+		: 'ZARMM/VAR' 					'INDEX',
+	time_to_day(t.time) 					'TRADE DATE',
+	u.userid 						'TRADER',
+	cl.entry 						'Portfolio',
+	p.prfid 						'Profit Centre',
+	cf.type  						'Cashflow Type',
+	cf.cfwnbr						'Seq',
+	l.type~='Fixed' 
+		? cf.start_day  
+		: tt.SMALLDATE 					'Fixing Date',
+	cf.start_day 						'Start Date',
+	cf.end_day 						'Stop Date',
+	cf.pay_day 						'Payment Date',
+	round(days_between(cf.start_day,cf.end_day,'Act/365'),0)'Days',
+	l.daycount_method='Act/365' 
+		? 365 
+		: 0						'Days/Year',
+	l.type='Fixed' 
+		? 'none' 
+		: (l.rolling_period.count=3 
+			? '3M' 
+			: (l.rolling_period.count=6 
+				? '6M' 
+				: (l.rolling_period.count=12 
+					? '12M' 
+					: 'none')))		'Index Tenor',
+	round(l.type='Fixed' 
+		? l.fixed_rate 
+		: period_rate(cf,cf.start_day,cf.end_day),5) 	'Rate',
+	round(l.spread,3)					'Spread',
+	round(cf.nominal_factor*t.quantity*1000000,2) 		'Effective Notional Amt',
+	round(l.type='Fixed' 
+		? -1*t.quantity*1000000*cf.nominal_factor
+			*l.fixed_rate
+			*(days_between(cf.start_day,cf.end_day,'Act/365'))
+			/36500 
+		: -1*t.quantity*1000000*cf.nominal_factor
+			*period_rate(cf,cf.start_day,cf.end_day)
+			*(days_between(cf.start_day,cf.end_day,'Act/365'))
+			/36500,2)				'Interest Cashflow',
+	round(c.insid~='ZAR' 
+		? (l.type='Fixed' 
+			? -1*t.quantity*1000000*cf.nominal_factor
+				*l.fixed_rate
+				*(days_between(cf.start_day,cf.end_day,'Act/365'))
+				/36500 
+			: -1*t.quantity*1000000*cf.nominal_factor
+				*period_rate(cf,cf.start_day,cf.end_day)
+				*(days_between(cf.start_day,cf.end_day,'Act/365'))
+				/36500)/tt.USD 
+		: (l.type='Fixed' 
+			? -1*t.quantity*1000000*cf.nominal_factor
+				*l.fixed_rate
+				*(days_between(cf.start_day,cf.end_day,'Act/365'))
+				/36500 
+			: -1*t.quantity*1000000*cf.nominal_factor
+				*period_rate(cf,cf.start_day,cf.end_day)
+				*(days_between(cf.start_day,cf.end_day,'Act/365'))
+				/36500),2) 			'Exchanged CashFlow',
+	c.insid 						'Exch CCY',
+	cp.ptyid 						'Account',
+	l.type='Fixed' 
+		? tt.SMALLDATE 
+		: cf.start_day 					'Ref Idx Start',
+	l.type='Fixed' 
+		? tt.SMALLDATE 
+		: cf.end_day 					'Ref Idx Stop',
+	round(c.insid='ZAR' 
+		? present_value(t)/tt.USD 
+		: present_value(t),2) 				' MtM_USD',
+	round(c.insid='ZAR' 
+		? present_value(t) 
+		: present_value(t),2) 				'MtM_ZAR',
+	round(c.insid='ZAR' 
+		? present_value(t) 
+		: present_value(t)/tt.USD,2) 			'MtM_CCY',
+	c.insid 						'CCY',
+	Today 							'DATE_LAST_UPDATED',
+	'' 							'Dartnumber',
+	t.optional_key 						'Devon no',
+	t.quantity>0 
+		? 'B' 
+		: 'S' 						'B_S',
+	l.type							'Leg_Type',
+	l.type = 'Fixed' 
+		? 'Not Applicable' 
+		: ri.insid					'reference_index',
+	ael_s(t,'InstrType.InstrumentType')			'InsType',
+	cf.type							'Cashflow_Type'
+from
+	trade 		t,
+	instrument 	i,	
+	party 		cp,
+	portfolio 	p,
+	user 		u,
+	choicelist 	cl,
+	leg 		l,
+	cashflow 	cf,
+	temp 		tt,
+	instrument 	c,
+	instrument 	ri
+where
+	i.insaddr=t.insaddr
+and 	i.instype='swap'
+and 	t.prfnbr=p.prfnbr
+and 	t.trader_usrnbr=u.usrnbr
+and 	t.optkey1_chlnbr*=cl.seqnbr
+and 	i.generic~='yes'
+and 	t.status in ('BO Confirmed', 'FO Confirmed')
+and 	i.insaddr=l.insaddr
+and 	l.legnbr=cf.legnbr
+and 	c.insaddr=i.curr
+and 	t.counterparty_ptynbr=cp.ptynbr
+and 	l.float_rate=ri.insaddr
+and 	l.end_day>Today
+and 	ael_s(t,'InstrType.InstrumentType') in ('AmortisingPrimeBS','AveSwap','PrimeBS')
+and 	cf.pay_day>=Today
+and 	l.type = 'Float'
+
+
+order by t.trdnbr, 4/* int type*/, cf.start_day
+
+
+union 
+
+
+select
+	t.trdnbr							'TRN ID',
+	i.free_text							'CONTRACT',
+	projected_cf(l)>0 
+		? 'RCV' 
+		: 'PAY'					 		'TYPE',
+	l.type='Fixed' 
+		? 'FXD' 
+		: 'VAR' 						'INT TYPE',
+	l.type='Fixed' 
+		? 'ZARMM/FXD' 
+		: 'ZARMM/VAR' 						'INDEX',
+	time_to_day(t.time) 						'TRADE DATE',
+	u.userid 							'TRADER',
+	cl.entry 							'Portfolio',
+	p.prfid 							'Profit Centre',
+	cf.type  							'Cashflow Type',
+	cf.cfwnbr							'Seq',
+ 	l.type~='Fixed' 
+		? cf.start_day 
+		: tt.SMALLDATE 						'Fixing Date',
+	cf.start_day 							'Start Date',
+	cf.end_day 							'Stop Date',
+	cf.pay_day 							'Payment Date',
+	round(days_between(cf.start_day,cf.end_day,'Act/365'),0)	'Days',
+	l.daycount_method='Act/365' 
+		? 365 
+		: 0							'Days/Year',
+	l.type='Fixed' 
+		? 'none' 
+		: (l.rolling_period.count=3 
+			? '3M' 
+			: (l.rolling_period.count=6 
+				? '6M' 
+				: (l.rolling_period.count=12 
+					? '12M' 
+					: 'none')))			'Index Tenor',
+	round((l.type='Fixed' 
+		? l.fixed_rate 
+		: 0),5) 						'Rate',
+	round(l.spread,3)						'Spread',
+	round(cf.nominal_factor*t.quantity*1000000,2) 			'Effective Notional Amt',
+	0.0000 								'Interest Cashflow',
+	0.000 								'Exchanged CashFlow',
+	c.insid 							'Exch CCY',
+	cp.ptyid 							'Account',
+	l.type='Fixed' 
+		? tt.SMALLDATE 
+		: cf.start_day 						'Ref Idx Start',
+	l.type='Fixed' 
+		? tt.SMALLDATE 
+		: cf.end_day 						'Ref Idx Stop',
+	round(c.insid='ZAR' 
+		? present_value(t)/tt.USD 
+		: present_value(t),2) 					' MtM_USD',
+	round(c.insid='ZAR' 
+		? present_value(t) 
+		: present_value(t),2) 					'MtM_ZAR',
+	round(c.insid='ZAR' 
+		? present_value(t) 
+		: present_value(t)/tt.USD,2) 				'MtM_CCY',
+	c.insid 							'CCY',
+	Today 								'DATE_LAST_UPDATED',
+	'' 								'Dartnumber',
+	t.optional_key 							'Devon no',
+	(t.quantity>0 
+		? 'B' 
+		: 'S') 							'B_S',
+	l.type								'Leg_Type',
+	'' 								'reference_index',
+	ael_s(t,'InstrType.InstrumentType')				'InsType',
+	cf.type								'Cashflow_Type'
+from
+	trade 		t,
+	instrument 	i,
+	party 		cp,
+	portfolio 	p,
+	user 		u,
+	choicelist 	cl,
+	leg 		l,
+	cashflow 	cf,
+	temp 		tt,
+	instrument 	c
+where
+	i.insaddr=t.insaddr
+and 	i.instype='swap'
+and 	t.prfnbr=p.prfnbr
+and 	t.trader_usrnbr=u.usrnbr
+and 	t.optkey1_chlnbr*=cl.seqnbr
+and 	i.generic~='yes'
+and 	t.status in ('BO Confirmed', 'FO Confirmed')
+and 	i.insaddr=l.insaddr
+and 	l.legnbr=cf.legnbr
+and 	c.insaddr=i.curr
+and 	t.counterparty_ptynbr=cp.ptynbr
+and 	l.type = 'Fixed'
+and 	l.end_day>Today
+and 	ael_s(t,'InstrType.InstrumentType') in ('AmortisingPrimeBS','AveSwap','PrimeBS')
+and 	cf.pay_day>=Today
+
+order by t.trdnbr, 4/* int type*/, cf.start_day

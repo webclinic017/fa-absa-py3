@@ -1,0 +1,7 @@
+[GenericMandates]FInstrumentAndTrades:mandateResultCounterparty = 
+# Check if the parent passes the mandate
+switch(minOf(children :* "mandateResultCounterparty"), 
+  1->1, 
+  default->0);
+[GenericMandates]FTrade:mandateResultCounterparty = mandateAllowedMap.At(mandateDisplayCounterparty.AsString);
+[GenericMandates]FTradeRow:mandateResultCounterparty = trade:mandateResultCounterparty;

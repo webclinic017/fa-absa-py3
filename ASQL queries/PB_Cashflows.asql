@@ -1,0 +1,588 @@
+/*------------------------------------------------------------------
+    PB_Cashflows
+
+    This query show settlements for Prime Services clients
+    
+
+
+Purpose:                Create report.
+Department and Desk:    PS
+Requester:              Christo Davies
+Developer:              Jaysen Naicker
+CR Number:              810596 27/10/2011
+
+------------------------------------------------------------------*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PB_Cashflows') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PB_Cashflows' and p.type = 'SQL Query' 
+
+
+/* Get current VAT rate */
+select 
+    to_double(ael_f(,'PS_BrokerFeesRates.get_value', 'VAT_RATE'))      'VAT'
+into constant
+from serverdata s
+where s.srdnbr > 0
+
+
+/*********** Macro ***********/
+select
+    @1_StartDay{Yesterday}  'StartDay',
+    @2_EndDay{Today}    'EndDay'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+
+
+/*********** List of Trades ***********/
+select
+                t.trdnbr,
+                i.insid,
+                display_id(i, 'und_insaddr')    'Underlying',
+                i.instype,
+                t.execution_time,
+                t.quantity >= 0 ? 'B' : 'S'  'BuySell',
+                
+                t.value_day        'start_day',
+                ael_s(t,'InstrType.InstrumentType')       'itype',
+                add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+                    : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+                                                                                                                                                    : add_info(t, 'Instype')) 'MM_Instype',
+                display_id(t, 'counterparty_ptynbr')                       'Cpty',
+                display_id(t, 'acquirer_ptynbr') 'Desk',
+                display_id(t,'counterparty_ptynbr') 'cpid',
+                display_id(i, 'issuer_ptynbr') 'issid',
+                t.optional_key 'ExternalId1',
+                display_id(t, 'optkey2_chlnbr') 'ExternalId2',
+                t.trx_trdnbr    'TransRef',
+                i.isin          'ISIN',
+                nominal_amount(t)        'Nominal',
+                t.status,
+                t.time,
+                display_id(t,'prfnbr')  'Portfolio',
+                t.your_ref                           'CPRef',
+                display_id(t,'trader_usrnbr') 'DealerCode', 
+                t.quantity,
+                i.quote_type = 'Per 100 Units' ? t.price/100 : t.price 'price'
+into 
+                TRD
+from
+                trade                     t,
+                instrument         i
+where
+    match_filter(t, @Filter{;tradefilter.fltid*})
+and        i.insaddr = t.insaddr
+
+
+
+/*********** Premiums ***********/ 
+select distinct
+                t.value_day        'day',
+                trd.start_day     'startday',
+                /*t.premium      'amount',*/
+                t.premium 'amount',
+                /*display_id(t,'curr')       'curr',*/
+                display_id(t,'curr') 'curr',
+                t.trade_process not in (4096, 8192, 16384, 32768) ? 'Premium' : 'Cashflow'             'CFType',
+                t.trade_process not in (4096, 8192, 16384, 32768) ? trd.Nominal :  t.premium  'Nominal',
+                t.trade_process not in (4096, 8192, 16384, 32768) ? 1.00 : abs(t.premium/t.quantity)  'NominalFactor',
+                t.connected_trdnbr  'trdnbr',
+                trd.insid,
+                trd.itype = 'FxSwap' ? 'Fixed Amount'  :  trd.itype 'itype',
+                'CP' 'PartyType',
+                trd.cpid,
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref                           'CPRef',
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                trd.quantity 'qty',
+                trd.price
+                
+into
+                CF
+from
+                trade t,
+                instrument i,
+                TRD trd,
+                instrument j
+where
+        t.trdnbr = trd.trdnbr
+    and    t.premium ~= 0.0
+    and    t.insaddr = i.insaddr
+    and    t.curr = j.insaddr
+
+
+
+select distinct
+                t.value_day        'day',
+                trd.start_day     'startday',
+                t.quantity            'amount',
+                display_id(i,'curr')            'curr',
+                t.trade_process not in (4096, 8192, 16384,32768) ? 'Premium' : 'Cashflow'              'CFType',
+                t.trade_process not in (4096, 8192, 16384,32768) ? t.quantity : t.premium  'Nominal',
+                t.trade_process not in (4096, 8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)   'NominalFactor',
+                t.connected_trdnbr  'trdnbr',
+                trd.insid,
+                trd.itype = 'FxSwap' ? 'Fixed Amount'  :  trd.itype 'itype',
+                'CP' 'PartyType',
+                trd.cpid,
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(i, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref                           'CPRef',
+                trd.MM_Instype,
+                trd.DealerCode,
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                trd.quantity 'qty',
+                trd.price    
+into
+                CF
+from
+                trade t,
+                instrument i,
+                TRD trd,
+                instrument j
+where
+        t.trdnbr = trd.trdnbr
+    and    t.premium ~= 0.0
+    and i.instype = 'Curr'
+    and    t.insaddr = i.insaddr
+    and    t.curr = j.insaddr
+
+  
+    
+/********** Cashflows ***********/
+select
+                c.pay_day           'day',
+                trd.start_day     'startday',
+                projected_cf(c) * t.quantity        'amount',
+                display_id(l,'curr')            'curr',
+                'Cashflow'           'CFType',
+                t.quantity*i.contr_size*c.nominal_factor  'Nominal',
+                /*i.instype='FXSwap' ? l.nominal_factor : c.nominal_factor   'NominalFactor',*/
+                c.nominal_factor   'NominalFactor',
+                c.pay_day = t.acquire_day and trd.MM_Instype in ('FRN', 'NCC') and c.type = 'Float Rate' ? -1 : t.trdnbr 'trdnbr',
+                trd.insid,
+                c.type = 'Fixed Amount' ? 'Fixed Amount' : c.type             'type',
+                i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+                i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref                           'CPRef',
+                trd.MM_Instype,
+                    trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into
+                CF_temp
+from
+                trade t,
+                instrument i,
+                leg l,
+                cashflow c,
+                TRD trd,
+                instrument j
+where
+        i.insaddr = t.insaddr
+    and    i.insaddr = l.insaddr
+    and    l.legnbr = c.legnbr
+    and    t.trdnbr = trd.trdnbr
+    and    c.pay_day => t.acquire_day
+    and    ('All' in (@CashflowType{All;Cashflow.type*}) or c.type in (@CashflowType{;Cashflow.type*}))
+    and    l.curr = j.insaddr
+
+
+
+select 
+    cft.day,
+                cft.startday,
+                cft.amount,
+                cft.curr,
+                cft.CFType,
+                cft.Nominal,
+                cft.NominalFactor,
+                cft.trdnbr,
+                cft.insid,
+                cft.type,
+                cft.PartyType,
+                cft.Party,
+                cft.status,
+                cft.time,
+                cft.portfolio,
+                cft.Mtm_price,
+                cft.CPRef,
+                cft.MM_Instype,
+                cft.DealerCode,
+                cft.Underlying,
+                cft.instype,
+                cft.execution_time,
+                cft.BuySell,
+                cft.ExternalId1,
+                cft.ExternalId2,
+                cft.TransRef,
+                cft.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into
+                CF
+from
+                CF_temp cft
+where
+                cft.trdnbr  ~= -1
+                
+/*********** End premiums and sec loan fees ***********/
+select
+                i.exp_day            'day',
+                trd.start_day     'startday',
+                i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+                t.quantity * projected_cf(i)         'amount',
+                display_id(t,'curr')           'curr',
+                'End Premium/Sec Loan Fee'      'CFType',
+                trd.Nominal,
+                1.00 'NominalFactor',
+                t.trdnbr,
+                trd.insid,
+                trd.itype,
+                'CP' 'PartyType',
+                trd.cpid 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref                           'CPRef',
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into
+                CF
+from
+                trade t,
+                instrument i,
+                TRD trd,
+                instrument j
+where
+        t.trdnbr = trd.trdnbr
+    and    i.insaddr = t.insaddr
+    and    i.instype in ('BuySellback','SecurityLoan')
+    and    t.curr = j.insaddr
+
+/*********** Commod Futures ***********/
+select
+                i.exp_day            'day',
+                trd.start_day     'startday',
+                nominal_amount(t)*t.price*-1  'amount',
+                display_id(t,'curr')           'curr',
+                'Commodity Future'        'CFType',
+                trd.Nominal,
+                1.00 'NominalFactor',
+                t.trdnbr,
+                trd.insid,
+                trd.itype,
+                'CP' 'PartyType',
+                trd.cpid 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref                           'CPRef',
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into
+                CF
+from
+                trade t,
+                instrument i,
+                TRD trd,
+                instrument j
+where
+        t.trdnbr = trd.trdnbr
+    and    i.insaddr = t.insaddr
+    and    i.instype in ('Future/Forward')
+    and    i.und_instype = 'Commodity'
+    and    t.curr = j.insaddr
+
+/*********** Additional Payments ***********/
+select
+                a.payday              'day',
+                trd.start_day     'startday',
+                a.amount            'amount',
+                display_id(a,'curr')           'curr',
+                'Additional Payment'       'CFType',
+                trd.Nominal,
+                1.00 'NominalFactor',
+                a.trdnbr,
+                trd.insid,
+                trd.itype,
+                'CP' 'PartyType',
+                display_id(a, 'ptynbr') 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                trd.CPRef,
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into 
+                CF
+from
+                payment a,
+                TRD trd,
+                instrument j
+where
+        a.trdnbr = trd.trdnbr
+    and    a.curr = j.insaddr
+    and a.text not in ('Brokerage', 'INS', 'SET', 'STT')
+    and a.amount ~= 0.0
+
+select
+                a.payday              'day',
+                trd.start_day     'startday',
+                a.amount            'amount',
+                display_id(a,'curr')           'curr',
+                a.text       'CFType',
+                trd.Nominal,
+                1.00 'NominalFactor',
+                a.trdnbr,
+                trd.insid,
+                trd.itype,
+                'CP' 'PartyType',
+                display_id(a, 'ptynbr') 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                trd.CPRef,
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN
+into 
+                payments
+from
+                payment a,
+                TRD trd,
+                instrument j
+where
+        a.trdnbr = trd.trdnbr
+    and    a.curr = j.insaddr
+    and a.text  in ('Brokerage', 'INS', 'SET', 'STT')
+
+
+/*********** Dividend Payments ***********/
+select
+                d.day   'day',
+                trd.start_day   'startday',
+                d.dividend  'amount',
+                display_id(i,'curr')    'curr',
+                'Dividend'  'CFType',
+                trd.Nominal,
+                1.00 'NominalFactor',
+                t.trdnbr    'Trdnbr',
+                trd.insid,
+                trd.itype   'Itype',
+                'Issuer' 'PartyType',
+                trd.issid 'Party',
+                trd.status,
+                trd.time,
+                trd.portfolio,
+                mtm_price(j, YESTERDAY, @HomeCurrency{ZAR; Instrument.insid where instype = 'Curr'}) 'Mtm_price',
+                t.your_ref  'CPRef',
+                trd.MM_Instype,
+                trd.DealerCode,
+    
+                trd.Underlying,
+                trd.instype,
+                trd.execution_time,
+                trd.BuySell,
+                trd.ExternalId1,
+                trd.ExternalId2,
+                trd.TransRef,
+                trd.ISIN,
+                0.0     'qty',
+                0.0     'price'
+into
+                CF
+from
+                instrument i,
+                dividend d,
+                trade t,
+                TRD trd,
+                instrument j
+                
+where
+        i.insaddr = d.insaddr
+    and    d.insaddr = t.insaddr
+    and    t.trdnbr = trd.trdnbr
+    and    t.curr = j.insaddr
+    and d.dividend ~= 0.0
+
+
+
+
+
+/*********** Final Selection ***********/
+
+select
+                'Details'                                'Section',
+                c.trdnbr                'TrdNbr',
+                c.insid         'Instrument',
+                c.Underlying    'Underlying',
+                c.instype       'InstrumentType',
+                time_to_day(c.time)          'TradeDate',
+                c.execution_time'ExecutionTime',
+
+                c.CFType              'Type',
+                c.day             'SettlementDate',
+                sum(c.amount) 'SettlementAmount',
+                c.CFType ~= 'Premium' ? 0.0 : sum(c.amount)  +   sum((p.CFType = 'STT' ? 1 : const.VAT) *  p.amount)  'NetSettlementAmount',
+                c.curr                         'Curr',
+                c.Party         'CounterParty',
+
+                c.TransRef      'TransRef',
+                c.portfolio     'Portfolio',
+                c.qty              'Units',
+                c.BuySell       'BuySell',
+                c.price              'UnitPrice',
+                c.CFType ~= 'Premium' ? 0.0 :  sum((p.CFType = 'STT' ? 1 : const.VAT) *  p.amount)               'CashEquityFees',
+                c.ExternalId1   'ExternalID1',
+                c.ExternalId2   'ExternalID2',        
+                c.CPRef         'CounterpartyRef',
+                c.ISIN          'ISIN'
+
+from
+                CF c,
+                payments p,
+                macros m,
+                constant const
+where   
+    ('All' in (@3_Currency{All;instrument.insid* where instype = 'Curr'}) or '' in (@3_Currency{All;instrument.insid* where instype = 'Curr'}) or c.curr in (@3_Currency{All;instrument.insid* where instype = 'Curr'}))
+and        c.day <= m.EndDay
+and        c.day >= m.StartDay
+and         c.trdnbr *= p.trdnbr
+and        @6_Show_TradeDetail{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 2,8
+
+
+union
+
+
+
+select
+                'Summary'                                'Section',
+                c.trdnbr                'TrdNbr',
+                c.insid         'Instrument',
+                c.Underlying    'Underlying',
+                c.instype       'InstrumentType',
+                time_to_day(c.time)          'TradeDate',
+                c.execution_time'ExecutionTime',
+                c.CFType              'Type',
+                c.day             'SettlementDate',
+                sum(c.amount) 'SettlementAmount',
+                sum(c.CFType ~= 'Premium' ? 0.0 : c.amount)  +   sum(c.CFType ~= 'Premium' ? 0.0 :(p.CFType = 'STT' ? 1 : const.VAT) *  p.amount)   'NetSettlementAmount',
+                c.curr                         'Curr',
+                c.Party         'CounterParty',
+
+                c.TransRef      'TransRef',
+                c.portfolio     'Portfolio',
+                sum(c.qty)              'Units',
+                c.BuySell       'BuySell',
+                sum(c.nominal * c.price)/ sum(c.nominal)              'UnitPrice',
+                sum(c.CFType ~= 'Premium' ? 0.0 :(p.CFType = 'STT' ? 1 : const.VAT) *  p.amount)               'CashEquityFees',
+                c.ExternalId1   'ExternalID1',
+                c.ExternalId2   'ExternalID2',        
+                c.CPRef         'CounterpartyRef',
+                c.ISIN          'ISIN'
+                
+      
+from
+                CF c,
+                payments p,
+                macros m,
+                constant const
+where   
+    ('All' in (@3_Currency{All;instrument.insid* where instype = 'Curr'}) or '' in (@3_Currency{All;instrument.insid* where instype = 'Curr'}) or c.curr in (@3_Currency{All;instrument.insid* where instype = 'Curr'}))
+and        c.day <= m.EndDay
+and        c.day >= m.StartDay
+and         c.trdnbr *= p.trdnbr
+
+
+group by 3,8,9, 15, 17
+

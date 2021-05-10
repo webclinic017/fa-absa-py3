@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:volatilitySurfaceToSkewStrikeConverters = volatilityInformation:volatilitySurfaceToSkewStrikeConverters [priceSource, doSplitAll];
+[Core Pricing]FVolatilityInformation:volatilitySurfaceToSkewStrikeConverters = select(needsSurfaceToSkewStrikeConverters, 
+  false->nil, 
+  true->select(bottomReferenceInstrument, 
+    nil->throwError("Volatility surface needs a reference instrument set"), 
+    default->object:singleVolatilityStrikeConverters [instrument = bottomReferenceInstrument, fromQuotation = bottomSurfaceStrikeQuotation, toQuotation = skewStrikeQuotationHierarchy, fromStrikeType = strikeType, bottomStrikeDimension = bottomStrikeDimension, relativeConversionValueModel = bottomReferenceInstrument:relativeConversionValueModel [fromStrikeType = strikeType, priceSource, doSplitAll, calculationCurrency = currency, forwardValuationInInstrumentCurrency = false, exposeForwardValueProviderTargets = false], priceSource, doSplitAll]));

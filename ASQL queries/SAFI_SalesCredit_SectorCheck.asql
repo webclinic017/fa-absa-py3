@@ -1,0 +1,24 @@
+/*------------------------------------------------------------------
+    SAFI_SalesCredit_SectorCheck
+    
+    This query supplies supplies the sales_credit totals per sales person 
+    for a specific range of dates and trade filter.
+
+    Date                : 2014-09-03
+    Requester           : Melissa Barendse
+    Developer           : Jan Sinkora
+------------------------------------------------------------------*/
+
+SELECT p.ptyid, cl.entry
+FROM Party p, ChoiceList cl
+WHERE p.free4_chlnbr *= cl.seqnbr
+AND p.issuer = 'Yes'
+
+UNION
+
+SELECT 'Yes' ? count(p.ptyid) : '', cl.entry
+FROM Party p, ChoiceList cl
+WHERE p.free4_chlnbr *= cl.seqnbr
+AND p.issuer = 'Yes'
+GROUP BY cl.entry
+

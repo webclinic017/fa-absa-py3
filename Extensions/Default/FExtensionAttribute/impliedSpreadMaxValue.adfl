@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:impliedSpreadMaxValue = select(uniqueStrikeInTheoreticalPrice, 
+  nil->1.0, 
+  default->0.01 * uniqueStrikeInTheoreticalPrice);
+[Default]FLeg:impliedSpreadMaxValue = select(uniqueStrikeInTheoreticalInstrumentValue, 
+  nil->1.0, 
+  default->select(isFloorLeg or staticLegInformation:isSpread, 
+    true->1.0, 
+    false->0.01 * uniqueStrikeInTheoreticalInstrumentValue + stripDateTimePart(atmParLevelForLeg)));
+[Default]FTradeRow:impliedSpreadMaxValue = instrument:impliedSpreadMaxValue;

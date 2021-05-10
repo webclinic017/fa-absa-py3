@@ -1,0 +1,227 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Counterparty_Exposure') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Counterparty_Exposure' and p.type = 'SQL Query' 
+/*
+
+bonds and repos counterparty exposure 
+absolute nominal does not diffrentiate between buys and sells
+
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+coded by anil 2005-08-15
+
+
+Changed by : Aaeda Salejee	Date : 2006-02-28
+Changed Absolute_Nominal to Nominal_Limit as per Anusha Reddy-Clarke
+
+
+*/
+
+/* -------bonds------*/
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP',
+party.hostid,
+dirty_from_yield(i,Today,,,mtm_price(i,Today))*10000*t.quantity'Dirty_MtM'
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.value_day>Today
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid~='DRA TRANSAKSIES'
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(+1) 'Nominal',
+p.prfid,
+t.premium'premium',
+party.ptyid'CP',
+party.hostid,
+dirty_from_yield(ui,Today,,,mtm_price(ui,Today))*10000*t.quantity'Dirty_MtM'
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and t.value_day>Today
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+i.exp_day'Settlement',
+t.trdnbr,
+t.status,
+i.instype,
+ui.insid,
+(i.instype='BuySellback' ? i.contr_size : i.ref_value)*t.quantity*(-1)  'Nominal',
+p.prfid,
+i.instype='BuySellback' ? i.ref_value*t.quantity : (t.premium*-1)+(l.fixed_rate*t.premium*days_between(t.value_day,i.exp_day,'Act/365')/36500)*-1'premium',
+party.ptyid'CP',
+party.hostid,
+dirty_from_yield(ui,Today,,,mtm_price(ui,Today))*10000*t.quantity'Dirty_MtM'
+
+into temp
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+leg l
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+and i.exp_day>Today
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+and i.insaddr*=l.insaddr
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid~='DRA TRANSAKSIES'
+order by i.instype, ui.insid
+
+
+/*----select all------*/
+
+
+select
+'Yes' ? t.Settlement : '' 'Settlement_Date',
+'Yes' ? t.trdnbr : '' 'Trade_No',
+'YES' ? t.status : '' 'Trade_Status',
+'YES' ? t.instype : '' 'Instrument_Type',
+t.insid'Bond',
+t.Nominal,
+t.prfid'Portfolio',
+abs(t.Nominal)'Nominal_Limit',
+abs(t.Nominal)*0.05'Abs_Nominal_5Per',
+t.premium<=0.00 ? 'B' : 'S' 'B_S',
+t.premium'Consideration',
+ t.CP,
+t.hostid'BESA_Code',
+abs(t.premium)'Abs_Consideration',
+abs(t.Dirty_MtM)'Dirty_MtM',
+((abs(t.Dirty_MtM)-abs(t.premium))*100/abs(t.nominal))'Replace_Cost',
+Today'Report_Date',
+'' 'BESA_Member' 
+from 
+
+temp t
+
+order by 1 /*t.Settlement*/, t.CP
+
+union
+
+select
+'' /*t.Settlement*/,
+'' /*t.trdnbr*/,
+'Sub total by CP'/*t.status*/,
+' ' /*t.instype*/,
+''/*t.insid*/,
+sum(t.Nominal),
+''/*t.prfid*/,
+sum(abs(t.Nominal))'Nominal_Limit',
+sum(abs(t.Nominal)*0.05)'Abs_Nominal_5Per',
+''/*t.premium<=0.00 ? 'B' : 'S'*/ 'B_S',
+sum(t.premium),
+t.CP,
+t.hostid,
+sum(abs(t.premium))'Abs_Consideration',
+sum(abs(t.Dirty_MtM))'Dirty_MtM',
+((abs(t.Dirty_MtM)-abs(t.premium))*100/abs(t.nominal))'Replace_Cost',
+Today'Report_Date',
+'' 'BESA_Member' 
+
+from 
+
+temp t
+
+group by t.cp
+
+order by t.CP
+
+union
+
+select
+'' /*t.Settlement*/,
+'' /*t.trdnbr*/,
+'Grand Total'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+sum(t.Nominal),
+t.prfid,
+sum(abs(t.Nominal))'Nominal_Limit',
+sum(abs(t.Nominal)*0.05)'Abs_Nominal_5Per',
+t.premium<=0.00 ? 'B' : 'S' 'B_S',
+sum(t.premium),
+t.CP,
+t.hostid,
+sum(abs(t.premium))'Abs_Consideration',
+sum(abs(t.Dirty_MtM))'Dirty_MtM',
+((abs(t.Dirty_MtM)-abs(t.premium))*100/abs(t.nominal))'Replace_Cost',
+Today'Report_Date',
+'' 'BESA_Member' 
+
+from 
+
+temp t
+group by 17
+
+

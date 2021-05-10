@@ -1,0 +1,59 @@
+/*
+Purpose                 :[Market Risk feed files],[Added log section]
+Department and Desk     :[IT],[]
+Requester:              :[Natalie Austin],[]
+Developer               :[Douglas Finkel / Henk Nel],[Willie van der Bank]
+CR Number               :[264536],[883286]
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Inflation_Cap_Floor') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Inflation_Cap_Floor' and p.type = 'SQL Query'
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Inflation_Cap_Floor.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Inflation_Cap_Floor.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i,
+    instrument u,
+    CombinationLink cl,
+    instrument ci
+where
+    (i.exp_day = 0 or i.exp_day > Today)
+and i.und_insaddr = u.insaddr
+and u.insaddr = cl.owner_insaddr
+and cl.member_insaddr = ci.insaddr
+and i.instype = 'Option'
+and u.instype = 'Combination'
+and ci.instype = 'PriceIndex'
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

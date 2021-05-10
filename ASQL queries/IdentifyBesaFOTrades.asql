@@ -1,0 +1,58 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','IdentifyBesaFOTrades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'IdentifyBesaFOTrades' and p.type = 'SQL Query' 
+ */
+
+
+/*
+
+Coded By Anil Parbhoo to check fo confirmed bond related trades for more than 20 mins to support Bonds PTS team
+
+*/
+
+
+SELECT
+
+    t.trdnbr, 
+    t.value_day,
+    t.status, 
+    i.insid,
+    i.instype,
+    ui.insid                    'und insid',
+    ui.instype                  'und instype',
+    display_id(t, 'prfnbr')     'portfolio',
+    p.ptyid                     'cp',
+    p.hostid                    'cp host id',
+    t.execution_time            'fo confirm time',
+    now                         'Now',
+    (now - t.execution_time)/60 'mins since FO Confirm'
+
+FROM
+
+trade t,
+instrument i,
+instrument ui,
+party p, 
+instrument c
+
+WHERE
+
+i.instype IN ('BuySellback','Bond','FRN','IndexLinkedBond','Repo/Reverse')
+AND     i.und_insaddr *= ui.insaddr
+AND     t.insaddr = i.insaddr
+AND     time_to_day(t.execution_time) >= date_add_banking_day(Today, 'ZAR', @from_days_before_today[-1])
+AND     now - t.execution_time > 1200
+AND     t.counterparty_ptynbr = p.ptynbr
+AND     t.status = 'FO Confirmed'
+and     p.ptyid ~= 'ABSA BANK LTD'
+and     p.type ~= 'Intern Dept'
+and     p.hostid ~= ''
+and     i.curr = c.insaddr
+and     c.insid = 'ZAR'
+and     (add_info(i , 'Exchange') = 'BESA' OR add_info(ui , 'Exchange') = 'BESA')
+and     i.exp_day >= date_add_banking_day(Today, 'ZAR', @from_days_before_today[-1])
+

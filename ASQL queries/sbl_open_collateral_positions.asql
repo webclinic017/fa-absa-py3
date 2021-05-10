@@ -1,0 +1,46 @@
+/* update_method=0 */
+/*
+DESCRIPTION
+    Date                : 2020/07/16
+    Purpose             : ASQL to get all open collateral loan positions
+    Department and Desk : SBL and Collateral
+    JIRA                : PCGDEV-534
+*/
+
+select distinct
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    party c,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and t.trdnbr *= s.trdnbr
+and t.counterparty_ptynbr = c.ptynbr
+and t.status in ('BO Confirmed', 'BO-BO Confirmed')
+and t.time <= TODAY
+and c.ptyid like 'SL%' 
+and t.category = 'Collateral' 
+and match_portfolio(t,'SBL_NONCASH_COLLATERAL')
+and ael_i(t,'sbl_reporting_utils.include_coll', s) = 1
+
+union
+
+select
+    t.trdnbr
+from
+    leg l,
+    trade t,
+    cashflow cf,
+    instrument i
+where
+    t.insaddr = i.insaddr
+and t.time <= TODAY
+and i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and i.instype = 'Deposit'
+and i.insid like 'SBL/%'
+and cf.type = 'Redemption Amount' 
+and abs(projected_cf(cf)) > 0
+and t.trdnbr ~= 117338945

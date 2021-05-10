@@ -1,0 +1,8 @@
+[Credit Pricing and Risk]FCreditDefaultSwap:creditImpliedDispersionFactor = select(isCreditBasket, 
+  true->shunt(implyValid, 
+    true->imply(creditDispersionFactor, creditTheoreticalPriceWithDispersionFactor, marketPrice, implyPrecision, -10.0, 10.0, implyMaxIterations), 
+    false->nil), 
+  false->nil);
+[Credit Pricing and Risk]FInstrument:creditImpliedDispersionFactor = nil;
+[Credit Pricing and Risk]FInstrumentAndTrades:creditImpliedDispersionFactor = instrument :* "creditImpliedDispersionFactor" [priceSource, creditParDeltaDisplayedRateChoice, creditParDeltaDaycountChoice, creditParDeltaRateTypeChoice];
+[Credit Pricing and Risk]FMultiInstrumentAndTrades:creditImpliedDispersionFactor = nil;

@@ -1,0 +1,7 @@
+[Default]FCombInstrMapAndTrades:cumulativeProjectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FDeliverableLinkAndTrades:cumulativeProjectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FInstrumentAndTrades:cumulativeProjectedCashInventoryCurrencies = projectedCashInventoryCurrencies;
+[Default]FLegAndTrades:cumulativeProjectedCashInventoryCurrencies = instrumentsForVectorColumnNil;
+[Default]FTimeBucketAndObject:cumulativeProjectedCashInventoryCurrencies = select(instrumentsForVectorColumn, 
+  nil->instrumentsForVectorColumnNil, 
+  default->scenarioaxisarray(rowInstrumentAndTrades:projectedCashInventoryCurrencies [instrumentsForVectorColumn, instrumentsSetExternally, includeInceptionCash, profitAndLossSeparateHistorical := true], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , cumulativeTimeBuckets>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>, <"timeDistributionDateRule", , "fixedvariant", "CashLadderDate">)[timeBucketCollectionIndex]);

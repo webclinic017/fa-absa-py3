@@ -1,0 +1,6 @@
+[Prime Services]FTrade:externalBrokerCounterpartyName = select(externalBrokerTrade, 
+  nil->nil, 
+  default->select(externalBrokerCounterparty.Type, 
+    "Intern Dept"->"Absa Bank Ltd", 
+    default->externalBrokerCounterparty.Fullname));
+[Prime Services]FTradeRow:externalBrokerCounterpartyName = trade :* "externalBrokerCounterpartyName";

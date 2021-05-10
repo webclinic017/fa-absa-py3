@@ -1,0 +1,129 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_BA_Issues_BD') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_BA_Issues_BD' and p.type = 'SQL Query' 
+/*
+name = SAMM_BA_Issued
+query to reflect the trades for given settlement dates of following product citeria
+only Bankers Acceptance
+
+only Primary BA issues
+
+
+*/
+
+
+
+
+/*--------------set up macros-------*/
+
+select
+@From_Transaction_Date{Yesterday;}'FromDate',
+@To_Transaction_Date{Today;}'ToDate',
+s.srdnbr,
+@Back_Day{today}           'Back_Day'
+
+into
+temp
+
+from
+serverdata s
+
+/*---------------------------*/
+
+
+select
+
+t.trdnbr,
+i.insid,
+add_info(t,'MM_Instype')'product',
+p.prfid'Portfolio',
+party.ptyid'CounterParty',
+t.quantity*1000000'Nominal',
+t.premium'Consideration',
+t.value_Day'Settle',
+broker.ptyid'Branch',
+add_info(t,'Brok Div')'Division',
+t.optional_key'Reference',
+t.your_ref  'CP_Ref'
+
+
+into
+summary
+
+from
+
+instrument i,
+trade t,
+portfolio p,
+party party,
+party broker fill,
+temp tt 
+
+
+
+where
+i.insaddr=t.insaddr
+and p.prfid in ('MONB 0681','MONY 9802')
+and t.counterparty_ptynbr=party.ptynbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.instype in ('Bill')
+and t.value_day between tt.FromDate and tt.ToDate
+and t.prfnbr=p.prfnbr
+and t.broker_ptynbr=broker.ptynbr
+and add_info(t,'MM_Instype')='BA'
+and add_info(t,'MM_Primary_Issue')='Yes'
+
+and	(time_to_day(t.creat_time) >= t.value_day
+and	time_to_day(t.time) ~= time_to_day(t.creat_time)
+and	(time_to_day(t.creat_time) = tt.Back_Day))
+
+
+order by broker.ptyid, t.value_day
+
+/*-------------------*/
+
+
+select
+'Yes' ? s.trdnbr : '''Trade_No',
+s.insid,
+s.product,
+s.Portfolio,
+s.Counterparty,
+s.Nominal,
+s.Consideration,
+'Yes' ? s.Settle : '' 'Settlement',
+s.Branch,
+s.Division,
+s.Reference,
+s.CP_Ref
+
+from summary s
+
+order by s.Branch, 8 /*s.Settle*/
+
+union
+
+
+select
+''/*Yes' ? s.trdnbr : ''*/,
+'''Totals per Branch' /*s.insid*/,
+''/*s.product*/,
+''/*s.Portfolio*/,
+'Totals per Branch'/*s.Counterparty*/,
+sum(s.Nominal),
+sum(s.Consideration),
+''/*'Yes' ? s.Settle : '' 'Settlement'*/,
+s.Branch,
+s.Division,
+'',/*s.Reference*/
+s.CP_Ref
+
+from summary s
+
+group by s.branch
+
+order by s.Branch
+

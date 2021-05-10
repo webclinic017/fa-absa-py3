@@ -1,0 +1,30 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','saeq_stock_prices') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'saeq_stock_prices' and p.type = 'SQL Query' 
+
+/********************************
+
+Purpose : Extract created to return all used stock prices 
+Date   	: August 2009
+Created	: Rishaan
+
+*********************************/
+
+select i.insid,
+        i.instype,
+        used_price(i),
+        (add_info(i,'DividendYield') = '' or add_info(i,'DividendYield') = '0')? 0 : add_info(i,'DividendYield')  'DividendYield',
+        0					'DividendAmount',
+        0					'DividendDate'	,
+        display_id(i,'issuer_ptynbr')		'Issuer',
+        today       'BusinessDate',
+        display_id(i,'curr') 'Currency'
+        
+
+from
+    instrument i
+
+where i.instype = 'Stock'

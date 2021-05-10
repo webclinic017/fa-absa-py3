@@ -1,0 +1,10 @@
+[Default]FCashFlowInstrument:durationFromModifiedDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(marketYieldToMaturity)) * modifiedDuration, 
+    default->(1 + double(marketYieldToMaturity) / fixLeg:rollingFrequency) * modifiedDuration));
+[Default]FInstrument:durationFromModifiedDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(marketYieldToMaturity)) * modifiedDuration, 
+    default->(1 + double(marketYieldToMaturity) / fixLeg:rollingFrequency) * modifiedDuration));

@@ -1,0 +1,21 @@
+[Core Pricing]FCombInstrMapAndTrades:tradesInPosition = collapse(tradesInPositionForInstrumentPart);
+[Core Pricing]FDeliverableLinkAndTrades:tradesInPosition = collapse(tradesInPositionForInstrumentPart);
+[Core Pricing]FInstrument:tradesInPosition[positionObject, singleTradePosition, taxLotPositionObject, taxLotValuation, tradedPortfolio] = select(singleTradePosition, 
+  nil->select(positionObject, 
+    nil->[], 
+    default->collapse(positionTradesInInstrument)), 
+  default->select(taxLotValuation, 
+    true->taxLotPositionObject :* "tradesInPosition", 
+    false->singleTradePosition:tradesInPosition));
+[Core Pricing]FLeg:tradesInPosition = select(singleTradePosition, 
+  nil->collapse(positionTradesInInstrument), 
+  default->[singleTradePosition]);
+[Core Pricing]FLegAndTrades:tradesInPosition = collapse(tradesInPositionForInstrumentPart);
+[Core Pricing]FMoneyFlowAndTrades:tradesInPosition = collapse(tradesInPositionForMoneyFlow);
+[Core Pricing]FMultiInstrumentAndTrades:tradesInPosition = nil;
+[Core Pricing]FMultiMoneyFlowAndTrades:tradesInPosition = collapse(tradesInPositionForMoneyFlow);
+[Core Pricing]FPortfolio:tradesInPosition = instrument:tradesInPosition [positionObject, tradedPortfolio];
+[Core Pricing]FSingleInstrumentAndTrades:tradesInPosition = instrument:tradesInPosition [positionObject];
+[Core Pricing]FTaxLot:tradesInPosition = object.Trades;
+[Core Pricing]FTrade:tradesInPosition = [object];
+[Core Pricing]FTradeRow:tradesInPosition = instrument:tradesInPosition [positionObject, singleTradePosition, taxLotPositionObject, taxLotValuation];

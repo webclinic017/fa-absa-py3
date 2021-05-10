@@ -1,0 +1,20 @@
+select 
+
+p.ptyid 'CPTY Short Name',
+p.fullname 'CPTY Full Name'
+
+
+from
+
+party p,
+trade t,
+instrument i
+
+where 
+match_filter(t,@1_TradeFilter{;tradefilter.fltid},)
+and t.insaddr = i.insaddr
+and p.ptynbr = t.counterparty_ptynbr
+and p.type ~= 'Intern Dept'
+and p.ptyid ~= 'DRA TRANSAKSIES'
+
+group by 1

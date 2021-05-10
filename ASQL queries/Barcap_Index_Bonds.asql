@@ -1,0 +1,49 @@
+/*------------------------------------------------------------------
+   Barcap_Index_Bonds
+
+    Purpose             : Remove Date filter, Remove Price testing as Insid, Remove settle filtering
+    Department and Desk : SM PCG - Management
+    Requester           : Candice Nolan
+    Developer           : Candice Nolan
+    CR Number           : CR 219084
+    
+    Purpose             : Add entry for R211 bond
+    Department and Desk : Institutional Sales and Structuring
+    Requester           : Nico Le Roux
+    Developer           : Jaysen Naicker
+    CR Number           : CR 338999
+------------------------------------------------------------------*/
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Barcap_Index_Bonds') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Barcap_Index_Bonds' and p.type = 'SQL Query' 
+
+select 
+   
+    TODAY 'Date',
+    i.insid,
+    
+    i.insid like '%R189%'?'ZAG000016551':
+    i.insid like '%R197%'?'ZAG000018003':
+    i.insid like '%R202%'?'ZAG000019944':
+    i.insid like '%R210%'?'ZAG000041849':
+    i.insid like '%R211%'?'ZAG000077454':
+    i.insid like '%R212%'?'ZAG000077462':''   'ISIN',
+   'IndexLinkedBond'   'InstrumentType',
+    'SA Government'  'Issuer',
+    i.exp_day 'BondExpiry',
+    used_price(i)'YTM',
+    '0' 'Clean Price',
+    '0' 'Dirty Price'
+    
+    
+from
+
+    instrument i   
+where
+ i.insid like '%PriceTesting' 
+and i.insid like 'ZZ%' 

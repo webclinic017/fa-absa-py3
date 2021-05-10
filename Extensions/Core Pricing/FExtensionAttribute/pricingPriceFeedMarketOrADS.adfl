@@ -1,0 +1,10 @@
+[Core Pricing]FOrderBook:pricingPriceFeedMarketOrADS = switch(orderBookpriceSource, 
+  "ADS"->(instrument:adsPriceFeed), 
+  default->priceFeed);
+[Core Pricing]FPriceAggregate:pricingPriceFeedMarketOrADS = priceFeed:pricingPriceFeedMarketOrADS [orderBookpriceSource];
+[Core Pricing]FPriceFeed:pricingPriceFeedMarketOrADS = switch(orderBookpriceSource, 
+  "ADS"->(instrument:adsPriceFeed), 
+  default->object);
+[Core Pricing]FTradingInterface:pricingPriceFeedMarketOrADS = switch(orderBookpriceSource, 
+  "ADS"->(instrument:adsPriceFeed), 
+  default->priceFeed);

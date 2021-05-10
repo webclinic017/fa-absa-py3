@@ -1,0 +1,13 @@
+[BasketRepo]FMultiInstrumentAndTrades:collateralCoverageRatio = select(object.GrouperOnLevel.Label, 
+  "Connected Trade Reference"->sumOf(tradesInPosition :* "collateralMktValueInRepoCurr") / (abs(tradesInPosition.AsList.Last.ConnectedTrade.StartCash) + abs(accrued.Number)) * 100, 
+  default->nil);
+[BasketRepo]FPortfolioInstrumentAndTrades:collateralCoverageRatio = select(object.Trades.Size, 
+  1->(object.Trades.Element) :* "collateralCoverageRatio", 
+  default->nil);
+[BasketRepo]FSingleInstrumentAndTrades:collateralCoverageRatio = (object.Parent) :* "collateralCoverageRatio";
+[BasketRepo]FTrade:collateralCoverageRatio = select(isCollateral, 
+  true->collateralMktValueInRepoCurr / (abs(object.ConnectedTrade.StartCash) + abs(accruedInterestForCollateral)) * 100, 
+  default->select(isBasketRepoReverse, 
+    true->sumOf(getCollateralTrades(object) :* "collateralMktValueInRepoCurr") / (abs(object.StartCash) + abs(accruedInterestForCollateral)) * 100, 
+    default->nil));
+[BasketRepo]FTradeRow:collateralCoverageRatio = trade:collateralCoverageRatio [accruedInterestForCollateral = accrued.Number];

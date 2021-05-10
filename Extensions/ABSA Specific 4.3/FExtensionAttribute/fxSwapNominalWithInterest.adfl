@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:fxSwapNominalWithInterest = sumOf(children :* "fxSwapNominalWithInterest");
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:fxSwapNominalWithInterest = profitAndLossValuesEndCurrencies = [displayCurrency, instrument.CurrencyPair.Currency1, instrument.CurrencyPair.Currency2], normalizeUnitMultiplicationIgnoreDateTime(sumOf(trades :* "fxSwapNominalWithInterest" [fxSwapCurrency = currencySplitGroupingValue, displayCurrency, valuationDate]), profitAndLossEndFXRates, displayCurrency, instrument:filterUnit);
+[ABSA Specific 4.3]FTrade:fxSwapNominalWithInterest = select(fxSwapCurrency, 
+  nil->object :* "fxSwapNominalWithInterest" [fxSwapCurrency = object.CurrencyPair.Currency1, displayCurrency, valuationDate] + object :* "fxSwapNominalWithInterest" [fxSwapCurrency = object.CurrencyPair.Currency2, displayCurrency, valuationDate], 
+  default->py("FX_Swap", context).nominal_with_interest(object, valuationDate, fxSwapCurrency));

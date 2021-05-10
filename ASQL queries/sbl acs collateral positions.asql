@@ -1,0 +1,35 @@
+/* update_method=0 */
+/*
+DESCRIPTION
+    Date                : 2020-04-20
+    Purpose             : ASQL to get all open SBL loan positions
+    Department and Desk : SBL and Collateral
+    Requester           : Gasant Thulsie, James Stevens
+    Developer           : Sihle Gaxa
+    JIRA                : PCGDEV-15
+*/
+
+select distinct
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    party c,
+    settlement s
+where
+    t.insaddr = i.insaddr
+and t.trdnbr *= s.trdnbr
+and t.counterparty_ptynbr = c.ptynbr
+and t.status in ('BO Confirmed', 'BO-BO Confirmed')
+and t.time <= TODAY
+and i.instype in ('Stock', 'Bond', 'IndexLinkedBond', 'CD', 'Bill') 
+and c.ptyid in ('SLB ACS CFD', 
+                'SLB ACS STRUCTURED 3',
+                'SLB ACS STRUCTURED 4',
+                'SLB ACS LOCAL CFD',
+                'SLB ACS MAIN',
+                'SLB ACS',
+                'SLB ACS STRUCTURED 2')
+and t.category = 'Collateral'
+and match_portfolio(t,'SBL_NONCASH_COLLATERAL')
+and ael_i(t,'sbl_reporting_utils.include_coll', s) = 1

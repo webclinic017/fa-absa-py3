@@ -1,0 +1,20 @@
+[Core Pricing]FCashFlowInstrument:underlyingForUnderlyingPriceInTheoreticalPrice = select(stochasticReference, 
+  default->stochasticReference, 
+  nil->select(underlying, 
+    nil->nil, 
+    default->select(isReciprocal, 
+      true->CreateFxRate(underlying:domesticCurrency, underlying:foreignCurrency), 
+      false->switch(underlyingIsDepositaryReceiptButNotFxRate and not underlying:isCommodityVariantWithVariantMarketPrice, 
+        true->underlyingUnderlying, 
+        default->underlying))));
+[Core Pricing]FInstrument:underlyingForUnderlyingPriceInTheoreticalPrice = select(underlying, 
+  nil->nil, 
+  default->select(isReciprocal, 
+    true->CreateFxRate(underlying:domesticCurrency, underlying:foreignCurrency), 
+    false->switch(underlyingIsDepositaryReceiptButNotFxRate and not underlying:isCommodityVariantWithVariantMarketPrice, 
+      true->underlyingUnderlying, 
+      default->underlying)));
+[Core Pricing]FInstrumentAndTrades:underlyingForUnderlyingPriceInTheoreticalPrice = instrument:underlyingForUnderlyingPriceInTheoreticalPrice;
+[Core Pricing]FMultiInstrumentAndTrades:underlyingForUnderlyingPriceInTheoreticalPrice = instrumentGroupingReference;
+[Core Pricing]FOrderBook:underlyingForUnderlyingPriceInTheoreticalPrice = instrument:underlyingForUnderlyingPriceInTheoreticalPrice;
+[Core Pricing]FPriceAggregate:underlyingForUnderlyingPriceInTheoreticalPrice = instrument:underlyingForUnderlyingPriceInTheoreticalPrice;

@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FInstrument:ExternalVal = sumOf(tradesInPosition :* "ExternalVal");
+[ABSA Specific 4.3]FInstrumentAndTrades:ExternalVal = sumOf(instrument :* "ExternalVal" [positionObject]);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:ExternalVal = sumOf(instruments :* "ExternalVal" [positionObject]);
+[ABSA Specific 4.3]FTrade:ExternalVal = select(object.Status, 
+  "Simulated"->0.0, 
+  "Void"->0.0, 
+  default->select(object.AdditionalInfo.ExternalVal, 
+    nil->py("SAIT_LandingArea_Functions", context).ValEnd_ACM("", object, profitAndLossEndDate, displayCurrency), 
+    default->double(object.AdditionalInfo.ExternalVal)));
+[ABSA Specific 4.3]FTradeRow:ExternalVal = trade :* "ExternalVal";

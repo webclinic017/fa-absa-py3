@@ -1,0 +1,15 @@
+[Default]FCashFlowInstrument:couponFactor = select(couponFactorFromModelCall, 
+  true->collapse(theoreticalModelCouponFactor), 
+  false->collapse(couponFactorCalculated));
+[Default]FInstrument:couponFactor = nil;
+[Default]FInstrumentAndTrades:couponFactor = instrument :* "couponFactor" [forwardValueDate];
+[Default]FLeg:couponFactor = select(object.LegType, 
+  "Zero Coupon Fixed"->shunt[priceSource, forwardValueRiskyDiscountDate, forwardValueDate](calibrating, 
+    false->instrument:impliedCouponFactor [priceSource, forwardValueRiskyDiscountDate, forwardValueDate, shiftCouponValue = opaque(impliedParRateDirty)], 
+    true->instrument:impliedCouponFactor [priceSource, forwardValueRiskyDiscountDate, forwardValueDate, shiftCouponValue = impliedParRateDirty]), 
+  "Fixed Accretive"->shunt[priceSource, forwardValueRiskyDiscountDate, forwardValueDate](calibrating, 
+    false->instrument:impliedCouponFactor [priceSource, forwardValueRiskyDiscountDate, forwardValueDate, shiftCouponValue = opaque(instrumentParRate)], 
+    true->instrument:impliedCouponFactor [priceSource, forwardValueRiskyDiscountDate, forwardValueDate, shiftCouponValue = instrumentParRate]), 
+  default->select(count(projectedCouponFactors), 
+    0->denominatedvalue(0, instrumentCurrency, , forwardValueDate), 
+    default->staticLegInformation.CouponFactor(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, couponFactorDiscountCurve, couponFactorRepoCurve, projectedCouponFactors, projectedCouponHazardFactors, fxRateToInstrument, instrumentCurrency, "Coupon")));

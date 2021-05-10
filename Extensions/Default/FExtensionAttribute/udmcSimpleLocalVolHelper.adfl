@@ -1,0 +1,7 @@
+[Default]FInstrument:udmcSimpleLocalVolHelper = select(udmcProcessType == "LocalVolatility", 
+  true->select(udmcIsMultiUnderlying, 
+    true->multiUnderlying :* "select(udmcSimpleLocalVolCheckMultiUnderlying, true->1, default->0)", 
+    default->[select(udmcSimpleLocalVolCheck, 
+      true->1, 
+      default->0)]), 
+  default->[0]);

@@ -1,0 +1,5 @@
+[Default]FInstrument:priceGreekRiskFactorsUnShiftedValueIRD = select(usesMonetaryQuotation, 
+  true->theoreticalInstrumentValueAtSpot, 
+  false->select(isInterestRateFuture, 
+    true->object.UnitQuoteToUnitValue(theoreticalPrice), 
+    false->object.UnitQuoteToUnitValue(theoreticalPriceClean)));

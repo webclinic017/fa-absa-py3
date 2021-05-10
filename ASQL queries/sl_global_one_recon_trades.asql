@@ -1,0 +1,72 @@
+/*-----------------------------------------------------------------------------
+PURPOSE                 :  Selects the trades required for the Front Arena vs
+                           Global1 recon. Used by Trade Filter of the same name
+DEPATMENT AND DESK      :  Prime Services Ops, Securities Lending
+REQUESTER               :  Alistar Lawrence, Gasant Thulsie
+DEVELOPER               :  Francois Truter
+CR NUMBER               :  622086
+--------------------------------------------------------------------------------
+
+HISTORY
+================================================================================
+Date       Change no Developer                 Description
+--------------------------------------------------------------------------------
+2011-04-04 622086    		Francois Truter           Initial Implementation
+2012-02-16 880858    		Jaysen Naicker	          Add new portflios and corrected names of incorrect ones
+2012-04-20 CHNG0000144653	Jaysen Naicker	          Changed the logic to look at the compound portfolio instead of the physical portfolios
+2012-11-14 CHNG0000610025   Pavel Saparov             Removing compoud portfolio ``7268_Prime Service`` searching by AddInfos:
+                                                      SL_G1Counterparty1 and SL_G1Counterparty2
+2014-05-06 CHNG0001798994   Manan Ghosh               Removed the condition to exclude trades with morror trade in the recon file.
+							                          The trade booking for SBL is being enhanced and Open End trades will have a mirror trades.
+2019-06-13 CHG1001877373    Marian Zdrazil            Removing checks on G1 counterparty, adding a requirement to select only open-end trades (FAPE-85)
+2019-10-16 FAPE-85          Marian Zdrazil            Removing the _Ext_ task running temporarily in parallel to an old task - renaming task/TF/ASQL (FAPE-85)
+
+*/
+
+
+select
+    t.trdnbr    'trdnbr',
+    i.insaddr   'insaddr',
+    i.exp_day   'exp_day',
+    i.open_end  'open_end',
+    t.prfnbr    'prfnbr'
+into
+    Temp1
+from
+    Trade t,
+    Instrument i
+where
+    t.insaddr = i.insaddr
+    and i.instype = 'SecurityLoan'
+    and t.status NOT IN ('Confirmed Void', 'Simulated', 'Terminated', 'Void')
+    and match_portfolio(t, 'ABSA BANK LTD')
+    and t.aggregate = 0
+
+select
+    tt.trdnbr    'trdnbr',
+    tt.insaddr   'insaddr',
+    tt.prfnbr    'prfnbr'
+into
+    Temp2
+from
+    Temp1 tt,
+    Leg l
+where
+    tt.insaddr = l.insaddr
+    and (tt.exp_day > today or tt.open_end = 'Open End')
+    and event_date(l, 'FirstStartDay') <= today
+
+select
+    tt.trdnbr
+from
+    Temp2 tt,
+    AdditionalInfoSpec ais,
+    AdditionalInfo ai,
+    Portfolio p
+where
+    tt.insaddr = ai.recaddr
+    and tt.prfnbr = p.prfnbr
+    and ais.specnbr = ai.addinf_specnbr
+    and ais.field_name = 'SL_ExternalInternal'
+    and ai.value = 'External'
+    and (add_info(p,'SL_AllocatedDesk') ~= '' or match_portfolio(tt, 'SBL_Accrued'))

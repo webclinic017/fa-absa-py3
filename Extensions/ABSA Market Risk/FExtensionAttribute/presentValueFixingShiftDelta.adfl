@@ -1,0 +1,6 @@
+[ABSA Market Risk]FInstrumentAndTrades:presentValueFixingShiftDelta = select(fixingShiftValueValid, 
+  true->differential(presentValueFixingShiftDeltaShift, presentValue), 
+  false->timeBucketsSetExternallyNilVector);
+[ABSA Market Risk]FLegAndTrades:presentValueFixingShiftDelta = timeBucketsSetExternallyNilVector;
+[ABSA Market Risk]FMultiInstrumentAndTrades:presentValueFixingShiftDelta = sumOf(children :* "presentValueFixingShiftDelta" [timeBucketsSetExternally]);
+[ABSA Market Risk]FPortfolioInstrumentAndTrades:presentValueFixingShiftDelta = timeBucketsSetExternallyNilVector;

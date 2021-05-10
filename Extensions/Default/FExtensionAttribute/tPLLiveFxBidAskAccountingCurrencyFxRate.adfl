@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:tPLLiveFxBidAskAccountingCurrencyFxRate = switch(double(tPLLiveUnNormalizedDisplayCurrencyComponent) > 0.0, 
+  true->collapse(displayCurrencyToAccountingCurrencyFxRateBid), 
+  false->switch(double(tPLLiveUnNormalizedDisplayCurrencyComponent) == 0.0, 
+    true->switch(double(tPLLiveFxBidAsk) > 0.0, 
+      true->collapse(displayCurrencyToAccountingCurrencyFxRateBid), 
+      false->collapse(displayCurrencyToAccountingCurrencyFxRateAsk)), 
+    false->collapse(displayCurrencyToAccountingCurrencyFxRateAsk)));

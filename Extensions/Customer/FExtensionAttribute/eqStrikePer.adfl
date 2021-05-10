@@ -1,0 +1,5 @@
+[Customer]FSingleInstrumentAndTrades:eqStrikePer = select(instr.InsType, 
+  "Option"->select(instr:underlyingType, 
+    "Stock"->instr:strikePrice / ((instr :* "underlyingForwardPrice" [useDatabasePrice = portPriceSource]) * 100), 
+    default->instr:strikePrice / (instr :* "underlyingForwardPrice" [useDatabasePrice = portPriceSource])), 
+  default->0);

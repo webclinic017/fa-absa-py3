@@ -1,0 +1,15 @@
+[Default]FInstrument:portfolio[positionObject, singleTradePosition] = nilObject:portfolio [positionObject, singleTradePosition];
+[Default]FInstrumentAndTrades:portfolio = value(object.Portfolio);
+[Default]FLeg:portfolio[positionObject] = nilObject:portfolio [positionObject];
+[Default]FPortfolioAndInstrument:portfolio = value(object.Portfolio);
+[Default]FPriceAggregate:portfolio = object.Portfolio;
+[Default]FTimeBucketAndObject:portfolio = object.Portfolio;
+[Default]FTrade:portfolio = value(object.Portfolio);
+[Default]FTradeRow:portfolio = select(positionObject, 
+  nil->trade.Portfolio, 
+  default->value(positionObject.Portfolio));
+[Default]FUndefinedObject:portfolio[positionObject, singleTradePosition] = select(singleTradePosition, 
+  nil->select(positionObject, 
+    nil->nil, 
+    default->value(positionObject.Portfolio)), 
+  default->singleTradePosition.Portfolio);

@@ -1,0 +1,47 @@
+/* Usage code for this ASQL */
+
+/*
+Purpose: To identify all trades that have an exotic event pecific currency and date where there are new public holidays
+        and these days needs to be changed.
+Department: IT
+Requester:  Anil Parbhoo
+Developer:  Anil Parbhoo
+CR Number: CHG1001381203
+*/
+
+select ael_i(p,'ASQL_log','SAIT_Public_Holiday_ExoticEvent') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAIT_Public_Holiday_ExoticEvent' and p.type = 'SQL Query' 
+
+
+
+
+select t.trdnbr, t.status, u.name'Trader',
+display_id(t,'prfnbr')'portfolio',
+display_id(t, 'counterparty_ptynbr')'counterparty',
+display_id(t, 'acquirer_ptynbr')'acquing desk',
+
+i.insid, i.instype,
+
+ ee.type 'exotic event type', ee.date 'exotic event date', ci.insid'EE Component', uc.insid'Underlying currency',   ee.seqnbr
+
+
+
+from ExoticEvent ee, instrument i, trade t, user u, instrument ci, instrument uc
+
+
+where
+
+i.insaddr = t.insaddr
+and ee.date = to_date(@Date{Today})
+and ee.insaddr = i.insaddr
+and t.status not in ('Simulated', 'Void', 'Terminated')
+and t.trader_usrnbr = u.usrnbr
+and ee.component_insaddr = ci.insaddr
+and ci.curr = uc.insaddr
+and i.instype ~= 'PriceSwap' 
+and ee.type ~= 'Fx Rate'
+and uc.insid = 'ZAR'
+and i.instype ~= 'VarianceSwap'
+order by i.instype, ee.type

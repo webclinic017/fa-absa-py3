@@ -1,0 +1,7 @@
+[Default]FInstrument:barrierNoRiskManagementAbsoluteAdjusted = nil;
+[Default]FInstrumentAndTrades:barrierNoRiskManagementAbsoluteAdjusted = instrument :* "barrierNoRiskManagementAbsoluteAdjusted" [priceSource, isSplitAllGrouped];
+[Default]FMultiInstrumentAndTrades:barrierNoRiskManagementAbsoluteAdjusted = nil;
+[Default]FOption:barrierNoRiskManagementAbsoluteAdjusted = select(hasInvertedStrikeQuotation, 
+  true->inv(barrierNoRiskManagementAbsolute), 
+  false->collapse(barrierNoRiskManagementAbsolute));
+[Default]FPriceAggregate:barrierNoRiskManagementAbsoluteAdjusted = instrument :* "barrierNoRiskManagementAbsoluteAdjusted" [priceSource];

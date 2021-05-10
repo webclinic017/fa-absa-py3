@@ -1,0 +1,23 @@
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','SAMM_AdviceNCD_Confo') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'SAMM_AdviceNCD_Confo' and p.type = 'SQL Query'
+
+/* 
+    Name      : SAMM_AdviceNCD_Confo
+    Purpose   : Builds confirmations for repurchased CD's,Bill,FRN and Deposit in PDF 
+    Developer : Tshepo Mabena
+    Date      : 28-07-2008
+*/
+
+
+select
+	ael_s(,'SAMM_AdviceNCD_Confo.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

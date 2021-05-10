@@ -1,0 +1,93 @@
+/*
+Developer           : Tshepo  mabena, Tshepo  mabena, Willie van der Bank
+Purpose             : A report to see all EQD settlements, Calculate correct position for the Amount and H_Amount columns by providing the correct sign,
+                        Optimized to run on front end.
+Department and Desk : OPS - Derivatives, OPS - Derivatives, Ops
+Requester           : Christo Davids, Christo Davids, Daniel van Niekerk
+CR Number           : 300020, 308027, 852464 08/12/2011
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Projected_Cashflows_FX_CurrSw') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Projected_Cashflows_CurrSw' and p.type = 'SQL Query'
+ 
+select
+	@1_Date{Yesterday}                                    'Date',
+    /*@2_End_Date{Today}                                          'end',*/
+	@2_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'	
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+	hc.insid						      'hcurr',
+	curr.insid						      'curr'
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros m
+where
+    hc.insid = m.hcur
+and curr.instype = 'Curr'
+
+select
+     t.status,
+     t.trdnbr,
+     cf.pay_day,
+     p.ptyid,
+     projected_cf(cf) < 0 ? projected_cf(cf)*-1 : projected_cf(cf)*-1      'Amount',
+     c.insid                            'Currency',
+     t.trx_trdnbr                       'TransRef',
+     i.insid,
+     (projected_cf(cf) < 0 ? projected_cf(cf)*-1 : projected_cf(cf)*-1)*used_price(c, cf.pay_day, @2_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'})    'H_Amount',
+     i.instype,
+     /*a.ptyid                            'Desk',*/
+     display_id(t,'acquirer_ptynbr')    'Desk',
+     /*po.prfid,*/
+     display_id(t,'prfnbr')             'prfid',
+     p.type                             'PartType',
+     add_info(t,'MM_Instype')           'MM_Instype'
+into temp
+from
+    trade t,
+    instrument i,
+    cashflow cf,
+    leg l,
+    instrument c,
+    party p,
+    /*party a,*/
+    /*portfolio po,*/
+    fxrates fx,
+    macros m
+where
+  t.insaddr = i.insaddr
+  and l.legnbr = cf.legnbr
+  and l.insaddr= i.insaddr
+  and c.insaddr = l.curr
+  and t.counterparty_ptynbr = p.ptynbr
+  /*and t.acquirer_ptynbr = a.ptynbr
+  and a.ptyid = 'EQ Derivatives Desk'*/
+  /*and t.prfnbr = po.prfnbr*/
+  and c.insid not in ('ZAR')
+  /*and display_id(t,'acquirer_ptynbr') = 'EQ Derivatives Desk'*/
+  and t.status  in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+  and i.instype in ('CurrSwap')
+  /*and cf.pay_day >= m.start
+  and cf.pay_day <= m.end*/
+  and cf.pay_day = m.Date
+  and fx.curr = c.insid
+    
+select
+    *
+from
+    temp
+where
+    Desk = 'EQ Derivatives Desk'

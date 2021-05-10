@@ -1,0 +1,7 @@
+[Core Pricing]FInstrument:multiUnderlyingCarryCost = select(isForwardStarting, 
+  true->select(isQuanto, 
+    true->multiValuationUnderlying :* "forwardStartCarryCost" [valuationStartDateTime, carryEndDate = optionParent:carryEndDate, discountingType = optionParent:discountingType], 
+    false->multiValuationUnderlying :* "forwardStartCarryCost" [calculationCurrency, valuationStartDateTime, carryEndDate = optionParent:carryEndDate, discountingType = optionParent:discountingType]), 
+  false->select(isQuanto, 
+    true->multiValuationUnderlying :* "carryCost" [priceSource, doSplitAll, carryEndDate = optionParent:carryEndDate, discountingType = optionParent:discountingType], 
+    false->multiValuationUnderlying :* "carryCost" [priceSource, doSplitAll, carryEndDate = optionParent:carryEndDate, calculationCurrency, discountingType = optionParent:discountingType]));

@@ -1,0 +1,19 @@
+[Limits Base]FLimit:limitColour = select(object.BusinessProcess, 
+  nil->0, 
+  default->shunt(limitIsInWarningState, 
+    true->1, 
+    default->shunt(limitIsInBreachedState, 
+      true->2, 
+      default->0)));
+[Limits Base]FLimitMultiItem:limitColour = select(limitCurrentState, 
+  default->0, 
+  "Warning"->1, 
+  "Breached"->2);
+[Limits Base]FLimitSpecification:limitColour = select(limitCurrentState, 
+  default->0, 
+  "Warning"->1, 
+  "Breached"->2);
+[Limits Base]FLimitTarget:limitColour = switch(limitCurrentState, 
+  default->0, 
+  "Warning"->1, 
+  "Breached"->2);

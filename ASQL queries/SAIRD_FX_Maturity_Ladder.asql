@@ -1,0 +1,200 @@
+/* SAIRD_FX_Maturity_Ladder: last updated on Tue Jan 22 09:33:04 2008. Extracted by Stowaway on 18/08/2009.*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_FX_Maturity_Ladder') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_FX_Maturity_Ladder' and p.type = 'SQL Query' 
+/*
+This report only works for FXSWAPS and is intended to be used
+for the FX recon between Devon and Midas for DECIMAX Deals*/
+
+
+/*----------------------------------
+Select BASE CURRENCY LEG OF DEAL = USD
+------------------------------------*/
+
+select distinct
+i.insaddr,
+t.connected_trdnbr 'DealID',
+c.insid  'OtherCurr',
+c.insid = i.insid ? t.quantity : t.premium  'NominalAmountBase',
+t.value_day,
+t.optional_key
+into
+BaseCurrency1 
+
+from
+instrument i,
+trade t,
+instrument c
+
+where
+i.insaddr=t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day >= @ReportDay{}	
+and c.insaddr in (t.curr,i.insaddr)
+and c.insid = 'USD'
+
+
+/*----------------------------------
+Select BASE CURRENCY LEG OF DEAL NOT USD
+------------------------------------*/
+
+select distinct
+i.insaddr,
+t.connected_trdnbr 'DealID',
+c.insid  'OtherCurr',
+c.insid = i.insid ? t.quantity : t.premium  'NominalAmountBase',
+t.value_day,
+t.optional_key
+into
+BaseCurrency1
+
+from
+instrument i,
+trade t,
+instrument c
+
+where
+i.insaddr=t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day>= @ReportDay{}
+and c.insaddr in (t.curr,i.insaddr)
+and c.insid ~= 'ZAR'
+
+
+/*
+All Base Currency Trades.
+Identifies all duplicate entries*/
+
+select distinct
+b.DealID,
+b.othercurr,
+max(b.value_day) 'end_day',
+min(b.value_day) 'start_day',
+max(b.optional_key) 'key'
+
+into
+BaseCurrency2
+
+from
+BaseCurrency1 b
+
+group by 1,2
+
+
+
+
+select distinct
+b.DealID,
+b.othercurr='' ? 'USD' : b.othercurr 'OtherCurr',
+b1.nominalamountbase,
+b.end_day,
+b.start_day,
+b.key
+into
+BaseCurrency
+
+from
+BaseCurrency2 b,
+BaseCurrency1 b1
+
+where
+b.DealID=b1.DealID
+and b.othercurr=b1.othercurr
+
+
+/* ----------------------------------------------
+FINAL SELECTION
+--------------------------------------------------*/
+
+Select
+i.instype = 'Curr' ? 'FxSwap' : i.instype 'instype',
+ael_s(t,'InstrType.InstrumentType')	'TradeType',
+oc.start_day 'start_day',
+oc.end_day  'end_day',
+t.connected_trdnbr 'trdnbr',
+oc.key  'DevRef',
+display_id(t,'prfnbr')  'Portfolio',
+display_id(t,'optkey1_chlnbr')  'TradeArea',
+
+oc.othercurr 'BaseCurr',
+oc.nominalamountbase 'Nominal_BaseCurr',
+
+c.insid = i.insid ?  curr1.insid : i.insid  'Currency2',
+c.insid = i.insid ? t.premium : t.quantity  'Nominal_Curr2',
+
+-(c.insid = i.insid ? t.premium : t.quantity)/oc.nominalamountbase 'TradePrice',
+
+used_price(c,,c.insid = i.insid ?  curr1.insid : i.insid)  'SpotPrice',
+forward_price(c,oc.end_day,c.insid = i.insid ?  curr1.insid : i.insid)  'FwdPrice',
+-oc.nominalamountbase*forward_price(c,oc.end_day,c.insid = i.insid ?  curr1.insid : i.insid) 'FwdValue_Curr2',
+oc.nominalamountbase*forward_price(c,oc.end_day,c.insid = i.insid ?  curr1.insid : i.insid)+ (c.insid = i.insid ? t.premium : t.quantity) 'Reval_Curr2',
+t.your_ref 'CptyRef'
+
+from
+
+instrument i,
+trade t,
+basecurrency oc,
+instrument curr1,
+instrument c
+
+where
+i.insaddr=t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day >= @ReportDay{}	
+and t.connected_trdnbr = oc.DealID
+and t.curr=curr1.insaddr
+and t.type~='Adjust'
+and currency_included(t, c.insid) = 1	
+and (c.insid = i.insid ?  curr1.insid : i.insid ) ~= oc.othercurr
+order by oc.end_day
+
+/********* Totals per Trade Area ***************/
+union
+
+Select
+i.instype = 'Curr' ? 'FxSwap' : i.instype 'instype',
+ael_s(t,'InstrType.InstrumentType')	'TradeType',
+oc.start_day 'start_day',
+oc.end_day  'end_day',
+t.connected_trdnbr 'trdnbr',
+oc.key  'DevRef',
+display_id(t,'prfnbr')  'Portfolio',
+display_id(t,'optkey1_chlnbr')  'TradeArea',
+
+oc.othercurr 'BaseCurr',
+sum(oc.nominalamountbase) 'Nominal_BaseCurr',
+
+c.insid = i.insid ?  curr1.insid : i.insid  'Currency2',
+sum(c.insid = i.insid ? t.premium : t.quantity)  'Nominal_Curr2',
+
+-(c.insid = i.insid ? t.premium : t.quantity)/oc.nominalamountbase 'TradePrice',
+
+used_price(c,,c.insid = i.insid ?  curr1.insid : i.insid)  'SpotPrice',
+forward_price(c,oc.end_day ,c.insid = i.insid ?  curr1.insid : i.insid)  'FwdPrice',
+-oc.nominalamountbase*forward_price(c,oc.end_day ,c.insid = i.insid ?  curr1.insid : i.insid) 'FwdValue_Curr2',
+sum(oc.nominalamountbase*forward_price(c,oc.end_day ,c.insid = i.insid ?  curr1.insid : i.insid)+ (c.insid = i.insid ? t.premium : t.quantity)) 'Reval_Curr2',
+t.your_ref	'CptyRef'
+
+from
+
+instrument i,
+trade t,
+basecurrency oc,
+instrument curr1,
+instrument c
+
+where
+i.insaddr=t.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day >= @ReportDay{}	
+and t.connected_trdnbr = oc.DealID
+and t.curr=curr1.insaddr
+and t.type~='Adjust'
+and currency_included(t, c.insid) = 1	
+and (c.insid = i.insid ?  curr1.insid : i.insid ) ~= oc.othercurr
+
+group by 9, /*BaseCurr*/8 /* TradeArea*/

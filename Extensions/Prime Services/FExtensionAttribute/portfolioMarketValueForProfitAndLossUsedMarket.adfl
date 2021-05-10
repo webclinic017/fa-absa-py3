@@ -1,0 +1,10 @@
+[Prime Services]FBond:portfolioMarketValueForProfitAndLossUsedMarket = select(valuesOnSpot, 
+  true->shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, includeAllTrades, legs, positionObject, plSpotGroupingReference, marketSpotValueForProfitAndLoss = marketSpotValueForProfitAndLossUsedMarket, usedMarket](moveSpotPositionTypeForProfitAndLoss, 
+    "None"->collapse(marketInstrumentPositionValuesSimpleForProfitAndLoss), 
+    "Full"->collapse(marketInstrumentPositionValuesForProfitAndLoss), 
+    "Repo"->collapse(marketSpotValueForProfitAndLossRepo)), 
+  false->shunt[valuesOnSpotOverride, valuationBaseDateTimeInput, singleTradePosition, includeAllTrades, legs, positionObject, plSpotGroupingReference, marketSpotValueForProfitAndLoss = marketSpotValueForProfitAndLossUsedMarket, usedMarket](moveSpotPositionTypeForProfitAndLoss, 
+    "None"->stripDateTimePart(collapse(marketInstrumentPositionValuesSimpleForProfitAndLoss)), 
+    "Full"->collapse(marketInstrumentPositionTradeValuesForProfitAndLoss), 
+    "Repo"->collapse(marketValueForProfitAndLossRepo)));
+[Prime Services]FInstrument:portfolioMarketValueForProfitAndLossUsedMarket = portfolioMarketValueForProfitAndLoss;

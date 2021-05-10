@@ -1,0 +1,111 @@
+[Default]FObject:Security OpenPositions/ZeroPositions
+{
+  Parameters:
+  [
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+  
+}
+temporaryInstrumentAmount = If(Compare.IsEqual(&'type', $settlementType), Switch(&['trdnbr','insaddr','instype'], ['Repo/Reverse', &'amount', 'SecurityLoan', &'amount', 'BuySellback', &'amount', 0.0]), 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    }
+  ]
+}
+collateralAmount = If(And(Compare.IsEqual(&'type', 'Security Nominal'), Compare.IsEqual(&['trdnbr','type'], $tradeType)), &'amount', 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:tradeType,
+      Type:String
+    },
+    {
+      Name:settlementType,
+      Type:String
+    }
+  ]
+}
+temporaryAmount = If(Compare.IsEqual(&['trdnbr','category'], 'Collateral'), @collateralAmount($tradeType), @temporaryInstrumentAmount($settlementType));
+
+{
+}
+isAmountPositive = Compare.IsPositive(&'amount');
+
+{
+}
+tempOut = Aggregate.Sum(If(&'settledSecurityExtAttr', If(@isAmountPositive(), @temporaryAmount('Closing', 'End Security'), @temporaryAmount('Normal','Security Nominal')), 0.0));
+
+{
+}
+tempIn = Aggregate.Sum(If(&'settledSecurityExtAttr', If(@isAmountPositive(), @temporaryAmount('Normal','Security Nominal'), @temporaryAmount('Closing', 'End Security')), 0.0));
+
+{
+}
+isTradePrimaryIssuance = Compare.IsEqual(&['trdnbr','primary_issuance'], True);
+
+{
+}
+isSecurityDvPNominalRedemption = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, False]);
+
+{
+}
+isSecurityDvPNominalRedemptionEnd = Switch(&'type', ['Security DvP', True, 'Security Nominal', True, 'Redemption Security', True, 'End Security', True, False]);
+
+{
+}
+isSettledDaySet = Not(Compare.IsEqual(&'settled_day', DateTime.None()));
+
+{
+}
+ownAndCancelOwnIssues = Aggregate.Sum(If(And(And(@isTradePrimaryIssuance(), @isSecurityDvPNominalRedemption()), @isSettledDaySet() ), &'amount', 0.0));
+
+{
+}
+currentCustody = Aggregate.Sum(If(And(And(Not(@isTradePrimaryIssuance()), @isSecurityDvPNominalRedemptionEnd()), @isSettledDaySet() ), &'amount', 0.0));
+
+{
+}
+issueOutstanding = 0.0 - @ownAndCancelOwnIssues();
+
+{
+}
+tempOutIsZero = Compare.IsEqual(@tempOut(), 0.0);
+
+{
+}
+tempInIsZero = Compare.IsEqual(@tempIn(), 0.0);
+
+{
+}
+currentCustodyIsZero = Compare.IsEqual(@currentCustody(), 0.0);
+
+{
+}
+issueOutstandingIsZero = Compare.IsEqual(@issueOutstanding(), 0.0);
+
+{
+}
+openOrZeroPosition = If(And(And(@issueOutstandingIsZero(), @currentCustodyIsZero()), And(@tempInIsZero(), @tempOutIsZero())), 'ZeroPositions', 'OpenPositions');
+
+{
+  DisplayInformation:
+  {
+    Label:'OpenPositions/ZeroPositions',
+    GroupLabel:'Security',
+    Description:'Partition for groupers for open positions vs closed out positions. Open position exists if Security Temporary In, Security Temporary Out Security Settled Position or IssueOutstanding holds a balance.'
+  }
+}
+main = If(Compare.IsEqual(Aggregate.Unique(&'activeSecurityExtAttr'), True), @openOrZeroPosition(), 'Rest');
+
+
+...

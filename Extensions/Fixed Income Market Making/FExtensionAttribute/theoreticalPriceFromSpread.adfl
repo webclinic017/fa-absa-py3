@@ -1,0 +1,5 @@
+[Fixed Income Market Making]FFrn:theoreticalPriceFromSpread = nil;
+[Fixed Income Market Making]FFuture:theoreticalPriceFromSpread = select(isFutureOnNotional, 
+  true->instrument :* "theoreticalPriceFromGrossBasis" [grossBasisSpread, ctdPrice, underlying], 
+  false->nil);
+[Fixed Income Market Making]FInstrument:theoreticalPriceFromSpread = instrument :* "theoreticalInstrumentSpotPriceFromYield" [yieldValue, quotation];

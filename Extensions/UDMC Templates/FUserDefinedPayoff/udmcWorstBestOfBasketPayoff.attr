@@ -1,0 +1,51 @@
+[UDMC Templates]FObject:udmcWorstBestOfBasketPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for worst/best of basket option without barrier
+#
+# INTERPRETATION
+# An worst/best of option on the returns in a basket.
+#
+# DEFINITION
+# absoluteStrikes: The strikes of the underlying assets.
+# rainbowType: Exotic tab Rainbow. Supported values are On the max (3) and On the min (4).
+# referencePrices: The initial prices of the underlying assets.
+# weights: The weights of the underlying basket components.
+#--------------------------------------------
+
+#PARAMETERS
+param int isCall;
+param int rainbowType; # 3=OnTheMax, 4=OnTheMin
+param matrix(double) absoluteStrikes;
+param matrix(double) weights;
+param matrix(double) referencePrices;
+
+#PROCESS
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double callOrPut = (2.0 * isCall) - 1.0;
+double minOrMax = 7.0 - 2.0*rainbowType; # -1=OnTheMin, 1=OnTheMax
+double optionValue = 0.0;
+matrix(double) performanceS = S;
+int worstBestIndex = 0;
+
+#MAIN LOOP
+performanceS = S[:,-1]./referencePrices[:,0];
+
+if(minOrMax==-1)
+{
+    # On the min
+    worstBestIndex = indexMin(performanceS);
+}
+else
+{
+    # On the max
+    worstBestIndex = indexMax(performanceS);
+};
+optionValue = weights[worstBestIndex]*max(0.0, callOrPut*(S[worstBestIndex, -1] - absoluteStrikes[worstBestIndex]));
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

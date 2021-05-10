@@ -1,0 +1,5 @@
+[Margin Trading]FCompoundPortfolio:spanMarginableOrders = activeOrdersHandler((marginableInstruments :* "activeOrdersForInstrumentCompound" [portfolio = object]).Flatten, activeOrders);
+[Margin Trading]FPortfolio:spanMarginableOrders = activeOrdersHandler((marginableInstruments :* "activeOrdersForInstrument" [portfolio = object]).Flatten, activeOrders);
+[Margin Trading]FPortfolioInstrumentAndTrades:spanMarginableOrders = select(spanExcludeActiveOrders, 
+  true->[], 
+  false->portfolio:spanMarginableOrders);

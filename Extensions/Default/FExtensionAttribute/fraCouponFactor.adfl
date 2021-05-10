@@ -1,0 +1,4 @@
+[Default]FCashFlowInformation:fraCouponFactor = -fraFactor * object.Period * nominal;
+[Default]FLeg:fraCouponFactor = select(firstCashFlow, 
+  nil->denominatedvalue(0), 
+  default->discountCurve.DiscountValue(firstCashFlow :* "fraCouponFactor" [legInformation], forwardValueDate));

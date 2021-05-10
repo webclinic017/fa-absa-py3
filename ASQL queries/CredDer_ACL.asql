@@ -1,0 +1,52 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CredDer_ACL') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CredDer_ACL' and p.type = 'SQL Query' 
+ 
+select DISTINCT
+
+    i.insid 'Ins'
+
+into temp
+
+from 
+    instrument i,
+    trade t
+
+
+where
+    match_filter(t, @1_Tradefilter{CredDer_ACL;tradefilter.fltid},@2_Trade{})
+    and t.insaddr = i.insaddr
+    and i.instype in ('Combination')
+
+select
+
+    today   'Date',
+    i.insid 'Instrument',
+    (mtm_value_ins(i,today,,,,) - interest_accrued(i))*100  'Clean',
+    interest_accrued(i)*100 'Accrued',
+    mtm_value_ins(i,today,,,,)*100 'All-In',
+    ael_f(i,'Louw_utils.duration_comb', i.insid) 'Duration',
+    (i.insid LIKE '%Zero%')?'':(days_between(today,to_date(ael_s(i,'Louw_utils.NextCF_comb', i.insid,today)),'Act/365'))'Days to Next CF',
+    (i.insid LIKE '%Zero%')?'':(days_between(today,to_date(ael_s(i,'Louw_utils.NextCF_comb', i.insid,today)),'Act/365') < 10)? 'Ex':'Cum' ' Ex/Cum'
+
+from
+    instrument i,
+    temp    t
+
+where 
+    t.Ins = i.insid
+
+
+ 
+
+
+
+
+ 
+
+
+

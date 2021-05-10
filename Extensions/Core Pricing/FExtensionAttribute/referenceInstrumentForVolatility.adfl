@@ -1,0 +1,13 @@
+[Core Pricing]FCombination:referenceInstrumentForVolatility = select(instrumentMapsWithVolatility, 
+  nil->nil, 
+  default->select(count(instrumentMapsWithVolatility) == 1, 
+    true->instrumentMapsWithVolatility[0], 
+    false->nil));
+[Core Pricing]FInstrument:referenceInstrumentForVolatility = instrument;
+[Core Pricing]FInstrumentAndTrades:referenceInstrumentForVolatility = select((instrumentGroupingReference <> nil) and (instrument:baseValuationOnUnderlyingComponents), 
+  true->instrumentGroupingReference, 
+  false->instrumentOrLotFromLotMap :* "collapse(referenceInstrumentForVolatility)");
+[Core Pricing]FMultiInstrumentAndTrades:referenceInstrumentForVolatility = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference:referenceInstrumentForVolatility);
+[Core Pricing]FPriceAggregate:referenceInstrumentForVolatility = instrument;

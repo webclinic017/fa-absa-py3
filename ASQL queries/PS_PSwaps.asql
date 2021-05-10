@@ -1,0 +1,47 @@
+/*------------------------------------------------------------------
+    PS_PSwaps
+
+    Purpose             : Split Prime Services Portfolios Swaps into its constituent stocks. Show position by stock.
+    Requester           : Andiswa Tshele
+    Department          : Market Risk
+    Developer           : Jaysen Naicker
+    CR Number           : 177461 10/05/2012
+
+    
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG
+------------------------------------------------------------------*/ 
+select 
+  ael_i(p,'ASQL_log','PS_PSwaps') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'PS_PSwaps' and p.type = 'SQL Query' 
+
+
+
+
+select
+    ir.insid 'Underlying Instrument',
+    r.day 'Date',
+    sum(r.value) 'Position'
+from
+    trade t, 
+    instrument i,
+    leg l,
+    cashflow cf,
+    reset r,
+    instrument ir
+where
+    i.insaddr = l.insaddr
+and t.insaddr = i.insaddr
+and l.legnbr = cf.legnbr
+and ir.insaddr = l.index_ref
+and cf.cfwnbr = r.cfwnbr
+and r.day = @Date{Today}
+and r.type = 'Nominal Scaling'
+and l.type = 'Total Return'
+and match_filter(t, @1_Filter{MR_Prime_SERVICES_PSwaps;tradefilter.fltid})
+group by 1
+order by 1

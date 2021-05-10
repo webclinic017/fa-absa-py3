@@ -1,0 +1,499 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','.Maint/PayCal/Interest Comb CDS') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = '.Maint/PayCal/Interest Comb CDS' and p.type = 'SQL Query' 
+ 
+/* Name:  Maint/PayCal/Interest ABSA Sum
+
+EDIT HISTORY
+
+Date    Who     	What
+------------------------------------------------------------
+030422  Debbie Osler	Added TOTAL Line
+030626	Debbie Osler	Added Equiv ZAR Col
+
+
+Reports connected: .Maint/PayCal/Int/Totals
+                   .Maint/PayCal/Int/Detail
+
+
+Cash flow netting cannot be executed here since we can only group either all 
+records or no. We cannot differentiate in one statement, we would need two 
+statements, but then the reports would not look very good.
+
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	mtm_price(hc, @EndDay{YESTERDAY}, curr.insid)		'fxRepDay',
+	mtm_price(hc, @StartDay{YESTERDAY}, curr.insid)		'fxPrevRepDay'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	    hc.insid = @HomeCurr{ZAR;instrument.insid where instype='Curr'}
+	AND curr.instype = 'Curr'
+
+
+
+
+/*select for non-combination trades*/
+
+select
+	t.trdnbr                                        	'TrdNo',
+        t.bo_trdnbr                                     	'BONo',
+        i.insid                                         	'Instrument',
+	i.instype						'Type',
+	(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' ) 	           			'TradeArea' ,
+	p.prfid							'Portfolio',
+ 	u.userid						'Trader',
+	t.status						'Status',
+        t.quantity*i.contr_size                         	'Nom',
+        @StartDay                                       	'StartDay',
+        @EndDay                                         	'EndDay',
+        'CashFlow'                                      	'PayType',
+        cf.pay_day                                      	'PayDay',
+	display_id(l,'curr')                            	'Curr',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity      'Payment',
+	
+        /*display_id(l,'curr')                            	'Curr',*/
+	display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	display_id(t,'acquirer_ptynbr')				'Acquirer',
+	display_id(t,'broker_ptynbr')				'Broker',
+	t.time							'TradeTime',
+	/*p.prfid						'Portfolio',*/
+        
+        (t.optkey1_chlnbr > 0 ?
+        tk1.list :'' )                                 'TradeKey1' ,
+        (t.optkey2_chlnbr > 0 ?
+        tk2.list : '')                                 'TradeKey2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.list : '')                                 'TradeKey3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.list : '')                                 'TradeKey4',
+
+        /*(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' )            			'TradeKeyEntry1' ,*/
+        (t.optkey2_chlnbr > 0 ?
+        tk2.entry : '')                                 'TradeKeyEntry2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.entry : '')                                 'TradeKeyEntry3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.entry : '')                                 'TradeKeyEntry4',
+
+        t.cfnetting = 'Yes' ? 'Yes' : ''                'CFNetting',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift : '' : ''
+                                                        'CpSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift2 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift2 : '' : ''
+                                                        'CpSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift3 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift3 : '' : ''
+                                                        'CpSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift4 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift4 : '' : ''
+                                                        'CpSwiftCode4',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift : '' : ''
+                                                        'WeSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift2 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift2 : '' : ''
+                                                        'WeSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift3 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift3 : '' : ''
+                                                        'WeSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift4 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift4 : '' : ''
+                                                        'WeSwiftCode4',
+	t.optional_key					'DevNo',
+	1/fx.fxRepDay					'fxRepDay',
+	1/fx.fxPrevRepDay				'fxPrevRepDay'
+	
+
+into temp
+from
+        front.instrument i,
+        front.trade t,
+        front.leg l,
+        front.cashflow cf,
+        front.account pc1 fill          /*payments to cp*/,
+        front.account pc2 fill          /*payments to cp*/,
+        front.account pw1 fill          /*payments to us*/,
+        front.account pw2 fill          /*payments to us*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.choicelist tk2 fill,      /*Trade Key 2*/
+        front.choicelist tk3 fill,      /*Trade Key 3*/
+        front.choicelist tk4 fill,      /*Trade Key 4*/
+        front.party d fill,
+	front.portfolio p,
+	front.user u,
+
+/* Added for FXRATES*/
+	fxrates fx,
+	front.instrument curr
+
+where
+        cf.pay_day between @StartDay{YESTERDAY} and @EndDay{YESTERDAY}
+and     i.insaddr = t.insaddr
+and	t.creat_usrnbr = u.usrnbr
+and     l.insaddr = i.insaddr
+and     cf.legnbr = l.legnbr
+and     i.instype not in('Future/Forward','Option','Warrant')
+
+/*Added for FXRates*/
+and	curr.instype = 'Curr'
+and	fx.curr = curr.insid
+and	curr.insaddr= l.curr
+
+and     pc1.accnbr = t.pay1_accnbr
+and     pc2.accnbr = t.pay2_accnbr
+and     pw1.accnbr = t.rec1_accnbr
+and     pw2.accnbr = t.rec2_accnbr
+
+and     t.acquirer_ptynbr = d.ptynbr
+/*and     ('None' in (@InsType{None;instrument.instype*})
+        or i.instype in (@InsType{}))*/
+/*and     ('None' in (@UndInsType{None;instrument.instype*})
+        or i.und_instype in (@UndInsType{})
+        or i.und_instype = 'None')*/
+/*and     ('None' in (@AcquireDep{Swaps Desk,Non Linear Deriv;party.ptyid* where type = 'Intern Dept'}) 
+	or d.ptyid in (@AcquireDep{}))*/
+and	t.prfnbr = p.prfnbr
+/*and     ('None' in (@Portfolio{IRP,FGN,ALCO,FGN1,MMST,NLDO;portfolio.prfid*}) 
+	or p.prfid in (@Portfolio{}))*/
+/*and     t.status in (@TradeStatus{FO Confirmed,BO Confirmed;trade.status*})*/
+/*and (display_id(t,'optkey1_chlnbr') in (@TradeArea{None;choicelist.entry* where list = 'TradArea'})
+or  'None' in (@TradeArea{}))*/
+/*and (display_id(t,'counterparty_ptynbr') in (@Cpty{None;party.ptyid* where type = 'Counterparty'})
+or  'None' in (@Cpty{}))*/
+and     tk1.seqnbr = t.optkey1_chlnbr
+and     tk2.seqnbr = t.optkey2_chlnbr
+and     tk3.seqnbr = t.optkey3_chlnbr
+and     tk4.seqnbr = t.optkey4_chlnbr
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+group by 14, t.trdnbr, cf.pay_day
+order by 16,5,14,18,17
+
+/* select for combination instypes  */
+
+
+select
+	t.trdnbr                                        	'TrdNo',
+        t.bo_trdnbr                                     	'BONo',
+        i.insid                                         	'Instrument',
+	i.instype						'Type',
+	(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' ) 	           			'TradeArea' ,
+	p.prfid							'Portfolio',
+ 	u.userid						'Trader',
+	t.status						'Status',
+        t.quantity*i.contr_size                         	'Nom',
+        @StartDay                                       	'StartDay',
+        @EndDay                                         	'EndDay',
+        'CashFlow'                                      	'PayType',
+        cf.pay_day                                      	'PayDay',
+	display_id(l,'curr')                            	'Curr',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity / 1000000      'Payment',
+	
+        /*display_id(l,'curr')                            	'Curr',*/
+	display_id(t,'counterparty_ptynbr')                     'Counterparty',
+	display_id(t,'acquirer_ptynbr')				'Acquirer',
+	display_id(t,'broker_ptynbr')				'Broker',
+	t.time							'TradeTime',
+	/*p.prfid						'Portfolio',*/
+        
+        (t.optkey1_chlnbr > 0 ?
+        tk1.list :'' )                                 'TradeKey1' ,
+        (t.optkey2_chlnbr > 0 ?
+        tk2.list : '')                                 'TradeKey2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.list : '')                                 'TradeKey3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.list : '')                                 'TradeKey4',
+
+        /*(t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' )            			'TradeKeyEntry1' ,*/
+        (t.optkey2_chlnbr > 0 ?
+        tk2.entry : '')                                 'TradeKeyEntry2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.entry : '')                                 'TradeKeyEntry3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.entry : '')                                 'TradeKeyEntry4',
+
+        t.cfnetting = 'Yes' ? 'Yes' : ''                'CFNetting',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift : '' : ''
+                                                        'CpSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift2 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift2 : '' : ''
+                                                        'CpSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift3 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift3 : '' : ''
+                                                        'CpSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift4 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift4 : '' : ''
+                                                        'CpSwiftCode4',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift : '' : ''
+                                                        'WeSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift2 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift2 : '' : ''
+                                                        'WeSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift3 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift3 : '' : ''
+                                                        'WeSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift4 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift4 : '' : ''
+                                                        'WeSwiftCode4',
+	t.optional_key					'DevNo',
+	1/fx.fxRepDay					'fxRepDay',
+	1/fx.fxPrevRepDay				'fxPrevRepDay'
+	
+
+into temp
+from
+        front.instrument i,
+        front.trade t,
+        front.leg l,
+        front.cashflow cf,
+        front.account pc1 fill          /*payments to cp*/,
+        front.account pc2 fill          /*payments to cp*/,
+        front.account pw1 fill          /*payments to us*/,
+        front.account pw2 fill          /*payments to us*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.choicelist tk2 fill,      /*Trade Key 2*/
+        front.choicelist tk3 fill,      /*Trade Key 3*/
+        front.choicelist tk4 fill,      /*Trade Key 4*/
+        front.party d fill,
+	front.portfolio p,
+	front.user u,
+
+/* Added for FXRATES*/
+	fxrates fx,
+	front.instrument curr,
+	
+	
+    combinationlink cl,
+    Instrument MemIns
+	
+	
+
+where
+  cl.owner_insaddr = I.insaddr
+    and MemIns.InsAddr = cl.member_insaddr
+    and l.insaddr =  MemIns.InsAddr
+    
+ and       cf.pay_day between @StartDay{YESTERDAY} and @EndDay{YESTERDAY}
+and     i.insaddr = t.insaddr
+and	t.creat_usrnbr = u.usrnbr
+and     l.insaddr = MemIns.insaddr
+and     cf.legnbr = l.legnbr
+and     i.instype  in ('Combination')
+
+/*Added for FXRates*/
+and	curr.instype = 'Curr'
+and	fx.curr = curr.insid
+and	curr.insaddr= l.curr
+
+and     pc1.accnbr = t.pay1_accnbr
+and     pc2.accnbr = t.pay2_accnbr
+and     pw1.accnbr = t.rec1_accnbr
+and     pw2.accnbr = t.rec2_accnbr
+
+and     t.acquirer_ptynbr = d.ptynbr
+/*and     ('None' in (@InsType{None;instrument.instype*})
+        or i.instype in (@InsType{}))*/
+/*and     ('None' in (@UndInsType{None;instrument.instype*})
+        or i.und_instype in (@UndInsType{})
+        or i.und_instype = 'None')*/
+/*and     ('None' in (@AcquireDep{Swaps Desk,Non Linear Deriv;party.ptyid* where type = 'Intern Dept'}) 
+	or d.ptyid in (@AcquireDep{}))*/
+and	t.prfnbr = p.prfnbr
+/*and     ('None' in (@Portfolio{IRP,FGN,ALCO,FGN1,MMST,NLDO;portfolio.prfid*}) 
+	or p.prfid in (@Portfolio{}))*/
+/*and     t.status in (@TradeStatus{FO Confirmed,BO Confirmed;trade.status*})*/
+/*and (display_id(t,'optkey1_chlnbr') in (@TradeArea{None;choicelist.entry* where list = 'TradArea'})
+or  'None' in (@TradeArea{}))*/
+/*and (display_id(t,'counterparty_ptynbr') in (@Cpty{None;party.ptyid* where type = 'Counterparty'})
+or  'None' in (@Cpty{}))*/
+and     tk1.seqnbr = t.optkey1_chlnbr
+and     tk2.seqnbr = t.optkey2_chlnbr
+and     tk3.seqnbr = t.optkey3_chlnbr
+and     tk4.seqnbr = t.optkey4_chlnbr
+
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+group by 14, t.trdnbr, cf.pay_day
+order by 16,5,14,18,17
+
+/*************/
+
+
+
+
+
+
+
+
+select
+TrdNo,
+BONo,
+DevNo,
+'TOTAL By Portfolio'  'Instrument',
+Type,
+TradeArea,
+Portfolio,
+Trader,
+Status,
+sum(Nom) 'Nom',
+StartDay,
+EndDay,
+PayType,
+PayDay,
+Curr,
+sum(Payment) 'Payment',
+sum(Payment*FXRepDay) 'HPayment',
+Counterparty,
+Acquirer,
+Broker,
+TradeTime,
+TradeKey1/* ,
+TradeKey2,
+TradeKey3,
+TradeKey4,
+TradeKeyEntry2,
+TradeKeyEntry3,
+TradeKeyEntry4,
+CFNetting,
+CpSwiftCode1,
+CpSwiftCode2,
+CpSwiftCode3,
+CpSwiftCode4,
+WeSwiftCode1,
+WeSwiftCode2,
+WeSwiftCode3,
+WeSwiftCode4*/
+
+
+from temp 
+
+group by Portfolio,Curr
+
+union
+
+select
+TrdNo,
+BONo,
+DevNo,
+Instrument,
+Type,
+TradeArea,
+Portfolio,
+Trader,
+Status,
+Nom,
+StartDay,
+EndDay,
+PayType,
+PayDay,
+Curr,
+Payment,
+sum(Payment*FXRepDay) 'HPayment',
+Counterparty,
+Acquirer,
+Broker,
+TradeTime,
+TradeKey1/* ,
+TradeKey2,
+TradeKey3,
+TradeKey4,
+TradeKeyEntry2,
+TradeKeyEntry3,
+TradeKeyEntry4,
+CFNetting,
+CpSwiftCode1,
+CpSwiftCode2,
+CpSwiftCode3,
+CpSwiftCode4,
+WeSwiftCode1,
+WeSwiftCode2,
+WeSwiftCode3,
+WeSwiftCode4*/
+
+
+from temp 

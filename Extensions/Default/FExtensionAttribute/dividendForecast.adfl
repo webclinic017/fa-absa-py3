@@ -1,0 +1,20 @@
+#grouping: risk factors/dividend forecast
+
+[Default]FBuySellBack:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = underlying:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends];
+[Default]FCashFlowDerivativeInstrument:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = underlyingOrSelf:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends];
+[Default]FCfd:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = ref(dividendForecastNoRef, priceRiskReference(object, value(actualDividendStream)));
+[Default]FCombInstrMap:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = instrument:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends];
+[Default]FCombination:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = ref(shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->dividendForecastNoRef, 
+  default->dividendForecast(object, actualDividendStream, nil, instrumentMapsDividendForecasts, valuationBaseDateNoFuture, historicalDividendsFromIndex, futureDividendsFromIndex)), priceRiskReference(object, value(actualDividendStream)));
+[Default]FConvertible:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = underlying:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends];
+[Default]FCreditIndex:dividendForecast = nil;
+[Default]FDepositaryReceipt:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = ref(dividendForecastNoRef, priceRiskReference(object, value(actualDividendStream)));
+[Default]FDerivative:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = underlying:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends];
+[Default]FETF:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = ref(dividendForecastNoRef, priceRiskReference(object, value(actualDividendStream)));
+[Default]FFxRate:dividendForecast = nil;
+[Default]FInstrument:dividendForecast = nil;
+[Default]FLeg:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = select(useDividendForecast, 
+  true->creditReference:dividendForecast [doSplitAll, includeFutureDividends, includeHistoricalDividends], 
+  false->nil);
+[Default]FStock:dividendForecast[doSplitAll, includeFutureDividends, includeHistoricalDividends] = ref(dividendForecastNoRef, priceRiskReference(object, value(actualDividendStream)));

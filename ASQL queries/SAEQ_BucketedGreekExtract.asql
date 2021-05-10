@@ -1,0 +1,104 @@
+
+/*----------------------------------------------------------------------------- 
+PURPOSE                 : Update - fixed strike calculation for asian ins.
+REQUESTER               : Andrey Chechin 
+DEVELOPER               : Eben Maré
+CR NUMBER               : 498027 
+-----------------------------------------------------------------------------*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_BucketedGreekExtract') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p
+ where p.name = 'SAEQ_BucketedGreekExtract' and p.type = 'SQL Query'
+
+select
+    @Greeks{Delta_Gamma_Vega} 'Greeks'
+into
+    macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+ 
+  select
+    i.insid         'ALSI',
+    ii.insid        'SWIX',
+    mtm_price(i,YESTERDAY)  'Amtm',
+    mtm_price(ii,Yesterday) 'Smtm',
+    mtm_price(ii,YESTERDAY) / mtm_price(i,Yesterday) 'Ratio'
+into 
+    tempR
+from
+    instrument i,
+    instrument ii
+where
+    ii.instype in ('EquityIndex','Stock')
+and i.insid = 'ZAR/ALSI'
+
+select
+    t.trdnbr 'trdnbr',
+    ael_f(i, 'SAEQ_GetTradManagerGreeks.getStrike') 'strike_price'
+into
+    trades
+from
+    trade t,
+    instrument i
+where
+    match_filter(t,@Filter{;TradeFilter.fltid}) and
+    t.insaddr = i.insaddr
+
+select
+    i.insid 'insid',
+    t.prfnbr 'prfnbr',
+    tds.strike_price 'strike_price',
+    tr.ratio ~= 0 ? tds.strike_price / tr.ratio : tds.strike_price 'CalcStrike',
+    i.exp_day 'exp_day',
+    u.insid 'und_insid',
+    sum(t.quantity * tr.ratio * i.contr_size / 10)  'ALSICOTRACTS',
+    sum(t.quantity)             'ORIGINALCONTRACTS',
+    tr.ratio 'ratio',
+    tr.Amtm 'Amtm',
+    tr.Smtm 'Smtm'
+into
+    tempT
+from
+    instrument i,
+    instrument u,
+    trade t,
+    TempR tr,
+    trades tds
+where
+    t.trdnbr = tds.trdnbr
+
+and i.instype = 'Option'
+and u.instype  in ('Future/Forward','EquityIndex','Stock')
+and u.insaddr = i.und_insaddr
+and t.insaddr = i.insaddr
+and i.exp_day >= TODAY
+and tr.SWIX = u.insid
+and t.status not in ('Void','Simulated')
+
+group by
+    5,4,2,1
+having sum(t.quantity) ~= 0
+
+select
+    tr.insid,
+    tr.strike_price,
+    tr.CalcStrike,
+    tr.exp_day,
+    tr.und_insid,
+    tr.ALSICOTRACTS,
+    tr.ORIGINALCONTRACTS,
+    tr.ratio,
+    tr.Amtm,
+    tr.Smtm,
+    ael_s(i, 'SAEQ_GetTradManagerGreeks.getGreeks', tr.prfnbr, m.Greeks) 'Greeks'
+from
+    tempT tr,
+    macros m,
+    instrument i
+where
+    i.insid =* tr.insid

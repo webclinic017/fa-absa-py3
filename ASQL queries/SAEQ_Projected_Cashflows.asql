@@ -1,0 +1,363 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Projected_Cashflows') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Projected_Cashflows' and p.type = 'SQL Query' 
+
+
+/*Description
+Date        Who                     What                CR number
+2009-01-27  Heinrich Cronje         Created             364189
+
+This report gives all cash movements on the EQ Derivatives Desk
+and equity deposits on Funding Desk.
+
+
+Purpose              : Modified to display varience swaps, Modified to display currency, Column CP Ref added and amended Future/Forwards(Premiums) 
+                       to include trades that have no premiums, Modified party id to reflect the payment counterparty, Modified to include Stock and 
+                       Equity Index in the report, Modified to include all expired trades and to include all additional payments, Modified to give correct currency on TRS Dividends, Devided Forward cash by 100 if the Quote_type = Per 100 Units.
+                       Optomise cde so it does not crash on front-0end and fix currency column to show correct cash flow currencies
+                       Changed ASQL to accept an Acquirer as input
+Department and Desk  : PCG -  Front office, Ops, Ops, Ops
+Requester            : Sabir Ballim, Christo Davids, Kanae Barkhuizen, Tanya Correia, Jullie Ellis
+Developer            : Ickin Vural, Willie van der Bank, Bhavnisha Sarawan, Tshepo Mabena, Heinrich Cronje, Tshepo Mabena, Jaysen Naicker, Heinrich Cronje
+CR Number            : C000000193482, C248581 2010-03-11, C363237, C370168, C376704, C542899,C548872, 656593,797051,  888104, 892000
+
+*/
+
+/*********** Macros ***********/
+select
+    @1_Start_Date{Yesterday}    'start',
+    @2_End_Date{Today}          'end'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+/*********** EQ Derivatives Desk Start ********/
+/*********** All EQ Derivatives Desk Trades (Exclude Future Forward)***********/
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    i.exp_day,
+    p.ptyid,
+    t.your_ref,
+    display_id(t,'prfnbr')  'prfid',
+    t.status,
+    t.premium,
+    t.value_day,
+    t.insaddr,
+    display_id(t,'curr')   'TCurrency',
+    t.quantity,
+    t.price * t.quantity * i.contr_size *-1 'Cash',
+    date_add_banking_day(i.exp_day,display_id(t,'curr'), i.pay_day_offset) 'Pay_Day',
+    i.quote_type,
+    i.open_end,
+    i.paytype,
+    i.settlement
+    
+into
+    trades
+from
+    trade t,
+    instrument i,
+    party p,
+    party a
+where
+        t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.acquirer_ptynbr = a.ptynbr
+    and p.ptyid2 not in ('SAFEX','JSE')
+    /*(and (i.exp_day >= today or i.exp_day = '01-01-1900')*/
+    /*and a.ptyid = 'EQ Derivatives Desk'*/
+    and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+    and i.instype ~=  'CFD'
+    and i.open_end ~= 'Open End'
+    and ('None' in (@3_Acquirer{EQ Derivatives Desk;party.ptyid where type = 'Intern Dept'}) or a.ptyid in (@3_Acquirer{}))
+    
+    
+/*********** Future Forward (Premium) ***********/
+select
+    t.trdnbr,
+    t.insid,
+    t.instype,
+    t.exp_day,
+    t.ptyid,
+    t.your_ref,
+    t.prfid,
+    t.status,
+    t.premium ~= 0.00 ? t.premium : (t.quote_type = 'Per 100 Units' ? t.Cash / 100 : t.Cash) 'Cash',
+    'Premium'    'Cash_Type',
+    t.Pay_Day,
+    t.TCurrency  'Currency'
+into
+    final
+from
+    trades t,
+    macros m
+where
+    t.Pay_Day >= m.start
+    and t.Pay_Day <= m.end
+    and t.instype = 'Future/Forward'
+    and t.paytype = 'Forward'
+    and ((abs(round(t.premium,2)) > 0.00) or (abs(round(t.Cash,2)) > 0.00))
+    and t.settlement = 'Cash'
+
+/*********** Future Forward (Additional Payment) ***********/    
+select
+    t.trdnbr,
+    t.insid,
+    t.instype,
+    t.exp_day,
+    t.ptyid,
+    t.your_ref,
+    t.prfid,
+    t.status,
+    ap.amount                                                   'Cash',
+    to_string(ap.type)                                          'Cash_Type',
+    ap.payday                                                   'Pay_Day',
+    t.TCurrency                                                 'Currency'
+into
+    final
+from
+    trades t,
+    macros m,
+    payment ap
+where
+    t.trdnbr = ap.trdnbr
+    and t.exp_day >= m.start
+    and ap.payday >= m.start
+    and ap.payday <= m.end
+    and t.instype = 'Future/Forward'
+    and t.paytype = 'Forward'
+    and ap.type = 'Cash'      
+        
+/*********** Premiums ***********/
+select
+    t.trdnbr,
+    t.insid,
+    t.instype,
+    t.exp_day,
+    t.ptyid,
+    t.your_ref,
+    t.prfid,
+    t.status,
+    t.premium   'Cash',
+    'Premium'   'Cash_Type',
+    t.value_day 'Pay_Day',
+    t.TCurrency   'Currency'
+into
+    final
+from
+    trades t,
+    macros m
+where
+        abs(round(t.premium,2)) > 0.00
+    and t.value_day >= m.start
+    and t.value_day <= m.end
+    and t.instype ~= 'Future/Forward'
+
+/*********** Payments ***********/
+select
+    tt.trdnbr,
+    tt.insid,
+    tt.instype,
+    tt.exp_day,
+    display_id(p,'ptynbr'),
+    tt.your_ref,
+    tt.prfid,
+    tt.status,
+    p.amount                'Cash',
+    to_string(p.type)       'Cash_Type',
+    p.payday                'Pay_Day',
+    display_id(p,'curr')    'Currency'
+into
+    final
+from
+
+    trades tt,
+    payment p,
+    macros m
+where
+    tt.trdnbr = p.trdnbr
+    and p.payday >= m.start
+    and p.payday <= m.end
+    and abs(round(p.amount,2))   > 0.00
+    and tt.instype ~= 'Future/Forward' 
+    
+/*********** Additional Payments ***********/
+/*
+select
+    tt.trdnbr,
+    tt.insid,
+    tt.instype,
+    tt.exp_day,
+    display_id(ap,'ptynbr'),
+    tt.your_ref,
+    tt.prfid,
+    tt.status,
+    ap.amount               'Cash',
+    to_string(ap.type)      'Cash_Type',
+    ap.payday               'Pay_Day',
+    display_id(ap,'curr')   'Currency'
+into 
+	final
+from
+	trades tt,
+    payment ap,
+    macros m
+where
+        ap.trdnbr = tt.trdnbr
+    and ap.payday >= m.start
+    and ap.payday <= m.end
+    and tt.instype ~= 'Future/Forward'
+
+*/
+
+/*********** Cashflows ***********/
+select
+    tt.trdnbr,
+    tt.insid,
+    tt.instype,
+    tt.exp_day,
+    tt.ptyid,
+    tt.your_ref,
+    tt.prfid,
+    tt.status,
+    tt.quantity*projected_cf(cf)    'Cash',
+    to_string(cf.type)              'Cash_Type',
+    cf.pay_day                      'Pay_Day',
+    display_id(l,'curr')  'Currency' 
+into
+    final
+from
+    trades tt,
+    leg l,
+    cashflow cf,
+    macros m
+where
+    tt.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cf.pay_day >= m.start
+    and cf.pay_day <= m.end
+    and abs(round(projected_cf(cf),2)) > 0.00
+    and tt.instype ~= 'Future/Forward'
+     
+/*********** EQ Derivatives Desk End ********/
+
+/*********** Funding Desk (Deposit) Start ***********/
+select
+    t.trdnbr,
+    i.insid,
+    i.instype,
+    i.exp_day,
+    p.ptyid,
+    t.your_ref,
+    display_id(t,'prfnbr')  'prfid',
+    t.status,
+    t.premium,
+    t.value_day,
+    to_string(p.type)   'type',
+    ael_i(,'CheckChildInParentPortfolio.LowestLevel','9806',display_id(t,'prfnbr')) 'PortMatch',
+    t.curr,
+    t.quantity,
+    t.insaddr,
+    display_id(t,'curr')   'TCurrency'
+into
+    tradesFD
+from
+    trade t,
+    instrument i,
+    party p,
+    party a,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.acquirer_ptynbr = a.ptynbr
+    and p.ptyid2 not in ('SAFEX','JSE')
+    and t.value_day >= m.start
+    and t.value_day <= m.end
+    and a.ptyid = 'Funding Desk'
+    and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+    and i.instype = 'Deposit'
+    and i.open_end ~= 'Open End'
+    and p.ptyid ~= 'Funding Desk'
+    
+/*********** Matched Portfolios Premium ***********/
+select
+    tfd.trdnbr,
+    tfd.insid,
+    tfd.instype,
+    tfd.exp_day,
+    tfd.ptyid,
+    tfd.your_ref,
+    tfd.prfid,
+    tfd.status,
+    tfd.premium         'Cash',
+    'Premium'           'Cash_Type',
+    tfd.value_day,
+    tfd.TCurrency       'Currency'
+into
+    final
+from
+    tradesFD tfd,
+    macros m
+where
+        tfd.PortMatch = 1
+    and abs(round(tfd.premium,2)) > 0.00
+    and tfd.value_day >= m.start
+    and tfd.value_day <= m.end
+
+     
+/*********** Matched Portfolios CashFlows ***********/
+select
+    tfd.trdnbr,
+    tfd.insid,
+    tfd.instype,
+    tfd.exp_day,
+    tfd.ptyid,
+    tfd.your_ref,
+    tfd.prfid,
+    tfd.status,
+    tfd.quantity*projected_cf(cf)   'Cash',
+    to_string(cf.type)              'Cash_Type',
+    cf.pay_day                      'Pay_Day',
+    display_id(l,'curr')            'Currency' 
+into
+    final
+from
+    leg l,
+    cashflow cf,
+    tradesFD tfd,
+    macros m
+where
+    tfd.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and tfd.PortMatch = 1
+    and cf.pay_day >= m.start
+    and cf.pay_day <= m.end
+    and abs(round(projected_cf(cf),2)) > 0.00
+
+    
+/*********** Funding Desk (Deposit) End ***********/
+
+/*********** Final ***********/
+select
+    f.trdnbr    'Trade_number',
+    f.insid     'Instrument_ID',
+    f.instype   'Ins_type',
+    f.exp_day   'Expiry_day',
+    f.ptyid     'Counterparty',
+    f.your_ref  'Counterparty Ref',
+    f.prfid     'Portfolio',
+    f.status    'Status',
+    f.Cash,
+    f.Cash_Type,
+    f.Pay_Day,
+    f.Currency
+from
+    final f

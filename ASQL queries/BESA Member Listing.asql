@@ -1,0 +1,62 @@
+/*BESA Member Listing: last updated on Fri Aug 21 17:21:43 2009. Extracted by Stowaway on 04/09/2009.*/
+
+select
+
+    p.ptyid,
+
+    p.fullname,
+
+    p.hostid,
+
+    /*length(p.hostid),*/
+
+    /*add_info(p, 'BESA_Member_Agree')        'BESA_Member_Agree'*/
+
+    ai.value                'BESA_Member_Agree',
+
+    t.trdnbr                'Trade Number',
+
+    t.value_day             'Trade Date',
+
+    i.exp_day               'Expiry Date'
+
+    
+
+from
+
+    Party p,
+
+    AdditionalInfoSpec ais,
+
+    AdditionalInfo ai,
+
+    Trade t,
+
+    Instrument i
+
+    
+
+where
+
+    ai.addinf_specnbr = ais.specnbr
+
+and ais.field_name = 'BESA_Member_Agree'
+
+and p.ptynbr = ai.recaddr
+
+and t.counterparty_ptynbr = p.ptynbr
+
+and i.insaddr = t.insaddr
+
+and match_filter(t, @1_Filter{Comp_BondTrades;tradefilter.fltid}, @2_TrdNbrs{})
+
+and t.time >= @3_From_Date{2009-06-01}
+
+and t.time < @4_To_Date{2009-07-01}
+
+    
+
+/*group by 1*/  
+
+order by 4
+

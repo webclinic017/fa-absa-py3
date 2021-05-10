@@ -1,0 +1,45 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Zero_Cashflow_Bug') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Zero_Cashflow_Bug' and p.type = 'SQL Query' 
+ 
+  select
+        
+    t.trdnbr 'Trade Number',
+    i.instype   'Instrument ID',
+    i.start_day 'Instrument Start Day',
+    i.exp_day 'Instrument Expiry Day',
+    t.status  'Status',
+    p.fullname   'Counterparty',     
+    o.prfid 'Trade Portfolio'
+        
+    
+
+
+from
+        trade   t,
+        instrument  i,
+        party p,
+        instrument c,
+        portfolio o,
+        cashflow cf,
+        leg l
+       
+      
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and c.insaddr = t.curr
+and t.prfnbr = o.prfnbr
+and l.insaddr = i.insaddr
+and l.legnbr = cf.legnbr
+and cf.pay_day > '2007-12-05'
+and projected_cf(cf)*t.quantity < (1)
+and projected_cf(cf)*t.quantity > (-1)
+and t.status ~= 'Terminated'
+and t.status ~= 'FO Confirmed'
+
+group by 1

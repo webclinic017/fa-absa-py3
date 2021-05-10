@@ -1,0 +1,3 @@
+[Core Pricing]FInstrument:relativeConversionValueModel[fromStrikeType, priceSource, doSplitAll, calculationCurrency, forwardValuationInInstrumentCurrency, exposeForwardValueProviderTargets, discountingType] = select((fromStrikeType == "Rel Frw") or (fromStrikeType == "Rel Frw Pct") or (fromStrikeType == "Rel Frw Pct 100"), 
+  true->object:forwardValueProvider [priceSource, doSplitAll, calculationCurrency, forwardValuationInInstrumentCurrency, exposeForwardValueProviderTargets, discountingType], 
+  false->ConstantValueModel(object:marketSpotValue [priceSource, doSplitAll]));

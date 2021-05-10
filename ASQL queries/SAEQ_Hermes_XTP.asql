@@ -1,0 +1,65 @@
+SELECT
+    u.name 'Trader',
+    'YES'?t.trdnbr:'' 'TradeNumber',
+    i.insid 'Instrument',    
+    'YES'?time_to_day(t.time):'' 'TradeDay',
+    t.optional_key 'OptionalKey',
+    t.optional_key re_like '[0-9]+_[0-9]+'?'XTP':'Hermes' 'TradeSource',
+    'YES'?nominal_amount(t):'' 'NominalAmount'
+INTO
+    TempTable
+FROM
+    instrument i,
+    trade t,
+    user u
+WHERE
+    i.insaddr = t.insaddr
+and t.trader_usrnbr = u.usrnbr
+and i.instype = 'Stock'
+and time_to_day(t.time) between bankday_adjust(@TradeDayFrom{YESTERDAY},'ZAR','Preceding') and @TradeDayTo{TODAY}
+and (t.optional_key re_like '[0-9]+_[0-9]+'
+or t.optional_key re_like 'TAL_.+_[BS]')
+
+SELECT
+    'Detail' 'Aggregation',
+    tt.Trader 'Trader',
+    tt.TradeNumber 'Trade Number',
+    tt.Instrument 'Instrument',    
+    tt.TradeDay 'Trade Day',
+    tt.OptionalKey 'Optional Key',
+    tt.TradeSource 'Trade Source',
+    tt.NominalAmount 'Nominal Amount'
+FROM
+    TempTable tt
+
+UNION
+
+SELECT
+    'Summary' 'Aggregation',
+    tt.Trader 'Trader',
+    '' 'Trade Number',
+    '' 'Instrument',
+    '' 'Trade Day',
+    'COUNT' 'Optional Key', 
+    tt.TradeSource 'Trade Source',
+    'YES'?count(*):''
+FROM
+    TempTable tt
+GROUP BY 2, 7
+
+UNION
+
+SELECT
+    'Total Summary' 'Aggregation',
+    '' 'Trader',
+    '' 'Trade Number',
+    '' 'Instrument',
+    '' 'Trade Day',
+    'COUNT' 'Optional Key', 
+    tt.TradeSource 'Trade Source',
+    'YES'?count(*):''
+FROM
+    TempTable tt
+GROUP BY 7
+
+;

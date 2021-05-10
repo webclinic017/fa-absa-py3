@@ -1,0 +1,6 @@
+[Default]FGroupingOrder:postTradeExecutionValue = sumOf(removeNil(prePostTradeOrders :* "postTradeExecutionValue"));
+[Default]FOrderProgram:postTradeExecutionValue = sumOf((memberOrders) :* "postTradeExecutionValue");
+[Default]FOwnOrder:postTradeExecutionValue = nil;
+[Default]FSalesOrder:postTradeExecutionValue = switch((initCustFxRate > 0) and (customerCurrency <> nil), 
+  true->denominatedvalue(double(postTradeExecutionValueInOrderBookCurrency) * initCustFxRate, customerCurrency, , ), 
+  default->postTradeExecutionValueInOrderBookCurrency);

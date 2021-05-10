@@ -1,0 +1,70 @@
+/*------------------------------------------------------------------
+    PCG_fx_exposure_per_trade
+
+    Purpose             : Shows the FX exposure per trade per currency for a specific filter
+    Department and Desk : Market Risk
+    Requester           : Kepler Klynsmith
+    Developer           : Herman Hoon
+    CR Number           : 223027
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG
+------------------------------------------------------------------*/ 
+select
+    ael_i(p,'ASQL_log','PCG_fx_exposure_per_trade') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'PCG_fx_exposure_per_trade' 
+and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @02_ReportDate{Today}   'RepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Select the cash and pv per trade per currency
+------------------------------------------------------------------*/ 
+select 
+    t.trdnbr,
+    c.insid                                                                     'curr',
+    0.01 * accumulated_cash(t, m.RepDate, c.insid)                              'cash_pv01',
+    0.01 * present_value(t, m.RepDate, '2099-01-01', '2099-01-01', c.insid)     'pv_pv01'
+into
+    tmpcash
+from
+    Instrument c,
+    trade t,
+    macros m
+where
+    match_filter(t,@01_Filter{;tradefilter.fltid})
+and c.insid like '___'
+and c.instype = 'Curr'
+and currency_included(t, c.insid) = 1
+
+/*------------------------------------------------------------------
+	Final table
+------------------------------------------------------------------*/ 
+select
+    m.RepDate,
+    t.trdnbr,
+    t.curr,
+    t.cash_pv01,
+    t.pv_pv01,
+    cash_pv01 + pv_pv01 'pv01'
+from
+    tmpcash t,
+    macros  m
+where 
+    (cash_pv01 + pv_pv01) ~= 0

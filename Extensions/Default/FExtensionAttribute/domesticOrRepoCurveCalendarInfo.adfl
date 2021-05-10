@@ -1,0 +1,16 @@
+[Default]FInstrumentAndTrades:domesticOrRepoCurveCalendarInfo = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultCalendarInfo, 
+    default->domesticRepoCurveInTheoreticalPrice.CalendarInformation), 
+  default->domesticCurrencyCurveInTheoreticalPrice.CalendarInformation);
+[Default]FOrderBook:domesticOrRepoCurveCalendarInfo = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultCalendarInfo, 
+    default->domesticRepoCurveInTheoreticalPrice.CalendarInformation), 
+  default->domesticCurrencyCurveInTheoreticalPrice.CalendarInformation);
+[Default]FPriceAggregate:domesticOrRepoCurveCalendarInfo = priceFeed:domesticOrRepoCurveCalendarInfo;
+[Default]FPriceFeed:domesticOrRepoCurveCalendarInfo = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultCalendarInfo, 
+    default->domesticRepoCurveInTheoreticalPrice.CalendarInformation), 
+  default->domesticCurrencyCurveInTheoreticalPrice.CalendarInformation);

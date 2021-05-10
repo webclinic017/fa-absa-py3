@@ -1,0 +1,23 @@
+[Default]FObject:Security Failed Settlements
+{
+}
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+  DisplayInformation:
+  {
+    Label:'Failed Settlements',
+    GroupLabel:'Security',
+    Description:'UnSettled security settlements with value day prior to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(And(&'unSettledSecurityExtAttr', @isValueDayBeforeToday()), &'amount', 0.0));
+
+...

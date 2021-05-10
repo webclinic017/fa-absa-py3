@@ -1,0 +1,7 @@
+[PairOptionsPricerDealPackage]FInstrumentAndTrades:priceDeltaInstrumentOneVol = shunt(firstInstrumentInCombination:valuationAddOnModelNameValue == "Vanna Volga Pricing", 
+  false->switch(isLot(priceDeltaInstrumentOneVolCalc), 
+    true->switch(priceDeltaOneVolMatrixFirstColumn.Size > 1, 
+      true->lot([priceDeltaOneVolMatrixFirstColumn.First, priceDeltaOneVolMatrixLastColumn.Last]), 
+      false->priceDeltaInstrumentOneVolCalc), 
+    false->priceDeltaInstrumentOneVolCalc), 
+  true->nil);

@@ -1,0 +1,71 @@
+/* Usage code for this ASQL */
+
+/*
+Description
+Date:                   2010-02-17
+Purpose:                Changed code so that it runs dynamically on two trade filters. Included CD_QUANTO_FX portfolio..
+Department and Desk:    Market Risk/Credit Derivatives Desk
+Requester:              Tshiamo Tsogang
+Developer:              Tshepo Mabena
+CR Number:              C000000230157
+*/
+
+
+select
+ael_i(p,'ASQL_log','MR_Cash_Bal') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MR_Cash_Bal' and p.type = 'SQL Query' 
+
+select
+   TODAY       'RepDate',
+   'None'      'filter',
+   p.prfid     'portfolio',
+   curr.insid  'curr',
+   sum(accumulated_cash(t, to_date(@3_EndDate{today}), curr.insid, 2, 0, , 1, 'None'))
+               'cash'
+from
+  trade      t,
+  instrument i,
+  instrument u,
+  instrument curr,
+  portfolio  p
+
+where
+      match_filter(t,@1_Filter{MR_Cash_Bal_One;Tradefilter.fltid})
+  and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated')
+  and t.insaddr     = i.insaddr
+  and i.und_insaddr *= u.insaddr
+  and curr.instype  = 'Curr'
+  and currency_included(t, curr.insid) = 1
+  and p.prfnbr   = t.prfnbr 
+  and i.instype ~= 'Future/Forward'
+
+group by 3,4
+
+union
+ 
+select
+    TODAY                          'RepDate',
+    'None'                         'filter',
+    p.prfid                        'portfolio',
+    curr.insid                     'curr',
+    sum(accumulated_cash(t, to_date(@3_EndDate{today}), curr.insid, 2, 0, , 1, 'None'))
+                                    'cash'   
+from
+  trade      t,
+  instrument i,
+  instrument u,
+  instrument curr,
+  portfolio  p
+
+where
+       match_filter(t,@2_Filter{MR_Cash_Bal_Two;Tradefilter.fltid})
+  and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated')
+  and t.insaddr     = i.insaddr
+  and i.und_insaddr *= u.insaddr
+  and curr.instype  = 'Curr'
+  and currency_included(t, curr.insid) = 1
+  and p.prfnbr      = t.prfnbr 
+
+group by 3,4

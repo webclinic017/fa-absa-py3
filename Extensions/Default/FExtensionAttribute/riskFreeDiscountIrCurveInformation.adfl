@@ -1,0 +1,12 @@
+#grouping: risk factors/discount curve
+#grouping: risk factors/hazard curve
+#grouping: risk factors/yield curve
+
+[Default]FBenchmarkCurve:riskFreeDiscountIrCurveInformation = irCurveInformation;
+[Default]FInstrumentSpread:riskFreeDiscountIrCurveInformation = select(hasExplicitRiskFreeCurve, 
+  true->instrumentSpreadIrCurveInformation, 
+  default->instrumentSpreadIrCurveInformation.RiskFreeCurve);
+[Default]FIrCurveInformation:riskFreeDiscountIrCurveInformation = object;
+[Default]FSeasonalityCurve:riskFreeDiscountIrCurveInformation = seasonalityIrCurveInformation;
+[Default]FSpreadCurve:riskFreeDiscountIrCurveInformation = spreadIrCurveInformation;
+[Default]FYCAttribute:riskFreeDiscountIrCurveInformation = ycAttributeIrCurveInformation;

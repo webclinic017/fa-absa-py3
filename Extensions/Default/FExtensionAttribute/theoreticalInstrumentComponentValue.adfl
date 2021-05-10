@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:theoreticalInstrumentComponentValue = select(includeEmbeddedOption, 
+  false->collapse(theoreticalInstrumentComponentValueZero), 
+  true->embeddedOptionTimeDistributionFactor * select(valuationModelDescription, 
+    nil->collapse(theoreticalInstrumentComponentValueZero), 
+    default->select(valuationModelHandlesCallable, 
+      true->theoreticalInstrumentComponentModelValue - modelCashFlowValue, 
+      false->select(isCallable, 
+        true->-theoreticalInstrumentOptionComponentValue, 
+        false->theoreticalInstrumentOptionComponentValue))));

@@ -1,0 +1,17 @@
+[Prime Services]FDividend:dividendsAccruedNonDiscounted = select(pLDividendComparisonMethod, 
+  "Acquire day vs record day"->shunt(trade.AcquireDay <= object.RecordDay, 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil), 
+  "Acquire day vs calc record day"->shunt(trade.AcquireDay < (object.ExDivDay + trade.Instrument.SpotBankingDaysOffset), 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil), 
+  default->shunt(trade.TradeTime < object.ExDivDay, 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil));
+[Prime Services]FInstrument:dividendsAccruedNonDiscounted = convertToCurrency(flattenAndRemoveNil(tradesInPosition :* "dividendsAccruedNonDiscounted"), instrumentToDisplayFxRates, displayCurrencySymbol) + convertToCurrency(dividendsAccruedAggregated, instrumentToDisplayFxRates, displayCurrencySymbol);
+[Prime Services]FInstrumentAndTrades:dividendsAccruedNonDiscounted = sumOf(instruments :* "dividendsAccruedNonDiscounted" [positionObject, displayCurrency]);
+[Prime Services]FLegAndTrades:dividendsAccruedNonDiscounted = instrument :* "dividendsAccruedNonDiscounted" [positionObject, displayCurrency];
+[Prime Services]FSingleInstrumentAndTrades:dividendsAccruedNonDiscounted = instrument :* "dividendsAccruedNonDiscounted" [positionObject, displayCurrency];
+[Prime Services]FTrade:dividendsAccruedNonDiscounted = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades = false], 
+  true->nil, 
+  default->(instrument:ACSLiveDividends) :* "dividendsAccruedNonDiscounted" [trade = object]);

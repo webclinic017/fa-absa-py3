@@ -1,0 +1,8 @@
+[ABSA Accounting 4.3]FDeposit:redemptionAmount = select(openEnd, 
+  "Open End"->redemptionAmountProjectedCashFlow, 
+  default->nil);
+[ABSA Accounting 4.3]FInstrument:redemptionAmount = nil;
+[ABSA Accounting 4.3]FPriceAggregate:redemptionAmount = instrument:redemptionAmount;
+[ABSA Accounting 4.3]FSingleInstrumentAndTrades:redemptionAmount = riskPosition * instrument:redemptionAmount;
+[ABSA Accounting 4.3]FTrade:redemptionAmount = instrument:redemptionAmount;
+[ABSA Accounting 4.3]FTradeRow:redemptionAmount = trade:redemptionAmount * riskPosition;

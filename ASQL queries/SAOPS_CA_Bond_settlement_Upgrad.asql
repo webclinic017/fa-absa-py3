@@ -1,0 +1,52 @@
+/*
+Purpose : SAOPS_CA_Bond_settlement
+Department and Desk : OPS, [OPS]
+Requester : Sipho Ndlalane, [Sipho Ndlalane], [Sipho Ndlalane]
+Developer : Pavel Saparov, [Sanele Macanda, Edmundo Chissungo, Sinethemba Saul, Bhavnisha Sarawan], [Pavel Saparov]
+CR Number : CHNG0000649835, CHNG0000671331, CHNG0000898740, CHNG0000976455
+Purpose: Rewriting Trade Filter to ASQL to Exclusion of Far Leg on Open End Repo's from Settlement Workbook,
+        [Amended portfolio name "SBL COMPLEX FICC SNP BOND COLLATERAL LO" and added portfolio DERV7],
+        [Removing conditions to include all Repo/Reverse instruments]
+*/
+
+select
+    t.trdnbr
+from
+    Trade t,
+    Party party,
+    Portfolio p,
+    Leg l,
+    Instrument i,
+    Instrument curr
+where
+    t.insaddr = i.insaddr
+    and i.insaddr *= l.insaddr
+    and t.prfnbr = p.prfnbr
+    and t.curr = curr.insaddr
+    and curr.insid = 'ZAR'
+    and t.counterparty_ptynbr = party.ptynbr
+    and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+    /*
+        Comment: ``display_id`` function is not playing nicely with related empty choice lists
+        conditions ``or display_id(t,'optkey1_chlnbr') = ''`` is required to make the query work properly!
+    */
+    and (display_id(t,'optkey1_chlnbr') ~= 'SPECIAL_FINANCE' or display_id(t,'optkey1_chlnbr') = '')
+    and (t.value_day >= date_add_delta(TODAY, -15, 0, 0) or i.exp_day >= date_add_delta(TODAY, -15, 0, 0))
+    and (party.type ~= 'Intern Dept' or party.ptyid = 'SECURITY LENDINGS DESK')
+    and party.ptyid not in ('DRA TRANSAKSIES', 'JSE')
+    and
+    (
+        i.instype in ('BuySellback', 'Repo/Reverse', 'Bond', 'IndexLinkedBond', 'TotalReturnSwap', 'SecurityLoan', 'Future/Forward')
+        or
+        (i.instype = 'FRN' and i.isin like 'ZAG%')
+    )
+    and i.und_instype in ('None', 'FRN', 'Bond', 'IndexLinkedBond')
+     /* Include ABSA BANK LTD */
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port_list', 1, 'ABSA BANK LTD') = 1
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port_list', 2, '') = 0
+    /*
+    inc     'ABSA BANK LTD', 
+
+    exc     'GROUP TREASURY', 'PRIMARY MARKETS BANKING', 'PRIMARY MARKETS TRADING', 'PM Portfolio Management',
+            'ALCH', 'SECURITIES LENDING', '7268_Prime Services
+    */

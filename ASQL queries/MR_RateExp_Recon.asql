@@ -1,0 +1,77 @@
+select distinct 
+    ctxl.name
+into temp
+
+from
+  ChoiceList cl,
+  trade t,
+  instrument i,
+  ContextLink ctxl
+  
+where
+    match_filter(t,@Filter{;Tradefilter.fltid})
+and t.insaddr = i.insaddr
+and i.product_chlnbr = cl.seqnbr
+and cl.seqnbr = ctxl.group_chlnbr
+and ctxl.type in ('Repo','Yield Curve')
+and ctxl.mapping_type = 'Val Group'
+and ctxl.context_seqnbr = 306
+
+select distinct
+
+    ctxl.name
+    
+into temp
+    
+from 
+    ContextLink ctxl
+where
+    ctxl.mapping_type ~= 'Val Group'
+and ctxl.type in ('Repo','Yield Curve')
+
+select distinct
+    t.name
+into temp1
+
+from temp t
+
+select
+    t1.name,
+    delta_curve(tf,,,t1.name,,,,0.01,,,,,,,,,,) 'pv01'
+into temp2
+from
+    TradeFilter tf,
+    temp1 t1
+where
+    tf.fltid = @Filter{;Tradefilter.fltid}
+    
+select 
+    t2.name,
+    t2.pv01
+from
+    temp2 t2
+where
+    t2.pv01 ~= 0
+
+
+
+/*select 
+    ctxl.name,
+    sum(delta_curve(t,,,ctxl.name,,,,0.01,,,,,,,,,,)) 'pv01'
+
+from
+  ChoiceList cl,
+  trade t,
+  instrument i,
+  ContextLink ctxl
+  
+where
+    match_filter(t,@Filter{;Tradefilter.fltid})
+and t.insaddr = i.insaddr
+and i.product_chlnbr = cl.seqnbr
+and cl.seqnbr = ctxl.group_chlnbr
+and ctxl.type in ('Repo','Yield Curve')
+and ctxl.mapping_type = 'Val Group'
+
+group by 1
+*/

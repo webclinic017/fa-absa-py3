@@ -1,0 +1,30 @@
+/*
+Description
+-----------
+This ASQL is used (through Trade Filter SBL_9806_THISMONTH_TF) in FWorksheetReport SBL_9806_DailyReport to 
+only include trades for the current month in the report.
+
+History
+-------
+Developer			CR Number	Description
+---------			---------	-----------
+Rohan van der Walt	407334		Initial Development
+Rohan van der Walt  422060      Fixed time constraint to select correct trades
+Paul Jacot-Guillarmod 657625    Updated query to filter terminated trades based on the open end and not the status
+*/
+
+
+SELECT
+    t.trdnbr
+FROM
+    trade t,
+	instrument i,
+	portfolio p
+WHERE
+	t.insaddr = i.insaddr
+and	p.prfnbr = t.prfnbr
+and	t.status not in ('Void','Simulated')
+and ael_i(p,'SAGEN_IT_Functions.get_Port_Struct_from_Port','SBL_9806') = 1 
+and i.instype = 'SecurityLoan'
+and i.exp_day > FIRSTDAYOFMONTH
+and i.open_end not in ('Terminated')

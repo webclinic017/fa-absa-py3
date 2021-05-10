@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:priceGammaPercentInstrument = convertToCurrency(select(instrument:isIRDPriceDeltaSensitive, 
+  true->instrument:priceGammaPercentValuesIRD [isSplitAllGrouped, priceSource], 
+  false->openInstrumentOrInstrument :* "priceGammaPercentValuesInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement] * combinationInstrumentMapFactorForPriceGreeks), instrument:priceGreekFxRates, instrument:currencySymbol, filterUnit);
+[Default]FMultiInstrumentAndTrades:priceGammaPercentInstrument = nil;
+[Default]FPriceAggregate:priceGammaPercentInstrument = instrument :* "priceGammaPercentValuesInstrument" [priceSource];

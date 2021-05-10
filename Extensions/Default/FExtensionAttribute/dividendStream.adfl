@@ -1,0 +1,7 @@
+[Default]FDerivative:dividendStream = select(instrumentHasDividends, 
+  true->actualDividendStream, 
+  default->underlying:dividendStream);
+[Default]FInstrument:dividendStream = actualDividendStream;
+[Default]FInstrumentAndTrades:dividendStream = instrument:dividendStream;
+[Default]FMultiInstrumentAndTrades:dividendStream = nil;
+[Default]FPriceAggregate:dividendStream = instrument:dividendStream;

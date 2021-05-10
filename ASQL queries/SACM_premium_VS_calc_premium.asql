@@ -1,0 +1,83 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_premium_VS_calc_premium') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_premium_VS_calc_premium' and p.type = 'SQL Query' 
+select
+p.prfid,
+party.ptyid,
+party.fullname,
+i.extern_id1'Bond',
+ t.trdnbr,
+t.optional_key'STT',
+time_to_day(t.time)'trade_date',
+'YES'? t.value_day : '' 'settlement',
+ t.quantity*1000000 'quantity' ,
+t.quantity>=0 ? 'B' : 'S'  'B_S',
+abs(t.quantity)'absquan',
+t.price,
+t.premium,
+
+
+dirty_from_yield(i,t.value_day,,,t.price)*t.quantity*-10000'dirty_calc_prem',
+(t.premium)-(dirty_from_yield(i,t.value_day,,,t.price)*t.quantity*-10000)'diff'
+
+into summary
+
+
+from
+instrument i,
+trade t,
+party party,
+portfolio p
+
+
+where
+i.instype='Bond'
+and t.insaddr=i.insaddr
+
+
+and t.value_day>@Settled_After{2003-04-01;}
+
+and i.exp_day>today
+
+
+
+and t.prfnbr=p.prfnbr
+/*and p.prfid='JOB6'*/
+and  party.ptynbr=t.counterparty_ptynbr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+/*and party.ptyid='SARB'*/
+
+order by party.ptyid,i.extern_id1,9
+
+/*------------------------------*/
+
+
+select 
+s.prfid'Portfolio',
+s.ptyid'CP_Code',
+s.fullname'CP_Name',
+s.Bond,
+s.trdnbr,
+s.STT,
+s.trade_date,
+s.settlement,
+s.quantity'Nominal',
+s.B_S'B/S',
+
+s.price'Trade_Yield',
+s.premium'Premium',
+s.dirty_calc_prem'calc premium',
+s.diff' difference'
+
+from summary s
+
+where
+(s.diff >100
+or s.diff<-100)
+
+order by s.trade_date, s.settlement
+

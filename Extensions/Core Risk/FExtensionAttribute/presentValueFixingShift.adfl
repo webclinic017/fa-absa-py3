@@ -1,0 +1,5 @@
+[Core Risk]FInstrumentAndTrades:presentValueFixingShift = select(fixingShiftValueValid, 
+  true->select(isNominalScalingFixingRisk, 
+    true->shift(presentValue, snoop(presentValue, "staticLegInformation", fixingRiskGroupingReference), shiftFixingNominalValue fixingValueShiftParameters), 
+    default->shift(presentValue, snoop(presentValue, "staticLegInformation", fixingRiskGroupingReference), shiftFixingValue fixingValueShiftParameters)), 
+  false->presentValue);

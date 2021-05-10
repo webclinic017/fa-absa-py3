@@ -1,0 +1,35 @@
+[Default]FAssetMortgageBackedSecurity:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FBill:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FCashFlowMoneyFlow:faceNominalDisplay = nil;
+[Default]FCln:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FConvertible:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FDeposit:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FDualCurrencyBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FFlexiBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FFrn:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FFuture:faceNominalDisplay = select(underlying.Category, 
+  "Currency"->0.0, 
+  "FxRate"->0.0, 
+  default->riskPositionDisplay);
+[Default]FIndexLinkedBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FInstrument:faceNominalDisplay = 0;
+[Default]FLegAndTrades:faceNominalDisplay = nil;
+[Default]FMoneyFlowAndTrades:faceNominalDisplay = nil;
+[Default]FMultiInstrumentAndTrades:faceNominalDisplay = select(dispPosOnMultiRow, 
+  true->sumOf(openInstruments :* "double(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]), 
+  default->select(instrumentGroupingReferenceRow, 
+    nil->nil, 
+    default->instrumentGroupingReferenceRow :* "collapse(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]));
+[Default]FMultiMoneyFlowAndTrades:faceNominalDisplay = switch(count(sumOf(moneyFlows :* "faceNominalDisplay")) == 1, 
+  true->sumOf(moneyFlows :* "faceNominalDisplay"), 
+  false->nil);
+[Default]FPromisLoan:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FResetAndTrades:faceNominalDisplay = nil;
+[Default]FSingleInstrumentAndTrades:faceNominalDisplay = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->openInstrumentOrInstrument :* "collapse(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]);
+[Default]FStock:faceNominalDisplay = object.ContractSize;
+[Default]FSwap:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Default]FTradeRow:faceNominalDisplay = instrument :* "faceNominalDisplay" [displayCurrency, filterUnit, singleTradePosition, includeAllTrades];
+[Default]FZeroBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;

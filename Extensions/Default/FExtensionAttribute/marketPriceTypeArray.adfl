@@ -1,0 +1,6 @@
+[Default]FInstrument:marketPriceTypeArray = select(marketPriceType, 
+  "None"->marketPriceSearchOrder, 
+  default->select(priceFindingIsCorrectType, 
+    true->[marketPriceType], 
+    false->addArrays([marketPriceType], marketPriceSearchOrder)));
+[Default]FInstrumentAndTrades:marketPriceTypeArray = instrument :* "marketPriceTypeArray" [marketPriceType, priceFindingIsCorrectType, adsPriceDate, useMtmForHistoricalDate = false];

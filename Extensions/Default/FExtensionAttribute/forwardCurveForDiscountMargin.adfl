@@ -1,0 +1,12 @@
+[Default]FCashFlowInstrument:forwardCurveForDiscountMargin = select(isSingleLegInstrument, 
+  false->nil, 
+  true->select(floatLeg, 
+    nil->nil, 
+    default->floatLeg :* "forwardCurveForDiscountMargin" [valuationDate]));
+[Default]FInstrument:forwardCurveForDiscountMargin = nil;
+[Default]FIrCurveInformation:forwardCurveForDiscountMargin = forwardIrCurveInformationDiscountMargin;
+[Default]FLeg:forwardCurveForDiscountMargin = select(mappedForwardLink, 
+  nil->nil, 
+  default->mappedForwardLink :* "forwardCurveForDiscountMargin" [valuationDate]);
+[Default]FMappingLink:forwardCurveForDiscountMargin = forwardYieldCurveHierarchy :* "forwardCurveForDiscountMargin" [valuationDate];
+[Default]FYieldCurveHierarchy:forwardCurveForDiscountMargin = forwardYieldCurveComponent :* "forwardIrCurveInformationDiscountMargin" [component = underlyingComponent, valuationDate];

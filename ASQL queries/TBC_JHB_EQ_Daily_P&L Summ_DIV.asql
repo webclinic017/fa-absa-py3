@@ -1,0 +1,94 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_JHB_EQ_Daily_P&L Summ_DIV') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_JHB_EQ_Daily_P&L Summ_DIV' and p.type = 'SQL Query' 
+/*P&L REPORT FOR EQUITY TRADING done by Donalda Pretorius 20-11-2002*/
+
+Select	t.trdnbr	'Trade',
+	p.prfid		'Portfolio',
+	i.insid		'Instrument',
+	i.instype 	'InsType',
+	py.ptyid	'Counterparty',	
+	t.quantity	'Quantity',
+/*First Bucket Year-to-date */
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,1,@ReportDate{TODAY},,@YearEnd{},,,3, , 1)	'PL_YTD',
+
+/*Second Bucket Month-to-date */
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,2,@ReportDate{TODAY},,,@MonthEnd{},,3, , 1)	'PL_MTD',
+
+/*Third Bucket OverNight */
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,3,@ReportDate{TODAY},,,,@StartDate{YESTERDAY},3, , 1)	'PL_ON',
+	accumulated_dividend(t,@ReportDate)		'dividend',
+	accumulated_dividend(t,@ReportDate)		'divYTD',
+	accumulated_dividend(t,@ReportDate)-accumulated_dividend(t,@MonthEnd)		'divMTD',
+	accumulated_dividend(t,@StartDate)-accumulated_dividend(t,@ReportDate)		'divON',
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,1,@ReportDate{TODAY},,@YearEnd{},,,3, , 1)-accumulated_dividend(t,@ReportDate)	'PL_YTD_NoDiv',
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,2,@ReportDate{TODAY},,,@MonthEnd{},,3, , 1)-(accumulated_dividend(t,@ReportDate)-accumulated_dividend(t,@MonthEnd))	'PL_MTD_NoDiv',
+	(p.prfid = 'AGLO' ? 1/100 : 1) * pl_economic(t, c.insid,,3,@ReportDate{TODAY},,,,@StartDate{YESTERDAY},3, , 1)-(accumulated_dividend(t,@StartDate)-accumulated_dividend(t,@ReportDate))	'PL_ON_NoDiv'
+
+into temp
+
+from	trade 	t,	
+	instrument	i,
+	instrument	c,
+	portfolio	p,
+	party		py,
+	party		pa
+
+where	match_filter(t,@Portfolio{;tradefilter.fltid})
+and	i.insaddr=t.insaddr
+and	i.curr=c.insaddr
+and	t.prfnbr=p.prfnbr
+/*and	i.exp_day >= @ReportDate{TODAY} */
+and	t.counterparty_ptynbr=py.ptynbr
+and	pa.ptynbr=t.acquirer_ptynbr
+
+/*
+Select	t.Trade,
+	t.Portfolio,
+	t.Instrument,
+	t.InsType,
+	t.Counterparty,	
+	sum(t.Quantity)	'Quantity',
+	sum(t.PL_YTD)	'PL_YTD',
+	sum(t.PL_MTD)	'PL_MTD',
+	sum(t.PL_ON)	'PL_ON',
+	sum(t.dividend)	'Dividend',
+	sum(t.divYTD)		'divYTD',	
+	sum(t.divMTD)		'divMTD',
+	sum(t.divON)		'divON',
+	sum(t.PL_YTD_NoDiv)	'PL_YTD_NoDiv',
+	sum(t.PL_MTD_NoDiv)	'PL_MTD_NoDiv',
+	sum(t.PL_ON_NoDiv)	'PL_ON_NoDiv'
+
+from temp t
+
+
+
+union
+*/
+Select	' ',
+	t.Portfolio,
+	t.Instrument,
+	' ',
+	t.Counterparty,	
+	sum(t.Quantity)	'Quantity',
+	sum(t.PL_YTD)	'PL_YTD',
+	sum(t.PL_MTD)	'PL_MTD',
+	sum(t.PL_ON)	'PL_ON',
+	sum(t.dividend)	'Dividend',
+	sum(t.divYTD)		'divYTD',	
+	sum(t.divMTD)		'divMTD',
+	sum(t.divON)		'divON',
+	sum(t.PL_YTD_NoDiv)	'PL_YTD_NoDiv',
+	sum(t.PL_MTD_NoDiv)	'PL_MTD_NoDiv',
+	sum(t.PL_ON_NoDiv)	'PL_ON_NoDiv'
+
+from temp t
+
+group by 2,3,5
+
+
+

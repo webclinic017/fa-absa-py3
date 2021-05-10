@@ -1,0 +1,7 @@
+[Default]FInstrument:thetaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, valuationDateTimeRiskFactorNames), + thetaShiftSize), theoreticalInstrumentSpotValueForPrice));
+[Default]FInstrumentAndTrades:thetaInstrument = openInstrumentOrInstrument :* "collapse(thetaInstrument)" [isSplitAllGrouped, priceSource] * combinationInstrumentMapFactor;
+[Default]FMultiInstrumentAndTrades:thetaInstrument = nil;
+[Default]FPriceAggregate:thetaInstrument = instrument :* "thetaInstrument" [priceSource];
+[Default]FTradeRow:thetaInstrument = instrument:thetaInstrument [isSplitAllGrouped, priceSource, currency = tradeRowCurrency] * combinationInstrumentMapFactor;

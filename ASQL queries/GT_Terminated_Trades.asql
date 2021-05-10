@@ -1,0 +1,34 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GT_Terminated_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GT_Terminated_Trades' and p.type = 'SQL Query' 
+ 
+/*
+Purpose     : Query to reflect terminated and voided tardes for given trade filter
+Department  : Treasury
+Requester   : Lodewyk van der Vyver
+Developer   : Willie van der Bank
+CR Number   : (10/02/2011) C568669
+*/
+
+select
+    t.trdnbr,
+    i.instype,
+    t.status,
+    display_id(t,'prfnbr')'portfolio',
+    display_id(t,'counterparty_ptynbr')'counterparty',
+    t.updat_time
+from
+    trade t,
+    portfolio p,
+    instrument i
+where
+        t.insaddr=i.insaddr
+    and t.prfnbr=p.prfnbr
+    and match_portfolio (t,@3_Filter{GT Desk;tradefilter.fltid})
+    and t.status in ('Terminated', 'Void')
+    and time_to_day(t.updat_time)>= @1_Start_date{}
+    and time_to_day(t.updat_time)<= @2_End_date{}
+order by t.updat_time

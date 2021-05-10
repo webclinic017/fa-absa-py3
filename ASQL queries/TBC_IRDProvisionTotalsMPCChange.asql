@@ -1,0 +1,128 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_IRDProvisionTotalsMPCChange') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_IRDProvisionTotalsMPCChange' and p.type = 'SQL Query' 
+ 
+  
+select 
+    to_date(@3_RepDate{TODAY})                                      	'RepDate',
+    to_date(@10_MPC_ZARDate{2008-06-12})     	'mpczar',
+    to_date(@11_MPC_USDDate{2008-06-12})     	'mpcusd',
+    @1_Filter{;tradefilter.fltid}                                   	'filter',
+    @7_YieldCurve{;yieldcurve.yield_curve_name}                     	'ycnm',
+    @5_Fwd_Rt_Maturity[3]						'fwd_mat',
+    @8_Daycount{Act/365;'Act/360','30E/360','Act/365'}			'daycount',
+    @2_TrdNbrs{}							'trd',
+    @4_Num_Months_to_adj[9]						'nummths',
+    date_add_delta(to_date(@3_RepDate{TODAY}), 0, @4_Num_Months_to_adj[9], 0)	'enddte',
+    @9_Curr{ZAR;instrument.insid WHERE instype = 'Curr'}	'ccy'
+into
+    parms
+from
+    serverdata
+where
+    srdnbr > 0
+
+
+/* --------------------------------------------------------------------------------------------------------------- */
+
+/*********************************************************/
+select 'YES' ? t.trdnbr : ''                                                          	'TrdNbr',
+        t.status                                                                 	'Status',
+        display_id(t,'counterparty_ptynbr')                                     	'Counterparty',
+        i.insid                                                                  	'Instrument',
+        display_id(t,'acquirer_ptynbr')                                          	'Aquirer',
+        display_id(t,'prfnbr')                                                          'Portfolio',
+        i.instype                                                               	'InsType',
+        display_id(l,'curr')                                                           	'Curr',
+        dirk_utils.get_fx_rate(display_id(l, 'curr'))                          'FX_Rate',
+        r.day                                                                    	'ResetDay',
+        display_id(l, 'float_rate')                                                     'Float_Rate',
+        i.instype = 'FRA' ? to_double(nominal_amount(cf) * t.quantity) : (to_double(projected_cf(cf)*t.quantity < 0 ? abs(nominal_amount(cf) * t.quantity)*(-1)  : abs(nominal_amount(cf) * t.quantity) ))       	'Nominal',
+        to_string(l.rolling_period.count,' ',l.rolling_period.unit)         		'Rolling',
+        r.type                                                                   	'ResetType',
+        yc_rate(yc, r.day, date_add_delta(r.day, 0, p.fwd_mat, 0), 
+            'Quarterly', p.daycount
+            ,'Forward Rate',,i.insid)*100                                             	'fwd_rt',
+
+         ycnm = 'ZAR-SWAP' ?
+             IRD_SHORT_END_PROV_FINAL.mkt_rate_ZAR(r.day, p.RepDate ,p.mpczar):              
+             IRD_SHORT_END_PROV_FINAL.mkt_rate_USD(r.day, p.RepDate, p.mpcusd)      'mkt_rt',
+        years_between(r.start_day, r.end_day, @8_Daycount{Act/365;'Act/360','30E/360','Act/365'})                  		'reset_term'        
+
+INTO
+	temp
+from 
+	trade t,
+     	instrument i,
+     	instrument c,
+     	cashflow cf,
+     	leg l,
+     	reset r,
+     	yieldcurve    yc,
+     	parms p
+where 
+        match_filter(t, @1_Filter{;tradefilter.fltid}, p.trd)
+        and yc.yield_curve_name=p.ycnm
+        AND t.insaddr = i.insaddr
+        AND i.insaddr  = l.insaddr
+        AND cf.legnbr = l.legnbr        
+        AND l.type = 'Float'
+        AND c.insid = p.ccy
+        AND l.curr = c.insaddr
+        AND cf.cfwnbr = r.cfwnbr
+        AND r.day >= p.RepDate
+        AND r.Day <= p.enddte
+        AND r.type = 'Single'
+        AND t.status NOT IN ('Void','Terminated','Simulated')
+        and i.instype ~= 'CurrSwap'
+ 
+
+
+
+
+
+
+
+
+/* ================================================================================================*/
+
+
+select 
+	temp.*,
+	(mkt_rt - fwd_rt) * 100                                                   	'bp_adj',
+	reset_term * 96                                                               	'adj01',
+	to_double(nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100)              	'total_adj',
+    to_double(nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate)             	'total_adj_zar'
+into 
+	final
+from 
+	temp
+ 
+
+/* ================================================================================================*/
+
+select 
+            p.RepDate,
+            p.mpczar,
+            p.mpcusd,
+            p.filter,
+            p.ycnm,
+            Portfolio,
+            sum(total_adj)                                       			'total_adj',
+            sum(total_adj_zar)                                              'total_adj_zar'
+from
+            final,
+            parms p
+group by
+            portfolio 
+
+
+
+
+
+ 
+
+ 

@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:creditJTDCashValueZeroRecRate = sumOf((object.Children) :* "creditJTDCashValueZeroRecRate.Number");
+[ABSA Specific 4.3]FObject:creditJTDCashValueZeroRecRate = nil;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:creditJTDCashValueZeroRecRate = select(instrument.InsType, 
+  "Bond"->creditJTDCashValuesZeroRecRate, 
+  "CreditDefaultSwap"->scenarioaxis(jumpToDefaultCashValue, <["creditCurve"], , "shiftCurveRecoveryRel", [[-100]]>), 
+  default->0.0);

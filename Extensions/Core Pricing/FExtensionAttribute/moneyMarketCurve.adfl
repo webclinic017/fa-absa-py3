@@ -1,0 +1,13 @@
+[Core Pricing]FCombInstrMap:moneyMarketCurve = instrument:moneyMarketCurve;
+[Core Pricing]FInstrument:moneyMarketCurve = select(discountingUnit:mappedMoneyMarketLink, 
+  nil->nil, 
+  default->(discountingUnit:mappedMoneyMarketLink) :* "moneyMarketCurve");
+[Core Pricing]FInstrumentAndTrades:moneyMarketCurve = instrument:moneyMarketCurve;
+[Core Pricing]FIrCurveInformation:moneyMarketCurve = moneyMarketIrCurveInformation;
+[Core Pricing]FLeg:moneyMarketCurve = discountingUnit:moneyMarketCurve;
+[Core Pricing]FMappingLink:moneyMarketCurve = moneyMarketCurveHierarchy;
+[Core Pricing]FMoneyFlow:moneyMarketCurve = discountingUnit:moneyMarketCurve;
+[Core Pricing]FSymbol:moneyMarketCurve = mappedMoneyMarketLink :* "moneyMarketCurve";
+[Core Pricing]FYieldCurveHierarchy:moneyMarketCurve = select(hideRiskFactorNames, 
+  false->moneyMarketYieldCurveComponent :* "moneyMarketIrCurveInformation" [component = underlyingComponent], 
+  true->moneyMarketYieldCurveComponent :* "underlyingIrCurveInformation" [component = underlyingComponent]);

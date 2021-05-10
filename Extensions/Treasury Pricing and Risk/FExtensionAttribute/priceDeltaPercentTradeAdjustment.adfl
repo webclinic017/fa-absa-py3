@@ -1,0 +1,12 @@
+[Treasury Pricing and Risk]FInstrument:priceDeltaPercentTradeAdjustment = select(includePremiumAdjustment, 
+  true->select(priceGreekOnSpot, 
+    true->priceDeltaTradeAdjustment, 
+    false->discount(priceDeltaTradeAdjustment, instrumentMoneyMarketCurvesNoDiscountingType, discountAndConvertToBaseDate)) / 100, 
+  false->priceDeltaTradeAdjustmentZero);
+[Treasury Pricing and Risk]FInstrumentAndTrades:priceDeltaPercentTradeAdjustment = select(isCandidateForPremiumAdjustedDelta, 
+  true->instrument :* "collapse(priceDeltaPercentTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate], 
+  false->instrumentSpotZero);
+[Treasury Pricing and Risk]FMultiInstrumentAndTrades:priceDeltaPercentTradeAdjustment = sumOf(premiumAdjustedDeltaInstruments :* "collapse(priceDeltaPercentTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate]);
+[Treasury Pricing and Risk]FTradeRow:priceDeltaPercentTradeAdjustment = select(isCandidateForPremiumAdjustedDelta, 
+  true->instrument :* "priceDeltaPercentTradeAdjustment" [singleTradePosition, includeAllTrades, priceGreekIncludePremiumAdjustment, priceGreekOnSpot, groupingSpotDiscountDate], 
+  false->instrumentSpotZero);

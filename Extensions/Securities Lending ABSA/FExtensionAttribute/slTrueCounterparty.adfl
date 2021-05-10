@@ -1,0 +1,25 @@
+[Securities Lending ABSA]FInstrument:slTrueCounterparty = select((object.Trades.At(0)) :* "slTrueCounterparty", 
+  nil->(object.Trades.At(1)) :* "slTrueCounterparty", 
+  default->select(py("sl_functions", context).sl_is_sl_party((object.Trades.At(0)) :* "slTrueCounterparty"), 
+    true->(object.Trades.At(0)) :* "slTrueCounterparty", 
+    false->(object.Trades.At(1)) :* "slTrueCounterparty"));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTrueCounterparty = select(groupingReference.IsKindOf("FParty"), 
+  true->object, 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTrueCounterparty = instrument:slTrueCounterparty;
+[Securities Lending ABSA]FTrade:slTrueCounterparty = select(instrument.InsType, 
+  "SecurityLoan"->select(object.Portfolio.Name, 
+    "SBL Agency"->select(object.Bought, 
+      true->object.AdditionalInfo.SL_G1Counterparty2, 
+      false->object.AdditionalInfo.SL_G1Counterparty1, 
+      default->object.Counterparty.Id), 
+    default->select(object.Bought, 
+      true->select(object.AdditionalInfo.SL_G1Counterparty1 == nil, 
+        true->object.Counterparty.Id, 
+        false->object.AdditionalInfo.SL_G1Counterparty1), 
+      false->select(object.AdditionalInfo.SL_G1Counterparty2 == nil, 
+        true->object.Counterparty.Id, 
+        false->object.AdditionalInfo.SL_G1Counterparty2), 
+      default->object.Counterparty.Id)), 
+  default->object.Counterparty.Id);
+[Securities Lending ABSA]FTradeRow:slTrueCounterparty = trade:slTrueCounterparty;

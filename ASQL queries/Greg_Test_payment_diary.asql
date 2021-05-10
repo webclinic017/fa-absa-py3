@@ -1,0 +1,889 @@
+
+
+
+/*-----------------------------------------------------------------------------------
+ Report Name     : Payment Diary Domestic Besa
+ Description     : This report is to be used as a settlement Diary for Nedbank Treas
+ Date            : 7 October
+ Update          : DP 03112005 Incl curr of NAD
+ Update          : MM 04112005 For NAD Bonds settlement must be in ZAR (trade premium curr) and not the instrument curr 
+ Update          : TV 01122005  Split the Amount for Bonds between Coupon Amount and Maturity Amount.
+ Update          : TV 21122005  If Pay Day = Instrument Expiry Day -  retrieve the correct Projected CashFlow.
+ Version         : 1
+ Author          : Tina Viljoen (Sungard)
+-----------------------------------------------------------------------------------*/
+ 
+SELECT   
+    @GroupByPortfolio{Yes;'Yes','No'}       'GroupByPortfolio' ,
+    @GroupByCounterParty{Yes;'Yes','No'}    'GroupByCounterParty',
+    @GroupByInstrumentType{Yes;'Yes','No'}  'GroupByInstrumentType',
+    @DisplayAll{Yes;'Yes','No'}             'DisplayAll',
+    @GroupByInstrument{Yes;'Yes','No'}      'GroupByInstrument',
+    @GroupByUndInstrument{Yes;'Yes','No'}   'GroupByUndInstrument',
+    @ReportDate{}                           'ReportDate'
+    
+INTO macros 
+FROM
+    serverdata s
+WHERE
+    s.srdnbr > 0
+ 
+/*--------------------------------------------------------------------------
+  Swaps
+---------------------------------------------------------------------------*/
+ 
+SELECT
+    i.insid,
+    u.insid                                                             'Und_Instrument',
+    i.instype in ('Bond' , 'Zero' ,'FRN','IndexLinkedBond') ? i.extern_id2  : u.extern_id2       'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    (l.payleg = 'Yes' and nominal_amount(c)*t.quantity >= 0) or 
+        (l.payleg = 'No' and nominal_amount(c)*t.quantity < 0) ? 
+                                                'Pay' : 'Receive'     'LegType1',
+    'yes' ? c.type : ''                                                 'LegType2',
+    c.type = 'Redemption Amount' ? 0.0 : nominal_amount(c)*t.quantity   'Notional',
+    c.rate                                                              'Rate',
+    c.start_day                                                         'StartDate',
+    c.end_day                                                           'EndDate',
+    days_between(c.start_day,c.end_day,l.daycount_method)               'DaysInPeriod',
+    display_id(i,'curr')                                          'SettCurr',
+    c.pay_day                                                'PayDay',
+    i.instype = 'FRA' ? projected_cf(c)*t.quantity : 
+         projected_cf(c)*t.quantity                                 'CashFlwAmt',
+    r.value                                                 'Reset',
+    /*c.type in ('Fixed Amount','Redemption Amount') 'Maturity' : 'Cashflow' 'Cashflow'*/
+    'Cashflow' 'Cashflow'
+ 
+ 
+INTO results
+ 
+FROM trade t, instrument i, leg l, cashflow c, reset r , instrument u
+ 
+WHERE 
+    t.insaddr = i.insaddr
+AND i.insaddr =* l.insaddr
+AND c.legnbr =* l.legnbr
+AND c.cfwnbr *= r.cfwnbr
+AND c.end_day *= r.end_day
+AND display_id(i,'curr') in ('ZAR','NAD')
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid}) 
+AND i.instype = 'Swap' 
+AND i.und_insaddr *= u.insaddr
+AND display_id(i,'settle_category_chlnbr')  = 'BESA'
+ 
+
+/*--------------------------------------------------------------------------
+ All instruments excluding Swaps , BuySellback , Reverse Repo
+---------------------------------------------------------------------------*/
+ 
+SELECT Distinct
+    i.insid,
+    i.instype in ('Bond' , 'Zero' ,'FRN','IndexLinkedBond') ? i.extern_id2 : u.insid                         'Und_Instrument',
+    i.instype in ('Bond' , 'Zero' ,'FRN','IndexLinkedBond') ? i.extern_id2  : u.extern_id2         'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                 'LegType1',
+    'yes' ? c.type : ''                                                 'LegType2',
+    i.instype = 'BuySellBack' ?  
+      i.exp_day = m.Reportdate ? nominal_amount(t) * (-1) :   
+           nominal_amount(t)  : nominal_amount(t)                       'Notional',
+    0.0                                                     'Rate',
+    time_to_day(t.time)                                           'StartDate',
+    t.acquire_day                                            'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,l.daycount_method)   'DaysInPeriod',
+    /* NAD Bonds Trade Premium is settled in ZAR and not NAD */
+    display_id(i, 'curr')='NAD'? display_id(t, 'curr'): 
+                                display_id(i, 'curr')                   'SettCurr',
+    (i.instype in ('BuySellback','Repo/Reverse' , 'Zero') and 
+               i.exp_day = m.ReportDate) ? i.exp_day :  t.value_day     'PayDay',
+    (i.instype in ('BuySellback','Repo/Reverse') and i.exp_day = m.ReportDate) ? i.ref_value * t.quantity 
+             : (i.instype in ('Zero') and i.exp_day = m.ReportDate) ? i.contr_size * t.quantity 
+             :  t.premium                 'CashFlwAmt',
+    0.0                                                     'Reset',
+    t.value_day = m.ReportDate ? 'Cashflow' : 'Maturity'  'Cashflow'
+    /*'CashFlow11' 'Cashflow'*/ 
+   
+ 
+
+INTO
+    results
+ 
+FROM trade t, instrument i, leg l, cashflow c, macros m , instrument u
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.insaddr *= l.insaddr
+AND l.legnbr *= c.legnbr
+AND (t.value_day = m.ReportDate or i.exp_day = m.ReportDate )
+AND i.instype not in ('Swap','BuySellback','Repo/Reverse')
+AND display_id(i,'curr') in ('ZAR','NAD')
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid})
+AND i.und_insaddr *= u.insaddr
+AND i.start_day <= m.ReportDate
+
+ 
+
+/*--------------------------------------------------------------------------
+ BuySellback - Start / End cashflow
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ 
+    i.insid,
+    i.instype = 'Bond' ? i.extern_id2 : u.insid                         'Und_Instrument',
+    i.instype in ('Bond','Zero') ? i.extern_id2  : u.extern_id2         'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                 'LegType1',
+    'yes' ? c.type : ''                                                 'LegType2',
+    i.instype = 'BuySellBack' ?  
+    i.exp_day = m.Reportdate ? nominal_amount(t) * (-1) : 
+            nominal_amount(t)  : nominal_amount(t)                      'Notional',
+    0.0                                                     'Rate',
+    time_to_day(t.time)                                           'StartDate',
+    t.acquire_day                                            'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,l.daycount_method)   'DaysInPeriod',
+    display_id(i, 'curr')                                       'SettCurr',
+    (i.instype in ('BuySellback','Repo/Reverse') and 
+            i.exp_day = m.ReportDate) ?  i.exp_day :  t.value_day       'PayDay',
+    (i.instype in ('BuySellback','Repo/Reverse') and 
+            i.exp_day = m.ReportDate) ? 
+                i.ref_value * t.quantity :  t.premium                 'CashFlwAmt',
+    0.0                                                     'Reset',
+    /*c.type in ('Fixed Amount','Redemption Amount') 'Maturity' : 'Cashflow' 'Cashflow'*/
+    'Cashflow' 'Cashflow'
+ 
+
+INTO results
+ 
+FROM trade t, instrument i, leg l, cashflow c, macros m , instrument u
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.insaddr *= l.insaddr
+AND l.legnbr *= c.legnbr
+AND (t.value_day = m.ReportDate or i.exp_day = m.ReportDate )
+AND i.instype in ('BuySellback')
+AND display_id(i,'curr') in ('ZAR','NAD')
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid})
+AND i.und_insaddr *= u.insaddr
+
+ 
+
+/*--------------------------------------------------------------------------
+ Bond Coupon payments on Report Date 
+--------------------------------------------------------------------------*/
+/* ---Maturity----*/
+SELECT
+    
+    i.insid,
+    i.instype in ('Bond','IndexLinkedBond','FRN','Zero') ? i.extern_id2 : u.insid                         'Und_Instrument',
+    i.instype in ('Bond','IndexLinkedBond','FRN','Zero') ? i.extern_id2  : u.extern_id2       'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                 'LegType1',
+    'yes' ? c.type : ''                                                 'LegType2',
+    nominal_amount(t)                                                   'Notional',
+    0.0                                                     'Rate',
+    time_to_day(t.time)                                           'StartDate',
+    t.acquire_day                                            'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,l.daycount_method)   'DaysInPeriod',
+    /* NAD Bonds Trade Premium is settled in ZAR and not NAD */
+    display_id(i, 'curr')='NAD'? display_id(t, 'curr'): 
+                                display_id(i, 'curr')                   'SettCurr',
+    c.pay_day                                                           'PayDay',
+    /*projected_cf(t,date_add_delta(m.ReportDate, -1, 0, 0),event_date(i, 'NextPayday', date_add_delta(m.ReportDate, -1, 0, 0)) 'CashFlwAmt',*/
+    projected_cf(c) * t.quantity 'CashFlwAmt',
+    0.0                                                     'Reset',
+    c.type
+ 
+
+into tempbond
+ 
+FROM trade t, instrument i, leg l, cashflow c, macros m , instrument u
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.insaddr = l.insaddr
+AND l.legnbr = c.legnbr
+AND c.pay_day >= m.Reportdate
+AND i.instype  in ('Bond' ,'IndexLinkedBond','FRN')
+AND display_id(i,'curr') in ('ZAR','NAD')
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid})
+AND i.und_insaddr *= u.insaddr
+AND c.type not in ('Fixed Rate')/* , 'Float Rate')*/
+
+ 
+
+/*----Coupon----*/
+ 
+SELECT
+    
+    i.insid,
+    i.instype in ('Bond','IndexLinkedBond','FRN','Zero') ? i.extern_id2 : u.insid                         'Und_Instrument',
+    i.instype in ('Bond','IndexLinkedBond','FRN','Zero') ? i.extern_id2  : u.extern_id2       'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                 'LegType1',
+    'yes' ? c.type : ''                                                 'LegType2',
+    nominal_amount(t)                                                   'Notional',
+    0.0                                                     'Rate',
+    time_to_day(t.time)                                           'StartDate',
+    t.acquire_day                                            'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,l.daycount_method)   'DaysInPeriod',
+    /* NAD Bonds Trade Premium is settled in ZAR and not NAD */
+    display_id(i, 'curr')='NAD'? display_id(t, 'curr'): 
+                                display_id(i, 'curr')                   'SettCurr',
+    c.pay_day                                                           'PayDay',
+    c.pay_day = i.exp_day ? projected_cf(c) * t.quantity : projected_cf(t,date_add_delta(m.ReportDate, -1, 0, 0),event_date(i, 'NextPayday', date_add_delta(m.ReportDate, -1, 0, 0))) 'CashFlwAmt',
+    /*projected_cf(c) * t.quantity 'CashFlwAmt',*/
+    0.0                                                     'Reset',
+    c.type
+ 
+
+into tempbond
+ 
+FROM trade t, instrument i, leg l, cashflow c, macros m , instrument u
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.insaddr = l.insaddr
+AND l.legnbr = c.legnbr
+AND c.pay_day >= m.Reportdate
+AND i.instype  in ('Bond' ,'IndexLinkedBond','FRN')
+AND display_id(i,'curr') in ('ZAR','NAD')
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid})
+AND i.und_insaddr *= u.insaddr
+AND c.type in ('Fixed Rate')
+
+ 
+ 
+ 
+ 
+ 
+SELECT
+    
+    insid,
+    Und_Instrument,
+    Underlying,
+    Ticket,
+    trdnbr,
+    BookName,
+    Counterparty,
+    Instype,
+    LegType1,
+    LegType2,
+    Notional,
+    Rate,
+    StartDate,
+    EndDate,
+    DaysInPeriod,
+    SettCurr,
+    PayDay,
+    CashFlwAmt,
+    Reset,
+    type in ('Fixed Rate','Float Rate') ? 'Coupon' : 'Maturity11' 'Type'
+ 
+into results
+ 
+From  tempbond ,macros m
+ 
+WHERE
+ 
+
+payday = m.Reportdate
+and CashFlwAmt ~= 0
+and StartDate ~= m.Reportdate
+and EndDate ~= m.ReportDate
+ 
+
+/*--------------------------------------------------------------------------
+ BuySellback - Coupon payments 
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ t.trdnbr 
+INTO 
+ TRD
+FROM
+ trade   t,
+ instrument  i,
+ party  p,
+ party  pi
+ 
+WHERE
+ 
+ i.insaddr = t.insaddr
+and t.counterparty_ptynbr=p.ptynbr
+and i.issuer_ptynbr *= pi.ptynbr
+and match_filter (t, @Filter{All Trades;tradefilter.fltid})
+and i.instype='Buysellback'
+ 
+
+/*--------------------------------------------------------------------------
+ BuySellback - Coupon Payments for BUSE - Near Leg
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ c.pay_day                     'day' , 
+ projected_cf(c) * t.quantity 'CashFlwAmt',
+ t.trdnbr,
+ nominal_amount(t)               'Notional'
+ 
+into
+ CF
+from
+ trade t,
+ instrument i,
+ instrument bs,
+ leg l,
+ cashflow c,
+ TRD trd
+where
+ bs.insaddr = t.insaddr
+and bs.und_insaddr=i.insaddr /*Buysellbacks linked to Bond CF etc*/
+and i.insaddr = l.insaddr
+and l.legnbr = c.legnbr
+and t.trdnbr = trd.trdnbr
+and bs.instype='Buysellback'
+and ex_coupon_date(c) > t.acquire_day
+ 
+/*--------------------------------------------------------------------------
+ BuySellback - Coupon Payments for BUSE - Far Leg
+--------------------------------------------------------------------------*/
+ 
+SELECT 
+ c.pay_day                         'day' , 
+ projected_cf(c) * t.quantity*(-1) 'CashFlwAmt',
+ t.trdnbr,
+ nominal_amount(t) * (-1)            'Notional'
+ 
+INTO
+ CF
+FROM
+ trade t,
+ instrument i,
+ instrument bs,
+ leg l,
+ cashflow c,
+ TRD trd
+ 
+WHERE
+ 
+ bs.insaddr = t.insaddr
+AND bs.und_insaddr=i.insaddr /*Buysellbacks linked to Bond CF etc*/
+AND i.insaddr = l.insaddr
+AND l.legnbr = c.legnbr
+AND t.trdnbr = trd.trdnbr
+AND bs.instype='Buysellback'
+AND ex_coupon_date(c) > bs.exp_day
+ 
+
+SELECT
+    i.insid,
+    i.instype = 'Bond' ? i.extern_id2 : u.insid                         'Und_Instrument',
+    u.extern_id2                                                        'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                  'LegType1',
+    ''                                                                  'LegType2',
+    cf.Notional,
+    0.0                                                     'Rate',
+    time_to_day(t.time)                                           'StartDate',
+    t.acquire_day                                            'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,i.daycount_method)   'DaysInPeriod',
+    display_id(i, 'curr')                                       'SettCurr',
+    t.value_day 'PayDay',
+    Sum(cf.CashFlwAmt)                                                  'CashFlwAmt',
+    0.0                                                     'Reset',
+    'Coupon'                                                          'Cashflow'
+ 
+INTO  results
+ 
+FROM trade t, instrument i,  macros m , instrument u , CF cf
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.und_insaddr *= u.insaddr
+AND cf.trdnbr = t.trdnbr
+AND cf.day >= m.ReportDate
+AND cf.day < date_add_banking_day(m.ReportDate,,1)
+ 
+
+/*--------------------------------------------------------------------------
+ Reverse/Repo - Coupon Payments 
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ t.trdnbr 
+INTO  
+ TRD
+FROM
+ trade   t,
+ instrument  i,
+ party  p,
+ party  pi
+ 
+ 
+WHERE
+ i.insaddr = t.insaddr
+AND t.counterparty_ptynbr=p.ptynbr
+AND i.issuer_ptynbr *= pi.ptynbr
+AND match_filter (t, @Filter{All Trades;tradefilter.fltid})
+AND i.instype='Repo/Reverse'
+ 
+
+/*--------------------------------------------------------------------------
+ Reverse/Repo - Coupon Payments for Reverse Repo - Near Leg
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ c.pay_day 'day' , 
+ projected_cf(c) * t.quantity 'CashFlwAmt',
+ t.trdnbr,
+ 1 'LegNbr',
+ l.Fixed_rate                    'Rate',
+ 'Coupon'                                                          'Cashflow'
+INTO
+ CFR
+FROM
+ trade t,
+ instrument i,
+ instrument bs,
+ leg l,
+ cashflow c,
+ TRD trd
+ 
+WHERE
+ 
+ bs.insaddr = t.insaddr
+AND bs.und_insaddr=i.insaddr 
+AND i.insaddr = l.insaddr
+AND l.legnbr = c.legnbr
+AND t.trdnbr = trd.trdnbr
+AND bs.instype='Repo/Reverse'
+AND ex_coupon_date(c) > t.acquire_day
+ 
+
+/*--------------------------------------------------------------------------
+Reverse/Repo - Coupon Payments for Reverse Repo - Far Leg
+--------------------------------------------------------------------------*/
+ 
+SELECT
+ c.pay_day 'day' , 
+ projected_cf(c) * t.quantity*(-1) 'CashFlwAmt',
+ t.trdnbr,
+ 2 'LegNbr',
+ l.Fixed_rate                    'Rate',
+ 'Coupon'                                                          'Cashflow'
+INTO
+ CFR
+FROM
+ trade t,
+ instrument i,
+ instrument bs,
+ leg l,
+ cashflow c,
+ TRD trd
+ 
+WHERE
+ 
+ bs.insaddr = t.insaddr
+AND bs.und_insaddr=i.insaddr 
+AND i.insaddr = l.insaddr
+AND l.legnbr = c.legnbr
+AND t.trdnbr = trd.trdnbr
+AND bs.instype='Repo/Reverse'
+AND ex_coupon_date(c) > bs.exp_day
+ 
+ 
+ 
+/*--------------------------------------------------------------------------
+ Reverse/Repo - Cashflow on Start Day
+--------------------------------------------------------------------------*/
+ 
+SELECT 
+    t.acquire_day 'day' , 
+ t.premium 'CashFlwAmt',
+ t.trdnbr,
+ 3 'LegNbr',
+ l.Fixed_rate                    'Rate',
+ 'Cashflow' 'Cashflow'
+   
+INTO CFR
+ 
+FROM Trade t, TRD trd ,instrument i ,macros m , leg l
+ 
+WHERE 
+ 
+    t.trdnbr = trd.trdnbr
+AND i.insaddr = t.insaddr
+AND l.insaddr = i.insaddr
+AND t.acquire_day = m.ReportDate
+ 
+
+/*--------------------------------------------------------------------------
+ Reverse/Repo - Cashflow on End Day
+--------------------------------------------------------------------------*/
+ 
+SELECT 
+    
+ i.exp_day 'day' , 
+ /*abs(t.premium)*/i.exp_day = m.ReportDate ? t.premium + abs((l.Fixed_rate*t.premium) * (years_between(t.value_day,i.exp_day,l.daycount_method))/100) : t.premium 'CashFlwAmt',
+ t.trdnbr,
+ 4 'LegNbr',
+ l.Fixed_rate                    'Rate',
+    'Cashflow' 'Cashflow'
+INTO CFR
+ 
+FROM Trade t, TRD trd ,instrument i ,macros m , leg l
+ 
+WHERE
+ 
+    t.trdnbr = trd.trdnbr
+AND i.insaddr = t.insaddr
+AND l.insaddr = i.insaddr
+AND i.exp_day = m.ReportDate
+ 
+SELECT
+ 
+    i.insid,
+    i.instype in ('Bond' , 'Zero') ? i.extern_id2 : u.insid             'Und_Instrument',
+    u.extern_id2                                                        'Underlying',
+    t.optional_key                                            'Ticket',
+    t.trdnbr,
+    display_id(t, 'prfnbr')                                             'BookName',
+    display_id(t, 'counterparty_ptynbr')                             'Counterparty',
+    i.instype                                                           'Instype',
+    ''                                                                  'LegType1',
+    ''                                                                  'LegType2',
+    cf.LegNbr in (2,4) ? 
+      i.ref_value*t.quantity *(-1) : i.ref_value*t.quantity           'Notional',
+    0.0                                                     'Rate',
+    t.acquire_day                                               'StartDate',
+    i.exp_day                                                'EndDate',
+    days_between(time_to_day(t.time),t.acquire_day,i.daycount_method)   'DaysInPeriod',
+    display_id(i, 'curr')                                       'SettCurr',
+    t.value_day                                                         'PayDay',
+    /*cf.LegNbr in (1,2) ? */
+      /*CashFlwAmt < 0*/ i.exp_day = m.ReportDate ? Sum(CashFlwAmt) * -1 : Sum(CashFlwAmt) 'CashFlwAmt', /*(((round(abs(t.premium)/abs(premium_from_quote(u,t.value_day,i.ref_price)/i.contr_size),-2)*(-1) * cf.Rate)/2))/100:
+                       (((round(abs(t.premium)/abs(premium_from_quote(u,t.value_day,i.ref_price)/i.contr_size),-2)      * cf.Rate)/2))/100 : 
+                          Sum(CashFlwAmt) * -1  'CashFlwAmt',*/
+    0.0                                                     'Reset',
+    cf.Cashflow
+   
+into Results
+FROM trade t, instrument i,  macros m , instrument u , CFR cf
+ 
+WHERE
+ 
+ t.insaddr = i.insaddr
+AND i.und_insaddr *= u.insaddr
+AND cf.trdnbr = t.trdnbr
+AND cf.day >= m.ReportDate
+AND cf.day < date_add_banking_day(m.ReportDate,,1)
+ 
+/*-----------------------------------------------------------------------------------
+ Insert into temp table for groupings: BuySellback and Reverse/Repo 
+-------------------------------------------------------------------------------------*/
+ 
+SELECT
+DISTINCT
+ 
+    insid,
+    instype = 'Bond' ? insid : Und_Instrument  'Und_Instrument',
+    Underlying                'Underlying',
+    Ticket         'Ticket',
+    trdnbr,
+    BookName                    'BookName',
+    Counterparty    'Counterparty',
+    Instype                     'Instype',
+    LegType1     'LegType',
+    Sum(Notional)    'Notional',
+    Rate         'RateStrike',
+    Reset         'FixingRate',
+    StartDate        'StartDate',
+    EndDate         'EndDate',
+    PayDay         'PayDay',
+    DaysInPeriod                'DaysInPeriod',
+    SettCurr     'SettCurr',
+    Sum(CashFlwAmt)    'Amount',
+    Cashflow
+ 
+INTO Temp
+ 
+FROM
+ 
+Results
+ 
+WHERE 
+    PayDay = @ReportDate{} 
+AND CashFlwAmt ~= 0
+AND instype NOT IN ('BuySellback','Repo/Reverse')
+ 
+ORDER BY Ticket
+ 
+
+/*-----------------------------------------------------------------------------------
+ Insert into temp table for groupings: Excluding BuySellback and Reverse/Repo 
+-------------------------------------------------------------------------------------*/
+ 
+SELECT
+DISTINCT
+    insid,
+    instype = 'Bond' ? insid : Und_Instrument  'Und_Instrument',
+    Underlying,
+    Ticket         'Ticket',
+    trdnbr,
+    BookName                    'BookName',
+    Counterparty    'Counterparty',
+    Instype                     'Instype',
+    LegType1     'LegType',
+    Sum(Notional)    'Notional',
+    Rate         'RateStrike',
+    Reset         'FixingRate',
+    StartDate        'StartDate',
+    EndDate         'EndDate',
+    PayDay         'PayDay',
+    DaysInPeriod                'DaysInPeriod',
+    SettCurr     'SettCurr',
+    Sum(CashFlwAmt)    'Amount',
+    Cashflow
+ 
+INTO Temp
+ 
+FROM Results
+ 
+WHERE
+    instype IN ('BuySellback','Repo/Reverse')
+ 
+ORDER BY Ticket
+ 
+
+/*-----------------------------------------------------------------------------------
+Groupings
+-------------------------------------------------------------------------------------*/
+ 
+SELECT DISTINCT
+    'Portfolio' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    Sum(t.Notional) 'Notional',
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    Sum(t.Amount) 'Amount',
+    t.Underlying,
+    t.Cashflow
+    
+FROM
+ 
+    Temp t, macros m
+    
+WHERE
+ 
+    m.GroupByPortfolio in ('y','Y','yes','Yes','YES')
+ 
+GROUP BY 6
+ 
+UNION
+ 
+SELECT DISTINCT
+    'CounterParty' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    Sum(t.Notional) 'Notional',
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    Sum(t.Amount) 'Amount',
+    t.Underlying,
+    t.Cashflow
+    
+FROM
+ 
+    Temp t , macros m
+ 
+WHERE
+    m.GroupByCounterParty in ('y','Y','yes','Yes','YES')
+ 
+GROUP BY 7 
+ 
+UNION
+ 
+SELECT DISTINCT
+    'InstrumentType' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    Sum(t.Notional) 'Notional',
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    Sum(t.Amount) 'Amount',
+    t.Underlying,
+    t.Cashflow
+ 
+FROM
+ 
+    Temp t , macros m
+ 
+WHERE
+ 
+    m.GroupByInstrumentType in ('y','Y','yes','Yes','YES')
+ 
+GROUP BY 8
+ 
+UNION
+ 
+SELECT DISTINCT
+    'Instrument' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    Sum(t.Notional) 'Notional',
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    Sum(t.Amount) 'Amount',
+    t.Underlying,
+    t.Cashflow
+    
+FROM
+ 
+    Temp t, macros m
+ 
+WHERE
+ 
+    m.GroupByInstrument in ('y','Y','yes','Yes','YES')
+ 
+GROUP BY  2 
+ 
+UNION
+ 
+SELECT DISTINCT
+ 
+    'UndInstrument' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    Sum(t.Notional) 'Notional',
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    Sum(t.Amount) 'Amount',
+    t.Underlying,
+    t.Cashflow
+ 
+FROM
+ 
+    Temp t, macros m
+ 
+WHERE
+ 
+    m.GroupByUndInstrument in ('y','Y','yes','Yes','YES')
+ 
+GROUP BY 3 , 20
+ 
+UNION
+ 
+SELECT DISTINCT
+ 
+    'DisplayAll' 'GroupBy',
+    t.insid,
+    t.Und_Instrument,
+    t.Ticket,
+    t.trdnbr,
+    t.BookName,
+    t.Counterparty,
+    t.Instype,
+    t.LegType,
+    t.Notional,
+    t.RateStrike,
+    t.FixingRate,
+    t.StartDate,
+    t.EndDate,
+    t.PayDay,
+    t.DaysInPeriod,
+    t.SettCurr,
+    t.Amount,
+    t.Underlying,
+    t.Cashflow
+FROM
+ 
+    Temp t , macros m
+WHERE
+    m.DisplayAll in ('y','Y','yes','Yes','YES')
+    
+/*--------------------------------------------END--------------------------------------------------*/

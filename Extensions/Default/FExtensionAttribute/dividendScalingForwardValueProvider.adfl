@@ -1,0 +1,6 @@
+[Default]FLeg:dividendScalingForwardValueProvider = select(dividendScalingEstimateType, 
+  "None"->nil, 
+  "Category"->DiscontinuousModel(dividendScalingObservations, dividendScalingValue), 
+  default->select(floatRateReference, 
+    nil->nil, 
+    default->floatRateReference:referenceProvider [priceSource, doSplitAll, discountingType, forwardValuationObservations = dividendScalingObservations, calculationCurrency = dividendNominalScalingCurrency]));

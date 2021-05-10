@@ -1,0 +1,50 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Eq_OTC_Trades_per_trade_date') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Eq_OTC_Trades_per_trade_date' and p.type = 'SQL Query' 
+select 
+	t.trdnbr							'TradeNumber',
+	display_id(t,'trader_usrnbr')					'Trader',
+	display_id(t,'counterparty_ptynbr')				'Counterparty',
+	time_to_day(t.time)						'DealDate',
+	i.exp_day							'Expiry_Date',
+	display_id(t,'insaddr')						'Instrument',
+	i.instype							'InstrumentType',
+	display_id(i,'und_insaddr')					'Underlying',
+	i.und_instype							'UnderlyingType',
+	i.strike_price							'Strike_Price',
+	i.contr_size							'Contract_Size',
+	t.price								'Price',
+	t.quantity < 0 ?'S':'B'						'Buy_Sell',
+	i.instype = 'Option' or i.instype = 'Warrant' ? i.call_option = 'No' ? 'P':'C' 	
+		: ' '							'Put_Call',		
+	t.premium							'Premium',
+	t.quantity 							'Number_of_Contracts',                 	
+	display_id(pr,'owner_prfnbr')					'Portfolio',
+	display_id(t,'prfnbr')						'SubPortFolio',
+	@Date{TODAY}							'DATA_DATE'
+	
+
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	party cp,
+	portfoliolink pr
+where 
+	t.insaddr = i.insaddr
+	and t.status not in ('Reserved', 'Simulated', 'Void')
+	and i.und_insaddr *= ii.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','Equity Deriv','Equity_OTC')
+	and time_to_day(t.time) = @Date
+	and t.counterparty_ptynbr = cp.ptynbr
+	and cp.ptyid2 ~= 'SAFEX'
+	and display_id(t,'counterparty_ptynbr') ~= 'JSE'
+	and t.prfnbr = pr.member_prfnbr
+    

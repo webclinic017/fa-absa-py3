@@ -1,0 +1,332 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','QRM_swap_report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'QRM_swap_report' and p.type = 'SQL Query' 
+select
+	srdnbr,
+	to_date(@1_StartDate{})		'Start',
+	to_date(@2_End_date{})		'End'
+into
+	macro
+from
+	serverdata
+
+Select
+    t.trdnbr,
+    ael_i(l,'FSQL_functions.last_res',l) 'TLR'
+Into
+    tTrade
+From
+    trade t,
+    leg l,
+    macro m,
+    instrument i
+Where
+        match_filter(t,@Filter{;tradefilter.fltid})
+    and	time_to_day(t.time) >= m.Start
+    and	time_to_day(t.time) <= m.End
+    /*and	t.insaddr = i.insaddr*/
+    and t.insaddr = l.insaddr
+
+
+
+
+
+
+
+select
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	ael_s(,'CP_Portfolio.CP_Portf',t.trdnbr) 'CP_Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) / l.initial_index_value : nominal_amount(t,m.End) / l.initial_index_value 		'Nominal_Amount',
+	nominal_amount(t,t.value_day) / l.initial_index_value 		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	/*ael_s(i,'freq',i)				'Frequency',*/
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+    display_id(l,'float_rate')                                                  'Float ref L1',
+    used_price(cr,r.day)                                                        'Float rate L1',
+    l.spread                                                                    'Spread L1',
+    /*ael_s(,'RollingPeriod.RP',l)                'Rolling Period L1',*/
+    ael_s(l,'myfreqname',l)                                                     'Frequency L1',
+    ''                                                                          'Float ref L2',
+    0.00                                                                        'Float rate L2',
+    f.spread                                                                    'Spread L2',
+    /*ael_s(,'RollingPeriod.RP',f)                'Rolling Period L2',*/
+    ael_s(f,'myfreqname',f)                                                     'Frequency L2',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+    convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) in ('01/01/0000','0000-01-01','0000/01/01') ? i.exp_day : convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) 'Next ResetDate'
+from
+	trade t,
+	tTrade tt,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	cashflow cf
+where
+        t.trdnbr = tt.trdnbr
+    and	t.insaddr = i.insaddr
+    and	l.insaddr = i.insaddr
+    and	(l.type = 'Total Return' and f.type = 'Fixed')
+    and	i.insaddr *= f.insaddr
+    and	cr.insaddr = l.index_ref
+    and i.instype in ('TotalReturnSwap')
+    and l.legnbr *= r.legnbr
+    and	r.resnbr *= tt.TLR
+    and tt.TLR ~= 0
+    and	r.cfwnbr = cf.cfwnbr
+    and	cf.legnbr =* l.legnbr
+
+union
+
+select
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	ael_s(,'CP_Portfolio.CP_Portf',t.trdnbr) 'CP_Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	/*ael_s(i,'freq',i)				'Frequency',*/
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+    display_id(l,'float_rate')                                                  'Float ref L1',
+    used_price(cr,r.day)                                                        'Float rate L1',
+    l.spread                                                                    'Spread L1',
+    /*ael_s(,'RollingPeriod.RP',l)                'Rolling Period L1',*/
+    ael_s(l,'myfreqname',l)                                                     'Frequency L1',
+    ''                                                                          'Float ref L2',
+    0.00                                                                        'Float rate L2',
+    f.spread                                                                    'Spread L2',
+    /*ael_s(,'RollingPeriod.RP',f)                'Rolling Period L2',*/
+    ael_s(f,'myfreqname',f)                                                     'Frequency L2',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+    convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) in ('01/01/0000','0000-01-01','0000/01/01') ? i.exp_day : convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) 'Next ResetDate'
+
+from
+	trade t,
+	tTrade tt,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	cashflow cf
+where
+    t.trdnbr = tt.trdnbr
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	((l.type = 'Float' and	f.type = 'Fixed')
+or	l.type in ('Cap','Floor'))
+and i.instype not in ('TotalReturnSwap')
+and	i.insaddr *= f.insaddr
+and	cr.insaddr = l.float_rate
+and l.legnbr *= r.legnbr
+and	r.resnbr *= tt.TLR
+and tt.TLR ~= 0
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+
+union
+
+/*Pay float/Recieve float*/
+select Distinct
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	ael_s(,'CP_Portfolio.CP_Portf',t.trdnbr) 'CP_Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	/*ael_s(i,'freq',i)				'Frequency',*/
+	'FF'						                'Type',
+ 	r.day								        'ResetDay',
+	r.value								        'ResetValue',
+	used_price(cr,r.day)					    'Float_Ref_Value',
+    display_id(l,'float_rate')                                                  'Float ref L1',
+    used_price(cr,r.day)                                                        'Float rate L1',
+    l.spread                                                                    'Spread L1',
+    ael_s(l,'myfreqname',l)                                                     'Frequency L1',
+    display_id(f,'float_rate')                                                  'Float ref L2',
+    used_price(crf,r.day)                                                       'Float rate L2',
+    f.spread                                                                    'Spread L2',
+    ael_s(f,'myfreqname',f)                                                     'Frequency L2',
+	delta_implicit(t)						    'Delta',
+	interest_accrued(t, m.End),
+    convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) in ('01/01/0000','0000-01-01','0000/01/01') ? i.exp_day : convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) 'Next ResetDate'
+
+from
+	trade t,
+	tTrade tt,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	instrument crf,
+	cashflow cf
+where
+    t.trdnbr = tt.trdnbr
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and f.insaddr = l.insaddr
+and ((l.payleg = 'Yes' and l.type = 'Float')
+and (f.payleg = 'No' and f.type = 'Float'))
+and	cr.insaddr = l.float_rate
+and	crf.insaddr = f.float_rate
+and l.legnbr *= r.legnbr
+and	r.resnbr *= tt.TLR
+and tt.TLR ~= 0
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+
+union
+
+select
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	ael_s(,'CP_Portfolio.CP_Portf',t.trdnbr) 'CP_Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? l.strike : l.fixed_rate	'Fixed_Rate',
+	/*ael_s(i,'freq',i)				'Frequency',*/
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+    display_id(l,'float_rate')                                                  'Float ref L1',
+    used_price(cr,r.day)                                                        'Float rate L1',
+    l.spread                                                                    'Spread L1',
+    /*ael_s(,'RollingPeriod.RP',l)                'Rolling Period L1',*/
+    ael_s(l,'myfreqname',l)                                                     'Frequency L1',
+    ''                                                                          'Float ref L2',
+    0.00                                                                        'Float rate L2',
+    0.00                                                                        'Spread L2',
+    ''                                                                          'Frequency L2',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+    convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) in ('01/01/0000','0000-01-01','0000/01/01') ? i.exp_day : convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) 'Next ResetDate'
+
+
+from
+	trade t,
+	tTrade tt,
+	instrument i,
+	leg l,
+	macro m,
+	reset r,
+	cashflow cf,
+	instrument cr
+where
+    t.trdnbr = tt.trdnbr
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	i.instype = 'FRA'
+and 	l.legnbr *= r.legnbr
+and	r.resnbr *= tt.TLR
+and tt.TLR ~= 0
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+and	cr.insaddr =* l.float_rate
+
+union
+
+select
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	ael_s(,'CP_Portfolio.CP_Portf',t.trdnbr) 'CP_Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	/*ael_s(und,'freq',und)				'Frequency',*/
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+    display_id(l,'float_rate')                                                  'Float ref L1',
+    used_price(cr,r.day)                                                        'Float rate L1',
+    l.spread                                                                    'Spread L1',
+    /*ael_s(,'RollingPeriod.RP',l)                'Rolling Period L1',*/
+    ael_s(l,'myfreqname',l)                                                     'Frequency L1',
+    ''                                                                          'Float ref L2',
+    0.00                                                                        'Float rate L2',
+    f.spread                                                                    'Spread L2',
+    /*ael_s(,'RollingPeriod.RP',f)                'Rolling Period L2',*/
+    ael_s(f,'myfreqname',f)                                                     'Frequency L2',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+    convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) in ('01/01/0000','0000-01-01','0000/01/01') ? i.exp_day : convert('date', ael_d(,'ResetDates.ResetDay', i,cf.pay_day, 1)) 'Next ResetDate'
+
+
+from
+	trade t,
+	tTrade tt,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	instrument und,
+	cashflow cf
+where
+    t.trdnbr = tt.trdnbr
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.und_insaddr
+and	((l.type = 'Float' and	f.type = 'Fixed')
+or	l.type in ('Cap','Floor'))
+and	i.und_insaddr *= f.insaddr
+and	i.instype = 'Option'	
+and	cr.insaddr = l.float_rate
+and 	l.legnbr *= r.legnbr
+and	r.resnbr *= tt.TLR
+and tt.TLR ~= 0
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+and	i.und_insaddr = und.insaddr

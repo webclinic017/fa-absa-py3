@@ -1,0 +1,5 @@
+[ACL]FTradeRow:faclAttrReplacementValue = select(hasCounterPartyRisk and not (markToMarketPeriodValue == nil), 
+  false->nil, 
+  default->select(faclReplacementValue, 
+    NaN->nil, 
+    default->[faclReplacementValue, trade.Currency.Name, replacementValueDate]));

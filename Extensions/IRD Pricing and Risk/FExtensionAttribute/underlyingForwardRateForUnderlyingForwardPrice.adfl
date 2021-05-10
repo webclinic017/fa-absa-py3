@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:underlyingForwardRateForUnderlyingForwardPrice = underlyingForwardRateForUnderlyingForwardPrice = select(underlyingForwardPriceIsParRate, 
+  true->select(snoop01(theoreticalPrice, underlyingForwardRateTargetNode), 
+    default->setDateTimePart(snoop01(theoreticalPrice, underlyingForwardRateTargetNode), expiryDateForCouponToValue), 
+    nil->nil), 
+  false->snoop01(theoreticalPrice, underlyingForwardRateTargetNode));

@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:combinationAmountFixFx = combinationInstrumentMap :* "marketLegComponentSpotValueDV * fixFxLegToInstrument" [priceSource];
+[Default]FCombination:combinationAmountFixFx = theoreticalSpotValueFromComponentMarketValueFixFx;
+[Default]FInstrument:combinationAmountFixFx = nil;
+[Default]FInstrumentAndTrades:combinationAmountFixFx = instrument:combinationAmountFixFx;
+[Default]FMultiInstrumentAndTrades:combinationAmountFixFx = nil;
+[Default]FPriceAggregate:combinationAmountFixFx = select(parentPriceFeed, 
+  nil->theoreticalSpotValueFromComponentMarketValueFixFx, 
+  default->instrumentMap :* "marketLegComponentSpotValueDV * fixFxLegToInstrument" [priceSource]);

@@ -1,0 +1,19 @@
+select
+ael_i(p,'ASQL_log','PCG_Create_Mirror') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'PCG_Create_Mirror' and p.type = 'SQL Query' 
+/*
+Purpose: [Created to book mirror trades.]
+Department: [PCG MONEY MARKET]
+Requester: [Haroon Mansoor]
+Developer: [Willie van der Bank]
+CR Number: [C392817 (05/08/2010)]
+*/
+select
+    t.trdnbr,
+    ael_s(,'PCG_Create_Mirror.Set',t.trdnbr)  'result'
+from
+    trade t
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})

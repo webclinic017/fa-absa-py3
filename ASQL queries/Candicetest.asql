@@ -1,0 +1,22 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Candicetest') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Candicetest' and p.type = 'SQL Query' 
+ 
+  select
+cf.type 'CFtype',
+cf.legnbr 'CFlegnbr',
+cf.pay_day 'Payday',
+cf.creat_usrnbr 'CFusernbr',
+l.legnbr 'Legnbr',
+l.creat_usrnbr 'lusernbr',
+l.type 'Ltype'
+
+from 
+front.CashFlow cf,
+front.leg l
+where 
+cf.pay_day>'10/09/2007'
+and cf.legnbr=l.legnbr

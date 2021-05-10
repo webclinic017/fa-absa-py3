@@ -1,0 +1,59 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Caplet_Floorlet_Expiry') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Caplet_Floorlet_Expiry' and p.type = 'SQL Query' 
+
+
+/*
+
+Purpose   : List of unexpired caplets and floorlets within caps and floors
+Department : Trading
+Desk : Trading, Fixed income options
+Requestor : Boshoff, Alexandra Anne
+Developer : Anil Parbhoo
+CR Number : 201993
+
+*/
+
+
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	ref.insid 'Ref_Index',
+	cf.type'CF Type',
+    cf.start_day     'CF Start Date',
+	cf.end_day       'CF End Date',	
+	i.exp_day	'Ins_Expiry',
+	
+	
+	
+	t.quantity >= 0.01 ? 'Buy' : 'Sell' 'B_S',
+	cf.strike_rate	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.quantity*i.contr_size*l.nominal_factor*cf.nominal_factor'nominal_amount',
+	display_id(t,'counterparty_ptynbr')	'Counterparty'
+	
+from
+	trade	t,
+	instrument	i,
+	instrument ref,
+	leg l,
+	cashflow cf
+
+
+where
+	i.insaddr = t.insaddr
+and 	i.insaddr=l.insaddr
+and 	l.legnbr=cf.legnbr
+and	i.instype in ('Cap','Floor')
+
+and	l.float_rate=ref.insaddr
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and 	cf.start_day>Today
+
+order by cf.start_day, cf.type

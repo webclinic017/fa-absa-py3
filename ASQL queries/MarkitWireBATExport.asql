@@ -1,0 +1,73 @@
+SELECT
+    ael_i(p,'ASQL_log','MarkitWireBATExport') 'Name' 
+INTO
+    ASQL_LOG_TEMP 
+FROM     
+    TextObject p 
+WHERE    
+    p.name = 'MarkitWireBATExport' 
+    AND p.type = 'SQL Query' 
+    
+SELECT
+    '1. File' 'Item', 
+    ael_s(,'MarkitWireBATExport.OpenFile',@1_path{'f:\'},@2_FileName{'BAT.csv'},@3_Instrument{FRA;'FRA','Swap'})	'Description'
+INTO
+    Macro
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+SELECT DISTINCT
+    t.trdnbr
+INTO
+    tempTrades
+FROM 
+	trade t,
+	instrument i,
+	leg l
+WHERE 
+    t.insaddr = i.insaddr 
+	and l.insaddr = i.insaddr
+	and i.exp_day > Today
+	and t.status not in ('Void','Simulated','FO Sales','Terminated')
+	and i.instype = @3_Instrument
+	and display_id(l,'curr') in ('JPY','GBP','EUR','USD')
+	and add_info(t,'CCPmiddleware_id') = ''
+	and display_id(t, 'counterparty_ptynbr') = @4_Counterparty{;party.ptyid where type = 'Counterparty'}
+
+SELECT 
+    '2. Total Trades' 'Item', 
+    to_string(count(*)) 'Description'
+INTO
+    Macro
+FROM
+	tempTrades
+GROUP BY
+    1
+	
+SELECT 
+    trdnbr, 
+	ael_s(, 'MarkitWireBATExport.Write',trdnbr,@1_path{'f:\'},@2_FileName{'BAT.csv'},'false')  'Status'
+INTO
+    processCounts
+FROM
+    tempTrades
+    
+SELECT 
+    pc.Status 'Item',
+    to_string(count(pc.trdnbr)) 'Description'
+INTO
+    Macro
+FROM
+	processCounts pc
+GROUP BY
+    pc.Status
+		
+SELECT
+    Item,
+    Description
+FROM 
+    Macro
+ORDER BY 
+    1

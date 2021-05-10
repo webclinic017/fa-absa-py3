@@ -1,0 +1,6 @@
+[Securities Lending]FInstrumentAndTrades:secLendActualPortfolioInventoryPosition = select(availabilityCompoundPortfolio, 
+  nil->nil, 
+  default->switch(availabilityCompoundPortfolio.Compound, 
+    true->minOf(sumOf((availabilityCompoundPortfolio.OwnerLinks) :* "secLendActualPortfolioInventoryPosition" [targetInstrumentAndTrades])), 
+    false->object :* "secLendActualInventoryPosition" [tradedPortfolio = availabilityCompoundPortfolio]));
+[Securities Lending]FPortfolioLink:secLendActualPortfolioInventoryPosition = targetInstrumentAndTrades:secLendActualPortfolioInventoryPosition [availabilityCompoundPortfolio = (object.MemberPortfolio)];

@@ -1,0 +1,124 @@
+/*------------------------------------------------------------------
+    DCRM_CT_IrCurve
+
+    This query selects all the tenors (benchmark instruments) 
+    for the discount curves used in the DCRM credit trades.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_IrCurve') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_IrCurve' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})               'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	Select all the discount curves used for CDSs in the trade filter by currency
+------------------------------------------------------------------*/
+select distinct
+    curr.insaddr                                        'InsCurr',
+    ael_s(i,'DCRM_IRD.getDiscountCurve',curr.insid)      'Curve'
+into
+    getCurvesTemp
+from
+    trade t, 
+    instrument curr,
+    instrument i,
+    macros m
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and i.exp_day >= m.ValueDate
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+/*------------------------------------------------------------------
+	Select all the discount curves used for CLNs in the trade filter by currency
+------------------------------------------------------------------*/
+select distinct
+    curr.insaddr                                          'InsCurr',
+    ael_s(und,'DCRM_IRD.getDiscountCurve',curr.insid)     'Curve'
+into
+    getCurvesTemp
+from
+    trade t, 
+    instrument curr,
+    CombinationLink cl,
+    instrument und,
+    instrument i,
+    macros m
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day >= m.ValueDate
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+select distinct
+    gc.InsCurr,
+    gc.Curve
+into
+    getCurves
+from
+    getCurvesTemp gc
+
+/*------------------------------------------------------------------
+    Final data
+------------------------------------------------------------------*/
+select distinct
+    display_id(ins,'Curr')                      'Currency',
+    ins.insaddr                                 'TenorID',
+    p.settle/100                                'Value'
+from
+    yieldcurve  yc,
+    benchmark   bm,
+    instrument  ins,
+    getCurves   gc,
+    macros      m,
+    party       pt,
+    LastPrice   p
+where
+    yc.yield_curve_name  = gc.Curve
+and ins.curr = gc.InsCurr
+and bm.yield_curve_seqnbr = yc.seqnbr
+and bm.instrument = ins.insaddr
+and p.insaddr = ins.insaddr
+and p.ptynbr =  pt.ptynbr
+and pt.ptyid = 'SPOT'
+and p.day = m.ValueDate
+    

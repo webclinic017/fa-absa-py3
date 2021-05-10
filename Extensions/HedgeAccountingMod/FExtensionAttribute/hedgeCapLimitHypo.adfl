@@ -1,0 +1,6 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCapLimitHypo = sumOf(children :* "hedgeCapLimitHypo");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCapLimitHypo = sumOf(children :* "hedgeCapLimitHypo");
+[HedgeAccountingMod]FTradeRow:hedgeCapLimitHypo = switch(tradeHedgeType, 
+  "Hypo"->denominatedvalue(costUPL, displayCurrencySymbol, , ) + denominatedvalue(hypoPLAdjustment, displayCurrencySymbol, , ), 
+  "Hypo Close"->denominatedvalue(costUPL, displayCurrencySymbol, , ) + denominatedvalue(hypoPLAdjustment, displayCurrencySymbol, , ), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));

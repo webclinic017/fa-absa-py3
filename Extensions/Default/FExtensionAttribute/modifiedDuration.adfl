@@ -1,0 +1,9 @@
+[Default]FCombInstrMap:modifiedDuration = instrument :* "modifiedDuration" [priceSource];
+[Default]FCombination:modifiedDuration = sumOf(flattenAndRemoveNil(modifiedDurationsWeighted)) / underlyingOrSelf.Factor;
+[Default]FInstrument:modifiedDuration = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->shunt(implyValid, 
+    false->object:modifiedDurationFromYield [yieldValue = theoreticalYieldToMaturity, instrumentSpotDate], 
+    true->object:modifiedDurationFromYield [yieldValue = marketYieldToMaturity, instrumentSpotDate]), 
+  false->nan);
+[Default]FInstrumentAndTrades:modifiedDuration = instrument :* "modifiedDuration" [priceSource];
+[Default]FMultiInstrumentAndTrades:modifiedDuration = nil;

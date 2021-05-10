@@ -1,0 +1,11 @@
+[Core Pricing]FCap:impliedVolatility = object:cashFlowInstrumentImpliedParVolatility [priceSource, doSplitAll, filterUnit, useVanillaEquivalent];
+[Core Pricing]FFloor:impliedVolatility = object:cashFlowInstrumentImpliedParVolatility [priceSource, doSplitAll, filterUnit, useVanillaEquivalent];
+[Core Pricing]FInstrument:impliedVolatility = equivalentInstrument:impliedVolatilityCalculation [marketPrice, priceSource, doSplitAll, filterUnit, marketPriceChoice, useCalibrationAccuracy];
+[Core Pricing]FInstrumentAndTrades:impliedVolatility = instrument :* "impliedVolatility" [priceSource, isSplitAllGrouped, filterUnit, useVanillaEquivalent, marketPriceChoice, useCalibrationAccuracy];
+[Core Pricing]FMultiInstrumentAndTrades:impliedVolatility = nil;
+[Core Pricing]FOrderBook:impliedVolatility = equivalentInstrument:impliedVolatilityCalculation [marketPrice, useCalibrationAccuracy];
+[Core Pricing]FOwnOrder:impliedVolatility = trading :* "impliedVolatility" [marketPriceChoice, useCalibrationAccuracy];
+[Core Pricing]FPriceAggregate:impliedVolatility = priceFeed:impliedVolatility [useVanillaEquivalent, marketPriceChoice, useCalibrationAccuracy];
+[Core Pricing]FPriceFeed:impliedVolatility = equivalentInstrument:impliedVolatilityCalculation [marketPrice, useCalibrationAccuracy];
+[Core Pricing]FTradingInterface:impliedVolatility = equivalentInstrument:impliedVolatilityCalculation [marketPrice, useCalibrationAccuracy];
+[Core Pricing]FVolatilityPoint:impliedVolatility = object.Volatility;

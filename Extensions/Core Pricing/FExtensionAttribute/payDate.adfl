@@ -1,0 +1,9 @@
+[Core Pricing]FCashFlowMoneyFlow:payDate = select(cashFlowInformation, 
+  nil->nil, 
+  default->cashFlowInformation.PayDate(valuationDate));
+[Core Pricing]FInstrument:payDate = select(isMultiExercise, 
+  true->collapse(settlementDate), 
+  false->collapse(payDateFromExpiry));
+[Core Pricing]FLeg:payDate = instrument:payDate;
+[Core Pricing]FMoneyFlow:payDate = object.PayDay;
+[Core Pricing]FMoneyFlowAndTrades:payDate = moneyFlow:payDate;

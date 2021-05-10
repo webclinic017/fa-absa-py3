@@ -1,0 +1,85 @@
+[Instrument Definition API]FMethod:InsDef.CreateTrade$5
+This method is used when creating a new trade in a similar way as when creating it from the instrument definition windows. 
+
+Similar UI scenario:
+
+	1. Open an instrument in an instrument definition window (no trade)
+	2. Modify fields in the trade section
+	3. Press Save New
+	4. Answer all pop up questions
+
+@param
+The instrument
+
+@param
+Parameters that should be set before saving the trade. By default, the trade will look identical to a trade when the instrument is opened in the instrument definition window. Parameters are specified using methods and method chains that can be reached from the FTradeLogicDecorator. When a value is set, it will behave as when setting the value in the instrument definition window, which means that all side effects that occur when setting the value will occur here as well.
+
+@param
+An object holding answers to questions. When saving from the instrument definition window, these questions are answered in pop ups.
+
+@param
+A callback that will be run before commiting the trade. See example below on how to use it.
+
+@param
+A callback that will be run if the commit fails. This callback is used to roll back changes that were made in the *'preCommitBlock'*
+
+@return
+The saved trade if save is successful. Exceptions will be raised if the save is not successful
+
+Example::
+
+	parameters = acm.FOrderedDictionary()
+	parameters['Quantity'] = 1000000
+	parameters['Price'] = 123
+	parameters['Counterparty'] = 'FCS'
+	trade= acm.InsDef.CreateTrade('ABB', parameters)
+	acm.StartApplication('Instrument Definition', trade)
+
+Example on how to use *'preCommitBlock'*::
+
+	def PreCommitBlock(arg):
+	    decorator = arg['decorator']
+	    answers = arg['answers']
+	    action = arg['action']
+	    print 'PreCommitBlock', decorator, 'answers', answers, 'action', action
+	    result = acm.FDictionary()
+	    decorator.AddInfoValue(<an additional info spec>, <value>)
+	    if answers.AnswerAt('AdditionalCommit') == 'true':
+	        result['commit'] = <an object to be committed>
+	    if answers.AnswerAt('AdditionalDelete') == 'true':
+	        result['delete'] = <an object to be deleted>
+	    return result
+    
+	def AbortBlock(preCommitResult):
+	    print 'AbortBlock', preCommitResult
+
+	answers = acm.FCreateTradeAnswers()
+	answers.AnswerAtPut('AdditionalCommit', 'true')
+	answers.AnswerAtPut('AdditionalDelete', 'true')
+	trade = acm.InsDef.CreateTrade('ABB', None, answers, PreCommitBlock, AbortBlock)
+
+It is possible to call the UiValidation hook from the pre commit hook. To make this work, the UiValidation hook must be written in such a way that it works without a shell. Instead of asking questions, the hook must raise exceptions or implement suitable default behaviours.
+
+Example on how to call the UiValidation hook programmatically::
+
+	def CallUIValidationHook(object, action):
+	    definitions = acm.GetDefaultContext().GetAllExtensions('FParameterGUIDefinition', object.DecoratedObject().Class(), True, True, 'ui validation hook')
+	    for definition in definitions:
+	        py = acm.GetFunction('py', 2)
+	        mod = py(str(definition['Module']), acm.GetDefaultContext())
+	        callData = acm.FDictionary()
+	        callData['editObject'] = object
+	        callData['originalObject'] = object.Originator() if not object.Originator().IsInfant() else None
+	        callData['action'] = action
+	        callData['extendedData'] = acm.FDictionary()
+	        initialData = acm.FDictionary()
+	        initialData['initialData'] = callData
+	        return mod.ael_custom_dialog_show(None, initialData)
+
+	def PreCommitBlock(arg):
+	    decorator = arg['decorator']
+	    action = arg['action']
+	    CallUIValidationHook(decorator, action)
+
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

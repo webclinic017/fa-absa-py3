@@ -1,0 +1,37 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_Bond_Rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_Bond_Rates' and p.type = 'SQL Query' 
+ 
+  select
+
+i.extern_id1'bond',
+p.day,
+p.settle'rate',
+
+clean_from_yield(i,p.day,,,p.settle)'clean',
+dirty_from_yield(i,p.day,,,p.settle)'all_in',
+((dirty_from_yield(r,date_add_banking_day(p.day,,3),,,mtm_price(r,p.day)+0.01)-dirty_from_yield(r,date_add_banking_day(p.day,,3),,,mtm_price(r,p.day)))*-10000)'R157_RPPNT'
+
+from
+
+instrument i,
+instrument r,
+price p,
+party party
+
+where
+i.insaddr=p.insaddr
+/*and i.insid in @bond{ZAR/R152; instrument.insid where instype='Bond'}*/
+and p.day between @From{FIRSTDAYOFMONTH;} and @To{Today;} 
+and party.ptynbr=p.ptynbr
+and party.ptyid='internal'
+and r.insid='ZAR/R157'
+
+and i.instype = 'Bond'
+
+and ('All' IN (@insid{All; instrument.insid* where instype='Bond'}) 
+or i.insid IN (@insid{All; instrument.insid* where instype='Bond'}))
+

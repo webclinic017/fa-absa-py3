@@ -1,0 +1,38 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','DW_ABACAS_CS01') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'DW_ABACAS_CS01' and p.type = 'SQL Query' 
+ 
+  /* 
+    ================================================================
+    asql used to calc benchmark deltas
+    done by simulating a 1bp bump on benchmarks for given curve
+    Dirk Strauss    14-Sept-2007
+    
+    changed by DW for Credit Spread 01 for ABACAS, based on an instrument spread curve
+    ================================================================
+*/
+
+select
+    TODAY                                                                     'RepDate',
+    @02_Filter{MR_Abacas_All;tradefilter.fltid}                            'filter',
+    yc.yield_curve_name                                                      'yc2',
+    iSpread.spread                                                          'Spread',
+    ins.insid                                                                'Instrument',
+    ael_f(yc, 'dw_utils.insSpread_delta',
+    @02_Filter{MR_Abacas_All;tradefilter.fltid},
+    ins.insid)                                                              'cs01'
+    
+from 
+    yieldcurve yc,
+    InstrumentSpread iSpread,
+    instrument ins
+    
+where
+    yc.yield_curve_name  in (@01_YieldCurve{PM-SWAP_CS;yieldcurve.yield_curve_name *})
+    and yc.seqnbr = iSpread.yield_curve_seqnbr
+    and iSpread.instrument = ins.insaddr
+
+

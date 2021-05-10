@@ -1,0 +1,3 @@
+[Default]FCashFlowInstrument:fixingNominalValue = timeBucketsSetExternally :* "fixingNominalValue" [legsForFixingRiskGroupingReference, displayCurrency, nominalValueFxRates, filterUnit, fixingRiskGroupingReference, isNominalScalingFixingRisk];
+[Default]FLeg:fixingNominalValue = collapse(fixingGrouperSpecificNominalValue);
+[Default]FTimeBucket:fixingNominalValue = sumOf(convertToCurrency(legsForFixingRiskGroupingReference :* "fixingNominalValue" [timeBucketShiftStartDate, timeBucketShiftPeakDate, fixingRiskGroupingReference, isNominalScalingFixingRisk], nominalValueFxRates, symbol(displayCurrency), filterUnit));

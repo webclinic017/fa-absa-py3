@@ -1,0 +1,7 @@
+[Default]FInstrument:underlyingForwardPriceForStandardCalculations = select(isSettled, 
+  true->nil, 
+  false->collapse(underlyingForwardPrice));
+[Default]FInstrumentAndTrades:underlyingForwardPriceForStandardCalculations = instrument :* "underlyingForwardPriceForStandardCalculations" [priceSource, isSplitAllGrouped];
+[Default]FMultiInstrumentAndTrades:underlyingForwardPriceForStandardCalculations = nil;
+[Default]FOrderBook:underlyingForwardPriceForStandardCalculations = instrument:underlyingForwardPriceForStandardCalculations;
+[Default]FPriceAggregate:underlyingForwardPriceForStandardCalculations = instrument:underlyingForwardPriceForStandardCalculations;

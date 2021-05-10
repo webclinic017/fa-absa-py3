@@ -1,0 +1,30 @@
+/* Usage code for this ASQL */
+select ael_i(p,'ASQL_log','FrontArena_NonStdCurrRates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FrontArena_NonStdCurrRates' and p.type = 'SQL Query' 
+
+
+/*  Non Standard Currency Rates
+    Send to the CAL system daily to convert non standard (commodity eg, XAU, XPT, JET_FUEL, etc) to USD.  
+    Used to monitor trader activiy as part of UT CAL.
+*/
+
+
+select
+    i.insid                     'InstrumentName',
+    display_id(p, 'curr')       'Currency',
+    p.day                       'Date',
+    round(p.settle, 6)          'Price'
+
+from
+    LastPrice p,
+    Instrument i
+    
+where
+    p.ptynbr = 41132 /*SPOT_MID*/
+and p.insaddr = i.insaddr
+and p.day >= today
+and add_info(i, 'IsCurrency') = 'No'    
+and p.curr = 1
+and i.instype = 'Curr'

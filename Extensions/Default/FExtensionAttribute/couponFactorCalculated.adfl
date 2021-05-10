@@ -1,0 +1,30 @@
+[Default]FCashFlowInstrument:couponFactorCalculated = sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]);
+[Default]FCurrencySwap:couponFactorCalculated = select(numberOfFloatOrCapFloorLegs, 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  2->select(floatPayLegOrNil, 
+    nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));
+[Default]FDeposit:couponFactorCalculated = select(firstFixedLeg, 
+  nil->sumOf(legs :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]));
+[Default]FFra:couponFactorCalculated = firstLeg :* "fraCouponFactor" [forwardValueDate, priceSource];
+[Default]FFreeDefinedCashFlow:couponFactorCalculated = select(numberOfFixedLegs, 
+  0->select(numberOfFloatOrCapFloorLegs, 
+    0->denominatedvalue(1.0, currency, , forwardValueDate), 
+    1->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->select(floatPayLegOrNil, 
+      nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+      default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource])), 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));
+[Default]FFrn:couponFactorCalculated = select(isGenericSpreadQuoted, 
+  true->sumOf(legs :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]));
+[Default]FFxSwap:couponFactorCalculated = inv(fxNearRate) * denominatedvalue(currency2DiscountCurve.Discount(nearDate, farDate), currency2, , nearDate);
+[Default]FSwap:couponFactorCalculated = select(numberOfFloatOrCapFloorLegs, 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  2->select(floatPayLegOrNil, 
+    nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));

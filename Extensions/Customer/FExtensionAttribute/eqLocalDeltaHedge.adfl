@@ -1,0 +1,13 @@
+[Customer]FMultiInstrumentAndTrades:eqLocalDeltaHedge = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.InstrumentAndTrades) == "ZAR/ALSI3", 
+    true->delta / 10, 
+    default->(localDeltaPct / hedgeDelta) / 10), 
+  default->(localDeltaPct / hedgeDelta) / 10);
+[Customer]FPortfolioInstrumentAndTrades:eqLocalDeltaHedge = shunt(value(portfolio.Name) == "AOPT", 
+  true->delta / 10, 
+  default->(localDeltaPct / hedgeDelta) / 10);
+[Customer]FSingleInstrumentAndTrades:eqLocalDeltaHedge = select(value(portfolio.Name) == "AOPT", 
+  true->shunt(value(object.Parent) == "ZAR/ALSI3", 
+    true->delta / 10, 
+    default->(localDeltaPct / hedgeDelta) / 10), 
+  default->(localDeltaPct / hedgeDelta) / 10);

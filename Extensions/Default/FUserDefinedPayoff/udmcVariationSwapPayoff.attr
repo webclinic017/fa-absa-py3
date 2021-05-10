@@ -1,0 +1,61 @@
+[Default]FObject:udmcVariationSwapPayoff
+# ----------------------------------------
+# PAYOFF EXPRESSION
+# max( min( totalVariance, Cap), Floor)
+#
+# INTERPRETATION
+# totalVariance is the time weighted average of realized and expected variance
+# the totalVariance has a highest and a lowest possible level, given by the Cap and Floor.
+# Both the Cap and the Floor are expressed in percent and are assumed to be expressed in terms of variance.
+# ----------------------------------------
+
+# PARAMETERS
+param double Cap;
+param double Floor;
+param double T;
+param int pastFixings;
+param int tradingDays;
+param int includeSpot;
+param int useLogReturns;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double value = 0.0;
+double varFut = 0.0;
+double varHist = 0.0;
+double varTotal = 0.0;
+int futureFixings = 0;
+int totalFixings = 0;
+
+# MAIN LOOP
+totalFixings = length(S) - 1;
+futureFixings = totalFixings -  pastFixings;
+varFut  = sumSquaredReturns(S[pastFixings+1:totalFixings+1], useLogReturns)/T;
+varHist = sumSquaredReturns(S[0:pastFixings+1], useLogReturns);
+varTotal = (tradingDays*varHist + (futureFixings)*varFut)/totalFixings;
+value = max(min(varTotal, Cap/100.0), Floor/100.0);
+
+# CASHFLOW
+cashFlow(0,  10000*value);
+
+#------------------------------------------
+# PEL IMPLEMENTATION
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# varFut: Future (expected) variance (expressed as annualized variance, i.e. normalized by the time to expiry T)
+# varHist: Realized variance
+# varTotal: Time weighted average of the realized and expected variance
+#
+# value: varTotal after applying cap and floor
+#
+# useLogReturns: when set to true, the Realized Variance of a price path will be based on log returns, otherwise it is based on relative performance.
+#
+# It is possible to set the number of trading days per year and whether the current spot price should be included in the realized variance
+# 
+# ------------------------------------------
+
+
+...

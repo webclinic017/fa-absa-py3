@@ -1,0 +1,13 @@
+[Securities Lending ABSA]FInstrument:slTruePartyCode = select((object.Trades.At(0)) :* "slTruePartyCode", 
+  nil->(object.Trades.At(1)) :* "slTruePartyCode", 
+  default->select(py("sl_functions", context).sl_is_sl_party((object.Trades.At(0)) :* "slTruePartyCode"), 
+    true->(object.Trades.At(0)) :* "slTruePartyCode", 
+    false->(object.Trades.At(1)) :* "slTruePartyCode"));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTruePartyCode = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.SL_G1PartyCode), 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTruePartyCode = instrument:slTruePartyCode;
+[Securities Lending ABSA]FTrade:slTruePartyCode = select(slTrueCounterparty, 
+  nil->nil, 
+  default->true_counterparty.AdditionalInfo.SL_G1PartyCode);
+[Securities Lending ABSA]FTradeRow:slTruePartyCode = trade:slTruePartyCode;

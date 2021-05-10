@@ -1,0 +1,50 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBR_SAAGRI_SAFEX_Physical_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBR_SAAGRI_SAFEX_Physical_Trades' and p.type = 'SQL Query'
+
+select
+    @1_DealDate{}  'DealDate',
+    @2_User{}   'USER',
+    @3_ExceptionFileLocation{'//v036syb104001/Safex/Agri/Exception'}   'Exception',
+    @4_PortfolioMapping{'//v036syb104001/Safex/Agri/Portfolio.csv'}   'Mapping',
+    @5_AIS_File{}   'AIS',
+    @6_Flag_File{}  'Flag'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    ael_s(,'SAAGRI_SAFEX_Physical_Trades.Physical_Trades',m.DealDate,m.Exception,m.Mapping,m.AIS,m.Flag)    'Ael_Report'
+into
+    temp1
+from
+    macro m
+
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    display_id(t,'prfnbr')  'Portfolio',
+    t.quantity  'Quantity',
+    t.price 'Price',
+    t.status    'Status',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    nominal_amount(t)   'Nominal',
+    display_id(t,'optkey1_chlnbr')  'Trade Area',
+    t.time
+from
+    trade t,
+    instrument i,
+    macro m,
+    user u
+where
+        i.insaddr = t.insaddr
+    and t.creat_time >= today
+    and t.creat_usrnbr = u.usrnbr
+    and u.userid = m.USER

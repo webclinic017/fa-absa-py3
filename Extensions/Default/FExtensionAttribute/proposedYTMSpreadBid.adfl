@@ -1,0 +1,5 @@
+[Default]FQuoteController:proposedYTMSpreadBid = select(instrument.IsKindOf("FFrn"), 
+  true->nil, 
+  default->switch(proposedQuoteDriverBid, 
+    "YTM"->proposedDriverValueBid, 
+    default->instrument:marketYieldToMaturity [marketUnitValueClean = proposedQuoteBidUnitValueClean, marketPrice = proposedQuoteBid] - spreadBenchmarkYieldToMaturityBid));

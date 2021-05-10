@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FInstrument:creditTotUtilCp = ael("CreditCalc", context).calc_credit_util_ins(instrument);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:creditTotUtilCp = select(parent, 
+  nil->nil, 
+  default->select((grouper == "Counterparty"), 
+    false->nil, 
+    default->(ael("FCreditLimit", context).credit_tot_cp(groupingValue, acquirer))));
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:creditTotUtilCp = 0;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:creditTotUtilCp = instrument:creditTotUtilCp;
+[ABSA Specific 4.3]FTrade:creditTotUtilCp = (ael("FCreditLimit", context).credit_tot_cp(counterparty, acquirer, profitAndLossEndDate));
+[ABSA Specific 4.3]FTradeRow:creditTotUtilCp = trade:creditTotUtilCp;

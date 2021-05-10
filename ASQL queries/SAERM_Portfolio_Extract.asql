@@ -1,0 +1,51 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_Portfolio_Extract') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_Portfolio_Extract' and p.type = 'SQL Query' 
+select
+	distinct(p.prfid)	'Portfolio'
+into
+	temp
+from
+	portfolio p,
+	trade t,
+	instrument i
+where
+	t.prfnbr = p.prfnbr
+and	(i.exp_day >= TODAY or i.exp_day = '0000-01-01')
+and	t.insaddr = i.insaddr
+
+select
+	t.Portfolio,
+	display_id(tr,'acquirer_ptynbr')		'Desk',
+	TODAY			'BusinessDay'	
+into
+	temp2
+from
+	temp t,
+	portfolio p,
+	trade tr,
+	instrument i
+where
+	p.prfid = t.Portfolio
+and	display_id(tr,'acquirer_ptynbr') ~= ''
+and	tr.prfnbr = p.prfnbr
+and	(i.exp_day >= TODAY or i.exp_day = '0000-01-01')
+and	tr.insaddr = i.insaddr
+group by 1,2
+
+select
+	t.Portfolio,
+	t.Desk,
+	ael_d(p,'SAERM.GetLastTrdDate',p.prfid,t.Desk)		'LastTraded',
+	display_id(p,'type_chlnbr')				'PortType',
+	time_to_day(p.creat_time)				'Created',
+	time_to_day(p.updat_time)				'Updated',
+	t.BusinessDay
+from
+	portfolio p,
+	temp2 t
+where
+	t.Portfolio = p.prfid

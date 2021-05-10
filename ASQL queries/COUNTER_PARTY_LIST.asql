@@ -1,0 +1,16 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','COUNTER_PARTY_LIST') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'COUNTER_PARTY_LIST' and p.type = 'SQL Query' 
+SELECT 
+P.PTYID				'ShortName',
+P.FULLNAME			'Name',
+ADD_INFO(P,'STT_Client_Code')	'STT'
+
+FROM
+PARTY P
+
+WHERE
+P.TYPE IN ('COUNTERPARTY','CLIENT')

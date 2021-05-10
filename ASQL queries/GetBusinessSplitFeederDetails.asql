@@ -1,0 +1,154 @@
+/* ******************  ASQL USAGE LOG  *********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GetBusinessSplitFeederDetails') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GetBusinessSplitFeederDetails' and p.type = 'SQL Query' 
+
+/*
+Department and Desk : OPS
+Requester			: Letitia Roux
+Developer			: Lawrence Mucheka
+CR Number			: CHNG0003586001
+Purpose				: Monthly Trade Volumes split by business line-Feeder Report
+
+HISTORY
+--------
+Date				Changed by          CR					Description      
+
+*/
+select t.trdnbr 'TradeNumber',
+    i.instype = 'Deposit' and i.open_end ='Open End' 'IsCallAccount',
+    t.quantity,
+    t.insaddr,
+    cpty.ptyid 'CounterpartyName',
+    acq.ptyid 'Acquirer',
+    p.prfid 'Portfolio',
+    t.execution_time 'TradeDate',
+    t.value_day 'ValueDate',
+    display_id(t, 'curr') 'TradeCurrency',
+    nominal_amount(t)   'Nominal',
+    nominal_amount(t) > 0 ? 'B' : 'S' 'BuyOrSell',
+    i.instype 'InstrumentType',
+    ui.insid 'UnderlyingInstrument',
+    i.extern_id1  'InstrumentExternalID1',
+    t.optional_key 'TradeExternalID',
+    add_info(t, 'Funding Instype') 'FundingInsType',
+    t.status 'TradeStatus',
+    t.your_ref 'CPref',
+	cpty.type 'CP_Type',
+    t.trx_trdnbr  'TradeTransref',
+    add_info(t, 'Approx. load') 'Approx_load',
+    i.isin 'ISIN',
+    i.extern_id2  'InstrumentExternalID2',
+    add_info(t, 'MIDAS_MSG') 'MIDAS_MSG',
+	add_info(t, 'PACE_FXO_DEALID') 'PACE_FXO_DEALID',
+    add_info(t, 'MarkitWire') 'MarkitWire',
+    add_info(t, 'Mentis Project Num') 'MentisProjectNum' ,
+    t.trx_trdnbr=0 or t.trx_trdnbr=t.trdnbr ? add_info(cpty,'UnexCor Code') : ael_s(t,'PrimeServices_TransRef_Trade.party_check_transref_trade',t.trdnbr) 'UnexCor_Code',
+    acq.hostid                              'AcquirerHostID',
+    cpty.hostid                              'CounterPartyHostID'
+
+into 
+    allTrades
+from
+    trade t,
+    party cpty,
+    party acq,
+    Portfolio p,
+    Instrument i,    
+    Instrument ui
+where t.counterparty_ptynbr = cpty.ptynbr
+and t.acquirer_ptynbr = acq.ptynbr
+and t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and i.und_insaddr *= ui.insaddr
+
+and t.status not in ('Simulated', 'Internal', 'Void')
+and cpty.type ~= 'Intern Dept'
+and cpty.ptyid not in ('JSE CLEAR','JSE SECURITIES EXCHANGE SOUTH AFRICA','JSE', 'MIDAS DUAL KEY')
+and acq.ptyid not in ('SECURITY LENDINGS DESK', 'MIDAS DUAL KEY', 'AAM INTERNAL', 'FMAINTENANCE')
+and i.instype not in ('ETF', 'CFD')
+and t.optional_key not like 'XTPFUT%'
+and not ( 
+			i.instype in ('Curr') 
+			and ( p.prfid in ('VOE') or add_info(t, 'MIDAS_MSG') = 'Sent' or acq.ptyid in ('CORPORATE SALES', 'RETAIL SALES')  or t.optional_key ~= '')
+		)
+and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PB_CR_LIVE') = 0
+and (t.execution_time >= @1_DateFrom{All;'All'}
+        or @1_DateFrom{All;'All'} in ('','All','ALL')) 
+and (t.execution_time <= @2_DateTo{All;'All'}
+        or @2_DateTo{All;'All'} in ('','All','ALL')) 
+
+/*select 
+    t.TradeNumber,
+	c.pay_day	'CashflowPayday',
+	to_string(c.type) 'CashflowType',
+    c.cfwnbr    'CashflowID',
+    c.start_day 'CashflowStartDay',
+    c.end_day 'CashflowEndDay',
+    projected_cf(c) * t.quantity 'CashflowAmount',
+    to_string(l.type)               'CashflowLegType'
+into
+	callCashflows
+from
+    allTrades t,
+	instrument i,
+	leg l,
+	cashflow c
+where
+        t.insaddr = i.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = c.legnbr
+    and	t.IsCallAccount = 'Yes'
+    and c.type not in ('Redemption Amount', 'Interest Reinvestment')
+*/
+select
+    t.TradeNumber,
+    t.IsCallAccount,
+    t.CounterpartyName,
+    t.Acquirer,
+    t.Portfolio,
+    t.TradeDate,
+    t.ValueDate,
+    t.TradeCurrency,
+    t.Nominal,
+    t.BuyOrSell,
+    t.InstrumentType,
+    t.UnderlyingInstrument,
+    t.InstrumentExternalID1,
+    t.TradeExternalID,
+    t.FundingInsType,
+    t.TradeStatus,
+    t.CPref,
+    t.CP_Type,
+    t.TradeTransref,
+    t.Approx_load,
+    t.ISIN,
+    t.InstrumentExternalID2,
+    t.MIDAS_MSG,
+    t.PACE_FXO_DEALID,
+    t.MarkitWire,
+    t.MentisProjectNum,
+    t.UnexCor_Code,
+    t.AcquirerHostID,
+    t.CounterPartyHostID,
+    '' 'CashflowPayday',
+	'' 'CashflowType',
+    '' 'CashflowID',
+    '' 'CashflowStartDay',
+    '' 'CashflowEndDay',
+    '' 'CashflowAmount',
+    '' 'CashflowLegType'    
+    /*cv.CashflowPayday,
+	cv.CashflowType,
+    cv.CashflowID,
+    cv.CashflowStartDay,
+    cv.CashflowEndDay,
+    cv.CashflowAmount,
+    cv.CashflowLegType*/    
+from 
+    allTrades t
+where t.IsCallAccount ~= 'Yes'
+    /*,callCashflows cv
+where t.TradeNumber *= cv.TradeNumber*/

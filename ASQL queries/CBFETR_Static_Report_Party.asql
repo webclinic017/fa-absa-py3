@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CBFETR_Static_Report_Party') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CBFETR_Static_Report_Party' and p.type = 'SQL Query' 
+
+/*
+Purpose: This ASQL reports all the Party static that is needed
+for BOPCUS 3 reporting. Operations will be able to highlight
+any missing static data and get it fixed.
+
+Date            Who                 CR Number       What
+2013-08-17      Heinrich Cronje     CHNG0001209844  Created
+*/
+
+
+select
+    p.ptynbr,
+    add_info(p,'BarCap_SMS_CP_SDSID')   'BarCap_SMS_CP_SDSID',
+    p.ptyid,
+    p.fullname,
+    p.fullname2,
+    p.type,
+    p.attention,
+    p.address,
+    p.address2,
+    p.city,
+    p.country,
+    ael_s(,'CBFETR_Helper_Functions.get_Country_Code',p.country)    'CountryCode',
+    p.zipcode,
+    p.telephone,
+    p.email,
+    display_id(p,'free2_chlnbr')    'Foreig Party'
+from
+    party p
+where
+        p.not_trading = 'No'
+    and p.type not in ('Issuer', 'Market', 'MtM Market')
+    and ('All' in (@Counterparty{All;party.ptyid*}) or p.ptyid in (@Counterparty{All;party.ptyid*}))

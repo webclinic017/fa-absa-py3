@@ -1,0 +1,5 @@
+[Prime Services]FInstrumentAndTrades:clientDailyTPLNoFees = sumOf(children :* "clientDailyTPLNoFees");
+[Prime Services]FSingleInstrumentAndTrades:clientDailyTPLNoFees = select(object.Instrument.InsType, 
+  "BuySellBack"->dailyCarry, 
+  "Deposit"->plZero, 
+  default->dailyTPL - object :* "fees" [profitAndLossStartDate = previousBusinessDateStart]);

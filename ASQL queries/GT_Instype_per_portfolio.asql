@@ -1,0 +1,60 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GT_Instype_per_portfolio') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GT_Instype_per_portfolio' and p.type = 'SQL Query' 
+ 
+  /* first show only ths instypes*/
+
+
+select
+count(t.trdnbr),
+i.insid,
+i.instype,
+t.status,
+p.prfid'portfolio',
+i.exp_day'exp_day',
+nominal_amount(t)
+from
+
+trade t,
+instrument i,
+portfolio p
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and p.prfid=@portfolio{;portfolio.prfid}
+and i.exp_day>Today
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+group by i.instype,5
+
+union
+
+select
+t.trdnbr,
+i.insid,
+i.instype,
+t.status,
+p.prfid,
+i.exp_day,
+nominal_amount(t)
+
+from
+
+trade t,
+instrument i,
+portfolio p
+
+where
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and p.prfid=@portfolio{;portfolio.prfid}
+and i.exp_day>Today
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+order by i.instype

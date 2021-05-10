@@ -1,0 +1,13 @@
+[Securities Lending ABSA]FInstrument:slPartyMajorCode = (object.Trades.At(0)) :* "slPartyMajorCode";
+[Securities Lending ABSA]FMoneyFlow:slPartyMajorCode = slMoneyFlowCounterparty:slPartyMajorCode;
+[Securities Lending ABSA]FMoneyFlowAndTrades:slPartyMajorCode = slMoneyFlowCounterparty:slPartyMajorCode;
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPartyMajorCode = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference).AdditionalInfo.SL_MajorPtyCode), 
+  default->nil);
+[Securities Lending ABSA]FMultiMoneyFlowAndTrades:slPartyMajorCode = shunt(slMoneyFlowCounterparty, 
+  nil->nil, 
+  default->slMoneyFlowCounterparty:slPartyMajorCode);
+[Securities Lending ABSA]FParty:slPartyMajorCode = object.AdditionalInfo.SL_MajorPtyCode;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPartyMajorCode = instrument:slPartyMajorCode;
+[Securities Lending ABSA]FTrade:slPartyMajorCode = true_counterparty.AdditionalInfo.SL_MajorPtyCode;
+[Securities Lending ABSA]FTradeRow:slPartyMajorCode = trade:slPartyMajorCode;

@@ -1,0 +1,372 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_dev_primeba_basis_swapreset') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_dev_primeba_basis_swapreset' and p.type = 'SQL Query' 
+/*Create temptable*/
+
+select
+
+t.trdnbr			'trdnbr',
+l.start_day			'startday',
+l.end_day			'endday',
+c.pay_day			'payday',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+r.value+c.spread		'frwrate',
+ael_s(t,'InstrType.InstrumentType'),
+ael_d(c,'PBADate') 'NewDate',
+r.day 'ResetDate'	
+
+
+into temp
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and	r.type = 'Single'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	r.day=@Reset{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+select
+
+t.trdnbr			'trdnbr',
+l.start_day			'startday',
+l.end_day			'endday',
+c.pay_day			'payday',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+r.value+c.spread		'frwrate',
+ael_s(t,'InstrType.InstrumentType'),
+ael_d(c,'PBADate'),
+r.day 'ResetDate'	
+
+into temptt
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p,
+temp				tt
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and	r.type = 'Single'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	c.end_day = tt.NewDate
+and	t.trdnbr = tt.trdnbr
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+
+
+
+
+
+
+
+
+select
+
+/*l.payleg = 'No' and  nominal_amount(t) < 0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer',*/
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor	'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+days_between(c.start_day, c.end_day, l.daycount_method) 'days',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+abs(projected_cf(c)*t.quantity)	'interest',
+r.value+c.spread		'frwrate',
+l.payleg			'payleg',
+l.payleg='Yes' ? 'ABSA BANK LIMITED' : p.fullname	'payer2',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+/*t.quantity*l.nominal_factor*i.contr_size	'nominal',*/
+nominal_amount(t) 'nominal',
+/* t.quantity*nominal_amount(c) */
+ael_s(t,'InstrType.InstrumentType'),
+0.0 'Parin',
+t.optional_key 'DevNbr'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and	r.type = 'Single'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	r.day=@Reset{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+order by 8
+
+
+/*Payleg = No*/
+union
+
+select
+
+/*l.payleg = 'Yes' and nominal_amount(t) > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer',*/
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+days_between(c.start_day, c.end_day, l.daycount_method) 'days',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+abs(projected_cf(c)*t.quantity)	'interest',
+c.end_day > TODAY ? 0 : ael_f(c,'RODSFloatingCashflow.AVERate',TODAY)+(l.spread)		'frwrate',
+l.payleg			'payleg',
+l.payleg='Yes' ? 'ABSA BANK LIMITED' : p.fullname	'payer2',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+/*t.quantity*l.nominal_factor*i.contr_size	'nominal',*/
+nominal_amount(t) 'nominal',
+ael_s(t,'InstrType.InstrumentType'),
+ael_f(c,'RODSFloatingCashflow.AVERate',TODAY)+(l.spread) ' Parin',
+t.optional_key 'DevNbr'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p,
+temp				tt
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and 	r.type = 'Weighted'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	r.day=@Reset{}
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and 	t.trdnbr = tt.trdnbr
+and	t.status not in ('Simulated','Terminated','Void')
+order by 8
+
+
+union
+
+
+
+select
+
+/*l.payleg = 'No' and  nominal_amount(t) < 0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer',*/
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor	'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+days_between(c.start_day, c.end_day, l.daycount_method) 'days',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+abs(projected_cf(c)*t.quantity)	'interest',
+r.value+c.spread		'frwrate',
+l.payleg			'payleg',
+l.payleg='Yes' ? 'ABSA BANK LIMITED' : p.fullname	'payer2',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+/*t.quantity*l.nominal_factor*i.contr_size	'nominal',*/
+nominal_amount(t) 'nominal',
+/* t.quantity*nominal_amount(c) */
+ael_s(t,'InstrType.InstrumentType'),
+0.0 'Parin',
+t.optional_key 'DevNbr'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p,
+temptt				tt
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and	r.type = 'Single'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	r.day = tt.ResetDate
+and	t.trdnbr = tt.trdnbr
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+order by 8
+
+
+/*Payleg = No*/
+union
+
+select
+
+/*l.payleg = 'Yes' and nominal_amount(t) > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer',*/
+distinct t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+c.start_day			'cfstart',
+c.end_day			'cfend',
+days_between(c.start_day, c.end_day, l.daycount_method) 'days',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+abs(projected_cf(c)*t.quantity)	'interest',
+ael_f(c,'RODSFloatingCashflow.AVERate',TODAY)+(l.spread)		'frwrate',
+l.payleg			'payleg',
+l.payleg='Yes' ? 'ABSA BANK LIMITED' : p.fullname	'payer2',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+/*t.quantity*l.nominal_factor*i.contr_size	'nominal',*/
+nominal_amount(t) 'nominal',
+ael_s(t,'InstrType.InstrumentType'),
+ael_f(c,'RODSFloatingCashflow.AVERate',TODAY)+(l.spread) ' Parin',
+t.optional_key 'DevNbr'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p,
+temptt				tt
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	i.instype='Swap'
+and 	r.type = 'Weighted'
+and ael_s(t,'InstrType.InstrumentType') in ('PrimeBS', 'AmortisingPrimeBS')
+and	r.day = tt.ResetDate
+and	t.trdnbr = tt.trdnbr
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+order by 8

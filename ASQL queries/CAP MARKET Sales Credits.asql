@@ -1,0 +1,33 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET Sales Credits') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET Sales Credits' and p.type = 'SQL Query' 
+ 
+  select 
+
+t.trdnbr  'trade',
+i.insid,
+t.creat_time  'trade time',
+t.quantity  'Quantity',
+nominal_amount(t)   'nominal',
+port.prfid  'Portfolio',
+p.ptyid  'Issuer'
+
+From
+trade t,
+instrument i,
+party p,
+portfolio port
+
+Where 
+
+t.insaddr = i.insaddr
+and t.prfnbr = port.prfnbr
+and i.issuer_ptynbr = p.ptynbr
+/*and t.creat_time > '21/09/2007 12:51:56 PM'*/
+and nominal_amount(t) > 0
+and t.status not in ('Void','Simulated')
+and i.insid re_like_nocase '.*NQF.*'
+and port.prfid LIKE '%JOB%'

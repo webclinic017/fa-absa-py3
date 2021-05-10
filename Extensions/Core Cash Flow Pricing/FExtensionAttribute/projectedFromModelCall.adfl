@@ -1,0 +1,7 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:projectedFromModelCall = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(fixedRateFromTheoreticalPrice, 
+    true->select(projectedFromModelCallAsCouponFactor, 
+      true->setDateTimePart(opaque(instrument:theoreticalPrice) * double(projectedFromModelCallForCashFlow) * instrument:quotationFactor, instrument:instrumentSpotDate), 
+      false->collapse(projectedFromModelCallForCashFlow)), 
+    false->collapse(projectedFromModelCallForCashFlow)));

@@ -1,0 +1,7 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCapLimitZero = sumOf(children :* "hedgeCapLimitZero");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCapLimitZero = sumOf(children :* "hedgeCapLimitZero");
+[HedgeAccountingMod]FTradeRow:hedgeCapLimitZero = switch((isNIHHR or isCashFlowHR), 
+  true->switch(tradeHedgeType, 
+    "Close Zero"->denominatedvalue(costUPL, displayCurrencySymbol, , ), 
+    default->denominatedvalue(0, displayCurrencySymbol, , )), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ));

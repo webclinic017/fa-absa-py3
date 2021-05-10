@@ -1,0 +1,9 @@
+[Default]FCombInstrMap:combinationEmbeddedOptionInstrumentPositionValue = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->select(combinationLegsUnadjusted, 
+    true->setDateTimePart(valuationInstrument :* "embeddedOptionInstrumentComponentValue * riskPosition" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities], (combination:instrumentSpotDate)) * weight, 
+    false->valuationInstrument :* "embeddedOptionInstrumentPositionValues" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities = (positionTradeQuantities * weight)]) * timeDistributionFactor);
+[Default]FCombInstrMapAndTrades:combinationEmbeddedOptionInstrumentPositionValue = combinationInstrumentMap :* "combinationEmbeddedOptionInstrumentPositionValue" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionTradeQuantities];
+[Default]FCombination:combinationEmbeddedOptionInstrumentPositionValue = shunt[priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities](splitCombination, 
+  true->sumOf(instrumentMaps :* "combinationEmbeddedOptionInstrumentPositionValue" [priceSource, doSplitAll, valuesOnSpotOverride, positionTradeQuantities]) / underlyingOrSelf.Factor, 
+  false->spotHandlingZero);

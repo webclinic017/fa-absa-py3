@@ -1,0 +1,30 @@
+[Default]FCap:parRateClean = select(isInflationOptionalityInstrument, 
+  true->nil, 
+  false->switch(expiryDate <= valuationDate, 
+    true->nan, 
+    false->object.UnitValueToUnitQuote((nonCouponValueCleanCapFloor) / couponFactorCleanCapFloor, valuationDate, unitQuoteScaling)));
+[Default]FCashFlowInstrument:parRateClean = select(isGenericCouponQuoted, 
+  true->parRate, 
+  false->select((nil == uniqueCouponInTheoreticalPriceClean) or hasInvalidLegsForImply, 
+    false->select(implyForParRateClean, 
+      true->collapse(impliedParRateClean), 
+      false->object.UnitValueToUnitQuote((denominatedvalue(0.01 * unitGoalValueForParAdjusted, unitGoalValueUnit, , instrumentSpotDate) - nonCouponValueClean) / couponFactorClean, valuationDate, unitQuoteScaling)), 
+    true->nil));
+[Default]FFloor:parRateClean = select(isInflationOptionalityInstrument, 
+  true->nil, 
+  default->switch(expiryDate <= valuationDate, 
+    true->nan, 
+    false->object.UnitValueToUnitQuote((nonCouponValueCleanCapFloor) / couponFactorCleanCapFloor, valuationDate, unitQuoteScaling)));
+[Default]FFra:parRateClean = parRate;
+[Default]FInstrument:parRateClean = 0.0;
+[Default]FInstrumentAndTrades:parRateClean = instrument :* "parRateClean" [priceSource];
+[Default]FLeg:parRateClean = select(instrument:isFixedFixedSwap, 
+  false->nil, 
+  true->select(uniqueCouponInTheoreticalPrice, 
+    nil->nil, 
+    default->instrument:impliedParRateClean [priceSource, uniqueCouponInTheoreticalPrice, uniqueCouponOrSpreadInTheoreticalPriceFilter = object]));
+[Default]FLegAndTrades:parRateClean = select(instrument:isFixedFixedSwap, 
+  true->leg :* "parRateClean" [priceSource], 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:parRateClean = nil;
+[Default]FPriceAggregate:parRateClean = instrument:parRateClean;

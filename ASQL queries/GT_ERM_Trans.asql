@@ -1,0 +1,174 @@
+/*
+
+based on the query = erm_trans
+
+included counterparty and trade status on 2007-02-14 by Anil
+
+*/
+
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_ERM_Trans') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_ERM_Trans' and p.type = 'SQL Query' 
+select
+	srdnbr,
+	to_date(@1_StartDate{})		'Start',
+	to_date(@2_End_date{})		'End',
+	@Filter{;tradefilter.fltid}	'Filter'
+into
+	macro
+from
+	serverdata
+
+select 
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	ael_s(i,'freq',i)				'Frequency',
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+	t.status,
+	display_id(t,'counterparty_ptynbr')'CP'
+
+
+from
+	trade t,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	cashflow cf
+where
+	match_filter(t,@Filter{;tradefilter.fltid})
+and	time_to_day(t.time) >= m.Start
+and	time_to_day(t.time) <= m.End
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	((l.type = 'Float' and	f.type = 'Fixed')
+or	l.type in ('Cap','Floor'))
+and	i.insaddr *= f.insaddr
+	
+and	cr.insaddr = l.float_rate
+and 	l.legnbr *= r.legnbr
+and	r.resnbr *= ael_i(l,'last_res',l)
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+
+union
+
+select 
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? l.strike : l.fixed_rate	'Fixed_Rate',
+	ael_s(i,'freq',i)				'Frequency',
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+	t.status,
+	display_id(t,'counterparty_ptynbr')'CP'
+
+
+from
+	trade t,
+	instrument i,
+	leg l,
+	macro m,
+	reset r,
+	cashflow cf,
+	instrument cr
+where
+	match_filter(t,@Filter{;tradefilter.fltid})
+and	time_to_day(t.time) >= m.Start
+and	time_to_day(t.time) <= m.End
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	i.instype = 'FRA'
+and 	l.legnbr *= r.legnbr
+and	r.resnbr *= ael_i(l,'last_res',l)
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+and	cr.insaddr =* l.float_rate
+
+union
+
+select 
+	t.trdnbr			'TradeNumber',
+	i.instype,
+	display_id(t,'prfnbr')		'Portfolio',
+	time_to_day(t.time),
+	l.start_day > m.End ? nominal_amount(t,t.value_day) : nominal_amount(t,m.End)		'Nominal_Amount',
+	nominal_amount(t,t.value_day)		'Position',
+	t.value_day,
+	l.start_day,
+	i.exp_day,
+	days_between(l.start_day,i.exp_day,'Act/365')	'TradeTerm',
+	i.exp_day < m.End ? 0 : days_between(m.End,i.exp_day,'Act/365')	'DaysEndExp',
+	i.instype = 'Cap' ? f.strike : f.fixed_rate	'Fixed_Rate',
+	ael_s(und,'freq',und)				'Frequency',
+	projected_cf(cf) * t.quantity > 0.0 ? 'PF' : 'RF'						'Type',
+ 	r.day								'ResetDay',
+	r.value								'ResetValue',
+	used_price(cr,r.day)					'Float_Ref_Value',
+	delta_implicit(t)						'Delta',
+	interest_accrued(t, m.End),
+	t.status,
+	display_id(t,'counterparty_ptynbr')'CP'
+
+
+from
+	trade t,
+	instrument i,
+	leg l,
+	leg f,
+	macro m,
+	reset r,
+	instrument cr,
+	instrument und,
+	cashflow cf
+where
+	match_filter(t,@Filter{;tradefilter.fltid})
+and	time_to_day(t.time) >= m.Start
+and	time_to_day(t.time) <= m.End
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.und_insaddr
+and	((l.type = 'Float' and	f.type = 'Fixed')
+or	l.type in ('Cap','Floor'))
+and	i.und_insaddr *= f.insaddr
+and	i.instype = 'Option'	
+and	cr.insaddr = l.float_rate
+and 	l.legnbr *= r.legnbr
+and	r.resnbr *= ael_i(l,'last_res',l)
+and	r.cfwnbr = cf.cfwnbr
+and	cf.legnbr =* l.legnbr
+and	i.und_insaddr = und.insaddr

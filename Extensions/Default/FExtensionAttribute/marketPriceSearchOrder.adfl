@@ -1,0 +1,11 @@
+#grouping: aef base/price retrieval
+
+[Default]FFxRate:marketPriceSearchOrder = getOrderBookPriceType(fxPriceFindingPriceType);
+[Default]FInstrument:marketPriceSearchOrder = switch(useOnlyClosePriceAsMarketPrice, 
+  false->priceFindingPriceSearchOrder, 
+  true->priceSearchOrderClose);
+[Default]FInstrumentAndTrades:marketPriceSearchOrder = instrument:marketPriceSearchOrder;
+[Default]FOrderBook:marketPriceSearchOrder = instrument:marketPriceSearchOrder;
+[Default]FPriceFeed:marketPriceSearchOrder = select(instrument, 
+  nil->nil, 
+  default->instrument:marketPriceSearchOrder);

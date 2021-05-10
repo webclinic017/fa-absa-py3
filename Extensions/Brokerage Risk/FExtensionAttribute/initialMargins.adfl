@@ -1,0 +1,7 @@
+[Brokerage Risk]FInstrument:initialMargins = switch(spanInstruments.HasKey(object.Oid), 
+  true->currencyZero, 
+  false->initialMarginSimpleModel);
+[Brokerage Risk]FLegAndTrades:initialMargins = nil;
+[Brokerage Risk]FMultiInstrumentAndTrades:initialMargins = sumOf(openInstruments :* "collapse(initialMargins)" [portfolio, priceSource, valuesOnSpotOverride, positionObject]);
+[Brokerage Risk]FSingleInstrumentAndTrades:initialMargins = instrument:initialMargins [portfolio, priceSource, valuesOnSpotOverride, positionObject];
+[Brokerage Risk]FTradeRow:initialMargins = openInstrument :* "initialMargins" [portfolio, priceSource, valuesOnSpotOverride, positionObject];

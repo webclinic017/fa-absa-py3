@@ -1,0 +1,77 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_MainVolatilityExtract') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_MainVolatilityExtract' and p.type = 'SQL Query' 
+ 
+/* 
+Name: 		SANLD_VolatilityExtract
+History:	Hardus Jacobs Added Put/Call Layer option
+
+
+Provide the user with an extract of volatilities per the grid specified via the inputs
+
+Inputs
+	Pivot - the central strike/delta/spot percentage associated with the desired surface
+	Shift - the steplength associated with the grid as desired by the user
+	Volatility - the volatility surface as defined in Front Arena
+	Width - the number of rows/number of strike/delta/spot percentage points per tenor
+*/
+
+/*Generate sequence 0-9*/
+
+select
+	p1.ptynbr,
+	count(p2.ptynbr)-1	'Nbr'
+into
+	TMP
+from
+	party p1,
+	party p2
+where
+	p1.ptynbr<p2.ptynbr
+and	p1.ptynbr < 500
+and	p2.ptynbr < 500
+group by p1.ptynbr
+
+/*Generate sequence 1-1000*/
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+	t1.Nbr<10
+and	t2.Nbr<10
+and	t3.Nbr<150
+
+/********** Contruct Grid for volatility extract ****************/
+
+select
+	@PUT_CALL{} = 'PUT' ? -((s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[]) : (s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[] 	'Strike',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,1,0,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{;'PUT','CALL'})'1D',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,7,0,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{;'PUT','CALL'})'1W',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,1,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{;'PUT','CALL'})'1M',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,2,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'2M',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,3,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'3M',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,6,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'6M',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,9,0), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'9M',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,0,1), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'1Y',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,0,2), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'2Y',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,0,3), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'3Y',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,0,4), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'4Y',
+	ael_f(v,'ReturnVolatility_test',(s.Nbr-round(@Width[]/2,0))*@Shift[]+@Pivot[],bankday_adjust(date_add_delta(today,0,0,5), display_id(v, 'curr'), 'Mod. Following'),@PUT_CALL{})'5Y',
+	v.vol_name	'Volatility',
+	@PUT_CALL{}	'Layer',
+	TODAY	'DATADATE'
+from
+	SCEN s,
+	volatility	v
+where
+	s.Nbr <= @Width[]
+and	v.vol_name in (@Volatility{USDZAR,EURZAR,GBPZAR,JPYZAR,CHFZAR,EURUSD,USDTRY,USDJPY,AUDUSD;Volatility.vol_name*})

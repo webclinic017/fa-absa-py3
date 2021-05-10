@@ -1,0 +1,22 @@
+select 
+    t.trdnbr
+
+from    
+    Trade t,
+    Portfolio p,
+    Instrument i
+
+where   
+    p.prfnbr = t.prfnbr
+and t.insaddr = i.insaddr
+and ((i.instype = 'Curr'
+    and t.value_day >= today)
+or
+   (i.instype ='Future/Forward'
+    and i.und_instype = 'Curr'
+    and i.paytype = 'Forward'
+    and t.value_day >= today)
+or
+    (i.instype = 'FXOptionDatedFwd'))
+and match_portfolio(t,'ABSA CAPITAL') 
+and ael_i(,'getTradeSystem.filter_EOD_trades',t.trdnbr) = 1

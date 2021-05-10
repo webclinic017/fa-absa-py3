@@ -1,0 +1,8 @@
+[Fixed Income Pricing and Risk]FAssetMortgageBackedSecurity:assumedRate = select(firstNonFixedLeg, 
+  nil->nil, 
+  default->firstNonFixedLeg:assumedRate [priceSource]);
+[Fixed Income Pricing and Risk]FFrn:assumedRate = firstNonFixedLeg:assumedRate [priceSource];
+[Fixed Income Pricing and Risk]FInstrument:assumedRate = nil;
+[Fixed Income Pricing and Risk]FLeg:assumedRate = select(fixingInstrument, 
+  nil->nil, 
+  default->0.01 * fixingInstrument:marketPriceOrTheoreticalPrice [priceSource]);

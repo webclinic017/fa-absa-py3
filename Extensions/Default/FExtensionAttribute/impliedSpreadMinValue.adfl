@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:impliedSpreadMinValue = select(uniqueStrikeInTheoreticalPrice, 
+  nil->-0.99, 
+  default->-0.01 * uniqueStrikeInTheoreticalPrice);
+[Default]FLeg:impliedSpreadMinValue = select(uniqueStrikeInTheoreticalInstrumentValue, 
+  nil->-0.99, 
+  default->select(isFloorLeg and not staticLegInformation:isSpread, 
+    true->-0.01 * uniqueStrikeInTheoreticalInstrumentValue - stripDateTimePart(atmParLevelForLeg), 
+    false->-0.99));
+[Default]FTradeRow:impliedSpreadMinValue = instrument:impliedSpreadMinValue;

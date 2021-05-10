@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FCashFlow:nominalPosition = 
+# Upgrade 2017: relates to fix for "receiveLegNominalPositions"
+switch(cashFlowType, 
+  nil->nil, 
+  default->switch(cashFlowInformation:isFixedAmountCashFlow, 
+    true->trade.Quantity * projectedCashFlow, 
+    false->trade.Quantity * instrument.ContractSize * cashFlowInformation.Nominal(legInformation) * object.NominalFactor));
+[ABSA Specific 4.3]FUndefinedObject:nominalPosition = nil;

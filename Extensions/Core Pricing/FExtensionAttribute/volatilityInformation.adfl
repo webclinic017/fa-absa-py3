@@ -1,0 +1,15 @@
+#grouping: risk factors
+
+[Core Pricing]FCashFlowInformation:volatilityInformation = legInformation.VolatilityInformation;
+[Core Pricing]FInstrument:volatilityInformation = mappedVolatilityLink :* "volatilityInformation" [priceSource];
+[Core Pricing]FInstrumentAndTrades:volatilityInformation = instrument:volatilityInformation;
+[Core Pricing]FLeg:volatilityInformation = shunt[](isSimulatedFlatVolatility, 
+  false->collapse(mappedVolatilityInformation), 
+  true->collapse(shiftedForwardVolatilityInformation));
+[Core Pricing]FLegAndTrades:volatilityInformation = leg:volatilityInformationForLeg;
+[Core Pricing]FLegInformation:volatilityInformation = object.VolatilityInformation;
+[Core Pricing]FMappingLink:volatilityInformation = volatilityInformationHierarchy;
+[Core Pricing]FVolatilityPoint:volatilityInformation = volatilityStructureHierarchy:volatilityInformation;
+[Core Pricing]FVolatilityStructureHierarchy:volatilityInformation = select(constantVolatilityTermStructure, 
+  true->volatilityAdjustValuationDate(delta(volatilityStructure :* "volatilityStructureInformationBase" [component = underlyingVolatilityHierarchy, volatilityReference = object.VolatilityReference, priceSource], volatilityShift), parameterDateOffset), 
+  false->delta(volatilityStructure :* "volatilityStructureInformationBase" [component = underlyingVolatilityHierarchy, volatilityReference = object.VolatilityReference, priceSource], volatilityShift));

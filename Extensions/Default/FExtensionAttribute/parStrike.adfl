@@ -1,0 +1,16 @@
+[Default]FCashFlowInstrument:parStrike = select(unitGoalValueForPar, 
+  default->select(exerciseEventsExist, 
+    true->shunt[priceSource]((nil <> storedStrike) and not isExpiredFullDay, 
+      true->imply(snoop(theoreticalPriceClean, "storedStrike"), theoreticalPriceClean, unitGoalValueForPar, implyPrecision, lowerBoundForImpliedStrike, upperBoundForImpliedStrike, implyMaxIterations), 
+      default->nil), 
+    default->select(numberOfCapFloorLegs, 
+      1->(floatLeg) :* "parStrike" [priceSource], 
+      default->nil)), 
+  nil->nil);
+[Default]FInstrument:parStrike = nil;
+[Default]FInstrumentAndTrades:parStrike = instrument :* "parStrike" [priceSource];
+[Default]FLeg:parStrike = shunt[priceSource](object.IsCapFloorLeg, 
+  false->nil, 
+  true->imply(uniqueStrikeInTheoreticalPriceClean, instrument:theoreticalPriceClean, instrument:unitGoalValueForPar, implyPrecision, lowerBoundForImpliedStrike, upperBoundForImpliedStrike, implyMaxIterations));
+[Default]FLegAndTrades:parStrike = leg :* "parStrike" [priceSource];
+[Default]FMultiInstrumentAndTrades:parStrike = nil;

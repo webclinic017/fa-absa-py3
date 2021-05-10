@@ -1,0 +1,7 @@
+[Default]FOwnOrder:todaysVWAPInstance = select(marketPlace:isInternalMarket, 
+  true->homeTrading :* "todaysVWAPInstance", 
+  false->trading:todaysVWAPInstance);
+[Default]FSalesOrder:todaysVWAPInstance = switch(homeTrading, 
+  nil->nil, 
+  default->homeTrading :* "todaysVWAPInstance");
+[Default]FTradingInterface:todaysVWAPInstance = value(CreateMarketVWAP(object));

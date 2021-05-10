@@ -1,0 +1,9 @@
+[ACL]FCashFlowInstrument:faclAttrIsBuy = select(isSingleLegInstrument, 
+  true->(faclTradeObject.Quantity >= 0), 
+  false->select(faclPayLeg, 
+    nil->nil, 
+    default->select(faclPayLeg.LegType, 
+      "Credit Default"->(faclTradeObject.Quantity < 0), 
+      default->(faclTradeObject.Quantity >= 0))));
+[ACL]FInstrument:faclAttrIsBuy = (faclTradeObject.Quantity >= 0);
+[ACL]FOdf:faclAttrIsBuy = ((not object.IsCallOption) and (faclTradeObject.Quantity < 0)) or (object.IsCallOption and (faclTradeObject.Quantity >= 0));

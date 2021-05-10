@@ -1,0 +1,7 @@
+#grouping: risk factors/volatility value
+
+[Default]FInstrument:forwardFxVolatility = select(undDomesticCurrLeg:currency == undForeignCurrLeg:currency, 
+  true->0.0, 
+  false->select(volatilityInformationHasGenericValueFunction, 
+    true->collapse(volatilityStructureValue), 
+    false->volatilityInformation.Value(underlyingMaturityDate, expiryDate, 0.0, isCall, false, true, underlyingForwardPriceForVolatility, skewExpiriesForwardPriceForVolatility, foreignRateForVolatility, domesticRateForVolatility)));

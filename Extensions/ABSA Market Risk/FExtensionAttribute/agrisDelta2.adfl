@@ -1,0 +1,10 @@
+[ABSA Market Risk]FFuture:agrisDelta2 = select(payType, 
+  "Future"->profitAndLossPositionDisplay * contractSize, 
+  "Forward"->discountCurve.DiscountValue(denominatedvalue(profitAndLossPositionDisplay * contractSize, instrument:currency, , expiryDate), today).Number, 
+  default->0.0);
+[ABSA Market Risk]FInstrument:agrisDelta2 = select(priceDelta.IsKindOf("FDenominatedValue"), 
+  true->priceDelta.Number, 
+  default->0.0);
+[ABSA Market Risk]FMultiInstrumentAndTrades:agrisDelta2 = sumOf(children :* "agrisDelta2" [includeAllTrades = false]);
+[ABSA Market Risk]FSingleInstrumentAndTrades:agrisDelta2 = instrument:agrisDelta2 [priceDelta, positionObject];
+[ABSA Market Risk]FTradeRow:agrisDelta2 = instrument :* "agrisDelta2" [includeAllTrades = false, singleTradePosition, priceDelta];

@@ -1,0 +1,192 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_BA_Coupon_Register') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_BA_Coupon_Register' and p.type = 'SQL Query' 
+/* List of trades */
+select
+	port.prfnbr,
+	port.prfid,
+	t.trdnbr,
+	t.quantity,
+	i.insid,
+	i.instype 			'itype',
+	(i.contr_size * t.quantity)     'nominal',
+/*	(t.quantity >= 0) ? (i.contr_size * t.quantity * XXXXXX) 'RecAcc', 0.0 'PayAcc'
+: (nominal*XXXXXX) 'PayAcc',
+*/	p.ptyid 'cpid',
+	pi.ptyid 'issid',
+	display_id(t,'counterparty_ptynbr') 	'CounterParty'
+into 
+	TRD
+from
+	portfolio	port,
+	trade 		t,
+	instrument 	i,
+	party		p,
+	party		pi
+where
+	match_filter(t, @1_Filter{;tradefilter.fltid})
+and	('All' in (@Instrument{All;Instrument.insid where instype = 'Bond'}) or i.insid = @Instrument{})
+and	i.insaddr = t.insaddr
+and	t.counterparty_ptynbr=p.ptynbr
+and	i.issuer_ptynbr *= pi.ptynbr
+and	t.prfnbr = port.prfnbr
+
+/* Cashflows */
+select
+	i.insid			'Instrument',	
+	port.prfid		'Portfolio',	
+	ex_coupon_date(c)		'day',
+	trd.nominal		'nominal',
+	c.pay_day		'payday',
+	l.fixed_rate		'rate',
+	display_id(l,'curr')	'curr',
+	t.trdnbr,
+	instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP' 'PartyType',
+	trd.quantity >= 0 ? (trd.nominal * l.fixed_rate/2/100) : 0.0 'RecAcc',
+	trd.quantity < 0 ? (trd.nominal * l.fixed_rate/2/100) : 0.0 'PayAcc',
+	instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'Party',
+	trd.CounterParty
+into
+	CF
+from
+	trade t,
+	portfolio port,
+	instrument i,
+	leg l,
+	cashflow c,
+	TRD trd
+where
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = c.legnbr
+and	t.trdnbr = trd.trdnbr
+and	c.pay_day >= t.acquire_day
+and	c.type = 'Fixed Rate'
+and 	port.prfnbr=t.prfnbr
+and	c.pay_day >= @2_StartDate{TODAY;}
+and	c.pay_day <= @3_EndDate{TODAY;}
+and	t.value_day <= ex_coupon_date(c)
+
+/* Final Select */
+/* Detail */
+select
+	c.Portfolio	'Portfolio',
+	c.instrument	'Instrument',
+	c.day		'BooksClose',
+	c.trdnbr	'TrdNbr',	
+	c.nominal	'Nominal',
+	c.payday	'Coupon Date(Next)',
+	c.rate		'Coupon Rate',
+	c.curr		'Curr',
+	c.RecAcc	'Coupon Received',
+	c.PayAcc	'Coupon Paid',
+	c.RecAcc + c.PayAcc	'Net Interest',
+	c.PartyType,
+	c.Party,
+	c.CounterParty
+from
+	CF c
+where
+	c.curr = @4_Currency{ZAR;instrument.insid where instype = 'Curr'}
+
+
+union
+
+/* Total per Instrument */
+
+select
+	'Total per Instrument'	'Portfolio',
+	c.instrument	'Instrument',
+	c.day		'BooksClose',
+	c.trdnbr	'TrdNbr',	
+	sum(c.nominal)	'Nominal',
+	c.payday	'Coupon Date(Next)',
+	c.rate		'Coupon Rate',
+	c.curr		'Curr',
+	sum(c.RecAcc)	'Coupon Received',
+	sum(c.PayAcc)	'Coupon Paid',
+	sum(c.RecAcc + c.PayAcc)	'Net Interest',
+	c.PartyType,
+	c.Party,
+	c.CounterParty
+from
+	CF c
+where
+	c.curr = @4_Currency{ZAR;instrument.insid where instype = 'Curr'}
+group by c.instrument
+
+union
+
+/* Total per Portfolio */
+select
+	c.Portfolio	'Portfolio',
+	'Total per Portfolio'	'Instrument',
+	c.day		'BooksClose',
+	c.trdnbr	'TrdNbr',	
+	sum(c.nominal)	'Nominal',
+	c.payday	'Coupon Date(Next)',
+	c.rate		'Coupon Rate',
+	c.curr		'Curr',
+	sum(c.RecAcc)	'Coupon Received',
+	sum(c.PayAcc)	'Coupon Paid',
+	sum(c.RecAcc + c.PayAcc)	'Net Interest',
+	c.PartyType,
+	c.Party,
+	c.CounterParty
+from
+	CF c
+where
+	c.curr = @4_Currency{ZAR;instrument.insid where instype = 'Curr'}
+group by c.Portfolio
+
+union
+
+/* Total per Counterparty */
+
+select
+	c.Portfolio	'Portfolio',
+	'Total per Counterparty'	'Instrument',
+	c.day		'BooksClose',
+	c.trdnbr	'TrdNbr',	
+	sum(c.nominal)	'Nominal',
+	c.payday	'Coupon Date(Next)',
+	c.rate		'Coupon Rate',
+	c.curr		'Curr',
+	sum(c.RecAcc)	'Coupon Received',
+	sum(c.PayAcc)	'Coupon Paid',
+	sum(c.RecAcc + c.PayAcc)	'Net Interest',
+	c.PartyType,
+	c.Party,
+	c.CounterParty
+from
+	CF c
+where
+	c.curr = @4_Currency{ZAR;instrument.insid where instype = 'Curr'}
+group by c.Counterparty
+union
+
+
+/* Total per Portfolio and Instrument */
+select
+	c.Portfolio	'Portfolio',
+	c.instrument	'Instrument',
+	c.day		'BooksClose',
+	c.trdnbr	'TrdNbr',	
+	sum(c.nominal)	'Nominal',
+	c.payday	'Coupon Date(Next)',
+	c.rate		'Coupon Rate',
+	c.curr		'Curr',
+	sum(c.RecAcc)	'Coupon Received',
+	sum(c.PayAcc)	'Coupon Paid',
+	sum(c.RecAcc + c.PayAcc)	'Net Interest',
+	c.PartyType,
+	c.Party,
+	c.CounterParty
+from
+	CF c
+where
+	c.curr = @4_Currency{ZAR;instrument.insid where instype = 'Curr'}
+group by c.Portfolio, c.Instrument;

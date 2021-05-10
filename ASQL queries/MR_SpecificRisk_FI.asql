@@ -1,0 +1,233 @@
+/*
+
+Purpose                 :Market Risk feed files - Daily Specific Risk (Standardised Approach)
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger
+CR Number               :C000000431684
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_SpecificRisk_FI') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_SpecificRisk_FI' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						                            'hcurr',
+	curr.insid						                            'curr',
+	curr.insaddr                                                'insaddr',
+    @Date{today}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)        'fxRepDay'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+	
+	
+	
+/*----------------------------current settled bonds - Excl Decimax--------------*/
+select
+    display_id(t, 'prfnbr')             'prfid',
+    c.entry                             'TradeArea',
+    i.insid	                            'insid',
+    i.instype                           'instype',
+    i.exp_day                           'expday',
+    t.trdnbr                            'DealReference',
+    t.value_day	                        'SettlementDate',	
+    sum(nominal_amount(t)*1/fx.fxRepDay)'Nominal',
+    display_id(i,'curr')                'curr',
+    display_id(i,'issuer_ptynbr')       'Issuer'
+into
+    settled1
+from
+    instrument i,
+    trade t,
+    choicelist c,
+    fxrates fx
+where
+    i.insaddr = t.insaddr
+and i.curr = fx.insaddr
+and i.instype in ('Bond','Zero')
+and display_id(i,'issuer_ptynbr') not in ('ABSA BANK LTD', '')
+and i.exp_day => Today
+and t.value_day <= date_add_banking_day(Today,,3)
+and t.value_day <= Today
+and t.status in('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING')  
+and t.optkey1_chlnbr *= c.seqnbr
+and c.entry not in('ABS002')
+Group by 3,5
+
+
+/*-----------------Do Inflation Linked Seperately - MR--------------*/
+select
+
+    display_id(t, 'prfnbr')             'prfid',
+    c.entry                             'TradeArea',
+    i.insid	                            'insid',
+    i.instype                           'instype',
+    i.exp_day                           'expday',
+    t.trdnbr                            'DealReference',
+    t.value_day	                        'SettlementDate',	
+    sum(nominal_amount(t)*1/fx.fxRepDay)'Nominal',
+    display_id(i,'curr')                'curr',
+    display_id(i,'issuer_ptynbr')	    'Issuer'
+into
+    settled2
+from
+    instrument i,
+    trade t,
+    choicelist c,
+    fxrates fx
+where
+    i.insaddr = t.insaddr
+and i.curr = fx.insaddr
+and i.instype in ('IndexLinkedBond')
+and i.exp_day => Today
+and display_id(i,'issuer_ptynbr') not in ('ABSA BANK LTD', '')
+and t.status in('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING') 
+and t.optkey1_chlnbr *= c.seqnbr
+and c.entry not in('ABS002')
+Group by 3,5
+
+
+/*-----------------resultant query1--------------*/
+select
+    t1.DealReference	        	'TradeID',
+    t1.insid	 		            'Instrument',
+    t1.instype                      'Instype',
+    t1.expday                       'Expiry',
+    t1.prfid			            'Portfolio',
+    t1.curr                         'Currency',
+    t1.Nominal	 		            'Position',
+    t1.Issuer			            'Issuer'
+from
+    settled1 t1
+where
+    t1.Nominal ~= 0
+
+
+UNION
+
+
+/*-----------------resultant query2--------------*/
+select
+    t2.DealReference		        'TradeID',
+    t2.insid	 		            'Instrument',
+    t2.instype                      'Instype',
+    t2.expday                       'Expiry',
+    t2.prfid			            'Portfolio',
+    t2.curr                         'Currency',
+    t2.Nominal	 		            'Position',
+    t2.Issuer			            'Issuer'
+from
+    settled2 t2
+where
+    t2.Nominal ~= 0
+
+
+UNION
+
+
+select 
+	t.trdnbr                                                'TradeID',
+	i.insid                                                 'Instrument',
+	i.instype                                               'Instype',
+	i.exp_day                                               'Expiry',
+	display_id(t, 'prfnbr')	                                'Portfolio',
+    display_id(i,'curr')                                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)                    'Position',
+	display_id(i,'issuer_ptynbr')	                        'Issuer'
+from 
+    instrument i,
+	trade t,
+	choicelist c,
+	fxrates fx
+where
+	i.insaddr = t.insaddr
+and i.curr = fx.insaddr
+and i.instype in ('Bond','Zero')
+and display_id(i,'issuer_ptynbr') not in ('ABSA BANK LTD', '')
+and	t.value_day > @Date{today}
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING')
+and t.optkey1_chlnbr *= c.seqnbr
+and c.entry not in('ABS002')
+Group by 2,4
+
+
+UNION
+
+
+select 
+	t.trdnbr                                                'TradeID',
+	i.insid                                                 'Instrument',
+	i.instype                                               'Instype',
+	i.exp_day                                               'Expiry',
+	display_id(t, 'prfnbr')	                                'Portfolio',
+    display_id(i,'curr')                                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)                    'Position', 
+	display_id(u,'issuer_ptynbr')	                        'Issuer'
+from 
+    instrument i,
+    instrument u,
+	trade t,
+	choicelist c,
+	fxrates fx
+where
+	i.insaddr = t.insaddr
+and i.und_insaddr = u.insaddr
+and i.curr = fx.insaddr
+and i.instype in ('Future/Forward')
+and u.instype in ('Bond')
+and display_id(u,'issuer_ptynbr') not in ('ABSA BANK LTD', '')
+and	t.value_day > @Date{today}
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING') 
+and t.optkey1_chlnbr *= c.seqnbr
+and c.entry not in('ABS002')
+Group by 2,4
+
+
+UNION
+
+
+select 
+	t.trdnbr                                                'TradeID',
+	i.insid                                                 'Instrument',
+	i.instype                                               'Instype',
+	i.exp_day                                               'Expiry',
+	display_id(t, 'prfnbr')	                                'Portfolio',
+    display_id(i,'curr')                                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)                    'Position', 
+	display_id(u,'issuer_ptynbr')	                        'Issuer'
+from 
+    instrument i,
+    instrument u,
+    leg l,
+	trade t,
+	fxrates fx
+where
+	i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.index_ref = u.insaddr
+and i.curr = fx.insaddr
+and i.exp_day > today
+and i.instype in ('TotalReturnSwap')
+and u.instype in ('Bond', 'IndexLinkedBond')
+and display_id(u,'issuer_ptynbr') not in ('ABSA BANK LTD', '')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and match_portfolio(t, 'SECONDARY MARKETS TRADING') 
+and l.type = 'Total Return'
+Group by 2,4

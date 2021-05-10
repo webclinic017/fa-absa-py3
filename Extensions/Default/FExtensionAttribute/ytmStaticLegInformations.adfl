@@ -1,0 +1,14 @@
+[Default]FBuySellBack:ytmStaticLegInformations = underlying:ytmStaticLegInformations [yieldToMaturityMethod];
+[Default]FCashFlowInstrument:ytmStaticLegInformations = select(hasGenericBaseDate, 
+  true->legs :* "staticLegInformation" [forwardPriceDate, yieldToMaturityMethod], 
+  false->legs :* "staticLegInformation" [yieldToMaturityMethod]);
+[Default]FCfd:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate := expiryDate, yieldToMaturityMethod], 
+  false->nil);
+[Default]FDerivative:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate = expiryDateForCouponToValue, yieldToMaturityMethod], 
+  false->nil);
+[Default]FFuture:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate := expiryDate, yieldToMaturityMethod], 
+  false->nil);
+[Default]FInstrument:ytmStaticLegInformations = staticLegInformations;

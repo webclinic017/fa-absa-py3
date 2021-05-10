@@ -1,0 +1,10 @@
+[Default]FCombInstrMapAndTrades:marketValues = nil;
+[Default]FDeliverableLinkAndTrades:marketValues = shunt[priceSource, valuesOnSpotOverride, tradesInPosition, contractSize, filterUnit, groupingSpotDiscountDate](isOpenPosition and (0 <> timeDistributionFactor), 
+  true->instrument :* "marketValues" [priceSource, valuesOnSpotOverride, tradesInPosition, contractSize, filterUnit, groupingSpotDiscountDate], 
+  false->instrumentSpotZero);
+[Default]FInstrument:marketValues = object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = marketValuesUndiscounted];
+[Default]FInstrumentAndTrades:marketValues = sumOf(portfoliosForValuation :* "collapse(marketValues)" [priceSource, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, instrument, valuesOnSpot, openPositionInstrumentProvider]);
+[Default]FLegAndTrades:marketValues = nil;
+[Default]FMultiInstrumentAndTrades:marketValues = sumOf(portfoliosForValuation :* "collapse(marketValuesOpenInstruments)" [priceSource, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, openPositions, onlySpotValuedInstruments]);
+[Default]FPortfolio:marketValues = openInstrument :* "marketValues" [priceSource, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, accountingParameters, tradedPortfolio];
+[Default]FTradeRow:marketValues = openInstrumentOrTaxLotInstrument :* "marketValues" [priceSource, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, taxLotPositionObject, taxLotValuation := taxLotPnL, positionObject];

@@ -1,0 +1,216 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_ir_curr_swap_reset') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_ir_curr_swap_reset' and p.type = 'SQL Query' 
+select
+
+t.optional_key 'DevNbr',
+l.payleg = 'No' and nominal_amount(t) > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+l.payleg = 'Yes' and nominal_amount(t) >0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+l.payleg,
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear'
+
+into temp
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and	r.legnbr=*l.legnbr
+and 	i.instype='currswap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	r.day = @ResetDate{}
+and ael_s(t,'InstrType.InstrumentType') ~= 'ZAR-USD/BS'
+/*and 	r.value~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and t.status not in ('Simulated', 'Terminated' , 'Void')
+
+
+
+
+
+
+
+
+select
+t.optional_key 'DevNbr',
+ael_s(t,'InstrType.InstrumentType'),
+'fixed'	'Test',
+l.payleg = 'Yes' and nominal_amount(t) < 0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer',
+l.payleg = 'Yes' and nominal_amount(t) > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer2',
+l.payleg,
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+''/*(l.fixed_rate < r.value) ? '' : ''*/	'usyou',
+0.0				'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear'
+
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+temp				tt
+
+where
+
+	tt.Trdnbr = t.trdnbr
+and	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype= 'currswap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	c.start_day = tt.Start
+and	l.fixed_rate~=0
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and ael_s(t,'InstrType.InstrumentType') ~= 'ZAR-USD/BS'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+
+
+union
+
+select
+t.optional_key 'DevNbr',
+ael_s(t,'InstrType.InstrumentType'),
+'float'	'Test',
+l.payleg = 'No' and nominal_amount(t) > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+l.payleg = 'Yes' and nominal_amount(t) >0  ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+l.payleg,
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear'
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and	r.legnbr=*l.legnbr
+and 	i.instype='currswap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	r.day = @ResetDate{}
+and ael_s(t,'InstrType.InstrumentType') ~= 'ZAR-USD/BS'
+/*and 	r.value~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and t.status not in ('Simulated', 'Terminated', 'Void')

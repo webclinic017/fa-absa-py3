@@ -1,0 +1,8 @@
+[ABSA FRTB]FDerivative:ccrNotionalAmount = select(isAsian and (addInfo.Forward_Start_Type == "Performance"), 
+  true->denominatedvalue(abs(profitAndLossPositionDisplay), currency, , ), 
+  false->select(isAsian and isFXOption, 
+    true->denominatedvalue(abs(profitAndLossPositionDisplay) * abs(absoluteStrikePrice), currency, , ), 
+    false->select(isFXOption, 
+      true->positionNotionalFxOption(object, riskPositionBase, ccrStrikePrices, priceGreekFxRates, currency, accountingCurrency), 
+      false->underlying:ccrNotionalAmount [riskPositionBase, tradesInPosition])));
+[ABSA FRTB]FVarianceSwap:ccrNotionalAmount = denominatedvalue(abs(riskPositionBase), currency, dateToday, nil);

@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ACSDividend = double(sumOf((tradesInPosition.Filter(voidAndSimulatedFilter)) :* "ACSDividend" [positionObject])) + double(dividends);
+[ABSA Specific 4.3]FTrade:ACSDividend = select(instrument.InsType, 
+  "Stock"->(sumOf((object.Payments) :* "shunt(object.Type, \"Exercise Cash\"->object.Amount, default->0)")), 
+  "ETF"->(sumOf((object.Payments) :* "shunt(object.Type, \"Exercise Cash\"->object.Amount, default->0)")), 
+  default->0);

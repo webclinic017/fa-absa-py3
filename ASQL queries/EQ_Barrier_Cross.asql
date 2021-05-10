@@ -1,0 +1,55 @@
+/*EQ_Barrier_Cross
+  This query displays the data for a Barrier option when the barrier has been crossed during the report day
+*/
+
+/* Usage code for this ASQL */
+select
+	ael_i(p,'ASQL_log','EQ_Barrier_Cross') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where 
+	p.name = 'EQ_Barrier_Cross' and p.type = 'SQL Query' 
+
+
+select
+	to_date(@1_ReportDate{today})							'RepDay',
+    date_add_banking_day(@1_ReportDate{today},
+		@2_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  'PrevRepDay'
+into 
+    macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+select
+    t.trdnbr,
+    m.RepDay,
+    display_id(t,'prfnbr')  'portfolio',
+    i.barrier		        'barrier level',
+    i.exp_day,
+    i.insid                 'option_id',
+    und.insid               'underlying_id',
+    e.barrier_option_type,
+    e.updat_time            'Update time',
+    e.barrier_cross_date,
+    e.barrier_crossed_status
+from
+    trade t,
+    instrument i,
+    instrument und,
+    exotic e,
+    macros m
+where
+    match_filter(t, @3_Filter{EQ_BarrierExtract;tradefilter.fltid})
+and i.insaddr = t.insaddr
+and i.und_insaddr = und.insaddr
+and e.insaddr = i.insaddr
+
+and i.instype = 'Option' 
+and e.barrier_option_type ~= 'None'
+ 
+and i.exp_day    >= m.RepDay
+and e.updat_time >= m.PrevRepDay
+and e.barrier_crossed_status ~= 'None'

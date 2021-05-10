@@ -1,0 +1,7 @@
+[Default]FCombInstrMap:fxLegToInstrumentForBasketOptions = select(instrumentCurrency == strikeCurrency, 
+  true->1.0, 
+  false->select(isQuanto, 
+    true->select(strikeCurrency == combination:currency, 
+      true->object.FixFxRateDV(instrument:instrumentSpotDate), 
+      false->throwError("The strike currency of the option must equal the underlying combination currency for quanto basket options.")), 
+    false->instrumentCurrency :* "fxForwardRate" [fxForwardDate = instrument:instrumentSpotDate, fxToCurrency := strikeCurrency]));

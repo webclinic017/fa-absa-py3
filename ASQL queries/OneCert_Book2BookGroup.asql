@@ -1,0 +1,53 @@
+/* ******************  ASQL USAGE LOG  *********************** */ 
+ select 
+      ael_i(p,'ASQL_log','OneCert_Book2BookGroup') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'OneCert_Book2BookGroup' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Date                : [2015-10-02]
+    Purpose             : [Extract User Groups along with the portfolios assigned to them]
+    Department and Desk : [UT Book Access Control Team]
+    Requester           : [Rahul Dixit]
+    Developer           : [Fancy Dire]
+    CR Number           : 247110
+------------------------------------------------------------------*/
+ 
+/*Select all user groups and their profiles where component is Portfolio*/ 
+select distinct
+    'Group'        'User',
+    up.profid       'Profile',
+    c.type          'Type',
+    c.compname      'Component',
+    g.grpid 'Name'
+into
+    temp
+from
+    groupProfileLink gl,
+    userProfile      up,
+    front.group      g,
+    component        c,
+    profilecomponent pc
+where
+    g.grpnbr = gl.grpnbr
+and gl.profnbr = up.profnbr
+and up.profnbr = pc.profnbr
+and pc.compnbr = c.compnbr
+and c.type = 'Portfolio'
+
+/*Extracting in the format required by One Cert*/ 
+select 
+    t.name,
+    p.prfnbr,
+    ''  'Col1',
+    ''  'Col2',
+    ''  'Col3',
+    ''  'Col4',
+    ''  'Col5',
+    ''  'Col6'
+    
+from temp t,
+     portfolio p
+where t.component = p.prfid
+group by 1,2

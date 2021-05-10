@@ -1,0 +1,68 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_Client_Trades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_Client_Trades' and p.type = 'SQL Query' 
+ 
+  select
+
+t.trdnbr,
+p.prfid'Portfolio',
+t.creat_time'Time',
+t.status,
+i.instype,
+i.insid,
+abs(t.quantity*1000000)'volume',
+party.ptyid,
+party.hostid,
+ael_f(party,'Last_Date_Register.length',party.hostid)'long'
+
+
+into 
+
+temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party
+
+where
+i.instype in ('Bond','BuySellback','IndexLinkedBond','Repo/Reverse')
+and i.insaddr=t.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and (t.creat_time>=@from_date{2005-04-01;}
+and t.creat_time<=@to_date{Yesterday;})
+and party.ptyid not in ('DRA TRANSAKSIES')
+
+
+/*-----------*/
+
+
+select
+
+count(t.trdnbr)'Trade Count',
+/*
+t.Portfolio,
+t.Time,
+*/
+'Total by CP' /*t.status*/,
+t.instype,
+/*t.insid,*/
+avg(t.volume)'Average Volume',
+t.ptyid'CP',
+t.hostid'Unexcor Code'
+
+from temp t
+
+where t.long=6
+
+
+group by t.ptyid
+
+
+order by t.ptyid

@@ -1,0 +1,23 @@
+/* update_method=0 */
+/*
+    Project: SBL onto FA
+    Purpose: Payment selection used by the SBL_PTS_Consolidated_Fees reporting task and TM view
+    Developer: Libor Svoboda
+*/
+
+select
+    p.paynbr
+from
+    Payment p,
+    Trade t,
+    Instrument i
+where
+    p.trdnbr = t.trdnbr
+and t.insaddr = i.insaddr
+and p.type in ('Cash', 'Finder Fee', 'Loan Fee')
+and p.payday >= FIRSTDAYOFMONTH
+and p.payday < date_add_delta(FIRSTDAYOFMONTH, 0, 1, 0)
+and i.instype = 'SecurityLoan'
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')
+and t.acquirer_ptynbr = 32668 /* SECURITY LENDINGS DESK */
+and t.type ~= 'Cash Posting'

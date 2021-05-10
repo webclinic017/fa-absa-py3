@@ -1,0 +1,21 @@
+[Core Pricing]FCap:underlyingForwardPrice = collapse(underlyingForwardPriceCapFloor);
+[Core Pricing]FCfd:underlyingForwardPrice = nil;
+[Core Pricing]FDepositaryReceipt:underlyingForwardPrice = nil;
+[Core Pricing]FETF:underlyingForwardPrice = nil;
+[Core Pricing]FFloor:underlyingForwardPrice = collapse(underlyingForwardPriceCapFloor);
+[Core Pricing]FInstrument:underlyingForwardPrice = select(needsSpotToForwardDiscounting, 
+  true->underlying :* "forwardPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate = forwardPriceDateForUnderlyingForwardPrice, exposeForwardValuationTargets = false, forwardValuationInInstrumentCurrency, includeCallablePartInUnderlying, discountingType, forwardValueDividendData], 
+  default->select(isSpreadOption, 
+    true->underlying :* "forwardAssetSwapSpread" [priceSource, forwardPriceDate = expiryDateForCouponToValue], 
+    false->select(underlyingQuotation, 
+      "Coupon"->timesHundred(underlyingForwardCoupon), 
+      default->select(isFutureOnNotional, 
+        true->underlying :* "forwardPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate = forwardPriceDateForUnderlyingForwardPrice, exposeForwardValuationTargets = false, includeCallablePartInUnderlying, discountingType, forwardValuationInInstrumentCurrency, forwardValueDividendData] / ctdFactor, 
+        false->select(isDIFuture, 
+          true->nil, 
+          false->underlying :* "forwardPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency, forwardPriceDate = forwardPriceDateForUnderlyingForwardPrice, exposeForwardValuationTargets = false, includeCallablePartInUnderlying, discountingType, forwardValuationInInstrumentCurrency, forwardValueDividendData])), 
+      nil->nil)));
+[Core Pricing]FInstrumentAndTrades:underlyingForwardPrice = instrument :* "underlyingForwardPrice" [priceSource, isSplitAllGrouped];
+[Core Pricing]FMultiInstrumentAndTrades:underlyingForwardPrice = nil;
+[Core Pricing]FOdf:underlyingForwardPrice = nil;
+[Core Pricing]FPriceAggregate:underlyingForwardPrice = instrument :* "underlyingForwardPrice" [priceSource];

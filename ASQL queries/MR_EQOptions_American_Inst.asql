@@ -1,0 +1,157 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :
+anwar 2010-07-01 added new selection for options on future/forwards that have stock/equityindex underlyings
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_EQOptions_American') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_EQOptions_American' and p.type = 'SQL Query'
+
+
+Select
+'BAS'                                           'BASFLAG',
+'American Equity Option'                        'HeaderName',
+'AmericanSPEC'                                  'OBJECT',
+'American'                                      'TYPE',
+
+ael_s(i,'MR_MainFunctions.ASQLNameFix','iinsid')'NAME',
+ael_s(i,'MR_MainFunctions.ASQLStringConcat','InsInsaddr') 'IDENTIFIER',
+''                                              'CurrencyCAL',    
+''                                              'CurrencyDAYC' ,  
+''                                              'CurrencyPERD' ,  
+display_id(i,'Curr')                            'CurrencyUNIT',
+i.call_option = 'Yes' ? 'True' : 'False'        'CallOptionFLAG',
+i.contr_size                                    'ContractSizeVAL',
+''                                              'StrikePriceCAL',
+''                                              'StrikePriceDAYC',
+''                                              'StrikePriceFUNC',
+''                                              'StrikePricePERD',
+display_id(i,'strike_Curr')                     'StrikePriceUNIT' ,
+ui.quote_type = 'Per 100 Units' ? ael_s(i,'MR_MainFunctions.ASQLRounding','StrikePriceDiv100') : ael_s(i,'MR_MainFunctions.ASQLRounding','StrikePrice') 'StrikePriceVAL',
+''                                              'StrikePriceSTRG',
+''                                              'SpotPriceCAL',
+''                                              'SpotPriceDAYC',
+''                                              'SpotPriceFUNC',
+''                                              'SpotPricePERD',
+display_id(i,'Curr')                            'SpotPriceUNIT',
+''                                              'SpotPriceVAL',
+''                                              'SpotPriceSTRG' ,  
+ael_s(i,'MR_MainFunctions.ASQLStringConcat','InsUndInsaddr') 'UnderlyingXREF',
+ael_s(i,'MR_MainFunctions.ASQLDatefix')         'MaturityDATE',
+''                                              'VolatilityCAL' ,
+'actual/365'                                    'VolatilityDAYC',
+'@volatility' 'VolatilityFUNC' ,
+'annual'                                        'VolatilityPERD',    
+'%'                                             'VolatilityUNIT',
+''    'VolatilityVAL',
+''                                              'VolatilitySTRG' ,
+ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedVolatilityLink') = 'DEFAULT' ? 'None' : ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedVolatilityLink')    'VolSurfaceXREF',
+
+''                                              'VolatltySpreadCAL', 
+''                                              'VolatltySpreadDAYC',
+''                                              'VolatltySpreadFUNC',
+''                                              'VolatltySpreadPERD',
+''                                              'VolatltySpreadUNIT',
+''                                              'VolatltySpreadVAL',
+''                                              'VolatltySpreadSTRG',
+''                                              'DaysPerTimeStepNB',
+''                                              'RM_MapProcFUNC',
+i.paytype = 'Future' ? ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedRepoLink') : ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedDiscountLink') 'DiscountCurveXREF',
+i.paytype = 'Future' ? 'European Equity Option' : 'American Stock Options'   'TheoModelXREF',
+''                                              'MarketModelXREF',
+''                                              'FairValueModelXREF',
+''                                              'SettlementTYPE',
+''                                              'SettlementProcFUNC'
+From
+    instrument i, 
+    instrument ui
+Where
+    ui.insaddr = i.und_insaddr
+
+    and	i.exp_day > Today
+
+    and i.instype = 'Option'
+    and i.und_instype in ('Stock','EquityIndex')
+    and i.exercise_type = 'American'
+
+    and i.digital = 'No'
+    and i.exotic_type = 'None'
+
+Union
+
+Select
+'BAS'                                           'BASFLAG',
+'American Equity Option'                        'HeaderName',
+'AmericanSPEC'                                  'OBJECT',
+'American'                                      'TYPE',
+
+ael_s(i,'MR_MainFunctions.ASQLNameFix','iinsid')'NAME',
+ael_s(i,'MR_MainFunctions.ASQLStringConcat','InsInsaddr') 'IDENTIFIER',
+''                                              'CurrencyCAL',    
+''                                              'CurrencyDAYC' ,  
+''                                              'CurrencyPERD' ,  
+display_id(i,'Curr')                            'CurrencyUNIT',
+i.call_option = 'Yes' ? 'True' : 'False'        'CallOptionFLAG',
+i.contr_size                                    'ContractSizeVAL',
+''                                              'StrikePriceCAL',
+''                                              'StrikePriceDAYC',
+''                                              'StrikePriceFUNC',
+''                                              'StrikePricePERD',
+display_id(i,'strike_Curr')                     'StrikePriceUNIT',
+ui.quote_type = 'Per 100 Units' ? ael_s(i,'MR_MainFunctions.ASQLRounding','StrikePriceDiv100') : ael_s(i,'MR_MainFunctions.ASQLRounding','StrikePrice') 'StrikePriceVAL',
+''                                              'StrikePriceSTRG',
+''                                              'SpotPriceCAL',
+''                                              'SpotPriceDAYC',
+''                                              'SpotPriceFUNC',
+''                                              'SpotPricePERD',
+display_id(i,'Curr')                            'SpotPriceUNIT',
+''                                              'SpotPriceVAL',
+''                                              'SpotPriceSTRG' ,  
+ael_s(i,'MR_MainFunctions.ASQLStringConcat','InsUndInsaddr') 'UnderlyingXREF',
+ael_s(i,'MR_MainFunctions.ASQLDatefix')           'MaturityDATE',
+''                                              'VolatilityCAL' ,
+'actual/365'                                    'VolatilityDAYC',
+'@volatility' 'VolatilityFUNC' ,
+'annual'                                        'VolatilityPERD',    
+'%'                                             'VolatilityUNIT',
+'' 'VolatilityVAL',
+''                                              'VolatilitySTRG' ,
+ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedVolatilityLink') = 'DEFAULT' ? 'None' : ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedVolatilityLink')    'VolSurfaceXREF',
+''                                              'VolatltySpreadCAL', 
+''                                              'VolatltySpreadDAYC',
+''                                              'VolatltySpreadFUNC',
+''                                              'VolatltySpreadPERD',
+''                                              'VolatltySpreadUNIT',
+''                                              'VolatltySpreadVAL',
+''                                              'VolatltySpreadSTRG',
+''                                              'DaysPerTimeStepNB',
+''                                              'RM_MapProcFUNC',
+i.paytype = 'Future' ? ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedRepoLink') : ael_s(i,'MR_MainFunctions.ASQLMappedCurveLink','MappedDiscountLink') 'DiscountCurveXREF',
+i.paytype = 'Future' ? 'European Equity Option' : 'American Stock Options'   'TheoModelXREF',
+''                                              'MarketModelXREF',
+''                                              'FairValueModelXREF',
+''                                              'SettlementTYPE',
+''                                              'SettlementProcFUNC'
+From
+    instrument i,
+    instrument ui
+Where
+
+	i.exp_day > Today
+
+    and i.instype = 'Option'
+    and i.und_instype in ('Future/Forward')
+    and i.exercise_type = 'American'
+
+    and i.digital = 'No'
+    and i.exotic_type = 'None'
+    and ui.insaddr = i.und_insaddr
+    and ui.und_instype  in ('Stock','EquityIndex') 
+    

@@ -1,0 +1,9 @@
+[_convertible_pricing_and_risk_exts]FConvertible:pointsOverParity = shunt(isFinite(marketPrice), 
+  true->stripDateTimePart(marketPriceToQuote) - stripDateTimePart(cbParity), 
+  false->nil);
+[_convertible_pricing_and_risk_exts]FInstrument:pointsOverParity = nil;
+[_convertible_pricing_and_risk_exts]FInstrumentAndTrades:pointsOverParity = openInstrumentOrInstrument :* "pointsOverParity" [priceSource, filterCurrency];
+[_convertible_pricing_and_risk_exts]FMultiInstrumentAndTrades:pointsOverParity = nil;
+[_convertible_pricing_and_risk_exts]FOrderBook:pointsOverParity = instrument :* "pointsOverParity" [priceSource, quotation] * fxInstrumentToOrderBook;
+[_convertible_pricing_and_risk_exts]FPriceAggregate:pointsOverParity = priceFeed:pointsOverParity [priceSource];
+[_convertible_pricing_and_risk_exts]FPriceFeed:pointsOverParity = instrument :* "pointsOverParity" [priceSource, quotation] * fxInstrumentToPriceFeed;

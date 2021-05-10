@@ -1,0 +1,65 @@
+[UDMCUtilMod]FObject:udmcAverageRatePayoff
+#-----------------------------------------
+# PAYOFF EXPRESSION
+# Average Rate Option Payoff
+#
+# INTERPRETATION
+# The Average Rate option pays the capped relative performance of  the underlying price and strike averages. 
+# Call:       max(St/S0 - K, cap)
+# Put:        max(K - St/S0, cap)    
+#       
+# DEFINITION
+# S0: Average initial fixing; arithmetic average of the underlying price on 'Average strike' dates;
+# St: Average final fixing; arithmetic average of the underlying price on 'Average price' dates;
+# K: Relative strike value, 'Strike' field;
+# cap: Relative cap value, 'Barrier' field of the Barrier Exotics tab;
+# 'Average price', 'Average strike' exotic events should be specified.
+#-----------------------------------------
+
+# PARAMETERS
+param matrix(double) isPrice;
+param matrix(double) isStrike;
+param int isCall;
+param double K;
+param double cap;
+param int isQuanto;
+param double fixFXRate;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double nPriceEvents = sum(isPrice);
+double nStrikeEvents = sum(isStrike);
+double callOrPut = 2.0 * isCall - 1.0;
+double initialFixing = 0.0;
+double finalFixing = 0.0;
+double s = 0.0;
+double k = K;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+# MAIN LOOP
+initialFixing = sum(S.*isStrike)/nStrikeEvents; #average calculation
+finalFixing = sum(S.*isPrice)/nPriceEvents;
+s = finalFixing / initialFixing;
+
+# CASHFLOW
+cashFlow(0, fx * max(0.0, min(callOrPut *(s - k) , cap)));
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isPrice: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Average price' fixing;
+# isStrike: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding element  in S represents a 'Average strike' fixing;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# nPriceEvents: Number of the 'Average price' fixings;
+# nStrikeEvents: Number of the 'Average strike' fixings;
+# initialFixing: Arithmetic average of the underlying price on 'Average strike' dates;
+# finalFixing: Arithmetic average of the underlying price on 'Average price' dates;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0.
+# ------------------------------------------
+
+...

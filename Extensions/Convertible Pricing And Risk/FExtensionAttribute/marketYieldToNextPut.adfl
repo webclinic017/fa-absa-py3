@@ -1,0 +1,11 @@
+[Convertible Pricing And Risk]FInstrument:marketYieldToNextPut = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->shunt(nextPutInFuture, 
+      nil->nil, 
+      default->imply(snoop(theoreticalInstrumentSpotValueCleanFromYieldToNextPut, "yield"), theoreticalInstrumentSpotValueCleanFromYieldToNextPut, marketUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations))), 
+  false->nil);
+[Convertible Pricing And Risk]FInstrumentAndTrades:marketYieldToNextPut = instrument :* "marketYieldToNextPut";
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:marketYieldToNextPut = nil;
+[Convertible Pricing And Risk]FOrderBook:marketYieldToNextPut = instrument :* "marketYieldToNextPut";
+[Convertible Pricing And Risk]FPriceFeed:marketYieldToNextPut = instrument :* "marketYieldToNextPut";

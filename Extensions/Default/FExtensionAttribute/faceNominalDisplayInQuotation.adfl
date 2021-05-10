@@ -1,0 +1,10 @@
+[Default]FCommodity:faceNominalDisplayInQuotation = riskPositionDisplayInQuotation;
+[Default]FCommodityVariant:faceNominalDisplayInQuotation = riskPositionDisplayInQuotation;
+[Default]FFuture:faceNominalDisplayInQuotation = riskPositionDisplayInQuotation;
+[Default]FInstrument:faceNominalDisplayInQuotation = nil;
+[Default]FMultiInstrumentAndTrades:faceNominalDisplayInQuotation = nil;
+[Default]FOption:faceNominalDisplayInQuotation = riskPositionDisplayInQuotation;
+[Default]FSingleInstrumentAndTrades:faceNominalDisplayInQuotation = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->openInstrumentOrInstrument :* "collapse(faceNominalDisplayInQuotation)" [positionObject, displayCurrency, filterUnit]);
+[Default]FTradeRow:faceNominalDisplayInQuotation = instrument :* "faceNominalDisplayInQuotation" [singleTradePosition];

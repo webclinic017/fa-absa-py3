@@ -1,0 +1,246 @@
+/*-----------------------------------------------------------------------------
+PROJECT                 :  Security Borrowing and Lending
+PURPOSE                 :  Report on whether all short stock positions are covered by security loans
+DEPATMENT AND DESK      :  Prime Services, Securities Lending
+REQUESTER               :  Linda Breytenbach
+DEVELOPER               :  Paul Jacot-Guillarmod
+CR NUMBER               :  487659
+
+2010-11-16, Paul Jacot-Guillarmod, CR494829 Use actual security loans for the CFD's instead of stocks
+-----------------------------------------------------------------------------*/
+
+select
+    ael_i(p,'ASQL_log','sl_shortfall_report') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'sl_shortfall_report' and p.type = 'SQL Query' 
+
+select
+    @02_ShowPortfolioDetail{Yes; 'Yes', 'No'} 'ShowPortfolioDetail',
+    @03_ReportDate{today} 'T0',
+    date_add_banking_day(@03_ReportDate, 'ZAR', 1) 'T1',
+    date_add_banking_day(@03_ReportDate, 'ZAR', 2) 'T2',
+    date_add_banking_day(@03_ReportDate, 'ZAR', 3) 'T3',
+    date_add_banking_day(@03_ReportDate, 'ZAR', 4) 'T4',
+    date_add_banking_day(@03_ReportDate, 'ZAR', 5) 'T5'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    u.insaddr,
+    p.prfid,
+    sum((t.acquire_day <= m.T0 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T0 and l.end_day > m.T0 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T0',
+    sum((t.acquire_day <= m.T1 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T1 and l.end_day > m.T1 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T1',
+    sum((t.acquire_day <= m.T2 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T2 and l.end_day > m.T2 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T2',
+    sum((t.acquire_day <= m.T3 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T3 and l.end_day > m.T3 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T3',
+    sum((t.acquire_day <= m.T4 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T4 and l.end_day > m.T4 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T4',
+    sum((t.acquire_day <= m.T5 and i.open_end in ('Open End')) or 
+        (t.acquire_day <= m.T5 and l.end_day > m.T5 and i.open_end in ('Terminated', 'None')) ? 
+        (t.quantity * i.ref_value) : 0) 'Pos_T5'
+into
+    security_loan_ports_all_positions
+from
+    instrument i,
+    instrument u,
+    leg l,
+    trade t,
+    portfolio p,
+    macro m
+where
+    i.und_insaddr = u.insaddr
+and i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and match_filter(t, @01_InputFilter{sl_loan_portfolios;Tradefilter.fltid})
+and i.instype in ('SecurityLoan')
+and u.instype in ('Stock', 'ETF')
+and t.status not in ('Void', 'Simulated', 'Confirmed Void')
+and add_info(i, 'SL_ExternalInternal') in ('External')
+and t.mirror_trdnbr = 0
+and t.acquire_day <= m.T5
+and l.end_day >= m.T0
+group by u.insaddr, p.prfid
+
+select
+    s.insaddr,
+    s.prfid,
+    s.Pos_T0, 
+    s.Pos_T1,
+    s.Pos_T2, 
+    s.Pos_T3,
+    s.Pos_T4, 
+    s.Pos_T5
+into
+    security_loan_ports
+from
+    security_loan_ports_all_positions s
+where
+    maxval(abs(s.Pos_T0), abs(s.Pos_T1), abs(s.Pos_T2), abs(s.Pos_T3), abs(s.Pos_T4), abs(s.Pos_T5)) > 0
+    
+select
+    s.insaddr,
+    sum(s.Pos_T0) 'Pos_T0',
+    sum(s.Pos_T1) 'Pos_T1',
+    sum(s.Pos_T2) 'Pos_T2',
+    sum(s.Pos_T3) 'Pos_T3',
+    sum(s.Pos_T4) 'Pos_T4',
+    sum(s.Pos_T5) 'Pos_T5'
+into
+    security_loan_positions
+from
+    security_loan_ports s
+group by s.insaddr
+
+select
+    i.insaddr,
+    p.prfid,
+    sum((t.acquire_day <= m.T0) ? t.quantity : 0) 'EQ_Pos_T0',
+    sum((t.acquire_day <= m.T1) ? t.quantity : 0) 'EQ_Pos_T1',
+    sum((t.acquire_day <= m.T2) ? t.quantity : 0) 'EQ_Pos_T2',
+    sum((t.acquire_day <= m.T3) ? t.quantity : 0) 'EQ_Pos_T3',
+    sum((t.acquire_day <= m.T4) ? t.quantity : 0) 'EQ_Pos_T4',
+    sum((t.acquire_day <= m.T5) ? t.quantity : 0) 'EQ_Pos_T5'
+into
+    equity_ports_all_positions
+from    
+    trade t,
+    instrument i,
+    portfolio p,
+    additionalinfospec ts,
+    additionalinfo ai,
+    macro m
+where   
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.instype in ('Stock', 'ETF')
+and t.status not in ('Simulated', 'Void', 'Confirmed Void')
+and t.acquire_day <= m.T5
+and p.prfnbr = ai.recaddr
+and ai.addinf_specnbr = ts.specnbr
+and ts.field_name = 'SL_Portfolio_Type'
+and ai.value in ('Equity')
+group by i.insaddr, p.prfid
+
+select
+    e.insaddr,
+    e.prfid,
+    e.EQ_Pos_T0, 
+    e.EQ_Pos_T1,
+    e.EQ_Pos_T2, 
+    e.EQ_Pos_T3,
+    e.EQ_Pos_T4, 
+    e.EQ_Pos_T5
+into
+    equity_ports
+from
+    equity_ports_all_positions e
+where
+    maxval(abs(e.EQ_Pos_T0), abs(e.EQ_Pos_T1), abs(e.EQ_Pos_T2), abs(e.EQ_Pos_T3), abs(e.EQ_Pos_T4), abs(e.EQ_Pos_T5)) > 0
+
+
+select
+    e.insaddr,
+    sum(e.EQ_Pos_T0) 'EQ_Pos_T0',
+    sum(e.EQ_Pos_T1) 'EQ_Pos_T1',
+    sum(e.EQ_Pos_T2) 'EQ_Pos_T2',
+    sum(e.EQ_Pos_T3) 'EQ_Pos_T3',
+    sum(e.EQ_Pos_T4) 'EQ_Pos_T4',
+    sum(e.EQ_Pos_T5) 'EQ_Pos_T5'
+into
+    equity_positions
+from
+    equity_ports e
+group by e.insaddr
+
+
+select
+    e.insaddr,
+    e.prfid,
+    to_int(e.EQ_Pos_T0) 'EquityPosition',
+    to_int(0) 'ExternalLoanPosition',
+    to_int(e.EQ_Pos_T0) 'Pos_T0', 
+    to_int(e.EQ_Pos_T1) 'Pos_T1',
+    to_int(e.EQ_Pos_T2) 'Pos_T2', 
+    to_int(e.EQ_Pos_T3) 'Pos_T3',
+    to_int(e.EQ_Pos_T4) 'Pos_T4', 
+    to_int(e.EQ_Pos_T5) 'Pos_T5'
+into
+    portfolio_detail
+from
+    equity_ports e
+    
+select
+    s.insaddr,
+    s.prfid,
+    to_int(0) 'EquityPosition',
+    to_int(s.Pos_T0) 'ExternalLoanPosition',
+    to_int(s.Pos_T0) 'Pos_T0',
+    to_int(s.Pos_T1) 'Pos_T1',
+    to_int(s.Pos_T2) 'Pos_T2',
+    to_int(s.Pos_T3) 'Pos_T3',
+    to_int(s.Pos_T4) 'Pos_T4',
+    to_int(s.Pos_T5) 'Pos_T5'
+into
+    portfolio_detail
+from
+    security_loan_ports s
+    
+select
+    i.insid 'Instrument',
+    '' 'TradingDesk',
+    '' 'Portfolio',
+    to_int(e.EQ_Pos_T0) 'EquityPosition',
+    to_int(s.insaddr is not null ? s.Pos_T0 : 0) 'ExternalLoanPosition',
+    to_int(e.EQ_Pos_T0 + (s.insaddr is not null ? s.Pos_T0 : 0)) 'ShortFall T0', 
+    to_int(e.EQ_Pos_T1 + (s.insaddr is not null ? s.Pos_T1 : 0)) 'ShortFall T1',
+    to_int(e.EQ_Pos_T2 + (s.insaddr is not null ? s.Pos_T2 : 0)) 'ShortFall T2', 
+    to_int(e.EQ_Pos_T3 + (s.insaddr is not null ? s.Pos_T3 : 0)) 'ShortFall T3',
+    to_int(e.EQ_Pos_T4 + (s.insaddr is not null ? s.Pos_T4 : 0)) 'ShortFall T4', 
+    to_int(e.EQ_Pos_T5 + (s.insaddr is not null ? s.Pos_T5 : 0)) 'ShortFall T5'
+from
+    equity_positions e,
+    security_loan_positions s,
+    instrument i
+where
+    i.insaddr = e.insaddr
+and e.insaddr *= s.insaddr
+
+union
+
+select
+    i.insid 'Instrument',
+    add_info(p, 'SL_AllocatedDesk') 'TradingDesk',
+    pd.prfid 'Portfolio',
+    pd.EquityPosition 'EquityPosition',
+    pd.ExternalLoanPosition 'ExternalLoanPosition',
+    pd.Pos_T0 'ShortFall T0',
+    pd.Pos_T1 'ShortFall T1',
+    pd.Pos_T2 'ShortFall T2',
+    pd.Pos_T3 'ShortFall T3',
+    pd.Pos_T4 'ShortFall T4',
+    pd.Pos_T5 'ShortFall T5'
+from
+    portfolio_detail pd,
+    instrument i,
+    portfolio p,
+    macro m
+where
+    pd.insaddr = i.insaddr
+and pd.prfid = p.prfid
+and m.ShowPortfolioDetail = 'Yes'
+
+

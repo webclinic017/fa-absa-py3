@@ -1,0 +1,17 @@
+[Default]FInstrumentAndTrades:variationSwapHistoricalVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  false->nil, 
+  true->switch(variationSwapHistoricalVarianceInTheoPriceHelper, 
+    NaN->nil, 
+    default->variationSwapHistoricalVarianceInTheoPriceHelper));
+[Default]FMultiInstrumentAndTrades:variationSwapHistoricalVarianceInTheoreticalPrice = nil;
+[Default]FOrderBook:variationSwapHistoricalVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  false->nil, 
+  true->switch(variationSwapHistoricalVarianceInTheoPriceHelper, 
+    NaN->nil, 
+    default->variationSwapHistoricalVarianceInTheoPriceHelper));
+[Default]FPriceAggregate:variationSwapHistoricalVarianceInTheoreticalPrice = priceFeed:variationSwapHistoricalVarianceInTheoreticalPrice;
+[Default]FPriceFeed:variationSwapHistoricalVarianceInTheoreticalPrice = select(isVarianceOrVolatilitySwap, 
+  false->nil, 
+  true->switch(variationSwapHistoricalVarianceInTheoPriceHelper, 
+    NaN->nil, 
+    default->variationSwapHistoricalVarianceInTheoPriceHelper));

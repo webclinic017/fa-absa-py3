@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:payValueStart = select(firstPayLegOrNil, 
+  nil->nil, 
+  default->select(instrument.InsType, 
+    "CurrSwap"->object :* "assetMarkToMarketValueStart" [displayCurrency = firstPayLegOrNil.Currency], 
+    "FxSwap"->object :* "assetMarkToMarketValueStart" [displayCurrency = firstPayLegOrNil.Currency], 
+    "Swap"->instrument :* "profitAndLossPositionStart" [positionObject, startDate, profitAndLossStartDate] * markToMarketPriceMtmPriceDayFallback / 100.0, 
+    default->select(instrument :* "profitAndLossPositionStart" [positionObject, startDate, profitAndLossStartDate] <= 0, 
+      false->nil, 
+      default->select(instrument.Currency, 
+        "ZAR"->assetMarkToMarketValueStart, 
+        default->instrument :* "profitAndLossPositionStart" [positionObject, profitAndLossStartDate] * object :* "assetMarkToMarketValueStart" [displayCurrency = instrument.Currency] / instrument.ContractSize))));

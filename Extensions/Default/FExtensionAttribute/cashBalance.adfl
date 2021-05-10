@@ -1,0 +1,6 @@
+[Default]FDeposit:cashBalance = -(lastCallRateProjectedCashFlow + redemptionAmountProjectedCashFlow);
+[Default]FInstrument:cashBalance = nil;
+[Default]FInstrumentAndTrades:cashBalance = select(currencyGroupingReference, 
+  nil->nil, 
+  default->sumOf(instruments :* "cashBalancePosition" [positionObject, valuesOnSpotOverride, valuationDate]));
+[Default]FSingleInstrumentAndTrades:cashBalance = instrument :* "cashBalancePosition" [positionObject, valuesOnSpotOverride, valuationDate];

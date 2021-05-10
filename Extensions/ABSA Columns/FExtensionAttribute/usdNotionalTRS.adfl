@@ -1,0 +1,10 @@
+[ABSA Columns]FInstrument:usdNotionalTRS = 0.0;
+[ABSA Columns]FMultiInstrumentAndTrades:usdNotionalTRS = sumOf(instruments :* "usdNotionalTRS.Number" [positionObject, profitAndLossStartDate, profitAndLossEndDate, displayCurrency, pLPeriodFX]);
+[ABSA Columns]FSingleInstrumentAndTrades:usdNotionalTRS = instrument :* "usdNotionalTRS" [positionObject, profitAndLossStartDate, profitAndLossEndDate, displayCurrency, pLPeriodFX];
+[ABSA Columns]FTotalReturnSwap:usdNotionalTRS = 
+# 2016.5 Upgrade: Add check for underlying == nil to avoid # values for TRS's without underlying instruments
+shunt(underlying == nil, 
+  true->0.0, 
+  default->select(object.Currency, 
+    "USD"->(profitAndLossPositionEnd * underlying:marketPrice * (getObject("FCurrency", underlying.Currency) :* "fxSpotRate" [fxToCurrency := currencyUSD]).Number / underlying:eqQuoteFactor), 
+    default->0.0));

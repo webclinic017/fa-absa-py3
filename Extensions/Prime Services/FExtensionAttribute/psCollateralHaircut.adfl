@@ -1,0 +1,10 @@
+[Prime Services]FInstrument:psCollateralHaircut = select(psCollateralType, 
+  "FI"->0.1, 
+  "EQ"->0.15, 
+  "Cash"->0.0, 
+  default->nil);
+[Prime Services]FMultiInstrumentAndTrades:psCollateralHaircut = nil;
+[Prime Services]FPhysicalPortfolio:psCollateralHaircut = double(object.add_info("PS_CollHaircut"));
+[Prime Services]FPortfolioInstrumentAndTrades:psCollateralHaircut = nil;
+[Prime Services]FSingleInstrumentAndTrades:psCollateralHaircut = averageOf(trades :* "psCollateralHaircut");
+[Prime Services]FTrade:psCollateralHaircut = portfolio:psCollateralHaircut;

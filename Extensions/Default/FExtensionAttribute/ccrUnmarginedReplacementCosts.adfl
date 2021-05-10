@@ -1,0 +1,6 @@
+[Default]FCreditBalance:ccrUnmarginedReplacementCosts = shunt(ccrIsNetting, 
+  false->ccrPositiveMarkToMarketValue, 
+  true->max(ccrMarkToMarketValues - ccrCollateralMarkToMarketValues, plZero));
+[Default]FInstrument:ccrUnmarginedReplacementCosts = plZero;
+[Default]FMultiInstrumentAndTrades:ccrUnmarginedReplacementCosts = sumOf(openInstruments :* "ccrUnmarginedReplacementCosts");
+[Default]FSingleInstrumentAndTrades:ccrUnmarginedReplacementCosts = openInstrument :* "ccrUnmarginedReplacementCosts";

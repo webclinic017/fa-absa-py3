@@ -1,0 +1,10 @@
+[Core Cash Flow Pricing]FAbstractReset:fixedFixingValue = switch(object.IsFixedAt(valuationDate), 
+  true->object.FixingValue, 
+  false->nil);
+[Core Cash Flow Pricing]FCashFlowInformation:fixedFixingValue = object.FixedFixingValue;
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:fixedFixingValue = select(abstractResets.Size, 
+  1->(abstractResets.First) :* "fixedFixingValue", 
+  default->nil);
+[Core Cash Flow Pricing]FMoneyFlow:fixedFixingValue = nil;
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:fixedFixingValue = moneyFlow:fixedFixingValue;
+[Core Cash Flow Pricing]FResetMoneyFlow:fixedFixingValue = reset:fixedFixingValue;

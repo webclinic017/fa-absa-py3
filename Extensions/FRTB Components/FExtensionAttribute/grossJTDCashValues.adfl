@@ -1,0 +1,11 @@
+[FRTB Components]FCashFlowInstrument:grossJTDCashValues = select(isCreditBasket, 
+  true->denominatedValueOrBasket(positionValue(positionTradeQuantities, grossJTDCash, contractSize, timeDistributionFactor)), 
+  false->switch(instrumentIsJTDCashSensitive and isDefaultSensitiveToCriteria, 
+    false->currencyZero, 
+    true->denominatedValueOrBasket(positionValue(positionTradeQuantities, grossJTDCash, contractSize, timeDistributionFactor))));
+[FRTB Components]FInstrument:grossJTDCashValues = currencyZero;
+[FRTB Components]FOption:grossJTDCashValues = select(instrumentIsJTDCashSensitive, 
+  true->select(isCall, 
+    true->currencyZero, 
+    false->denominatedValueOrBasket(positionValue(positionTradeQuantities, strikeValueModel - underlying:grossJTDCash [frtbDRCRecoveryRate], contractSize, timeDistributionFactor))), 
+  false->currencyZero);

@@ -1,0 +1,6 @@
+[Default]FInstrument:expiryPositionCalculation = exposurePosition * instrumentExposure;
+[Default]FInstrumentAndTrades:expiryPositionCalculation = shunt(isOpenPosition, 
+  true->openInstrument :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference], 
+  false->timeBucketsSetExternallyZero);
+[Default]FLegAndTrades:expiryPositionCalculation = instrument :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference, legsMethod = [leg]];
+[Default]FMultiInstrumentAndTrades:expiryPositionCalculation = sumOf(openInstruments :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference]);

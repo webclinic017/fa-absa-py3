@@ -1,0 +1,80 @@
+/*-----------------------------------------------------------------------------
+PROJECT                 :  Price Testing
+
+PURPOSE                 :  For use in weekly and monthly Price Testing and Bid Offer Testing
+
+DEPATMENT AND DESK      :  PCG Valuation Control Group
+
+REQUESTER               :  Candice Nolan
+
+DEVELOPER               :  Candice Nolan
+
+CR NUMBER               :  248592
+
+
+
+PURPOSE                 :  Added change: Enable the bond query code to run data for today on specified filters.
+			:  For use in weekly and monthly Price Testing and Bid Offer Testing
+
+DEPATMENT AND DESK      :  PCG Valuation Control Group
+
+REQUESTER               :  Themba Maseko
+
+DEVELOPER               :  Candice Nolan
+
+CR NUMBER               :  291904
+
+
+PURPOSE                 :  Edit production script on Calc_Day Yesterday change it to Calc_Day Today.
+			:  For use in weekly and monthly Price Testing and Bid Offer Testing
+
+DEPATMENT AND DESK      :  PCG Valuation Control Group
+
+REQUESTER               :  Themba Maseko
+
+DEVELOPER               :  Candice Nolan
+
+CR NUMBER               :  313529
+
+
+-----------------------------------------------------------------------------*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET PriceTest BidOffer') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET PriceTest BidOffer' and p.type = 'SQL Query' 
+ 
+/**************************all bonds***************************/
+
+select
+@Calc_Day{Today}	'Calc_Day',
+p.prfid 'Portfolio',
+pp.prfid  'Cost_Centre',
+'YES' ? i.extern_id1: '' 'Bond',
+i.instype 'Instype',
+display_id(i,'issuer_ptynbr')'Issuer',
+i.insid 'Insid',
+nominal_amount(t) 'Nominal',
+mtm_price(i,@Calc_Day{Today}) 'Front_Yield',
+
+ ((Dirty_from_yield(i, date_add_banking_day(  @Calc_Day{Today}  ,,3) ,,, (mtm_price(i, @Calc_Day{Today}))+0.01  ) - 
+Dirty_from_yield(i, date_add_banking_day(  @Calc_Day{Today}  ,,3) ,,, (mtm_price(i, @Calc_Day{Today}))-0.01 ) ) / (0.01+0.01)) 'delta' /*the delta per bond - uses this column temporarily*/
+
+from
+ 
+instrument i ,
+trade t ,
+portfolio p ,
+portfolio pp ,
+portfolioLink pl 
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}) and
+p.prfnbr = pl.member_prfnbr and	
+pl.owner_prfnbr = pp.prfnbr and
+t.insaddr = i.insaddr and
+t.prfnbr = p.prfnbr
+
+

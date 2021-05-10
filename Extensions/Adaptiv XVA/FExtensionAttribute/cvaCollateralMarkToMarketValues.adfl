@@ -1,0 +1,6 @@
+[Adaptiv XVA]FBond:cvaCollateralMarkToMarketValues = collateralMarkToMarketValues;
+[Adaptiv XVA]FCommodity:cvaCollateralMarkToMarketValues = collateralMarkToMarketValues;
+[Adaptiv XVA]FDeposit:cvaCollateralMarkToMarketValues = collateralMarkToMarketValues;
+[Adaptiv XVA]FInstrument:cvaCollateralMarkToMarketValues = throwError("Only cash, bonds, equities and commodities are supported as CVA collateral, all other collateral will be excluded from the collateral pool.");
+[Adaptiv XVA]FMultiInstrumentAndTrades:cvaCollateralMarkToMarketValues = sumOf(openCollateralInstruments :* "collapse(cvaCollateralMarkToMarketValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, collateralAgreement, useHaircutFactor, filterUnit, groupingSpotDiscountDate, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral]);
+[Adaptiv XVA]FStock:cvaCollateralMarkToMarketValues = collateralMarkToMarketValues;

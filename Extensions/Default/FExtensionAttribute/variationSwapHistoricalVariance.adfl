@@ -1,0 +1,11 @@
+[Default]FInstrument:variationSwapHistoricalVariance = nil;
+[Default]FInstrumentAndTrades:variationSwapHistoricalVariance = instrument:variationSwapHistoricalVariance [priceSource, isSplitAllGrouped, filterCurrency];
+[Default]FMultiInstrumentAndTrades:variationSwapHistoricalVariance = nil;
+[Default]FOrderBook:variationSwapHistoricalVariance = instrument:variationSwapHistoricalVariance [priceSource, isSplitAllGrouped, filterCurrency];
+[Default]FPriceAggregate:variationSwapHistoricalVariance = priceFeed:variationSwapHistoricalVariance;
+[Default]FPriceFeed:variationSwapHistoricalVariance = instrument:variationSwapHistoricalVariance [priceSource, isSplitAllGrouped, filterCurrency];
+[Default]FVolatilityFuture:variationSwapHistoricalVariance = switch(variationSwapNHistoricalPriceFixings < 1, 
+  true->0.0, 
+  false->switch(theoreticalModelCallUsesHistoricalOnly, 
+    true->variationSwapCappedHistoricalVariance, 
+    default->variationSwapTradingDaysPerYear * sumSquaredReturns / variationSwapNHistoricalPriceFixings));

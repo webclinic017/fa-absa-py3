@@ -1,0 +1,48 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+'''
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_CommodityForward.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_CommodityForward.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+from
+    instrument i
+where
+    /* Basic filtering conditions */
+        (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Future/Forward')  
+    
+    /* Special filtering conditions */
+    and i.und_instype in ('Commodity')	  /* underlying instrument is Commodity */
+    and i.paytype in ('Forward')					/* distinguish between Future and Forward */          
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

@@ -1,0 +1,7 @@
+[Default]FInstrument:theoreticalPriceVolatility = nil;
+[Default]FInstrumentAndTrades:theoreticalPriceVolatility = openInstrumentOrInstrument :* "collapse(theoreticalPriceVolatility)" [priceSource, isSplitAllGrouped, filterUnit];
+[Default]FMultiInstrumentAndTrades:theoreticalPriceVolatility = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "collapse(theoreticalPriceVolatility)" [priceSource, isSplitAllGrouped, filterUnit]);
+[Default]FVarianceSwap:theoreticalPriceVolatility = theoreticalPriceVolatility(theoreticalPrice);
+[Default]FVolatilitySwap:theoreticalPriceVolatility = theoreticalPrice;

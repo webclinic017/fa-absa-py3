@@ -1,0 +1,12 @@
+[ABSA Greeks 4.3]FFuture:agrisDelta = select(payType, 
+  "Future"->profitAndLossPositionDisplay * contractSize, 
+  "Forward"->discountCurve.DiscountValue(denominatedvalue(profitAndLossPositionDisplay * contractSize, instrument:currency, , expiryDate), today).Number, 
+  default->0.0);
+[ABSA Greeks 4.3]FInstrument:agrisDelta = priceDelta;
+[ABSA Greeks 4.3]FInstrumentAndTrades:agrisDelta = sumOf(children :* "agrisDelta");
+[ABSA Greeks 4.3]FPortfolioInstrumentAndTrades:agrisDelta = nil;
+[ABSA Greeks 4.3]FSingleInstrumentAndTrades:agrisDelta = select(instrument.InsType, 
+  "Future/Forward"->instrument :* "agrisDelta" [positionObject], 
+  default->select(priceDelta.IsKindOf("FDenominatedValue"), 
+    true->priceDelta.Number, 
+    default->0.0));

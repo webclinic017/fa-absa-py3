@@ -1,0 +1,122 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAOps_IRD_Expiry_Diary') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_IRD_Expiry_Diary' and p.type = 'SQL Query' 
+
+/*
+Purpose             :   Two Expiry Diaries:
+                        1: FO Sales Expiry Diary - All trades still
+                        in FO Sales status
+                        2: Expiry Diary - All trades in status FO Confirmed
+                        BO Confirmed, BO-BO Confirmed and Terminated. Used to
+                        track time before FO Confirming the trade.
+Department and Desk :   Ops
+Rquester            :   FATLM Project
+Developer           :   Heinrich Cronje
+CR Number           :   478334
+*/
+
+/*---------- Macros ----------*/
+select
+    @1_StartDate{Yesterday}  'startDate',
+    @2_EndDate{Today}   'endDate',
+    @8_Report{All;'Expiry Diary','FO Sales Expiry Diary'}   'report'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+/*---------- Select FO Sales Expiry Diary ----------*/
+select
+    'FO Sales Expiry Diary' 'Report',
+    t.trdnbr,
+    po.prfid,
+    i.instype,
+    t.status,
+    today - to_date(t.execution_time)   'time_outstanding',
+    t.value_day,
+    i.exp_day,
+    t.updat_time   'time',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    u.name  'user_name',
+    p.ptyid,
+    nominal_amount(t,t.value_day)   'nominal',
+    nominal_amount(t,t.value_day) >= 0 ? 'B' : 'S'  'Buy/Sell',
+    l.fixed_rate = 0 ? (ii.insid = '' ? '' : ii.insid) : l.fixed_rate    'rate',
+    i.exp_day - to_date(t.execution_time)   'tenor'
+from
+    trade t,
+    instrument i,
+    portfolio po,
+    party p,
+    leg l,
+    user u,
+    instrument ii,
+    macros m
+where
+        match_filter(t, @3_Filter{SAOps_IRD_Trades;tradefilter.fltid}, @4_TrdNos{})
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and t.prfnbr = po.prfnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.trader_usrnbr = u.usrnbr
+    and l.float_rate *= ii.insaddr
+    and t.status = 'FO Sales'
+    and i.exp_day >= m.startDate
+    and ((@5_Portfolio{All;Portfolio.prfid*} in ('All')) or (po.prfid in (@5_Portfolio{All;Portfolio.prfid*})))
+    and ((@6_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@6_Counterparty{All;Party.ptyid*})))
+    and ((@7_Trader{All;User.userid*} in ('All')) or (u.userid in (@7_Trader{All;User.userid*})))
+    and m.report in ('All','FO Sales Expiry Diary')
+    
+order by 6 desc
+
+union
+
+/*---------- Select not Expiry Diary ----------*/
+select
+    'Expiry Diary' 'Report',
+    t.trdnbr,
+    po.prfid,
+    i.instype,
+    t.status,
+    to_date(to_time(add_info(t,'FOConfirm Timestamp'))) - to_date(t.execution_time)   'time_outstanding',
+    t.value_day,
+    i.exp_day,
+    t.updat_time   'time',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    u.name  'user_name',
+    p.ptyid,
+    nominal_amount(t,t.value_day)   'nominal',
+    nominal_amount(t,t.value_day) >= 0 ? 'B' : 'S'  'Buy/Sell',
+    l.fixed_rate = 0 ? (ii.insid = '' ? '' : ii.insid) : l.fixed_rate    'rate',
+    i.exp_day - to_date(t.execution_time)   'tenor'
+from
+    trade t,
+    instrument i,
+    portfolio po,
+    party p,
+    leg l,
+    user u,
+    instrument ii,
+    macros m
+where
+        match_filter(t, @3_Filter{SAOps_IRD_Trades;tradefilter.fltid}, @4_TrdNos{})
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and t.prfnbr = po.prfnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.trader_usrnbr = u.usrnbr
+    and l.float_rate *= ii.insaddr
+    and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed','Terminated')
+    and t.value_day >= m.startDate
+    and t.value_day <= m.endDate
+    and ((@5_Portfolio{All;Portfolio.prfid*} in ('All')) or (po.prfid in (@5_Portfolio{All;Portfolio.prfid*})))
+    and ((@6_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@6_Counterparty{All;Party.ptyid*})))
+    and ((@7_Trader{All;User.userid*} in ('All')) or (u.userid in (@7_Trader{All;User.userid*})))
+    and m.report in ('All','Expiry Diary')
+
+order by 7 desc

@@ -1,0 +1,13 @@
+[Core Pricing]FBuySellBack:valuationStartDate = select(valuationDate < object.StartDate, 
+  true->object.SpotDateInverted(object.StartDate, ), 
+  false->valuationDate);
+[Core Pricing]FCashFlowInstrument:valuationStartDate = object.ValuationStartDate(valuationDate);
+[Core Pricing]FCashFlowMoneyFlow:valuationStartDate = max(valuationDate, staticLegInformation:startDate);
+[Core Pricing]FFra:valuationStartDate = valuationDate;
+[Core Pricing]FInstrument:valuationStartDate = valuationDate;
+[Core Pricing]FLeg:valuationStartDate = instrument:valuationStartDate;
+[Core Pricing]FOption:valuationStartDate = select(isForwardStart, 
+  true->switch(isForwardStarting and (not isCliquet), 
+    true->forwardStartDate, 
+    false->valuationDate), 
+  false->valuationDate);

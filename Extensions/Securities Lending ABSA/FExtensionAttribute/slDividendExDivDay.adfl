@@ -1,0 +1,11 @@
+[Securities Lending ABSA]FInstrument:slDividendExDivDay = switch(dividendForecast, 
+  nil->nil, 
+  default->shunt(dividendForecast.Count(profitAndLossStartDate, profitAndLossEndDate) > 0, 
+    true->dividendForecast.ExDivDays(profitAndLossStartDate, profitAndLossEndDate).At(0), 
+    false->nil));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slDividendExDivDay = select(groupingReference.IsKindOf("FInstrument"), 
+  true->groupingReference:slDividendExDivDay, 
+  false->nil);
+[Securities Lending ABSA]FSecurityLoan:slDividendExDivDay = underlying:slDividendExDivDay;
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slDividendExDivDay = instrument:slDividendExDivDay;
+[Securities Lending ABSA]FTrade:slDividendExDivDay = instrument:slDividendExDivDay;

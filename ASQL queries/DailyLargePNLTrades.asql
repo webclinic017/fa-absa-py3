@@ -1,0 +1,10 @@
+SELECT
+    trd.trdnbr
+FROM
+    Trade trd,
+    Instrument curr
+WHERE
+    abs(ael_f(,'SAGEN_IT_TM_Column_Calculation.get_TM_Column_Calculation','Standard','FTradeSheet',trd.trdnbr,'Trade','Inception TPL',curr.insid,,,)) > 1000000
+    AND curr.insaddr = trd.curr
+    AND to_date(trd.execution_time) = date_add_banking_day(Today, '', -1)
+    AND trd.status NOT IN ('Simulated','Void')

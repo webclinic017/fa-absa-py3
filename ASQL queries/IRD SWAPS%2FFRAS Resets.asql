@@ -1,0 +1,53 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','IRD SWAPS/FRAS Resets') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'IRD SWAPS/FRAS Resets' and p.type = 'SQL Query' 
+ 
+  SELECT 
+
+    t.trdnbr    ,
+    i.instype   ,
+    i.insid ,
+    (l.payleg = 'YES') ? 'Receive' : 'Pay'    'Pay/Receive Leg',    
+    l.fixed_rate 'Fixed rate',
+    l.spread    'Spread',
+    
+    ref.insid   'Float Ref',
+    mtm_price(ref,cf.start_day,,,)   'Float Ref Price',
+    
+    cf.start_day     'Last_Reset',
+    cf.end_day       'Next_Reset',
+    nominal_amount(t,cf.start_day)  'Nominal'
+    
+
+    
+FROM
+    trade t,
+    instrument  i,
+    instrument  ref,
+    cashflow    cf,
+    leg l
+
+WHERE
+    l.legnbr *= cf.legnbr
+    and l.insaddr = i.insaddr
+    and i.insaddr = t.insaddr
+    and ref.insaddr =* l.float_rate    
+    and display_id(t,'prfnbr') in ('IRD Funding Hybrid','HEDGES 1573')
+    and i.instype in ('Swap','FRA')
+    and @Date{today} between cf.start_day and cf.end_day
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and t.time <= @Date{today}
+ 
+    
+
+    
+
+    
+    
+    
+    
+    
+    

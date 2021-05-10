@@ -1,0 +1,10 @@
+[ABSA CAPITAL]FInstrumentAndTrades:SettlementDiaryLatestText = select(moneyFlowSettlementObject <> nil, 
+  true->(shunt(moneyFlowSettlementObject.HasDiary, 
+    true->sumOf([string(moneyFlowSettlementObject.Oid), ": ", moneyFlowSettlementObject.Diary.Text.Split("\n").Last]), 
+    false->"")), 
+  false->"");
+[ABSA CAPITAL]FMultiInstrumentAndTrades:SettlementDiaryLatestText = "";
+[ABSA CAPITAL]FMultiMoneyFlowAndTrades:SettlementDiaryLatestText = "";
+[ABSA CAPITAL]FSettlement:SettlementDiaryLatestText = shunt(object.HasDiary, 
+  true->object.Diary.Text.Split("\n").Last, 
+  false->"");

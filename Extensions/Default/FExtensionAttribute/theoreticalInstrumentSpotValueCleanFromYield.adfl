@@ -1,0 +1,13 @@
+[Default]FCashFlowInstrument:theoreticalInstrumentSpotValueCleanFromYield = select(isFinite(ctdFactor), 
+  true->convertToCurrencyValidateDates(legs :* "theoreticalLegComponentSpotValueCleanFromYield" [yieldIsAdjusted, ytmStrikeValue, ytmValueDate, ytmExpiryDate, ytmSettleDate, yield, yieldValue], fxLegsToInstrument, currencySymbol) / ctdFactor, 
+  false->convertToCurrencyValidateDates(legs :* "theoreticalLegComponentSpotValueCleanFromYield" [yieldIsAdjusted, ytmStrikeValue, ytmValueDate, ytmExpiryDate, ytmSettleDate, yield, yieldValue], fxLegsToInstrument, currencySymbol));
+[Default]FDualCurrencyBond:theoreticalInstrumentSpotValueCleanFromYield = switch(ytmStrikeValue, 
+  nil->flatYieldToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, legs :* "legInformation", legs :* "staticLegInformation", valuationDate, currencySymbol, fxRateForYTMCalculations), 
+  default->flatYieldAndStrikeToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, ytmStrikeValue, ytmExpiryDate, ytmSettleDate, legs :* "legInformation", legs :* "staticLegInformation", nil, valuationDate, currencySymbol, fxRateForYTMCalculations));
+[Default]FFlexiBond:theoreticalInstrumentSpotValueCleanFromYield = switch(ytmStrikeValue, 
+  nil->flatYieldToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, legs :* "legInformation", legs :* "staticLegInformation", valuationDate, currencySymbol), 
+  default->flatYieldAndStrikeToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, ytmStrikeValue, ytmExpiryDate, ytmSettleDate, legs :* "legInformation", legs :* "staticLegInformation", nil, valuationDate, currencySymbol));
+[Default]FFuture:theoreticalInstrumentSpotValueCleanFromYield = underlying :* "theoreticalInstrumentSpotValueCleanFromYield" [instrumentSpotDate = payDate, ctdFactor, yield];
+[Default]FInstrument:theoreticalInstrumentSpotValueCleanFromYield = nil;
+[Default]FInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYield = instrument:theoreticalInstrumentSpotValueCleanFromYield;
+[Default]FMultiInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYield = nil;

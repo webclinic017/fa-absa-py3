@@ -1,0 +1,12 @@
+[Default]FCurrency:yieldCurveRates = fxDiscountCurve.Rate(timeBucketSpotDate, timeBucketShiftPeakDate, yieldCurveRateType, yieldCurveCurrencyDayCountMethod, "Spot Rate", nil, 0);
+[Default]FInstrumentAndTrades:yieldCurveRates = currenciesOrYieldCurvesForVectorColumnNil;
+[Default]FTimeBucketAndObject:yieldCurveRates = select(timeBucket, 
+  nil->currenciesOrYieldCurvesForVectorColumnNil, 
+  default->select((timeBucketShiftPeakDate == bigDate()) or timeBucketIsInceptionToEndBucket, 
+    true->currenciesOrYieldCurvesForVectorColumnNil, 
+    false->select(yieldCurvesSetExternally, 
+      nil->select(currenciesForVectorColumn, 
+        nil->currenciesOrYieldCurvesForVectorColumnNil, 
+        default->currenciesForVectorColumn :* "yieldCurveRates" [timeBucketSpotDate, timeBucketShiftPeakDate, timeBucket]), 
+      default->yieldCurvesForVectorColumn :* "yieldCurveRates" [timeBucketSpotDate, timeBucketShiftPeakDate, timeBucket])));
+[Default]FYieldCurve:yieldCurveRates = irCurveInformationForStandardCalculations.Rate(timeBucketSpotDate, timeBucketShiftPeakDate, yieldCurveRateType, yieldCurveCurrencyDayCountMethod, "Spot Rate", nil, 0);

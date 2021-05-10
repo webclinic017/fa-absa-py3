@@ -1,0 +1,31 @@
+[UDMC Templates]FObject:udmcOutperformanceBasketPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for basket outperformance option
+#
+# INTERPRETATION
+# An option on the weighted returns in a basket.
+#
+# DEFINITION
+# strike: Strike value, 'Strike' field;
+# weights: Weights (with sign), 'Weight' field;
+#--------------------------------------------
+
+#PARAMETERS
+param double strike;
+param matrix(double) weights;
+param matrix(double) referencePrices;
+
+#PROCESS 
+process matrix(double) S;
+
+#LOCAL VARIABLES
+double optionValue = 0.0;
+
+#MAIN LOOP
+optionValue = max((weights*(S[:,-1]./referencePrices))[0] - strike, 0.0);
+
+#CASHFLOW
+cashFlow(0, optionValue);
+
+...

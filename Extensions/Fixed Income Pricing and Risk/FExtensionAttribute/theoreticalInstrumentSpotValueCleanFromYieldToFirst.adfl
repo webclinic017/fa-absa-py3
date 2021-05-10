@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FFlexiBond:theoreticalInstrumentSpotValueCleanFromYieldToFirst = select(exerciseEventsExist, 
+  true->flatYieldAndStrikeToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, firstDirtyStrikeValue, firstExerciseStartOrExpiryDate, firstExerciseStartOrSettleDate, legs :* "legInformation", legs :* "staticLegInformation", nil, valuationDate, currencySymbol), 
+  false->flatYieldToCleanLegs(ytmValueDate, yield, yieldIsAdjusted, legs :* "legInformation", legs :* "staticLegInformation", valuationDate, currencySymbol));
+[Fixed Income Pricing and Risk]FInstrument:theoreticalInstrumentSpotValueCleanFromYieldToFirst = object:theoreticalInstrumentSpotValueCleanFromYield [ytmStrikeValue = firstDirtyStrikeValue, ytmExpiryDate = firstExerciseStartOrExpiryDate, ytmSettleDate = firstExerciseStartOrSettleDate];
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYieldToFirst = instrument:theoreticalInstrumentSpotValueCleanFromYieldToFirst;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:theoreticalInstrumentSpotValueCleanFromYieldToFirst = nil;

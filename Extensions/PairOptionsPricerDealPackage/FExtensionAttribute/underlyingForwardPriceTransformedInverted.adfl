@@ -1,0 +1,5 @@
+[PairOptionsPricerDealPackage]FInstrument:underlyingForwardPriceTransformedInverted = select(underlyingForwardPriceTransformed, 
+  nil->nil, 
+  default->select(almostZero(underlyingForwardPriceTransformed, 1e-05), 
+    true->nil, 
+    false->denominatedvalue(invBidAsk(arrayAny(double(underlyingForwardPriceTransformed)), isBidAskPriced), unit(underlyingForwardPriceTransformed), , date(underlyingForwardPriceTransformed))));

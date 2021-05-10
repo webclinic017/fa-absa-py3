@@ -1,0 +1,13 @@
+[Securities Lending]FInstrument:secLendSEDOL = object.InstrumentAlias.SEDOL;
+[Securities Lending]FMultiInstrumentAndTrades:secLendSEDOL = select(grouper == "Underlying", 
+  false->nil, 
+  true->select(instrumentGroupingReference, 
+    nil->nil, 
+    default->instrumentGroupingReference:secLendSEDOL));
+[Securities Lending]FOrderBook:secLendSEDOL = instrument:secLendSEDOL;
+[Securities Lending]FPortfolioInstrumentAndTrades:secLendSEDOL = nil;
+[Securities Lending]FPriceLevelRow:secLendSEDOL = instrument:secLendSEDOL;
+[Securities Lending]FSecurityLoan:secLendSEDOL = underlying:secLendSEDOL;
+[Securities Lending]FSingleInstrumentAndTrades:secLendSEDOL = instrument:secLendSEDOL;
+[Securities Lending]FTradeRow:secLendSEDOL = instrument:secLendSEDOL;
+[Securities Lending]FUndefinedObject:secLendSEDOL = nil;

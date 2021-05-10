@@ -1,0 +1,15 @@
+select
+    i.insid,
+    c.pay_day,
+    projected_cf(c)
+from
+    Trade   t,
+    Instrument  i,
+    Leg l,
+    CashFlow    c
+where match_filter(t,@Filter{;Tradefilter.fltid})
+and t.insaddr = i.insaddr
+and c.legnbr = l.legnbr
+and i.insaddr = l.insaddr
+
+order by 1,2

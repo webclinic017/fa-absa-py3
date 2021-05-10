@@ -1,0 +1,4 @@
+[Default]FOrderBookLink:fxOrderBookMemberToParentInstrument = select(orderBookMemberCurrency == parentInstrument:currency, 
+  true->1.0, 
+  false->orderBookMemberCurrency :* "fxForwardRate" [fxForwardDate = parentInstrument:instrumentSpotDate, fxToCurrency := parentInstrument:currency]);
+[Default]FOwnOrder:fxOrderBookMemberToParentInstrument = orderBookLink:fxOrderBookMemberToParentInstrument;

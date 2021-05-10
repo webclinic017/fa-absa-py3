@@ -1,0 +1,235 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_ERM_Summary_Position') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_ERM_Summary_Position' and p.type = 'SQL Query' 
+/* SACM_ERM_Summary_Position: last updated on Thu Apr 01 09:48:31 2004. Extracted by Stowaway on 2004-06-04.*/
+SELECT
+	to_date(@2_EndDate{TODAY}) 'end'
+into 
+	macros
+from 
+	serverdata s
+where 
+	s.srdnbr > 0
+
+/*-----------------------------------------------------------------------------------*/
+
+select	
+	t.trdnbr,
+	t.value_day,						
+	i.insid							'Instrument',
+	to_double(add_info(t,'FIFO_POS'))			'NominalAmount',
+	t.price							'TradeYield',
+	dirty_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) / 100.0	'BookValue',
+	clean_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) /100.0	'CapitalValue',
+	(dirty_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) / 100.0) - 
+	(clean_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) /100.0)
+	/*interest_accrued(i, , t.value_day) * to_double(add_info(t,'FIFO_POS'))/i.contr_size*/	'AccruedInterest',
+	display_id(t,'prfnbr')	'Portfolio'
+into 
+	Settle
+
+from
+	instrument	i,
+	trade		t,
+	macros m
+where
+ 	match_filter(t, @3_Filter{'CM_ERM';tradefilter.fltid}, @4_TrdNbrs{})
+and	t.insaddr = i.insaddr
+and	t.value_day <= m.end
+and 	to_double(add_info(t,'FIFO_POS')) ~= 0.0
+
+/*---------------------------------------------------------------------------------------------*/
+
+select
+	t.trdnbr,
+	t.value_day,
+	i.insid							'Instrument',
+	to_double(add_info(t,'FIFO_POS'))				'NominalAmount',
+	t.price							'TradeYield',
+	dirty_from_yield(i, m.end,,,t.price) * to_double(add_info(t,'FIFO_POS')) / 100.0			'BookValue',
+	clean_from_yield(i, m.end,,,t.price) * to_double(add_info(t,'FIFO_POS')) /100.0			'CapitalValue',
+	(dirty_from_yield(i, m.end,,,t.price) * to_double(add_info(t,'FIFO_POS')) / 100.0) - 
+	(clean_from_yield(i, m.end,,,t.price) * to_double(add_info(t,'FIFO_POS')) /100.0)
+	/*interest_accrued(t, SMALLDATE, m.end)*/	'AccruedInterest'
+	
+into Current
+
+from
+instrument	i,
+trade		t,
+macros m
+
+where
+	match_filter(t,@3_Filter{'CM_ERM';tradefilter.fltid}, @4_TrdNbrs{})
+and	t.insaddr = i.insaddr
+and	t.value_day <= m.end
+and 	to_double(add_info(t,'FIFO_POS')) ~= 0.0
+
+
+select 
+	s.Instrument,
+	sum(s.TradeYield * s.NominalAmount) 
+	 / sum(s.NominalAmount) 				'WATradeYield'
+
+into SettleWA
+
+from Settle s
+
+group by s.Instrument
+
+
+select 
+curr.Instrument,
+sum(curr.TradeYield * curr.NominalAmount) / sum(curr.NominalAmount) 		'WATradeYield'	
+
+into CurrentWA
+
+from Current curr
+
+group by curr.Instrument	
+
+
+select	
+	s.trdnbr,
+	s.value_day,
+	s.Instrument,
+	s.Portfolio,
+	s.TradeYield,
+	curr.NominalAmount					'NominalAmount',
+	s.BookValue						'SettleBookValue',
+	s.CapitalValue					'SettleCapitalValue',
+	s.AccruedInterest					'SettleAccruedInterest',
+	curr.BookValue					'CurrBookValue',
+	curr.CapitalValue					'CurrCapitalValue',
+	curr.AccruedInterest				'CurrAccruedInterest'
+
+from
+	Settle		s,
+	SettleWA	swa,
+	Current		curr,
+	CurrentWA	currwa
+
+where
+		s.instrument = swa.instrument
+	and	curr.instrument = currwa.instrument
+	and	s.trdnbr = curr.trdnbr
+
+UNION
+ 
+select
+	s.trdnbr,
+	s.value_day,
+	s.Instrument,
+	'Total By Instrument',
+	sum(swa.WATradeYield * sum(curr.NominalAmount))/sum(curr.NominalAmount)	'TradeYield',
+	sum(curr.NominalAmount)					'NominalAmount',
+	sum(s.BookValue)					'SettleBookValue',
+	sum(s.CapitalValue)					'SettleCapitalValue',
+	sum(s.AccruedInterest)					'SettleAccruedInterest',
+	sum(curr.BookValue)					'CurrBookValue',
+	sum(curr.CapitalValue)					'CurrCapitalValue',
+	sum(curr.AccruedInterest)				'CurrAccruedInterest'
+
+from
+	Settle		s,
+	SettleWA	swa,
+	Current		curr,
+	CurrentWA	currwa
+
+where
+		s.instrument = swa.instrument
+	and	curr.instrument = currwa.instrument
+	and	s.trdnbr = curr.trdnbr
+
+group by s.Instrument
+
+UNION
+
+select
+	s.trdnbr,
+	s.value_day,
+	'Total By Portfolio',
+	s.Portfolio,
+	sum(swa.WATradeYield * sum(curr.NominalAmount))/sum(curr.NominalAmount)	'TradeYield',
+	sum(curr.NominalAmount)							'NominalAmount',
+	sum(s.BookValue)							'SettleBookValue',
+	sum(s.CapitalValue)							'SettleCapitalValue',
+	sum(s.AccruedInterest)							'SettleAccruedInterest',
+	sum(curr.BookValue)							'CurrBookValue',
+	sum(curr.CapitalValue)							'CurrCapitalValue',
+	sum(curr.AccruedInterest)						'CurrAccruedInterest'
+
+from
+	Settle		s,
+	SettleWA	swa,
+	Current		curr,
+	CurrentWA	currwa
+
+where
+		s.instrument = swa.instrument
+	and	curr.instrument = currwa.instrument
+	and	s.trdnbr = curr.trdnbr
+
+group by s.Portfolio
+UNION
+
+select
+	s.trdnbr,
+	s.value_day,
+	s.Instrument,
+	s.Portfolio,
+	sum(swa.WATradeYield * sum(curr.NominalAmount))/sum(curr.NominalAmount)	'TradeYield',
+	sum(curr.NominalAmount)					'NominalAmount',
+	sum(s.BookValue)					'SettleBookValue',
+	sum(s.CapitalValue)					'SettleCapitalValue',
+	sum(s.AccruedInterest)					'SettleAccruedInterest',
+	sum(curr.BookValue)					'CurrBookValue',
+	sum(curr.CapitalValue)					'CurrCapitalValue',
+	sum(curr.AccruedInterest)				'CurrAccruedInterest'
+
+from
+	Settle		s,
+	SettleWA	swa,
+	Current		curr,
+	CurrentWA	currwa
+
+where
+		s.instrument = swa.instrument
+	and	curr.instrument = currwa.instrument
+	and	s.trdnbr = curr.trdnbr
+
+group by 3,4
+
+UNION
+
+select
+	s.trdnbr,
+	s.value_day,
+	'Total',
+	s.Portfolio,
+	sum(swa.WATradeYield * sum(curr.NominalAmount))/sum(curr.NominalAmount)	'TradeYield',
+	sum(curr.NominalAmount)					'NominalAmount',
+	sum(s.BookValue)					'SettleBookValue',
+	sum(s.CapitalValue)					'SettleCapitalValue',
+	sum(s.AccruedInterest)					'SettleAccruedInterest',
+	sum(curr.BookValue)					'CurrBookValue',
+	sum(curr.CapitalValue)					'CurrCapitalValue',
+	sum(curr.AccruedInterest)				'CurrAccruedInterest'
+
+from
+	Settle		s,
+	SettleWA	swa,
+	Current		curr,
+	CurrentWA	currwa
+
+where
+		s.instrument = swa.instrument
+	and	curr.instrument = currwa.instrument
+	and	s.trdnbr = curr.trdnbr
+
+group by 3
+
+

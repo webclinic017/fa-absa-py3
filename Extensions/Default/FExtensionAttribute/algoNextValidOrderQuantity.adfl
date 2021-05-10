@@ -1,0 +1,6 @@
+[Default]ExecutionAlgo:algoNextValidOrderQuantity = switch((algoAuctionMaxParticipationRate > 1e-07) and (algoAuctionMaxParticipationAuctionQuantity > 1e-07), 
+  true->min(algoAuctionMaxParticipationAuctionQuantity, object.AuctionSliceQuantity), 
+  false->0);
+[Default]ExecutionAlgoVolumeParticipation:algoNextValidOrderQuantity = switch((algoAuctionMaxParticipationRate > 1e-07) and (algoAuctionMaxParticipationAuctionQuantity > 1e-07), 
+  true->min(algoAuctionMaxParticipationAuctionQuantity, object.ExecutionPlan.RemainingQuantity), 
+  false->0);

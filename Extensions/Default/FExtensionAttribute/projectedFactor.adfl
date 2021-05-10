@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:projectedFactor = select(instrument:isRepoInstrument and instrument:isSingleLegInstrument, 
+  true->instrument:projectedFactor [projectedRightDate = trade.ValueDay, factorFilter] * trade.Quantity, 
+  false->nil);
+[Default]FLeg:projectedFactor = sumOf(double(staticLegInformation.ProjectedCashFlow(valuationDate, projectedRightDate, legInformation, roundingInformation, factorFilter)));
+[Default]FRepoInstrument:projectedFactor = firstLeg:projectedFactor [projectedRightDate, factorFilter] * contractSize;

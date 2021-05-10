@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:priceDeltaForwardHedge = priceDeltaWithTradeAdjustment(shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->switch(almostZero(singlePriceGreekRiskFactorValueInDisplayCurrency, 1e-05), 
+    true->denominatedValueZero, 
+    false->convertToCurrency(object:priceDeltaPercentForwardHedgeValues [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, filterUnit, priceGreekShiftFilter, priceGreekOnSpot := true], priceDeltaSpotFXRates, displayCurrencySymbol, filterUnit) / (singlePriceGreekRiskFactorValueInDisplayCurrency / 100)), 
+  default->denominatedValueZero), priceDeltaForwardHedgeTradeAdjustment);
+[Default]FTimeBucketAndObject:priceDeltaForwardHedge = scenarioaxisarray(rowInstrumentAndTrades:priceDeltaForwardHedge [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekIncludePremiumAdjustment], timeDistributionPriceGreekPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

@@ -1,0 +1,6 @@
+[ACL]FExerciseEvent:faclAttrSettlementDate = FACLDateStringToCQSString(object.Date);
+[ACL]FInstrument:faclAttrSettlementDate = FACLDateStringToCQSString(faclAttrSettlementDateUnformatted);
+[ACL]FTrade:faclAttrSettlementDate = select(instrument:faclAttrSettlementDateUnformatted, 
+  nil->FACLDateStringToCQSString(faclAttrSettlementDateUnformatted), 
+  default->instrument:faclAttrSettlementDate);
+[ACL]FTradeRow:faclAttrSettlementDate = trade:faclAttrSettlementDate;

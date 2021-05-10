@@ -1,0 +1,188 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CAP MARKET BondsSettled Summary') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET BondsSettled Summary' and p.type = 'SQL Query' 
+ 
+/*
+
+name = Bonds_Settled_Summary
+
+coded by ap
+
+last updated = 1 april 2005 by Anil , build the nop 
+
+last updated 2005-09-21 ap to exclude 
+and c.entry not in('ABS001','ABS002','SPECIAL_FINANCE')
+
+2006-01-03 anil build NOP as at 31 Dec 2005
+2006-01-09 andries if settlement today then dayint = 0
+2006-01-18 anil corrected the settlement today then dayint=0
+2006-01-26 anil incorporate a settled up_to date as  a macro date
+2006-02-28 anil incorporate the expiry condition in the case of bonds that are going to be redeemed
+
+
+
+*/
+
+
+
+/*----------SET UP------------------*/
+select
+s.srdnbr,
+date_add_banking_day('2006-01-01',,0)'YE',
+date_add_banking_day(@upto{Today;},,3)'vdate'
+
+into
+temp
+
+from
+serverdata s
+
+
+
+/*----------------------------current settled bonds--------------*/
+
+select
+
+p.prfid'prfid',
+/*c.entry'TradeArea',*/
+display_id(i,'issuer_ptynbr')	'Issuer',
+i.extern_id1'insid',
+
+
+sum(t.quantity*1000000)'Nominal',
+
+
+sum(tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))'Capital_Value',
+sum(tt.vdate>=i.exp_day ? 0 :((Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))'Acc_Int_MtM',
+
+sum(((Dirty_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;}))*t.quantity*10000))-((Clean_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))'Acc_Int_Today',
+
+sum(tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)'Dirty_MtM',
+
+
+sum((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+sum((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+sum(t.premium)'Consideration',
+
+sum(((tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))+(((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Cap_PL',
+sum(((((tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+(t.premium)))-((((tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))+(((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))))'Int_PL',
+sum(((tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+(t.premium))'PL',
+
+sum(t.value_day = @upto{Today;} ? 0 :((Dirty_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;})) - Clean_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;}))) - (Dirty_from_yield(i,(date_add_delta(@upto{Today;},-1,0,0)),,,mtm_price(i,@upto{Today;})) - Clean_from_yield(i,(date_add_delta(@upto{Today;},-1,0,0)),,,mtm_price(i,@upto{Today;})))) * t.quantity * 10000)    'DAYINT'
+
+into
+settled
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+/*party acq*/
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+/*and t.acquirer_ptynbr=acq.ptynbr*/
+
+and i.instype in ('Bond','IndexLinkedBond')
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and t.value_day<=@upto{Today;}
+
+and time_to_day(t.time)<= @upto{Today;}    /*for backdating report */
+/*and time_to_day(t.creat_time) not in  ('2006-08-29','2006-08-30','2006-08-31')*/
+
+
+and p.prfid not in ('9803AFS','9803HFT','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4') 
+/*use this filter on portfolios rather than the following 2 on trade area and acquirer*/
+/*and t.optkey1_chlnbr not in (170,171,629) /*represents trade area ('ABS001','ABS002','SPECIAL_FINANCE')*/
+/*and acq.ptyid~='ABACAS'*/
+and i.exp_day >= @upto{Today;}
+
+and trdnbr ~= 831644
+
+
+/*and t.value_day>=tt.YE*/
+
+Group by i.extern_id1,p.prfid 
+
+/*-----------------resultant query--------------*/
+
+select
+@upto{Today;}'Date',
+t2.prfid,
+/*t2.TradeArea,*/
+t2.Issuer,
+'Yes' ? t2.insid : '' 'insid' ,
+t2.Nominal'NOP_Curr',
+t2.Capital_Value,
+t2.Acc_Int_MtM,
+t2.Dirty_MtM,
+t2.Capital_Amount,
+t2.Acc_Int_Trade,
+t2.Consideration,
+t2.Cap_PL,
+t2.Int_PL,
+t2.PL,
+t2.DAYINT,
+t2.Acc_Int_Today
+
+from
+settled t2
+
+union
+
+
+select
+@upto{Today;}'Date',
+t2.prfid,
+/*t2.TradeArea,*/
+t2.Issuer,
+'T/A',
+sum(t2.Nominal)'NOP_Curr',
+sum(t2.Capital_Value),
+sum(t2.Acc_Int_MtM),
+sum(t2.Dirty_MtM),
+sum(t2.Capital_Amount),
+sum(t2.Acc_Int_Trade),
+sum(t2.Consideration),
+sum(t2.Cap_PL),
+sum(t2.Int_PL),
+sum(t2.PL),
+sum(t2.DAYINT),
+sum(t2.Acc_Int_Today)
+
+from
+settled t2
+
+group by t2.prfid
+
+union
+
+select
+@upto{Today;}'Date',
+t2.prfid,
+/*t2.TradeArea,*/
+t2.Issuer,
+'Total',
+sum(t2.Nominal)'NOP_Curr',
+sum(t2.Capital_Value),
+sum(t2.Acc_Int_MtM),
+sum(t2.Dirty_MtM),
+sum(t2.Capital_Amount),
+sum(t2.Acc_Int_Trade),
+sum(t2.Consideration),
+sum(t2.Cap_PL),
+sum(t2.Int_PL),
+sum(t2.PL),
+sum(t2.DAYINT),
+sum(t2.Acc_Int_Today)
+
+from
+settled t2
+
+group by t2.prfid

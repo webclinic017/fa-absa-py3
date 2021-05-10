@@ -1,0 +1,20 @@
+select
+    today   'ReportDate',
+    i.insid,
+    i.exp_day,
+    sum(nominal_amount(t))/1000000  'pos',
+    -25*sum(nominal_amount(t))/1000000  'pv01',
+    i.exp_day <= date_add_delta(TODAY, 3, 3, 0) ? '0 - 3m' : (date_add_delta(TODAY, 3, 3, 0) < i.exp_day and i.exp_day <= date_add_delta(TODAY, 3, 0, 2) ) ? '3m - 2y' : (date_add_delta(TODAY, 3, 0, 2) < i.exp_day and i.exp_day <= date_add_delta(TODAY, 3, 0, 5) ) ? '2y - 5y':(date_add_delta(TODAY, 3, 0, 5) < i.exp_day and i.exp_day <= date_add_delta(TODAY, 3, 0, 10) ) ? '5y - 10y':(date_add_delta(TODAY, 3, 0, 10) < i.exp_day and i.exp_day <= date_add_delta(TODAY, 3, 0, 20) ) ? '10y - 20y':(date_add_delta(TODAY, 3, 0, 20) < i.exp_day and i.exp_day <= date_add_delta(TODAY, 3, 0, 30) ) ? '20y - 30y': i.exp_day > date_add_delta(TODAY, 3, 0, 30) ? '30+': 'N/A'    'Area'    
+
+
+    
+from
+    trade t,
+    instrument i
+where
+    match_filter(t,@Filter{;Tradefilter.fltid})
+and i.insaddr = t.insaddr
+
+group by 2
+
+order by 3

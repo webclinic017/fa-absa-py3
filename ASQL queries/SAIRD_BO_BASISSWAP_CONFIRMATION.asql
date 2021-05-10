@@ -1,0 +1,413 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_BO_BASISSWAP_CONFIRMATION') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_BO_BASISSWAP_CONFIRMATION' and p.type = 'SQL Query' 
+
+/* Query: dev_basis_swap_confirmation
+
+Update Details
+
+User		Date		Change
+----------	-----------	-----------------------------
+Kim Madley			Created
+
+Debbie Osler	09 Oct 03	Corrected ASQL to only show Single Resets
+				Added End Nominal to accomodate MTM Swaps
+Debbie Osler	01 Dec 03	Added Cashlow Calendar
+
+*/
+/*PAYLEG*/
+select
+'u1'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor	'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	i.instype='CurrSwap'
+/*and	l.payleg='Yes'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) <=0
+and	(c.type = 'Fixed Amount' ? (c.pay_day~=l.end_day and c.pay_day~=l.start_day)
+			: c.pay_day~=l.start_day)
+order by 8
+
+
+union
+
+select
+'u2'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+/*and	l.payleg='Yes'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) <=0
+and	i.instype='CurrSwap'
+and	(c.pay_day<date_add_delta(l.start_day,10,(l.rolling_period.count))
+and	c.pay_day~=l.start_day)
+
+order by 8
+
+union
+
+select
+'u3'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	i.instype='CurrSwap'
+/*and	l.payleg='Yes'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) <=0
+and	c.pay_day=l.start_day
+
+order by 8
+
+/*Payleg = No*/
+union
+
+select distinct
+'u4'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+(1/l.nominal_factor)		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	i.instype='CurrSwap'
+/*and	l.payleg='No'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) > 0
+
+and	(c.type = 'Fixed Amount' ? (c.pay_day~=l.end_day and c.pay_day~=l.start_day)
+			: c.pay_day~=l.start_day)
+
+and 	r.type = 'Single'
+
+order by 8
+
+union
+
+select
+'u5'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	i.instype='CurrSwap'
+/*and	l.payleg='No'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) > 0
+and	(c.pay_day<date_add_delta(l.start_day,10,(l.rolling_period.count))
+and	c.pay_day~=l.start_day)
+and 	r.type = 'Single'
+order by 8
+
+union
+
+select
+'u6'				'Section',
+t.trdnbr			'trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+t.value_day			'tradeday',
+l.start_day			'startday',
+l.end_day			'endday',
+display_id(l, 'curr')		'curr',
+display_id(l, 'float_rate') like 'ZAR-JIBAR%' ? 'ZAR-JIBAR-SAFEX' : display_id(l, 'float_rate')	'floatrate',
+l.daycount_method		'discountmethod',
+c.pay_day			'payday',
+l.nominal_factor		'nominalfactor',
+l.spread			'spread',
+r.value				'reset',
+r.value+l.spread		'rpluss',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No' 			'payleg',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size >= 0 ? 'Payable by ABSA BANK LIMITED' : 'Payable by Counterparty'	'payer_nominal',
+p.fullname			'fullname',
+p.attention			'attention',
+p.address			'address',
+p.address2			'address2',
+p.zipcode			'zip',
+p.city				'city',
+p.country			'country',
+p.fax				'fax',
+p.telephone			'telephone',
+l.rolling_period.count		'rollingperiod',
+c.cfwnbr,
+abs(t.quantity*l.nominal_factor*i.contr_size)	'nominal',
+l.nominal_scaling = 'FX' ? 'Unknown - MTM Basis Swap' : convert('float',(abs(t.quantity*l.nominal_factor*i.contr_size)))	'end_nominal',
+
+p.fullname 'CP',
+'JHB, LDN, NY' 'PayCal',
+display_id(l,'pay2_calnbr') 'PayCal2',
+display_id(l,'pay3_calnbr') 'PayCal3',
+display_id(l,'pay4_calnbr') 'PayCal4',
+display_id(l,'pay5_calnbr') 'PayCal5'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+reset				r,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+and	l.insaddr=i.insaddr
+and 	r.cfwnbr=*c.cfwnbr
+and	c.legnbr=*l.legnbr
+and	p.ptynbr=t.counterparty_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	i.instype='CurrSwap'
+/*and	l.payleg='No'*/
+and 	((l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size) > 0
+and	c.pay_day=l.start_day
+
+order by 8
+

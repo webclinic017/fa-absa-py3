@@ -1,0 +1,48 @@
+select
+    t.trdnbr                                          'TradeNumber',
+    convert('time', t.time, '%Y-%m-%d %H:%M:%S')      'TradeDateTime',
+    convert('time', i.exp_day, '%Y-%m-%d %H:%M:%S')   'ExpiryDateTime',
+    ex.barrier_crossed_status                         'ExerciseStatus',
+    1=1 ? t.status  : t.status                        'TradeStatus',
+    t.counterparty_ptynbr                             'CounterparyID'
+
+    into temp
+    
+from
+
+trade t,
+instrument i,
+party p,
+exotic ex,
+instrument und
+
+where   
+
+    t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and i.und_insaddr = und.insaddr
+and i.instype = 'Option'
+and i.und_instype = 'Curr'
+/*and t.status not in ('Simulated', 'Terminated', 'Void')*/
+and i.exp_day >= Today
+and i.insaddr *= ex.insaddr 
+/*and add_info(p,'BarCap_Eagle_Incl') = 'Yes'*/
+/*and p.ptyid not in ('FMAINTENANCE')*/
+and display_id(t,'acquirer_ptynbr') not in ('Metals Desk', 'Gold Desk')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and round(mtm_value_fo(t,today,display_id(und,'curr'))) ~= 0.00*/
+/*and (add_info(p,'BarCap_SMS_LE_SDSID') ~= '' and add_info(p,'BarCap_SMS_CP_SDSID') ~= '')*/
+/*and ex.barrier_crossed_status not in ('Crossed')*/
+
+
+
+select
+    t.TradeNumber                               'TradeNumber',
+    t.TradeDateTime                              'TradeDateTime',
+    t.ExpiryDateTime                            'ExpiryDateTime',
+    t.ExerciseStatus = 'Confirmed' ? 'Y' : 'N'  'ExerciseStatus',
+    t.TradeStatus                               'TradeStatus',
+    t.CounterparyID                          'CounterparyID'
+
+
+from temp t

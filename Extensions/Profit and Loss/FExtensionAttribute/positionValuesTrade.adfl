@@ -1,0 +1,8 @@
+[Profit and Loss]FDeliverableLinkAndTrades:positionValuesTrade = instrument :* "collapse(positionValuesTrade)" [positionObject, tradesInPosition, priceSource, valuesOnSpotOverride, discountPositionValuesTrade, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FInstrument:positionValuesTrade = select(discountPositionValuesTrade, 
+  true->object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = positionValuesTradeUndiscounted], 
+  false->positionValuesTradeUndiscounted);
+[Profit and Loss]FLegAndTrades:positionValuesTrade = instrument :* "collapse(positionValuesTrade)" [positionObject, tradesInPosition, priceSource, valuesOnSpotOverride, discountPositionValuesTrade, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FMultiInstrumentAndTrades:positionValuesTrade = sumOf(openInstruments :* "collapse(positionValuesTrade)" [positionObject, priceSource, valuesOnSpotOverride, discountPositionValuesTrade, filterUnit, groupingSpotDiscountDate]);
+[Profit and Loss]FSingleInstrumentAndTrades:positionValuesTrade = openInstrument :* "collapse(positionValuesTrade)" [positionObject, priceSource, valuesOnSpotOverride, discountPositionValuesTrade, filterUnit, groupingSpotDiscountDate];
+[Profit and Loss]FTradeRow:positionValuesTrade = instrument :* "positionValuesTrade" [singleTradePosition, includeAllTrades, priceSource, valuesOnSpotOverride, discountPositionValuesTrade, filterUnit, groupingSpotDiscountDate, positionObject];

@@ -1,0 +1,525 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Demat_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Demat_Report' and p.type = 'SQL Query' 
+
+/*
+Purpose:                Report trade detail and static of MM Demat trades.
+Department and Desk:    Ops MM
+Requester:              Miguel Da Silva
+Developer:              Heinrich Cronje
+CR Number:              232338
+*/
+
+/*
+Purpose:                Replaced column MM_ITR with column MM_DEMAT_ITR.
+Department and Desk:    Ops MM
+Requester:              Sabir Ballim
+Developer:              Willie van der Bank
+CR Number:              243439 04/03/2010
+*/
+
+select
+    @3_ISIN{All}   'user_ISIN',
+    @4_Issuer{All;party.ptyid}   'user_issuer',
+    @5_Portfolio{All;portfolio.prfid*} 'user_portfolio',
+    @6_Counterparty{All;party.ptyid}   'user_counterparty',
+    @7_Start_Date{Today}    'fromDate',
+    @8_To_Date{Today}   'toDate',
+    @9_ITR{All}    'user_ITR',
+    @10_UTRN{All}  'user_UTRN',
+    @11_Report_Type{All;'Next_Day_Maturity','Trade_Volume','Group_By_Portfolio','Trade_Details','Buy_Sellback', 'Expired_Trades'} 'Report_Type'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    pa.ptynbr,
+    pa.alias
+into
+    issueBPID
+from
+    partyalias pa
+where
+    pa.type = 12 /*MM_Issue_BPID*/
+    
+select
+    po.prfid    'portfolio',
+    t.trdnbr,
+    add_info(t,'MM_DEMAT_ITR')    'MM_DEMAT_ITR',
+    i.instype,
+    i.insid,
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    i.instype = 'BuySellback' ? und.isin : i.isin 'isin',
+    add_info(i,'MM_MMInstype')  'MM_Sec_Type',
+    add_info(i,'MM_DEMAT_GenCateg')   'MM_Generic_Category',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    display_id(t,'trader_usrnbr')   'Trader',
+    p.ptyid 'counterparty',
+    (i.instype = 'BuySellback' and i.exp_day = TODAY) ? 
+        -1 * nominal_amount(t) : nominal_amount(t)      'Nominal',
+    (i.instype = 'BuySellback' and i.exp_day = TODAY) ? 
+        i.ref_value * t.quantity : t.premium            'premium',
+    (i.instype = 'BuySellback' and i.exp_day = TODAY) ?
+        (-1 * nominal_amount(t) > 0) ? 'Buy' : 'Sell'
+        : nominal_amount(t) > 0 ? 'Buy' : 'Sell'        'Buy_Sell',
+    t.status    'status',
+    issuerbpid.alias    'MM_Issuer_BPID',
+    display_id(i,'issuer_ptynbr')   'Issuer',
+    add_info(i,'MM_AgentPartCode') 'MM_IssuerAgentPartCode',
+    l.fixed_rate    'rate',
+    to_int(convert('double',days_between(l.start_day, i.exp_day, 'Act/365'))) 'Tenor',
+    t.updat_time    'Update_Time',
+    to_date(t.time) 'Trade_Date',
+    add_info(t,'MM_DEMAT_UTRN')   'MM_UTRN',
+    add_info(t,'MM_DEMAT_TransType')    'MM_TransactionType',
+    add_info(t,'MM_DEMAT_ClientType')    'MM_Client_Type',
+    add_info(t,'MM_DEMAT_BAN')    'MM_BAN',
+    i.exp_day   'Maturity',
+    add_info(t,'MM_DEMAT_REPOLnkRef')  'MM_REPO_Link_Ref',
+    add_info(t,'MM_DEMAT_CP_BPID')  'MM_CP_BPID',
+    add_info(t,'MM_DEMAT_Client_SOR')  'MM_Client_SOR',
+    add_info(po,'MM_DEMAT_SORAccNbr')   'MM_SOR_Acc_Nbr',
+    (i.instype = 'BuySellback') ?
+            i.exp_day = TODAY ? i.exp_day : i.start_day
+        : t.value_day     'Value_Day'
+into
+    trades
+from
+    trade t,
+    instrument i,
+    instrument und,
+    leg l,
+    party p,
+    party issuer,
+    portfolio po,
+    issueBPID issuerbpid,
+    macros m
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+    and i.und_insaddr *= und.insaddr
+    and i.insaddr *= l.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and i.issuer_ptynbr *= issuer.ptynbr
+    and po.prfnbr = t.prfnbr
+    and p.ptynbr *= issuerbpid.ptynbr
+    /*and add_info(t,'MM_DEMAT_TRADE') = 'Yes'*/
+    and ('All' in (m.user_ISIN) or i.isin in (user_ISIN))
+    and ('All' in (m.user_issuer) or issuer.ptyid in (m.user_issuer))
+    and ('All' in (m.user_portfolio) or po.prfid in (m.user_portfolio))
+    and ('All' in (m.user_counterparty) or p.ptyid in (m.user_counterparty))
+    and ('All' in (m.user_ITR) or m.user_ITR in (add_info(t,'MM_ITR')))
+    and ('All' in (m.user_UTRN) or m.user_UTRN in (add_info(t,'MM_UTRN')))
+    and ('0000-01-01' in (to_string(m.fromDate)) or i.exp_day >= m.fromDate)
+
+/************** Premium **************/
+select
+    tt.portfolio,
+    tt.trdnbr,
+    tt.MM_DEMAT_ITR,
+    tt.instype,
+    tt.insid,
+    tt.MM_Instype,
+    tt.isin,
+    tt.MM_Sec_Type,
+    tt.MM_Generic_Category,
+    tt.acquirer,
+    tt.Trader,
+    tt.counterparty,
+    tt.Nominal,
+    tt.premium,
+    tt.Buy_Sell,
+    tt.status,
+    tt.MM_Issuer_BPID,
+    tt.Issuer,
+    tt.MM_IssuerAgentPartCode,
+    'Premium'   'type',
+    tt.premium   'Amount',
+    tt.rate,
+    tt.Tenor,
+    tt.Update_Time,
+    tt.Trade_Date,
+    tt.Value_Day 'Settlement_Date',
+    tt.MM_UTRN,
+    tt.MM_TransactionType,
+    tt.MM_Client_Type,
+    tt.MM_BAN,
+    tt.Maturity,
+    tt.MM_REPO_Link_Ref,
+    tt.MM_CP_BPID,
+    tt.MM_Client_SOR,
+    tt.MM_SOR_Acc_Nbr
+into
+    final
+from
+    trades tt,
+    trade t,
+    instrument i,
+    macros m
+where
+        t.trdnbr = tt.trdnbr
+    and t.insaddr = i.insaddr
+    and (i.instype = 'BuySellback' and (i.start_day = TODAY or i.exp_day = TODAY)
+        or i.instype ~= 'BuySellback'
+        and ('0000-01-01' in (to_string(m.fromDate)) or (t.value_day >= m.fromDate and t.value_day <= m.toDate))
+    )
+
+/************** Cash Flows **************/
+select
+    tt.portfolio,
+    tt.trdnbr,
+    tt.MM_DEMAT_ITR,
+    tt.instype,
+    tt.insid,
+    tt.MM_Instype,
+    tt.isin,
+    tt.MM_Sec_Type,
+    tt.MM_Generic_Category,
+    tt.acquirer,
+    tt.Trader,
+    tt.counterparty,
+    tt.Nominal,
+    tt.premium,
+    t.quantity*projected_cf(cf) > 0 ? 'Buy' : 'Sell'    'Buy_Sell',
+    tt.status,
+    tt.MM_Issuer_BPID,
+    tt.Issuer,
+    tt.MM_IssuerAgentPartCode,
+    to_string(cf.type)  'type',
+    t.quantity*projected_cf(cf)   'Amount',
+    tt.rate,
+    tt.Tenor,
+    tt.Update_Time,
+    tt.Trade_Date,
+    cf.pay_day  'Settlement_Day',
+    tt.MM_UTRN,
+    tt.MM_TransactionType,
+    tt.MM_Client_Type,
+    tt.MM_BAN,
+    tt.Maturity,
+    tt.MM_REPO_Link_Ref,
+    tt.MM_CP_BPID,
+    tt.MM_Client_SOR,
+    tt.MM_SOR_Acc_Nbr
+into
+    final
+from
+    trades tt,
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    macros m
+where
+        t.trdnbr = tt.trdnbr
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and ('0000-01-01' in (to_string(m.fromDate)) or cf.pay_day >= m.fromDate)
+    and ('0000-01-01' in (to_string(m.toDate)) or cf.pay_day <= m.toDate)
+
+/************** Group by Trade **************/
+select
+    f.portfolio,
+    f.trdnbr,
+    f.MM_DEMAT_ITR,
+    f.instype,
+    f.insid,
+    f.MM_Instype,
+    f.isin,
+    f.MM_Sec_Type,
+    f.MM_Generic_Category,
+    f.acquirer,
+    f.Trader,
+    f.counterparty,
+    f.Nominal,
+    f.premium,
+    f.Buy_Sell,
+    f.status,
+    f.MM_Issuer_BPID,
+    f.Issuer,
+    f.MM_IssuerAgentPartCode,
+    f.type,
+    sum(f.Amount)    'Amount',
+    f.rate,
+    f.Tenor,
+    f.Update_Time,
+    f.Trade_Date,
+    f.Settlement_Day,
+    f.MM_UTRN,
+    f.MM_TransactionType,
+    f.MM_Client_Type,
+    f.MM_BAN,
+    f.Maturity,
+    f.MM_REPO_Link_Ref,
+    f.MM_CP_BPID,
+    f.MM_Client_SOR,
+    f.MM_SOR_Acc_Nbr
+into
+    groupMMITR
+from
+    final f,
+    macros m
+where
+    m.Report_Type in ('All','Trade_Volume','Group_By_Portfolio')
+
+group by f.MM_DEMAT_ITR
+
+
+/************** Next_Day_Maturity - Output **************/
+select
+    'Next_Day_Maturity'   'Report_Type',
+    f.portfolio,
+    f.trdnbr,
+    f.MM_DEMAT_ITR,
+    f.instype,
+    f.insid,
+    f.MM_Instype,
+    f.isin,
+    f.MM_Sec_Type,
+    f.MM_Generic_Category,
+    f.acquirer,
+    f.Trader,
+    f.counterparty,
+    f.Nominal,
+    f.premium,
+    f.Buy_Sell,
+    f.status,
+    f.MM_Issuer_BPID,
+    f.Issuer,
+    f.MM_IssuerAgentPartCode,
+    f.type,
+    f.Amount,
+    f.rate,
+    f.Tenor,
+    f.Update_Time,
+    f.Trade_Date,
+    f.Settlement_Day,
+    f.MM_UTRN,
+    f.MM_TransactionType,
+    f.MM_Client_Type,
+    f.MM_BAN,
+    f.Maturity,
+    f.MM_REPO_Link_Ref,
+    f.MM_CP_BPID,
+    f.MM_Client_SOR,
+    f.MM_SOR_Acc_Nbr
+from
+    final f,
+    macros m
+where
+    m.Report_Type in ('All','Next_Day_Maturity')
+order by f.Amount,f.trdnbr
+
+union
+
+/************** Trade Volume - Output **************/
+select
+    'Trade_Volume'   'Report_Type',
+    g.*
+from
+    groupMMITR g,
+    macros m
+where
+    m.Report_Type in ('All','Trade_Volume')
+
+union
+
+/************** Trades Per Portfolio - Output **************/
+select
+    'Trades_Per_Portfolio'  'Report_Type',
+    g.portfolio,
+    g.trdnbr,
+    g.MM_DEMAT_ITR,
+    g.instype,
+    g.insid,
+    g.MM_Instype,
+    g.isin,
+    g.MM_Sec_Type,
+    g.MM_Generic_Category,
+    g.acquirer,
+    g.Trader,
+    g.counterparty,
+    sum(g.Nominal)  'Nominal',
+    sum(g.premium)  'Premium',
+    g.Buy_Sell,
+    g.status,
+    g.MM_Issuer_BPID,
+    g.Issuer,
+    g.MM_IssuerAgentPartCode,
+    g.type,
+    sum(g.Amount)   'Amount',
+    g.rate,
+    g.Tenor,
+    g.Update_Time,
+    g.Trade_Date,
+    g.Settlement_Day,
+    g.MM_UTRN,
+    g.MM_TransactionType,
+    g.MM_Client_Type,
+    g.MM_BAN,
+    g.Maturity,
+    g.MM_REPO_Link_Ref,
+    g.MM_CP_BPID,
+    g.MM_Client_SOR,
+    g.MM_SOR_Acc_Nbr
+from
+    groupMMITR g,
+    macros m
+where
+    m.Report_Type in ('All','Group_By_Portfolio')
+group by g.portfolio
+order by 22,g.Maturity,g.trdnbr
+
+union
+
+/************** Trade Details - Output **************/
+select
+    'Trade_Details'   'Report_Type',
+    f.portfolio,
+    f.trdnbr,
+    f.MM_DEMAT_ITR,
+    f.instype,
+    f.insid,
+    f.MM_Instype,
+    f.isin,
+    f.MM_Sec_Type,
+    f.MM_Generic_Category,
+    f.acquirer,
+    f.Trader,
+    f.counterparty,
+    f.Nominal,
+    f.premium,
+    f.Buy_Sell,
+    f.status,
+    f.MM_Issuer_BPID,
+    f.Issuer,
+    f.MM_IssuerAgentPartCode,
+    f.type,
+    f.Amount,
+    f.rate,
+    f.Tenor,
+    f.Update_Time,
+    f.Trade_Date,
+    f.Settlement_Day,
+    f.MM_UTRN,
+    f.MM_TransactionType,
+    f.MM_Client_Type,
+    f.MM_BAN,
+    f.Maturity,
+    f.MM_REPO_Link_Ref,
+    f.MM_CP_BPID,
+    f.MM_Client_SOR,
+    f.MM_SOR_Acc_Nbr
+from
+    final f,
+    macros m
+where
+        f.type = 'Premium'
+    and m.Report_Type in ('All','Trade_Details')
+order by f.Amount,f.Maturity,f.trdnbr
+
+union
+
+/************** Trade Details - Output **************/
+select
+    'Buy_Sellback'   'Report_Type',
+    g.portfolio,
+    g.trdnbr,
+    g.MM_DEMAT_ITR,
+    g.instype,
+    g.insid,
+    g.MM_Instype,
+    g.isin,
+    g.MM_Sec_Type,
+    g.MM_Generic_Category,
+    g.acquirer,
+    g.Trader,
+    g.counterparty,
+    g.Nominal,
+    g.premium,
+    g.Buy_Sell,
+    g.status,
+    g.MM_Issuer_BPID,
+    g.Issuer,
+    g.MM_IssuerAgentPartCode,
+    g.type,
+    g.Amount,
+    g.rate,
+    g.Tenor,
+    g.Update_Time,
+    g.Trade_Date,
+    g.Settlement_Day,
+    g.MM_UTRN,
+    g.MM_TransactionType,
+    g.MM_Client_Type,
+    g.MM_BAN,
+    g.Maturity,
+    g.MM_REPO_Link_Ref,
+    g.MM_CP_BPID,
+    g.MM_Client_SOR,
+    g.MM_SOR_Acc_Nbr
+from
+    groupMMITR g,
+    macros m
+where
+        g.MM_Client_Type in (60,61)
+    and m.Report_Type in ('All','Buy_Sellback')
+order by g.Amount,g.Maturity,g.trdnbr
+
+union
+
+/************** Expired_Trades report **************/
+select
+    'Expired_Trades'   'Report_Type',
+    f.portfolio,
+    f.trdnbr,
+    f.MM_DEMAT_ITR,
+    f.instype,
+    f.insid,
+    f.MM_Instype,
+    f.isin,
+    f.MM_Sec_Type,
+    f.MM_Generic_Category,
+    f.acquirer,
+    f.Trader,
+    f.counterparty,
+    f.Nominal,
+    f.premium,
+    ''  'Buy_Sell',
+    f.status,
+    f.MM_Issuer_BPID,
+    f.Issuer,
+    f.MM_IssuerAgentPartCode,
+    ''  'type',
+    0.00    'Amount',
+    f.rate,
+    f.Tenor,
+    f.Update_Time,
+    f.Trade_Date,
+    f.Value_Day     'Settlement_Day',
+    f.MM_UTRN,
+    f.MM_TransactionType,
+    f.MM_Client_Type,
+    f.MM_BAN,
+    f.Maturity,
+    f.MM_REPO_Link_Ref,
+    f.MM_CP_BPID,
+    f.MM_Client_SOR,
+    f.MM_SOR_Acc_Nbr
+from
+    trades f,
+    macros m
+where
+        m.Report_Type in ('All','Expired_Trades')
+    and f.Maturity >= m.fromDate
+    and f.Maturity <= m.toDate
+order by f.Maturity,f.trdnbr

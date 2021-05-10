@@ -1,0 +1,10 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hasDealPackage = true;
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hasDealPackage = select(lowestChild.Trade.DealPackage, 
+  nil->false, 
+  default->true);
+[HedgeAccountingMod]FTrade:hasDealPackage = switch(object.DealPackage, 
+  nil->false, 
+  default->true);
+[HedgeAccountingMod]FTradeRow:hasDealPackage = switch(object.OriginalTrade.DealPackage, 
+  nil->false, 
+  default->true);

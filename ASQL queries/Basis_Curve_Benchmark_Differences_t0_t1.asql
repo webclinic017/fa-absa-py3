@@ -1,0 +1,51 @@
+/* 
+    ================================================================
+    asql used to calc benchmark delta between t0 and t1
+
+    Shalini Lala 2019-11-01
+    ================================================================
+*/
+
+select 
+    yc.yield_curve_name 'Curve0',
+    yc.seqnbr 'seqnbr0',
+    yc1.yield_curve_name 'Curve1',
+    yc1.seqnbr 'seqnbr1'
+into
+    curve_names
+from
+    yieldcurve yc,
+    yieldcurve yc1
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *})
+    and yc1.yield_curve_name like '%BASIS-SOB'
+    and yc.underlying_yield_curve_seqnbr = yc1.underlying_yield_curve_seqnbr
+    
+select 
+    TODAY                                           'RepDate',
+    yc.Curve0                                       'Curve0',
+    yc.Curve1                                       'Curve1',
+    ael_s(p0,'DCRM_CDS.getCurveStrip')              'Tenor',
+    ael_s(p0,'DCRM_CDS.get_tenor_date')             'TenorDate',
+    s0.spread*100                                   'Spread1',
+    s1.spread*100                                   'Spread2',
+    (s1.spread - s0.spread)                         'diff_bp'
+from
+    curve_names yc,
+    YCattribute attrib0,
+    YCattribute attrib1,
+    YCSpread s0,
+    YCSpread s1,
+    YieldCurvePoint p0,
+    YieldCurvePoint p1
+where
+    yc.seqnbr0 = attrib0.yield_curve_seqnbr
+    and yc.seqnbr1 = attrib1.yield_curve_seqnbr
+    and yc.seqnbr0 = p0.yield_curve_seqnbr
+    and yc.seqnbr1 = p1.yield_curve_seqnbr
+    and ael_s(p0,'DCRM_CDS.getCurveStrip') = ael_s(p1,'DCRM_CDS.getCurveStrip')
+    and attrib0.seqnbr = s0.attribute_seqnbr
+    and attrib1.seqnbr = s1.attribute_seqnbr
+    and s0.point_seqnbr = p0.seqnbr
+    and s1.point_seqnbr = p1.seqnbr
+order by 5 asc

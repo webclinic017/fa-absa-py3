@@ -1,0 +1,5 @@
+#grouping: default/market making
+
+[Equity Market Making]FQuoteController:qRequestedQuoteValue = select(qIsPriceSpecifierEnabled, 
+  true->qRequestForQuote.TotalValue(qCalculatedQuoteDefaultBidPrice, qCalculatedQuoteDefaultAskPrice), 
+  false->qRequestForQuote.TotalValue(qBidPrice, qAskPrice));

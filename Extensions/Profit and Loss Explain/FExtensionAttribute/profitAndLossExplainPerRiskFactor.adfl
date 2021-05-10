@@ -1,0 +1,13 @@
+[Profit and Loss Explain]FInstrumentAndTrades:profitAndLossExplainPerRiskFactor = select(nil == timeBucketsSetExternally, 
+  true->select(profitAndLossExplainType, 
+    "Risk Factor Change"->profitAndLossExplainRiskFactorChange, 
+    "Risk Factor Change 2"->nil, 
+    "Delta Start"->profitAndLossExplainRiskFactorDeltaAtStartDate, 
+    "Delta End"->profitAndLossExplainRiskFactorDeltaAtEndDate, 
+    "Gamma Start"->profitAndLossExplainRiskFactorGammaAtStartDate, 
+    "Gamma End"->profitAndLossExplainRiskFactorGammaAtEndDate, 
+    "Value"->profitAndLossExplainRiskFactorTaylorApproximation, 
+    "Percent Of Total"->profitAndLossExplainRiskFactorTaylorApproximation / profitAndLossExplainTotalPL * 100, 
+    default->profitAndLossExplainRiskGreekForStorage), 
+  false->timeBucketsSetExternallyNilVector);
+[Profit and Loss Explain]FRiskFactor:profitAndLossExplainPerRiskFactor = rowObject:profitAndLossExplainPerRiskFactor [displayCurrency, profitAndLossExplainType, riskFactorTypeName, includeDeltaAttribution, includeGammaAttribution, interestRateGranularity, weightMethod, riskFactorVectorItemSetExternally := object];

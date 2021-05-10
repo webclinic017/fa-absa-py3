@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FAbstractReset:fixingValueInQuotation = select(floatRateReference <> nil, 
+  true->select(isFixingValueDenominated, 
+    true->fixingValueDenominated, 
+    false->floatRateReference:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperToQuotation = floatRateReference:quotation, quoteConversionWrapperFromUnitValue = setDateTimePart(fixingValueDenominated, floatRateReference.SpotDate(object.Day))]), 
+  default->fixingValueDenominated);
+[ABSA Specific 4.3]FCashFlowMoneyFlow:fixingValueInQuotation = select(abstractResets.Size, 
+  1->(abstractResets.First) :* "fixingValueInQuotation", 
+  default->nil);
+[ABSA Specific 4.3]FMoneyFlowAndTrades:fixingValueInQuotation = nil;
+[ABSA Specific 4.3]FResetMoneyFlow:fixingValueInQuotation = reset :* "fixingValueInQuotation";

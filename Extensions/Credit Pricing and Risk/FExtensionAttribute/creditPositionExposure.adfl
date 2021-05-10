@@ -1,0 +1,12 @@
+[Credit Pricing and Risk]FCombInstrMap:creditPositionExposure = valuationInstrument :* "collapse(creditPositionExposure)" [positionTradeQuantities, contractSize = combination:contractSize, creditExposureDate, displayCurrency, creditGroupingReference] * weight;
+[Credit Pricing and Risk]FCombInstrMapAndTrades:creditPositionExposure = select(isSettled, 
+  true->timeBucketsSetExternallyNilVector, 
+  false->combinationInstrumentMap :* "collapse(creditPositionExposure)" [positionTradeQuantities, creditExposureDate, displayCurrency, creditGroupingReference] / (combination:underlyingOrSelf).Factor);
+[Credit Pricing and Risk]FInstrument:creditPositionExposure = select(isSettled, 
+  true->timeBucketsSetExternallyNilVector, 
+  false->creditExposure * creditExposurePosition);
+[Credit Pricing and Risk]FInstrumentAndTrades:creditPositionExposure = shunt(isOpenPosition, 
+  true->openInstrument :* "collapse(creditPositionExposure)" [positionObject, creditExposureDate, displayCurrency, creditGroupingReference, timeBucketsSetExternally], 
+  false->timeBucketsSetExternallyNilVector);
+[Credit Pricing and Risk]FMultiInstrumentAndTrades:creditPositionExposure = sumOf(openInstruments :* "collapse(creditPositionExposure)" [positionObject, creditExposureDate, displayCurrency, creditGroupingReference]);
+[Credit Pricing and Risk]FPortfolioInstrumentAndTrades:creditPositionExposure = timeBucketsSetExternallyNilVector;

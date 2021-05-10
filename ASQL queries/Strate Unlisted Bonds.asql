@@ -1,0 +1,51 @@
+/* update_method=0 */
+/*
+coded by Anil Parbhoo
+for Seven Khosa of PTS  
+list of unexpired unlisted bonds set up in front arena
+CHG0125722 deployed on 17 September 2020
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Strate Unlisted Bonds') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Strate Unlisted Bonds' and p.type = 'SQL Query' 
+
+
+
+select
+
+i.instype,
+i.insid,
+i.isin,
+i.exp_day,
+i.extern_id1,
+p.ptyid'issuer',
+add_info(i,'Exchange')'Exchange',
+add_info(i,'Demat_Instrument') 'Demat_Instrument',
+add_info(i,'Demat_Ins_SOR_Acc') 'Demat_Ins_SOR_Acc',
+add_info(i,'Demat_IsinShortDesc') 'Demat_IsinShortDesc',
+add_info(i,'Demat_Issuer_BPID') 'Demat_Issuer_BPID',
+add_info(i,'Demat_MinTrdDeno') 'Demat_MinTrdDeno',
+add_info(i,'Demat_WthhldTax') 'Demat_WthhldTax',
+add_info(i,'Demat_WthhldTx_Rate') 'Demat_WthhldTx_Rate',
+add_info(i,'DIS_Instrument') 'DIS_Instrument',
+add_info(i,'DIS_Ins_Category') 'DIS_Ins_Category'
+
+
+
+
+from
+instrument i,
+party p
+
+where
+
+i.exp_day > Today
+and i.generic = 'No'
+and i.curr  = 2
+and i.extern_id1 like '%U'
+and i.instype in ('Bond', 'FRN', 'IndexLinkedBond')
+and i.issuer_ptynbr = p.ptynbr

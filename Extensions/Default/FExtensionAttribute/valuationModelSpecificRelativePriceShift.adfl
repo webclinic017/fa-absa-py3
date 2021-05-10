@@ -1,0 +1,9 @@
+[Default]FInstrument:valuationModelSpecificRelativePriceShift = select(isFinite(priceGreekShiftSizeOverride), 
+  true->priceGreekShiftSizeOverride, 
+  false->select(useVannaVolgaAddOnModel, 
+    true->relativePriceShiftSizeVannaVolga, 
+    default->select(valuationModelDescription, 
+      nil->relativePriceShiftSize, 
+      default->select(valuationModelDescription.Includes("relativePriceShift"), 
+        true->valuationModelDescription["relativePriceShift"], 
+        false->relativePriceShiftSize))));

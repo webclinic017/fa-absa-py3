@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:cliquetDividendsDiscounted = select(dividendForecast, 
+  nil->0, 
+  default->select(isQuanto, 
+    true->underlyingRepoCurve.DiscountValuesWithAddOn(cliquetDividendsToFirstReset, underlying:carryStartDate, quantoSpread, "Continuous", "Act/365"), 
+    false->underlyingRepoCurve.DiscountValues(cliquetDividendsToFirstReset, underlying:carryStartDate)));

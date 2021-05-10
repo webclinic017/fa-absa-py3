@@ -1,0 +1,5 @@
+[AMI APT]FSingleInstrumentAndTrades:APT_Universe_54_PutAmount = select(instrument:isFXOption, 
+  true->select(instrument.Underlying == instrument:APT_Universe_47_PutCurrency, 
+    true->APT_Composition_Units, 
+    default->APT_Composition_Units * (instrument:strikeValueModel).Number), 
+  default->nil);

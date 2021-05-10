@@ -1,0 +1,42 @@
+select
+ael_i(p,'ASQL_log','SAMR_CBOT_MTM_RATES') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAMR_CBOT_MTM_RATES' and p.type = 'SQL Query' 
+ 
+
+/* SAEQ_CBOT_MTM_RATES
+   Created By : Kepler Klynsmith
+                Shreelin Naicker
+   Date       : 2007/11/23
+   Description: Daily extract of MtM rates from CBOT for daily VAR
+*/
+
+select
+	i.insid 			'Instrument Name',
+	i.instype 			'Instrument Type',
+	i.exp_day 			'Expiry Day',
+	p.last              'Closing Price',
+    /*used_price(i)     'Closing Price',*/                    
+ 	i.instype in ('EquityIndex', 'Commodity') ? 0 : used_vol(u)	'Market Volitility',
+	u.insid 			'Underlying Instrument',
+	u.instype 			'Underlying Instrument Type',
+	TODAY 				'Date',
+	add_info(i, 'DividendYield') 	'Dividend Yield'
+from
+	instrument i,
+	instrument u,
+    price p,
+    party pt
+where
+	i.und_insaddr *= u.insaddr
+and i.instype IN ('Future/Forward','Commodity')
+and i.curr = 1
+/*and	(i.exp_day = '0000-01-01' or i.exp_day >= today)*/
+/*and (i.insid like '%KCBT%' or i.insid like '%CBOT%')*/
+and i.insid like '%CBOT%'
+and pt.ptynbr = p.ptynbr
+and i.insaddr = p.insaddr
+and p.day = today
+and pt.ptyid = 'SPOT'
+order by 1

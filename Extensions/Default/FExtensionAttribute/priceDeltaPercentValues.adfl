@@ -1,0 +1,13 @@
+[Default]FCashFlowInstrument:priceDeltaPercentValues = select(priceGreekOnSpot and (not valuesOnSpot), 
+  true->discountAndFilterCurrency(priceDeltaPercentCashFlowValues, instrumentMoneyMarketCurvesNoDiscountingType, instrumentSpotDate, filterUnit), 
+  false->priceDeltaPercentCashFlowValues);
+[Default]FCombInstrMapAndTrades:priceDeltaPercentValues = shunt(isOpenPosition, 
+  true->instrument :* "priceDeltaPercentValues" [isSplitAllGrouped, priceSource, valuesOnSpotOverride, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate, positionTradeQuantities = (positionTradeQuantities * weight)] / ((combination:underlyingOrSelf).Factor), 
+  false->instrumentSpotZero);
+[Default]FInstrument:priceDeltaPercentValues = select(priceGreekOnSpot or valuesOnSpot, 
+  true->priceDeltaPercentSpotValues, 
+  false->discountAndFilterCurrency(priceDeltaPercentSpotValues, instrumentMoneyMarketCurvesNoDiscountingType, discountAndConvertToBaseDate, filterUnit));
+[Default]FInstrumentAndTrades:priceDeltaPercentValues = openInstrument :* "collapse(priceDeltaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, valuesOnSpotOverride, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:priceDeltaPercentValues = sumOf(openInstruments :* "collapse(priceDeltaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, valuesOnSpotOverride, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate]);
+[Default]FSingleInstrumentAndTrades:priceDeltaPercentValues = openInstrument :* "collapse(priceDeltaPercentValues)" [isSplitAllGrouped, priceSource, positionObject, valuesOnSpotOverride, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, filterUnit, groupingSpotDiscountDate];
+[Default]FTradeRow:priceDeltaPercentValues = openInstrument :* "priceDeltaPercentValues" [isSplitAllGrouped, priceSource, singleTradePosition, valuesOnSpotOverride, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, useGreekBetaFactors, includeAllTrades, filterUnit, groupingSpotDiscountDate];

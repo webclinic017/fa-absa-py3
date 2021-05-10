@@ -1,0 +1,6 @@
+[Default]FFuture:referenceInstruments = select(isCreditFuture, 
+  true->underlying:referenceInstruments, 
+  false->object);
+[Default]FInstrument:referenceInstruments = select(count(referenceInstrumentsFromInstrument) > 0, 
+  true->createArray(referenceInstrumentsFromInstrument :* "referenceInstruments"), 
+  false->object);

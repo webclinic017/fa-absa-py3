@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FLeg:floatRateReferenceForwardValueProvider = select(fixingEstimateType, 
+  "None"->nil, 
+  "Category"->DiscontinuousModel(floatRateReferenceObservations, floatRateReferenceValue), 
+  default->select(fixingInstrument, 
+    nil->nil, 
+    default->fixingInstrument:referenceProvider [priceSource, doSplitAll, discountingType, forwardValuationObservations = floatRateReferenceObservations, calculationCurrency = calculationScalingCurrency, indexTypePriceIndexOrOverridden := indexTypeForLeg, mappedCPIFunctionLink]));

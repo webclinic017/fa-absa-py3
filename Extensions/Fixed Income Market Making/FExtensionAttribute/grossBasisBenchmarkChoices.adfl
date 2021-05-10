@@ -1,0 +1,11 @@
+[Fixed Income Market Making]FInstrument:grossBasisBenchmarkChoices = select(isFutureOnNotional, 
+  true->object.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Fixed Income Market Making]FOrderBook:grossBasisBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Fixed Income Market Making]FQuoteController:grossBasisBenchmarkChoices = instrument:grossBasisBenchmarkChoices;
+[Fixed Income Market Making]FTradingInterface:grossBasisBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:grossBasisBenchmarkChoices);
+[Fixed Income Market Making]FUndefinedObject:grossBasisBenchmarkChoices = getObject("FPhysInstrGroup", "GrossBasisBenchmarks").Instruments.AsArray.SortByProperty("Name", true);

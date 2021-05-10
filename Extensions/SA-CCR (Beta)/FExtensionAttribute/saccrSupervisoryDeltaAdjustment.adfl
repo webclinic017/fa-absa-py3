@@ -1,0 +1,10 @@
+[SA-CCR (Beta)]FCashFlow:saccrSupervisoryDeltaAdjustment = select(object.SACCRIsOption, 
+  true->saccrSupervisoryDeltaAdjustmentOption, 
+  false->saccrSupervisoryDeltaAdjustment(object, riskPositionBase, "Interest Rates"));
+[SA-CCR (Beta)]FFxRate:saccrSupervisoryDeltaAdjustment = saccrNotionalAmountsFXData["deltas"];
+[SA-CCR (Beta)]FInstrument:saccrSupervisoryDeltaAdjustment = select(object.SACCRIsOption, 
+  true->saccrSupervisoryDeltaAdjustmentOption, 
+  false->saccrSupervisoryDeltaAdjustment(object, riskPositionBase, saccrAssetClass));
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrSupervisoryDeltaAdjustment = select(isOpenPosition and saccrAssetClassDefined, 
+  true->round(openInstrument :* "saccrSupervisoryDeltaAdjustments" [positionObject, priceSource], saccrDecimalsDefault), 
+  false->nil);

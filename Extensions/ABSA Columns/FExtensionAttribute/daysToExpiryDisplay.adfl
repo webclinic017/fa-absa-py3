@@ -1,0 +1,6 @@
+[ABSA Columns]FInstrumentAndTrades:daysToExpiryDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->select(instrument:exerciseEventsExist, 
+    true->instrument :* "daysToExpiry" [exerciseEvents := lastExerciseEvent], 
+    false->(instrument:daysToExpiry)) / 365);
+[ABSA Columns]FMultiInstrumentAndTrades:daysToExpiryDisplay = nil;

@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:psDepositMonthlyCarry = sumOf(children :* "psDepositMonthlyCarry.Number");
+[Prime Services]FSingleInstrumentAndTrades:psDepositMonthlyCarry = 
+# Monthly carry which is defined for deposits only.
+select(object.Instrument.InsType == "Deposit", 
+  true->psMonthlyCarry, 
+  default->denominatedValueZero);

@@ -1,0 +1,127 @@
+
+
+
+
+/* fx */
+select
+    i.insid                             'Instrument',
+    display_id(s, 'curr')               'Curr',   
+    display_id(s, 'ptynbr')             'Market',    
+    s.day                               'Day',
+    s.settle                            'SPOT_Price',
+    /*display_id(sob, 'ptynbr')           'Market2', 
+    sob.day,*/
+    sob.settle                          'SOB_Price',
+    s.settle - sob.settle               'Change'
+into
+    fx
+from
+    LastPrice s,
+    LastPrice sob,
+    Party s_pty,
+    Party sob_pty,
+    Instrument i,
+    Instrument c
+    
+where
+    s.insaddr = sob.insaddr
+and s.insaddr = i.insaddr
+and s.ptynbr = s_pty.ptynbr
+and s.day = today
+and s_pty.ptyid in ('SPOT')
+
+and sob.ptynbr = sob_pty.ptynbr
+and sob.day = today
+and sob_pty.ptyid in ('SPOT_SOB')    
+
+/* 
+    p.insaddr = i.insaddr
+and p.ptynbr = pty.ptynbr
+and p.day = today
+and pty.ptyid in ('SPOT')*/
+and s.curr = c.insaddr
+and sob.curr = c.insaddr
+and i.insid in ('USD', 'EUR', 'GBP')
+and c.insid in ('ZAR', 'USD')
+
+
+
+
+select
+    f.Instrument,
+    f.Curr,   
+    f.Market,    
+    f.Day,
+    f.SPOT_Price,
+    /*display_id(sob, 'ptynbr')           'Market2', 
+    sob.day,*/
+    f.SOB_Price,
+    f.Change
+    
+from
+    fx f    
+    
+
+
+union
+
+
+
+/* cross rates */
+select
+    f.Instrument,
+    f2.Curr,   
+    f.Market,    
+    f.Day,
+    f.SPOT_Price * f2.SPOT_Price        'SPOT_Price',
+    /*display_id(sob, 'ptynbr')           'Market2', 
+    sob.day,*/
+    f.SOB_Price * f2.SOB_Price          'SOB_Price',
+    (f.SPOT_Price * f2.SPOT_Price) - (f.SOB_Price * f2.SOB_Price)   'Change'
+    
+from
+    fx f,
+    fx f2
+    
+where
+    f.Instrument ~= f2.Instrument
+and f2.Instrument = 'USD'
+
+
+
+union
+
+
+
+/* other */
+select
+    i.insid                             'Instrument',
+    display_id(s, 'curr')               'Curr',   
+    display_id(s, 'ptynbr')             'Market',    
+    s.day                               'Day',
+    s.settle                            'SPOT_Price',
+    /*display_id(sob, 'ptynbr')           'Market2', 
+    sob.day,*/
+    sob.settle                          'SOB_Price',
+    s.settle - sob.settle               'Change'
+    
+from
+    LastPrice s,
+    LastPrice sob,
+    Party s_pty,
+    Party sob_pty,
+    Instrument i
+    
+where
+    s.insaddr = sob.insaddr
+and s.insaddr = i.insaddr
+and s.ptynbr = s_pty.ptynbr
+and s.day = today
+and s_pty.ptyid in ('SPOT')
+
+and sob.ptynbr = sob_pty.ptynbr
+and sob.day = today
+and sob_pty.ptyid in ('SPOT_SOB')
+
+and i.insid in ('ZAR/R157', 'ZAR/R153', 'XAU', 'BRT_CRD_OIL', 'XPT', 'ZAR/ALSI', 'ZAR/STX40', 'ZAR/ALSI', 'ZAR/ASA', 'ZAR/RMH', 'ZAR/NED', 'ZAR/SBK', 'ZAR/INL')
+

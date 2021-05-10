@@ -1,0 +1,19 @@
+  select
+    TODAY                                   'RepDate',
+    yc.yield_curve_name                     'yc',
+    yp.date_period.count,
+    yp.date_period.unit,
+    ael_d(yp, 'dirk_utils.sprd_point_maturity')    'mat',
+    ael_d(yp, 'dirk_utils.sprd_point_maturity') <= date_add_delta(TODAY, 10, 3, 0) ? '0-3m' : (date_add_delta(TODAY, 10, 3, 0) < ael_d(yp, 'dirk_utils.sprd_point_maturity') and ael_d(yp, 'dirk_utils.sprd_point_maturity') <= date_add_delta(TODAY, 10, 0, 2) ) ? '3m-2y' : (date_add_delta(TODAY, 10, 0, 2) < ael_d(yp, 'dirk_utils.sprd_point_maturity') and ael_d(yp, 'dirk_utils.sprd_point_maturity') <= date_add_delta(TODAY, 10, 0, 10) ) ? '2y-10y': (date_add_delta(TODAY, 10, 0, 10) < ael_d(yp, 'dirk_utils.sprd_point_maturity') and ael_d(yp, 'dirk_utils.sprd_point_maturity') <= date_add_delta(TODAY, 10, 0, 30) ) ? '10y-30y' : ael_d(yp, 'dirk_utils.sprd_point_maturity') > date_add_delta(TODAY, 10, 0, 30) ? '30+': 'N/A'    'Area'  
+    
+from
+    yieldcurve yc,
+    YieldCurvePoint yp,
+    YCSpread ys    
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-BASIS;yieldcurve.yield_curve_name *})
+    and yp.yield_curve_seqnbr = yc.seqnbr
+    and ys.point_seqnbr = yp.seqnbr        
+    and ael_d(yp, 'dirk_utils.sprd_point_maturity') < to_date(@03_EndDate{BIGDATE;})
+order by 2, 5
+    

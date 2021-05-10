@@ -1,0 +1,72 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_ERM_BONDS_BUYSELLBACK') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_ERM_BONDS_BUYSELLBACK' and p.type = 'SQL Query' 
+
+/*
+Date            Who                 What
+26/02/2007      Hienrich Cornje     Changed instype = BuySellback,Repo/Reverse
+                                    like it was before
+*/
+
+select
+	t.trdnbr,
+	und.insid					'insid',
+	i.instype = 'BuySellback' ? nominal_amount(t) : i.ref_value * t.quantity,
+	p.fullname					'CP_LongName',
+	p.ptyid						'CP_ShortName',
+	TODAY						'Date_Updated',
+	pr.prfid					'Portfolio',
+	i.instype = 'BuySellback' ? (t.premium < 0 ? clean_from_yield(und,i.start_day,,,t.price) : clean_from_yield(und,i.exp_day,,,i.ref_price)) : (t.premium < 0 ? clean_from_yield(und,t.value_day,,,i.ref_price) : 0.0)	'CleanBuy',
+	i.instype = 'BuySellback' ? (t.premium < 0 ? clean_from_yield(und,i.exp_day,,,i.ref_price) : clean_from_yield(und,i.start_day,,,t.price)) : (t.premium < 0 ? 0.0 : clean_from_yield(und,t.value_day,,,i.ref_price))	'CleanSell',
+	i.instype = 'BuySellback' ? (t.premium < 0 ? dirty_from_yield(und,i.start_day,,,t.price) : dirty_from_yield(und,i.exp_day,,,i.ref_price)) : (t.premium < 0 ? dirty_from_yield(und,t.value_day,,,i.ref_price) : 0.0)	'DirtyBuy',
+	i.instype = 'BuySellback' ? (t.premium < 0 ? dirty_from_yield(und,i.exp_day,,,i.ref_price) : dirty_from_yield(und,i.start_day,,,t.price)) : (t.premium < 0 ? 0.0 : dirty_from_yield(und,t.value_day,,,i.ref_price))	'DirtySell',
+	time_to_day(t.time)				'DealDate',
+	
+	
+	(i.instype = 'BuySellback' ? nominal_amount(t) : i.ref_value * t.quantity) > 0 ? t.premium > 0 ? i.exp_day : t.value_day : t.value_day	'BuyLegSettleDate',
+	(i.instype = 'BuySellback' ? nominal_amount(t) : i.ref_value * t.quantity) > 0 ? t.premium > 0 ? t.value_day : i.exp_day : i.exp_day    'SellLegSettleDate',	
+    /*t.premium < 0 ? t.value_day : i.exp_day	'BuyLegSettleDate',
+	t.premium < 0 ? i.exp_day : t.value_day	'SellLegSettleDate',*/
+	
+	
+	mtm_price(i)		 			'MtM_BuyLeg',
+	mtm_price(i)					'MtM_SellLeg',
+	
+	
+/*(i.instype = 'BuySellback' ? nominal_amount(t) : i.ref_value * t.quantity) > 0 ? t.premium > 0 ? i.ref_price : t.price : t.price    'YTM_BuyLeg',
+	(i.instype = 'BuySellback' ? nominal_amount(t) : i.ref_value * t.quantity) > 0 ? t.premium > 0 ? t.price : i.ref_price : i.ref_price    'YTM_SellLeg',*/
+	
+	
+
+
+    i.instype = 'BuySellback' ? nominal_amount(t) > 0 and t.premium > 0 ? i.ref_price : t.price
+                              : i.ref_price 'YTM_BuyLeg',	
+	
+    i.instype = 'BuySellback' ? nominal_amount(t) > 0 and t.premium > 0 ? t.price : i.ref_price 
+                              : i.ref_price 'YTM_SellLeg',	
+	i.instype
+	/*t.premium < 0 ? t.price : i.ref_price		'YTM_BuyLeg',
+	t.premium < 0 ? i.ref_price : t.price		'YTM_SellLeg'*/
+
+from
+	trade t,
+	instrument i,
+	party p,
+	portfolio pr,
+	instrument und
+
+where
+i.instype in ('BuySellback','Repo/Reverse')
+/*and display_id(t, 'prfnbr') ~= 'MONY 9802' 
+and display_id(t, 'prfnbr') ~= 'SF Carries And Repos'*/ 
+and display_id(t, 'prfnbr') not in ('SF Carries And Repos','Equity Script Lending')
+/*and i.instype = 'BuySellback'*/
+and	t.insaddr = i.insaddr
+and	t.counterparty_ptynbr = p.ptynbr
+and	t.prfnbr = pr.prfnbr
+and	i.und_insaddr = und.insaddr
+and	i.exp_day > Today
+and	t.status not in ('Void','Simulated','Terminated')

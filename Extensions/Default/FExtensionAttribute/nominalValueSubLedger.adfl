@@ -1,0 +1,17 @@
+[Default]FCashFlowInstrument:nominalValueSubLedger = select(count(legs) > 1, 
+  true->nil, 
+  default->legs :* "nominalValueSubLedger" [profitAndLossEndDate]);
+[Default]FCombInstrMapAndTrades:nominalValueSubLedger = instrument :* "nominalValueSubLedger" [profitAndLossEndDate, singleTradePosition];
+[Default]FCurrency:nominalValueSubLedger = denominatedvalue(1.0, object, , profitAndLossEndDate);
+[Default]FFuture:nominalValueSubLedger = select(isFxNdf, 
+  true->denominatedvalue(1.0, object.Underlying, , profitAndLossEndDate), 
+  false->denominatedvalue(1.0, currency, , profitAndLossEndDate));
+[Default]FFxRate:nominalValueSubLedger = denominatedvalue(1.0, foreignCurrency, , profitAndLossEndDate);
+[Default]FInstrument:nominalValueSubLedger = denominatedvalue(1.0, currency, , profitAndLossEndDate);
+[Default]FLeg:nominalValueSubLedger = staticLegInformation.NominalValue(profitAndLossEndDate, legInformation, 1);
+[Default]FLegAndTrades:nominalValueSubLedger = leg :* "nominalValueSubLedger" [profitAndLossEndDate, singleTradePosition];
+[Default]FOdf:nominalValueSubLedger = denominatedvalue(1.0, currency1, , profitAndLossEndDate);
+[Default]FOption:nominalValueSubLedger = select(isFXOption, 
+  true->putCurrNominalValue, 
+  default->nil);
+[Default]FTradeRow:nominalValueSubLedger = instrument :* "nominalValueSubLedger" [profitAndLossEndDate, singleTradePosition];

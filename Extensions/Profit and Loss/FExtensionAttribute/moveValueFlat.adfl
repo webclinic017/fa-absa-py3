@@ -1,0 +1,10 @@
+[Profit and Loss]FCashFlowInstrument:moveValueFlat = 
+# Used for p/l cash and book value
+select(isCredit, 
+  true->select(isMultiCurrencyInstrument, 
+    true->moveValuesHazard(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, nil, nil, nil, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, nil, nil, doFlatAccruedAdjustment, nil, 0.0, observationDateForProfitAndLoss, true), 
+    false->moveValueHazard(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, nil, nil, nil, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, nil, nil, doFlatAccruedAdjustment, nil, 0.0, observationDateForProfitAndLoss, true)), 
+  false->select(isMultiCurrencyInstrument, 
+    true->moveValues(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, nil, nil, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, 0, nil, doFlatAccruedAdjustment, roundingInformation, observationDateForProfitAndLoss, true), 
+    false->moveValue(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, legInformations, staticLegInformations, nil, nil, useRepoForIntermediateCoupons, useDiscountCurveBetweenTodayAndSpot, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, 0, nil, doFlatAccruedAdjustment, roundingInformation, observationDateForProfitAndLoss, true)));
+[Profit and Loss]FInstrument:moveValueFlat = moveValue(moveStartValue, valuationDate, instrumentSpotDate, moveToDate, nil);

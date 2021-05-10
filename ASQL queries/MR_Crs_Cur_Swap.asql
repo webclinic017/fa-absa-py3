@@ -1,0 +1,98 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 644358
+
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_Crs_Cur_Swap') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Crs_Cur_Swap' and p.type = 'SQL Query' 
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Crs_Cur_Swap.OpenFile',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+select	
+/*change*/i.insaddr 'insaddr',	
+/*change*/ll.is_locked,	
+/*change*/ll.nominal_at_end,	
+/*change*/ll.nominal_at_start,	
+/*change*/(ll.is_locked = 'Yes' and ll.nominal_at_end = 'Yes' and ll.nominal_at_start = 'Yes'and (ll.nominal_scaling in ('FX') or rl.nominal_scaling in ('FX'))) ? 'CurrBasisSwap' : 'CurrSwap' 'instype'	
+into	
+/*change*/basisswap	
+from	
+/*change*/instrument i,	
+/*change*/leg ll, /* locked leg */	
+/*change*/leg rl, /* resetting leg */
+trade t,
+valid_portfolios vp
+where	
+/*change*/(i.exp_day = 0 or i.exp_day > Today)
+and t.insaddr = i.insaddr
+and t.status not in ('Void', 'Simulated', 'Terminated')	
+and i.instype in ('CurrSwap')	
+and i.insaddr = ll.insaddr	
+and i.insaddr = rl.insaddr	
+and ll.legnbr ~= rl.legnbr	
+and not ((ll.nominal_scaling in ('FX') or rl.nominal_scaling in ('FX'))
+or (i.non_deliverable = 'Yes'))
+and t.prfnbr = vp.prfnbr
+
+group by 1	
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Crs_Cur_Swap.Write',@1_path{'c:\'},@2_FileName{'FileName.csv'},@3_PositionName{'PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+    instrument i,
+    basisswap b
+Where
+    i.insaddr = b.insaddr
+And	b.instype in ('CurrSwap')
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+

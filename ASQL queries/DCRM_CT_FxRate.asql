@@ -1,0 +1,114 @@
+/*------------------------------------------------------------------
+    DCRM_CT_FxRate
+    
+    This query supplies FX rate information of DCRM credit hedges, 
+    done with CDSs and CLNs.
+
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_CT_Trade') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_CT_Trade' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    to_date(@3_ValueDate{today})               'ValueDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	CDS DATA
+------------------------------------------------------------------*/
+select
+    t.trdnbr
+into 
+    getTrades
+from     
+    instrument i,
+    trade t,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype = 'CreditDefaultSwap'
+and i.exp_day  >= m.ValueDate
+and t.insaddr = i.insaddr
+
+
+/*------------------------------------------------------------------
+    CLN DATA - Combinations on CDS
+------------------------------------------------------------------*/
+select
+    t.trdnbr
+into 
+    getTrades
+from     
+    instrument i,
+    instrument und,
+    CombinationLink cl,
+    trade t,
+    macros m
+where
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid}, @2_TrdNbrs{})
+and i.instype   = 'Combination'
+and und.instype = 'CreditDefaultSwap'
+and und.exp_day  >= m.ValueDate
+and t.insaddr = i.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+
+
+/*------------------------------------------------------------------
+	Select all the currencies included in the credit trades
+------------------------------------------------------------------*/
+select distinct
+    curr.insaddr
+into
+    getCurr
+from
+    getTrades gt,
+    trade  t,
+    instrument curr
+where 
+    gt.trdnbr = t.trdnbr 
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+/*------------------------------------------------------------------
+	FX Rates against USD
+------------------------------------------------------------------*/
+select
+	cur.insid						                                'Currency',
+	m.ValueDate = today ? used_price(cur, m.ValueDate,'USD') : 
+    mtm_price(cur, m.ValueDate,'USD')		                        'Value'
+from
+	instrument	cur,
+	getCurr     gc,
+	macros		m
+where
+    cur.insaddr = gc.insaddr
+and cur.insid ~= 'USD'

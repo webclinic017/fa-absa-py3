@@ -1,0 +1,11 @@
+[Profit and Loss]FCombInstrMapAndTrades:deprecAmount = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:deprecAmount = nil;
+[Profit and Loss]FInstrumentAndTrades:deprecAmount = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->deprecAmountLive, 
+  "Inception to Historical"->deprecAmountEnd, 
+  "Historical to Present"->deprecAmountLive - deprecAmountStart, 
+  "Historical to Historical"->deprecAmountEnd - deprecAmountStart);
+[Profit and Loss]FLegAndTrades:deprecAmount = nil;
+[Profit and Loss]FPriceAggregate:deprecAmount = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "deprecAmount");

@@ -1,0 +1,23 @@
+select
+    ael_i(p,'ASQL_log','Comm_Futures_Client_Valuation') 'Name'
+into
+    ASQL_LOG_TEMP
+from
+    TextObject p
+where
+    p.name = 'Comm_Futures_Client_Valuation' and p.type = 'SQL Query'
+
+/*
+    Some Front Arena users don't have access to run a Python script directly,
+    so we have to call a function to execute ASQL.
+*/
+
+
+select
+	ael_s(,'Comm_Futures_Client_Valuation.ASQL') 'OpenFile'
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0

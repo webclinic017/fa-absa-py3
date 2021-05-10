@@ -1,0 +1,23 @@
+[Default]FAssetMortgageBackedSecurity:theoreticalDefaultSolverParameter = "Fixed Rate";
+[Default]FBond:theoreticalDefaultSolverParameter = "Fixed Rate";
+[Default]FCap:theoreticalDefaultSolverParameter = "Strike Price";
+[Default]FCurrencySwap:theoreticalDefaultSolverParameter = "Fixed Rate";
+[Default]FDeposit:theoreticalDefaultSolverParameter = select(isSingleLegInstrument, 
+  true->select(legs.At(0).IsFloatLeg, 
+    true->"Float Spread", 
+    false->"Fixed Rate"), 
+  default->nil);
+[Default]FFloor:theoreticalDefaultSolverParameter = "Strike Price";
+[Default]FFrn:theoreticalDefaultSolverParameter = "Float Spread";
+[Default]FFuture:theoreticalDefaultSolverParameter = "Underlying Price";
+[Default]FLeg:theoreticalDefaultSolverParameter = select(object.IsFloatLeg, 
+  true->"Float Spread", 
+  false->"Fixed Rate");
+[Default]FLegAndTrades:theoreticalDefaultSolverParameter = leg:theoreticalDefaultSolverParameter;
+[Default]FOption:theoreticalDefaultSolverParameter = "Volatility";
+[Default]FPromisLoan:theoreticalDefaultSolverParameter = select(object.IsFloatLeg, 
+  true->"Float Spread", 
+  false->"Fixed Rate");
+[Default]FSwap:theoreticalDefaultSolverParameter = "Fixed Rate";
+[Default]FTotalReturnSwap:theoreticalDefaultSolverParameter = "Fixed Rate";
+[Default]FTradeRow:theoreticalDefaultSolverParameter = instrument:theoreticalDefaultSolverParameter;

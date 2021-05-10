@@ -1,0 +1,90 @@
+/*------------------------------------------------------------------
+    CashPos_perTrade_perCurr
+    
+    Details:
+    This report gives the cash position per trade per currency for trades of all instrument types.
+    Only live trades(not expired) after the the PreviousYearEnd as well as trades that were created after 
+    the PreviousYearEnd are included in the report.
+    All simulated trades are excluded from the report.
+    
+    Created from:
+    ABSA.PLReport_FINAL_SHORT
+    
+    Date		    Who		        What
+    2009-08-03      Herman Hoon     Created
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','CashPos_perTrade_perCurr') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'CashPos_perTrade_perCurr' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	to_date(@4_PreviousYearEnd{2008-12-31})	                    'PrevYearEnd',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'	
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+    mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay'
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros		m
+where
+    hc.insid = m.hcur
+and curr.instype = 'Curr'
+		
+
+/*--------------------------------------------------------------------------
+   Selecting base data
+----------------------------------------------------------------------------*/
+select
+	t.trdnbr        'TrdNbr',
+	m.RepDay	    'RepDay',	
+    curr.insid	    'Curr',
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')                'Cash_RepDay',
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')/fx.fxRepDay    'HCurr_Cash_RepDay'
+from
+	trade		t,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Simulated')
+and i.insid not like 'fd_%'
+
+and (i.exp_day > m.PrevYearEnd or t.creat_time > m.PrevYearEnd)
+
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+and fx.curr = curr.insid
+
+

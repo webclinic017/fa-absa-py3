@@ -1,0 +1,5 @@
+[IRD Pricing and Risk]FInstrument:underlyingForwardCoupon = select(isInterestRateFuture, 
+  true->select(underlyingForwardValueFromInterestComponent, 
+    true->denominatedvalue(rateIndexRateFromCurve, calculationCurrency, , forwardRateStartDate), 
+    false->underlying :* "rateIndexValue" [priceSource, carryEndDate, forwardPriceDate = expiryDateForCouponToValue, discountingType]), 
+  false->setDateTimePart(underlyingForwardParRate, expiryDateForCouponToValue));

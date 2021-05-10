@@ -1,0 +1,11 @@
+[Default]FAbstractReset:averageForwardFixingReference = select(actualFixingInstrument, 
+  nil->nil, 
+  default->select(actualFixingInstrument.InsType, 
+    "Curr"->leg.FloatRateFxReference, 
+    "Rolling Schedule"->select(count(rollingScheduleChosenFutures), 
+      0->actualFixingInstrument, 
+      default->rollingScheduleChosenFutures), 
+    default->actualFixingInstrument));
+[Default]FMoneyFlowAndTrades:averageForwardFixingReference = moneyFlow:averageForwardFixingReference;
+[Default]FObject:averageForwardFixingReference = nil;
+[Default]FResetMoneyFlow:averageForwardFixingReference = abstractReset:averageForwardFixingReference;

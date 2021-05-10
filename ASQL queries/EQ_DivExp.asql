@@ -1,0 +1,109 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_DivExp') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_DivExp' and p.type = 'SQL Query' 
+ 
+  /* Dividend Exposure by Index by Expiry 
+ 14-02-2011     Zaakirah Kajee      Updated to only include streams from ACMB Global Context*/
+
+Select distinct
+    i.insid       'Index',
+    @StartDate{today}   'Start',
+    @EndDate{;'2007-09-20','2007-12-20'}    'Expiry',
+    u.insid     'Stock',
+    e.dividend  'Dividend',
+    convert('date',date_add_banking_day(e.ex_div_day,,-1))  'LDT',
+    convert('date',date_add_banking_day(e.pay_day,,-1))  'PayDate',
+    link.weight / i.index_factor * e.dividend   'IndexPts',
+    date_add_banking_day(e.ex_div_day,,-1) >= @EndDate{;'2007-09-20','2007-12-20'} ? 0 : 1  'BfrAft',
+    date_add_banking_day(@EndDate{;'2007-09-20','2007-12-20'},,20)  'FarDate'
+into
+    DivInfo
+from
+    instrument  i,
+    instrument  u,
+    combinationlink link,
+    dividendestimate    e,
+    dividendstream  s,
+    Context c,
+    ContextLink cl
+    
+where i.insid = @Index{'ZAR/ALSID_FF';'ZAR/ALSID_FF';instrument.insid}
+and i.insaddr = link.owner_insaddr
+and link.member_insaddr = u.insaddr
+and e.stream_seqnbr = s.seqnbr
+and s.insaddr = u.insaddr
+and date_add_banking_day(e.ex_div_day,,-1) >= @StartDate{Today}
+and date_add_banking_day(e.ex_div_day,,-1) <= date_add_banking_day(@EndDate{;'2007-09-20','2007-12-20'},,20)
+and c.name = 'ACMB Global'
+and cl.context_seqnbr = c.seqnbr
+and cl.type = 'Dividend Stream'
+and cl.name = s.name
+
+select distinct
+    d.Stock 'Stock',
+    d.Dividend  'Dividend',
+    convert('date',d.LDT)   'LDT',
+    convert('date',d.PayDate)  'PayDate',
+    d.IndexPts  'RawPts',
+    d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365) 'DivPV',
+    (d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365))*(1 + yc_rate(yc,d.start,d.Expiry,'Simple','Act/365','Spot Rate')*days_between(d.start,d.Expiry,'Act/365')/365)    'DivFV'
+from
+    DivInfo d,
+    yieldcurve  yc
+where d.bfraft = 1
+and yc.yield_curve_name ='ZAR-SWAP'
+order by 3 desc
+
+union
+
+select distinct
+    d.Index 'Stock',
+    0.0  'Dividend',
+    convert('date',d.start)  'LDT',
+    convert('date',d.expiry) 'PayDate',
+    sum(d.IndexPts)  'RawPts',
+    sum(d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365)) 'DivPV',
+    sum((d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365))*(1 + yc_rate(yc,d.start,d.Expiry,'Simple','Act/365','Spot Rate')*days_between(d.start,d.Expiry,'Act/365')/365))    'DivFV'
+from
+    DivInfo d,
+    yieldcurve  yc
+where d.bfraft = 1
+and yc.yield_curve_name ='ZAR-SWAP'
+group by 1
+
+union
+
+select distinct
+    d.Stock 'Stock',
+    d.Dividend  'Dividend',
+    convert('date',d.LDT)   'LDT',
+    convert('date',d.PayDate)  'PayDate',
+    d.IndexPts  'RawPts',
+    d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365) 'DivPV',
+    (d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365))*(1 + yc_rate(yc,d.start,d.Expiry,'Simple','Act/365','Spot Rate')*days_between(d.start,d.Expiry,'Act/365')/365)    'DivFV'
+from
+    DivInfo d,
+    yieldcurve  yc
+where d.bfraft = 0
+and yc.yield_curve_name ='ZAR-SWAP'
+order by 3 desc
+union
+
+select distinct
+    d.Index 'Stock',
+    0.0  'Dividend',
+    convert('date',d.expiry)  'LDT',
+    convert('date',d.fardate) 'PayDate',
+    sum(d.IndexPts)  'RawPts',
+    sum(d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365)) 'DivPV',
+    sum((d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365))*(1 + yc_rate(yc,d.start,d.Expiry,'Simple','Act/365','Spot Rate')*days_between(d.start,d.Expiry,'Act/365')/365))    'DivFV'
+from
+    DivInfo d,
+    yieldcurve  yc
+where d.bfraft = 0
+and yc.yield_curve_name ='ZAR-SWAP'
+group by 1
+

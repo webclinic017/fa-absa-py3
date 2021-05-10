@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:filterForVolShift = alwaysMatchedFilter;
+[Default]FCombination:filterForVolShift = underlying;
+[Default]FInstrument:filterForVolShift = instrument;
+[Default]FInstrumentAndTrades:filterForVolShift = select((instrumentGroupingReference <> nil) and (instrument:baseValuationOnUnderlyingComponents), 
+  true->instrumentGroupingReference, 
+  false->instrumentOrLotFromLotMap :* "collapse(filterForVolShift)");
+[Default]FOption:filterForVolShift = select(underlying:isConvertible, 
+  true->alwaysMatchedFilter, 
+  false->instrument);

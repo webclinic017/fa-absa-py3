@@ -1,0 +1,5 @@
+[ABSA FX]FTrade:usdAmountCalc = select(object.CurrencyPair.IncludesCurrency("USD"), 
+  true->select(object.Instrument.Name == fxBaseCurrency.Name, 
+    true->object.Quantity, 
+    default->object.Premium), 
+  default->0);

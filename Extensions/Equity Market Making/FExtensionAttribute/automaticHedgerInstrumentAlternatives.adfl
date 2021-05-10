@@ -1,0 +1,6 @@
+[Equity Market Making]FQuoteController:automaticHedgerInstrumentAlternatives = select(trading, 
+  nil->nil, 
+  default->trading:automaticHedgerInstrumentAlternatives [priceSource]);
+[Equity Market Making]FTradingInterface:automaticHedgerInstrumentAlternatives = shunt(count(pricingPriceFeedInTheoreticalPrice) > 1, 
+  true->pricingPriceFeedInTheoreticalPrice :* "instrument", 
+  false->[priceInstrumentInTheoreticalPrice]);

@@ -1,0 +1,61 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_SAEQ_CFD_DailyPositionData') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_SAEQ_CFD_DailyPositionData' and p.type = 'SQL Query' 
+ 
+  /* Insert all the data into a temp table for later use in the main select*/
+SELECT Und_I.ISIN                                                    'ISIN',
+       Add_Info(Und_I,'SEDOL')                                       'Sedol',
+       display_id(Und_I,'issuer_ptynbr')                         'Instrument', 
+       display_id(T,'Curr')                                      'Currency',
+       SUM(T.quantity) < 0.00 ? 'Long' 
+            : SUM(T.quantity) > 0.00 ? 'Short' 
+            : ''                                                 'Direction',
+       abs(SUM(T.quantity))                                      'Position'
+       
+INTO CFDData
+
+FROM
+        Trade T,
+        Instrument I,
+        Instrument Und_I
+WHERE
+        T.insaddr = I.Insaddr
+        AND I.und_insaddr *= Und_I.insaddr
+        AND match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+        /*AND to_date(T.time) = to_date(@3_ReportDate{yesterday})*/
+GROUP BY 1,2
+
+
+/* Main select */
+SELECT to_date(@3_ReportDate{yesterday}) 'TradeDate'
+INTO Date
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+SELECT convert('string', TradeDate, '%Y-%m-%d') 'ISIN',
+        '' 'Sedol',
+        '' 'Instrument',
+        '' 'Currency',
+        '' 'Direction',
+        0.00 'Position'
+FROM
+        Date
+        
+        
+UNION 
+
+
+SELECT ISIN,
+        Sedol,
+        Instrument,
+        Currency,
+        Direction,
+        Position
+FROM CFDData
+ WHERE Direction ~= ''
+        

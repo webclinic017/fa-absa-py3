@@ -1,0 +1,56 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT, Market Risk
+Requester:              :Natalie Austin, Susan Kruger
+Developer               :Douglas Finkel, Susan Kruger
+CR Number               :264536, CHNG0000834576
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_EuroFXDigital') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_EuroFXDigital' and p.type = 'SQL Query'
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_EuroFXDigital.OpenFile', @1_path{'f:\'},@2_FileName{'MR_EuroFXDigital.csv'},@3_PositionName{'MR_EuroFXDigital_Position.csv'})	'BuildConfirmation'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_EuroFXDigital.Write', @1_path{'f:\'},@2_FileName{'MR_EuroFXDigital.csv'},@3_PositionName{'MR_EuroFXDigital_Position.csv'})	'BuildConfirmation'
+into
+    macro
+from
+    instrument i
+where
+    /* Basic filtering conditions */
+	(i.exp_day = 0 or i.exp_day > Today)
+    /* Instrument specific filtering*/
+    and i.instype in ('Option')
+    and i.und_instype in ('Curr')
+    and i.exercise_type in ('European')
+/*    and i.paytype in ('Spot') */
+    and i.digital in ('Yes')
+    and i.exotic_type in ('None')
+    
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

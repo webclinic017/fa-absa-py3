@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Exception_Report_Vols') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Exception_Report_Vols' and p.type = 'SQL Query' 
+
+/*
+Date        Who             What
+22/02/2007  Heinrich Cronje Created
+            Zaakirah        Updated
+
+Functionality:
+This query is run first.
+It uses a trade filter to extract all the data on witch work need to be done.
+This is done overnight.
+Then the query : SAEQ_Exception_Report_Vols needs to be run.
+This uses the last two working day's volatility and calculates the volatility
+movements. If the volatility moved more than 2 persent it will give an exception.
+This exceptions can be found on the server.
+*/
+
+select
+    t.trdnbr    'TrdNbr',
+    used_vol(i) 'Vol',
+    i.insid 'Ins',
+    display_id(t,'prfnbr') 'Port',
+    i.exp_day 'expiry',
+    display_id(t,'acquirer_ptynbr')'acquirer',
+    ael_s(i,'zak_funcs.get_vol_surface',i) 'vol surface'/*,
+    i.und_instype = 'Bond' ? vega(t): ael_f(i, 'zak_funcs.get_vega',display_id(t,'prfnbr') ) 'Vega'*/
+from
+    trade t,
+    instrument i
+
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid})
+    and t.insaddr = i.insaddr
+    and i.exp_day >= today
+

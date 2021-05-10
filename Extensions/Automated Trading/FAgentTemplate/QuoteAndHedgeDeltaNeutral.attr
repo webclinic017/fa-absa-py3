@@ -1,0 +1,128 @@
+[Automated Trading]FObject:QuoteAndHedgeDeltaNeutral
+
+Properties =
+  Abstract=No
+  CreatePermission=User
+  DisplayName=Delta Neutral
+  EditPermission=User
+  InheritsFrom=QuoteAndHedge
+  TradingEnabled=Yes
+
+Transitions =
+
+Panel InformationParameters =
+  DisplayName=Information Parameters
+  Orientation=Vertical
+  Variables=quoteLegCalculatedQuantityDisplay, hedgeLegMarketPriceDisplay, quoteLegCalculatedPriceDisplay, optionTheoreticalPrice, optionPriceDelta, potentialResultDisplay
+
+Panel InputParams1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityToQuote, quoteAndHedgePriceSpread
+
+Panel InputParams2 =
+  DisplayName=
+  Orientation=Vertical
+  Panels=QuoteQuantityParams, PriceSpreadParams
+
+Panel Performance =
+  DisplayName=Performance
+  Orientation=Vertical
+  Variables=quoteLegPosition, hedgeLegPosition, donePriceRatio, donePriceSpread, quoteLegAveragePrice, hedgeLegAveragePrice
+
+Panel PriceSpreadParams =
+  DisplayName=
+  Orientation=Horizontal
+  Variables=priceSpreadCurrency, priceSpreadUnit
+
+Panel QuoteQuantityParams =
+  DisplayName=
+  Orientation=Horizontal
+  Variables=quoteLegTotalQuantity
+
+Conditions =
+
+Actions =
+  SaveHedgeOrderPrice=hedgeLegMarketPrice => hedgeOrderPrice
+
+ActionLists =
+
+Variable donePriceRatio =
+  Description=The average price ratio (only applicable when price spread is 0).
+  DisplayName=Done Price Ratio
+  Domain=double
+  Type=ReadOnly
+  Value=switch((hedgeLegAveragePrice > 0) and (quoteAndHedgePriceSpread == 0), \
+      true->(hedgeLegAveragePrice * fxRateFromHedgeToQuote) / quoteLegAveragePrice, \
+      default->nan)
+
+Variable donePriceSpread =
+  Description=The average spread of the filled quote and hedge orders
+  DisplayName=Done Price Spread
+  Domain=double
+  Type=ReadOnly
+  Value=switch(hedgeLegAveragePrice > 0, \
+      true->quoteLegAveragePrice - (hedgeLegAveragePrice * fxRateFromHedgeToQuote / quoteAndHedgePriceRatio), \
+      default->nan)
+
+Variable hedgeLegBuyOrSell =
+  Description=Buy or sell opposite to the quote leg
+  DisplayName=Hedge Buy/Sell
+  Domain=enum(BuyOrSell)
+  Type=ReadOnly
+  Value=switch("Buy" == quoteLegBuyOrSell, \
+      true->switch(quoteLegOption.OptionTypeIsCall, \
+        true->"Sell", \
+        false->"Buy"), \
+      false->switch(quoteLegOption.OptionTypeIsCall, \
+        true->"Buy", \
+        false->"Sell"))
+
+Variable optionPriceDelta =
+  Description=The price delta of the option based on an underlying price on the hedge side of the underlying's order book.
+  DisplayName=Option Price Delta
+  Domain=double
+  Type=ReadOnly
+  Value=quoteLegPriceDelta
+
+Variable optionTheoreticalPrice =
+  Description=The theoretical price of the option based on an underlying price on the hedge side of the underlying's order book.
+  DisplayName=Option Theoretical Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteLegTheoreticalPrice
+
+Variable priceSpreadCurrency =
+  Domain=FCurrency
+  Type=ReadOnly
+  Value=quoteLegOrderBook.Currency
+
+Variable priceSpreadUnit =
+  Domain=EnumPriceSpreadUnit
+  Type=ReadOnly
+  Value="In Quote Leg"
+
+Variable quoteAndHedgePriceSpread =
+  Description=The offset of the theoretical option price
+  DisplayName=Price Offset
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+Variable quoteAndHedgeQuantityRatio =
+  Description=Quantity scaling factor between the quote and hedge leg
+  DisplayName=Quantity Ratio
+  Domain=double
+  Type=ReadOnly
+  Value=1.0 / (abs(optionPriceDelta) * quoteLegOption.ContractSize)
+
+Variable quoteLegOrderBook =
+  Description=Drag or Insert an option order book
+  DisplayName=Option Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+<end>

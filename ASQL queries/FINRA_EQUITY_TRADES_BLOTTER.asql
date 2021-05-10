@@ -1,0 +1,42 @@
+/* update_method=0 */
+SELECT 
+    t.trdnbr
+FROM 
+    Portfolio p,
+    Trade t,
+    AdditionalInfo addInfo,
+    Party pp,
+    AdditionalInfoSpec addInfoSpec,
+    ChoiceList ch,
+    AdditionalInfo addInfoTrade,
+    AdditionalInfoSpec addInfoSpecTrade
+WHERE
+    p.prfnbr = t.prfnbr
+AND 
+    p.prfid LIKE '%STL%'
+AND
+    addInfoTrade.recaddr = t.trdnbr
+AND
+    addInfoTrade.addinf_specnbr = addInfoSpecTrade.specnbr
+AND
+    addInfoSpecTrade.field_name LIKE '%XtpTradeType%'
+AND
+    addInfoTrade.value LIKE '%BLOCK%'    
+AND 
+    addInfo.recaddr = p.prfnbr
+AND 
+    addInfo.addinf_specnbr = addInfoSpec.specnbr
+AND
+    addInfoSpec.field_name LIKE '%ASUS Relationship%'
+AND
+    pp.ptyid = addInfo.value
+AND 
+    pp.legal_form_chlnbr = ch.seqnbr
+AND
+    ch.entry LIKE '15a6 US client'
+AND 
+    (t.creat_time >= today OR t.updat_time >= today)
+
+
+
+

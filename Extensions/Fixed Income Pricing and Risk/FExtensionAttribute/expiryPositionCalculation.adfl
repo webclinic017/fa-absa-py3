@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FInstrument:expiryPositionCalculation = exposurePosition * instrumentExposure;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:expiryPositionCalculation = shunt(isOpenPosition, 
+  true->openInstrument :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference], 
+  false->timeBucketsSetExternallyZero);
+[Fixed Income Pricing and Risk]FLegAndTrades:expiryPositionCalculation = instrument :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference, legsMethod = [leg]];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:expiryPositionCalculation = sumOf(openInstruments :* "collapse(expiryPositionCalculation)" [positionObject, currencyGroupingReference]);

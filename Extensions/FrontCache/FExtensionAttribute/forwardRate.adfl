@@ -1,0 +1,7 @@
+[FrontCache]FCashFlowMoneyFlow:forwardRate = 
+# Nil returned to avoid the propagation of calculation errors to downstream systems. Nil is not necessarily the correct calculation result.
+select(instrument:isPortfolioSwap, 
+  true->nil, 
+  false->select(needsLegInformationForProjected, 
+    false->cashFlowInformation:fixedFloatRate, 
+    true->snoop01(projectedMoneyFlowForForwardRate, "rate")));

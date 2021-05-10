@@ -1,0 +1,6 @@
+[Default]FCashFlowInstrument:yieldToMaturityUnitAccrued = select(isFinite(ctdFactor), 
+  true->sumOf(convertToCurrencyValidateDates(legs :* "yieldToMaturityUnitAccrued" [instrumentSpotDate], fxLegsToInstrument, currencySymbol)) / ctdFactor, 
+  false->sumOf(convertToCurrencyValidateDates(legs :* "yieldToMaturityUnitAccrued" [instrumentSpotDate], fxLegsToInstrument, currencySymbol)));
+[Default]FFuture:yieldToMaturityUnitAccrued = underlying :* "yieldToMaturityUnitAccrued" [instrumentSpotDate = payDate, ctdFactor];
+[Default]FInstrument:yieldToMaturityUnitAccrued = nil;
+[Default]FLeg:yieldToMaturityUnitAccrued = yieldToMaturityUnitAccrued(legInformation, staticLegInformation, instrumentSpotDate, valuationDate);

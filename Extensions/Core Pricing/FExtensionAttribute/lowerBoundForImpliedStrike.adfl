@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:lowerBoundForImpliedStrike = select(storedStrikeType, 
+  "Absolute"->absoluteLowerBoundForImpliedStrike, 
+  default->relativeLowerBoundForImpliedStrike);
+[Core Pricing]FLeg:lowerBoundForImpliedStrike = select(staticLegInformation:isSpread, 
+  true->-50.0, 
+  false->timesHundred(uniqueSpreadInTheoreticalPrice - stripDateTimePart(atmParLevelForLeg)));
+[Core Pricing]FOption:lowerBoundForImpliedStrike = select(isFXOption, 
+  true->lowerBoundForImpliedStrikeForFXO, 
+  default->lowerBoundForImpliedStrikeOptionUnderlying);
+[Core Pricing]FTradeRow:lowerBoundForImpliedStrike = instrument:lowerBoundForImpliedStrike;

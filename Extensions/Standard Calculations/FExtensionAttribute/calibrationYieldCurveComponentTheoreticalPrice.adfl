@@ -1,0 +1,5 @@
+[Standard Calculations]FInstrumentAndTrades:calibrationYieldCurveComponentTheoreticalPrice = select(nil == calibrationYieldCurveComponent, 
+  true->nanDV, 
+  default->select(nil <> calibrationYieldCurveDiscType, 
+    true->scenarioaxis(calibrationTheoreticalPriceForStandardCalculations, instrument:calibrationYieldCurveComponentPerimeterNames, <"calibrating", , "fixedvariant", [true]>, <calibrationYieldCurveMappingLinkNames, , calibrationYieldCurveMappingLinkShiftFunction, [calibrationYieldCurveComponent]>, <"refPriceBase", ^instrument, "fixedvariant", "Theoretical">, <"discountingType", , , calibrationYieldCurveDiscTypeName>), 
+    default->scenarioaxis(calibrationTheoreticalPriceForStandardCalculations, instrument:calibrationYieldCurveComponentPerimeterNames, <"calibrating", , "fixedvariant", [true]>, <calibrationYieldCurveMappingLinkNames, , calibrationYieldCurveMappingLinkShiftFunction, [calibrationYieldCurveComponent]>, <"refPriceBase", ^instrument, "fixedvariant", "Theoretical">)));

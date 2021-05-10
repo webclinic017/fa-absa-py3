@@ -1,0 +1,36 @@
+select distinct
+    TODAY                                   'RepDate',
+    ins.insid,
+    ins.instype,
+    ins.exp_day,
+    ins.exp_day <= date_add_delta(TODAY, 3, 3, 0) ? '0 - 3m' : (date_add_delta(TODAY, 3, 3, 0) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 3, 0, 2) ) ? '3m - 2y' : (date_add_delta(TODAY, 3, 0, 2) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 3, 0, 5) ) ? '2y - 5y':(date_add_delta(TODAY, 3, 0, 5) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 3, 0, 10) ) ? '5y - 10y':(date_add_delta(TODAY, 3, 0, 10) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 3, 0, 20) ) ? '10y - 20y':(date_add_delta(TODAY, 3, 0, 20) < ins.exp_day and ins.exp_day <= date_add_delta(TODAY, 3, 0, 30) ) ? '20y - 30y': ins.exp_day > date_add_delta(TODAY, 3, 0, 30) ? '30+': 'N/A'    'Area'
+
+from
+    instrument ins
+where
+    
+    /*ins.instype in ('Bond', 'IndexLinkedBond')*/
+    ins.instype = 'Bond'
+and ins.exp_day >= TODAY
+order by 4        
+
+
+union
+
+select distinct
+    TODAY                                   'RepDate',
+    ins.insid,
+    und.instype,
+    und.exp_day,
+    und.exp_day <= date_add_delta(TODAY, 3, 3, 0) ? '0 - 3m' : (date_add_delta(TODAY, 3, 3, 0) < und.exp_day and und.exp_day <= date_add_delta(TODAY, 3, 0, 2) ) ? '3m - 2y' : (date_add_delta(TODAY, 3, 0, 2) < und.exp_day and und.exp_day <= date_add_delta(TODAY, 3, 0, 5) ) ? '2y - 5y':(date_add_delta(TODAY, 3, 0, 5) < und.exp_day and und.exp_day <= date_add_delta(TODAY, 3, 0, 10) ) ? '5y - 10y':(date_add_delta(TODAY, 3, 0, 10) < und.exp_day and und.exp_day <= date_add_delta(TODAY, 3, 0, 20) ) ? '10y - 20y':(date_add_delta(TODAY, 3, 0, 20) < und.exp_day and und.exp_day <= date_add_delta(TODAY, 3, 0, 30) ) ? '20y - 30y': und.exp_day > date_add_delta(TODAY, 3, 0, 30) ? '30+': 'N/A'    'Area'
+from
+    instrument ins,
+    instrument und
+where
+    
+    /*ins.instype in ('Bond', 'IndexLinkedBond')*/
+    ins.instype = 'Future/Forward'
+and ins.und_instype = 'Bond'
+and und.exp_day >= TODAY
+and und.insaddr = ins.und_insaddr
+order by 4 

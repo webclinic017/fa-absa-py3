@@ -1,0 +1,10 @@
+[Default]FInstrument:volatilityGreekFilter = alwaysMatchedFilter;
+[Default]FInstrumentAndTrades:volatilityGreekFilter = select(vegaExplicitFilter, 
+  nil->select(alwaysMatchedFilter == benchmarkVegaFilter, 
+    true->select(volatilityGreekGroupingSensitive and (nil <> instrumentGroupingReference), 
+      true->volatilityReferenceInstrumentFilter(symbol(instrumentGroupingReference)), 
+      false->alwaysMatchedFilter), 
+    false->benchmarkVegaFilter), 
+  default->vegaExplicitFilter);
+[Default]FMoneyFlowAndTrades:volatilityGreekFilter = alwaysMatchedFilter;
+[Default]FMultiMoneyFlowAndTrades:volatilityGreekFilter = alwaysMatchedFilter;

@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FInstrument:barrierHitProbability = nil;
+[Equity Pricing and Risk]FOption:barrierHitProbability = select(isBarrierOption and not isKikoOption, 
+  true->switch(barrierCrossedStatus, 
+    "None"->barrierHitProbabilityModelCall["result"], 
+    default->1.0), 
+  false->nil);

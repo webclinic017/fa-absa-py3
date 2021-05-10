@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FTrade:unmatchedQuantity = shunt(quantity > 0, 
+  true->max(min(parent :* "unmatchedQuantityTradeQuantities" [tradesInPosition = parent :* "unmatchedQuantityTradesBuy", trade = object] + parent :* "unmatchedQuantityTradeQuantities" [tradesInPosition = parent :* "unmatchedQuantityTradesSell", trade = nil], quantity), 0), 
+  default->min(max(parent :* "unmatchedQuantityTradeQuantities" [tradesInPosition = parent :* "unmatchedQuantityTradesSell", trade = object] + parent :* "unmatchedQuantityTradeQuantities" [tradesInPosition = parent :* "unmatchedQuantityTradesBuy", trade = nil], quantity), 0));

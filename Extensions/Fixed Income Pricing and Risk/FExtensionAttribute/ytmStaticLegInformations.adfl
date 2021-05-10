@@ -1,0 +1,14 @@
+[Fixed Income Pricing and Risk]FBuySellBack:ytmStaticLegInformations = underlying:ytmStaticLegInformations [yieldToMaturityMethod];
+[Fixed Income Pricing and Risk]FCashFlowInstrument:ytmStaticLegInformations = select(hasGenericBaseDate, 
+  true->legs :* "staticLegInformation" [forwardPriceDate, yieldToMaturityMethod], 
+  false->legs :* "staticLegInformation" [yieldToMaturityMethod]);
+[Fixed Income Pricing and Risk]FCfd:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate := expiryDate, yieldToMaturityMethod], 
+  false->nil);
+[Fixed Income Pricing and Risk]FDerivative:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate = expiryDateForCouponToValue, yieldToMaturityMethod], 
+  false->nil);
+[Fixed Income Pricing and Risk]FFuture:ytmStaticLegInformations = select(needsLegInformation, 
+  true->underlying:ytmStaticLegInformations [forwardPriceDate := expiryDate, yieldToMaturityMethod], 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:ytmStaticLegInformations = staticLegInformations;

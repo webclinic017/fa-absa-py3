@@ -1,0 +1,14 @@
+[ABSA Specific 4.3]FDerivative:cbotPosition = select(agrisCbotUnd, 
+  nil->profitAndLossPositionDisplay, 
+  default->agrisCBOTPositionIRAdjustment * profitAndLossPositionDisplay * contractSize / (agrisConvFactor * agrisCbotUnd:contractSize));
+[ABSA Specific 4.3]FFuture:cbotPosition = select(object.UnderlyingType, 
+  "Curr"->0.0, 
+  default->select(agrisCbotUnd, 
+    nil->select(payType, 
+      "Future"->profitAndLossPositionDisplay, 
+      "Forward"->(currencyZAR:discountCurve).DiscountValue(denominatedvalue(profitAndLossPositionDisplay.Number, "ZAR", , instrument.ExpiryDate), today).Number, 
+      default->0.0), 
+    default->agrisCBOTPositionIRAdjustment * profitAndLossPositionDisplay * contractSize / (agrisConvFactor * agrisCbotUnd:contractSize)));
+[ABSA Specific 4.3]FInstrument:cbotPosition = 0.0;
+[ABSA Specific 4.3]FInstrumentAndTrades:cbotPosition = instrument :* "cbotPosition" [positionObject];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:cbotPosition = sumOf(unSettledInstruments :* "cbotPosition" [positionObject]);

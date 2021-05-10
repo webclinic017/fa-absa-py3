@@ -1,0 +1,14 @@
+select
+    t.trdnbr
+from 
+    trade t,
+    portfolio p,
+    instrument i
+where
+    t.prfnbr = p.prfnbr
+and p.prfid in ('CVOE','CD_QUANTO_FX_OPTIONS','Kenya_BTB','FUT','FUT_Swaps','Prop_Main','Prop_EA','AVOE','Africa_Curr','FUT_NDF','VOE','G7OE','PT_Curr','Prop_JN','DS_FXOptions','AD_Curr','Mauritius_BTB','BVOE','BTB Trades','PBP_Curr','RND_Curr','BTB_Exotics','WNS_Curr', 'JDY_Curr','MAN_Options')
+and i.insaddr = t.insaddr
+and i.exp_day = TODAY
+and t.type in ('Normal')
+and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+and ael_s(i,'FXOPTION.fxOption')

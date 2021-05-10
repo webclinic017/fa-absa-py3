@@ -1,0 +1,43 @@
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_PortfolioOwner') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_PortfolioOwner' and p.type = 'SQL Query' 
+
+
+
+
+select
+    @Calc_Day{today}	'Calc_Day',
+    pp.prfid  'Cost_Centre',
+    p.prfid 'Portfolio',
+    i.instype 'Instype'
+
+
+/*into temp*/
+
+from
+ 
+    instrument i ,
+    trade t ,
+    portfolio p ,
+    portfolio pp ,
+    portfolioLink pl 
+
+where
+    match_filter(t,@TradeFilter{MO_SM_MM_All;tradefilter.fltid})
+    and p.prfnbr = pl.member_prfnbr 
+    and pl.owner_prfnbr = pp.prfnbr 
+    and t.insaddr = i.insaddr 
+    and t.prfnbr = p.prfnbr 
+    and t.status not in ('Simulated','Void','Reserved','Terminated','Confirmed Void')
+    and sum(nominal_amount(t)) ~= 0
+    and sum(t.quantity) ~= 0
+    and i.exp_day >= @Calc_Day{today}
+
+group by 4,3
+
+
+

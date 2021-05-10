@@ -1,0 +1,157 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_All_Instruments_Inc_Simula') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAMM_All_Instruments_Inc_Simula' and p.type = 'SQL Query' 
+ 
+/* Query: SAMM_All_Instruments_Extract
+Created by: Donalda Pretorius
+Details: ASQL provides details for ERM Extract .
+Column names have been specified by ERM.
+Please note: This report works for BILLS ONLY as at 19 June 2003
+
+
+Details of Changes made
+Date		Who		What
+-----		------		--------	
+01/07/03	DP		STT_Reference_no addded in last column	
+01/07/03	DP		Include Deposit/Loans
+09/09/03	DP		Exclude all void, simulated deals
+09/09/03	DP		Exclude all TB's in Portfolio ABS1(Alco deals)
+05/11/03	DP		Excluded all deals from Portfolio MONB 0681 and ABS1
+05/05/05	AS		Added Issuer as the last column
+17/05/05	AS		Added Currency as the last column
+26/10/05	AS		If CpNCD, Issuer field must reference the instruments add_info 'MM_Issuer'
+
+*/
+
+/*SELECT BILLS ONLY*/
+
+select
+t.trdnbr  				'DealReferenceNo',
+t.trdnbr  				'SFX_Ref',
+display_id(t,'prfnbr') 			'ProfitCentre',
+display_id(t,'prfnbr') 			'Portfolio',
+add_info(t,'MM_Instype') 		'InstrumentCode',
+t.quantity*i.contr_size  		'Nominal',
+i.exp_day 				'MaturityDate',
+nominal_amount(t) >0 ? 'B' : 'S'  	'Long_Short',
+t.price  				'InterestRate',
+@2_LastUpdate{Today}  			'LAST_UPDATE',
+display_id(t,'trader_usrnbr')  		'Trader',
+t.counterparty_ptynbr  			'Counterparty',
+t.price 				'DealRate',
+t.value_day  				'SettlementDate',
+mtm_price(i,@2_LastUpdate{Today})  	'MTMRate',
+t.time 					'DealDate',
+t.premium  				'Consideration',
+p.ptyid  				'Counterparty_ShortName',
+p.fullname 				'Counterparty_LongName',
+t.optional_key				'STT_Reference',
+display_id(i, 'curr')			'Currency',
+add_info(t,'MM_Instype') = 'CpNCD' ? add_info(i, 'MM_Issuer') 
+	: t.trdnbr in (530966, 571433, 574531) ? 'ABSA BANK LTD'
+			: display_id(i,'issuer_ptynbr')		'Issuer'
+
+
+into temp
+
+from
+trade t,
+instrument i,
+party p,
+portfolio pf
+
+where
+i.insaddr=t.insaddr
+and t.counterparty_ptynbr=p.ptynbr
+and t.prfnbr=pf.prfnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid})
+and i.instype='Bill'
+and i.exp_day >= @2_LastUpdate{Today}
+and t.status not in ('Void')
+and pf.prfid not in ('MONB 0681','ABS1')
+/*and (pf.prfid = 'ABS1' ? (add_info(t, 'MM_Instype') in ('NCD','PN')) : add_info(t, 'MM_Instype') ~='TB')*/
+
+/*SELECT DEPO/LOANS ONLY*/
+
+select
+t.trdnbr  				'DealReferenceNo',
+t.trdnbr  				'SFX_Ref',
+display_id(t,'prfnbr') 			'ProfitCentre',
+display_id(t,'prfnbr') 			'Portfolio',
+add_info(t,'Funding Instype') 		'InstrumentCode',
+t.quantity*i.contr_size  		'Nominal',
+i.exp_day 				'MaturityDate',
+nominal_amount(t) >0 ? 'B' : 'S'  	'Long_Short',
+t.price  				'InterestRate',	/*check if correct int value*/
+@2_LastUpdate{Today}  			'LAST_UPDATE',
+display_id(t,'trader_usrnbr')  		'Trader',
+t.counterparty_ptynbr  			'Counterparty',
+l.fixed_rate 				'DealRate',
+t.value_day  				'SettlementDate',
+mtm_price(i,@2_LastUpdate{Today})  	'MTMRate',
+t.time 					'DealDate',
+t.premium  				'Consideration',
+p.ptyid  				'Counterparty_ShortName',
+p.fullname 				'Counterparty_LongName',
+t.optional_key				'STT_Reference',
+display_id(i, 'curr')			'Currency',
+add_info(t,'Funding Instype') = 'CpNCD' ? add_info(i, 'MM_Issuer') 
+		: t.trdnbr in (530966, 571433, 574531) ? 'ABSA BANK LTD'
+			: display_id(i,'issuer_ptynbr')		'Issuer'
+
+
+into temp
+
+from
+trade t,
+instrument i,
+party p,
+leg l,
+portfolio pf
+
+where
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and t.counterparty_ptynbr=p.ptynbr
+and t.prfnbr=pf.prfnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid})
+and i.instype='Deposit'
+and i.exp_day >= @2_LastUpdate{Today}
+and t.status not in ('Void')
+and pf.prfid not in ('MONB 0681','ABS1')
+/*and pf.prfid ~= 'ABS1'*/
+
+/* -----------------------------------------------------------
+FINAL SELECTION
+---------------------------------------------------------*/
+
+select
+t.DealReferenceNo 		'Deal Reference #',
+t.SFX_Ref,
+t.ProfitCentre 			'Profit Centre',
+t.Portfolio,
+t.InstrumentCode 		'Instrument Code',
+t.Nominal,
+t.MaturityDate 			'Maturity Date',
+t.Long_Short  			'Long/Short',
+t.InterestRate 			'Interest Rate',
+t.LAST_UPDATE,
+t.Trader,
+t.Counterparty 			'Counter Party',
+t.DealRate 			'Deal Rate',
+t.SettlementDate 		'Settlement Date',
+t.MTMRate 			'MTM Rate',
+t.DealDate  			'Deal Date',
+t.Consideration,
+t.Counterparty_ShortName,
+t.Counterparty_LongName,
+t.STT_Reference,
+t.Currency,
+t.Issuer
+
+
+from
+Temp t

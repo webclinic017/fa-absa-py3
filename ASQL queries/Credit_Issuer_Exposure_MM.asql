@@ -1,0 +1,199 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'Credit_Issuer_Exposure_MM') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Credit_Issuer_Exposure_MM' and p.type = 'SQL Query' 
+
+/*
+Date        Who             CR Nbr      What
+2009-01-29  Heinrich Cronje             Created
+
+This report gives the nominal of trades group in a spesific 
+order based on a specified trade filter.
+*/
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	@4_ShowDetails{Yes;'Yes','No'}		'det',
+	@5_ShowTOTALCptyInstypeMMProduct{Yes;'Yes','No'}   'TOTALCptyInstypeMMProduct'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*--------------------------------------------------------------------------
+   CURRSWAP / FXSWAP Selecting base data into the 'result' temp table
+----------------------------------------------------------------------------*/
+select distinct
+	t.trdnbr,
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	nominal_amount(t,m.Repday,curr.insid)			 'Nominal',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	p.ptyid 'Issuer',
+	curr.insid  'Curr',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+            : (add_info(t, 'Instype') ~= '' ? add_info(t, 'Instype')
+                : i.instype))   'MM_Product',
+    mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)  'HVal'
+into
+	result
+from
+	trade	   t,
+	instrument i,
+	instrument curr,
+	macros	    m,
+	party p
+where
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	and t.insaddr = i.insaddr
+	and curr.instype = 'Curr'
+	and i.curr = curr.insaddr
+	and i.instype in ('FXSwap','CurrSwap')
+    and i.issuer_ptynbr = p.ptynbr
+    
+/*--------------------------------------------------------------------------
+   FOR SWAP Selecting base data into the 'result' temp table 
+----------------------------------------------------------------------------*/
+select distinct
+	t.trdnbr,
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	nominal_amount(t,m.Repday,curr.insid)	 'Nominal',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	p.ptyid 'Issuer',
+	curr.insid  'Curr',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+            : (add_info(t, 'Instype') ~= '' ? add_info(t, 'Instype')
+                : i.instype))   'MM_Product',
+    mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)  'HVal'
+into
+	result
+from
+	trade		t,
+	instrument	i,
+	instrument curr,
+	macros		m,
+	party p
+where
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	and t.insaddr = i.insaddr
+	and curr.instype = 'Curr'
+	and i.curr = curr.insaddr
+	and i.instype = 'Swap'
+    and i.issuer_ptynbr = p.ptynbr
+    
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (excl FXSWAP/CURRSWAP/SWAP)
+----------------------------------------------------------------------------*/
+select distinct
+	t.trdnbr,
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	i.instype = 'Bond' ? position(t,,,m.RepDay) : nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	p.ptyid 'Issuer',
+	curr.insid  'Curr',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+            : (add_info(t, 'Instype') ~= '' ? add_info(t, 'Instype')
+                : i.instype))   'MM_Product',
+    mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)  'HVal'
+into
+	result
+from
+	trade		t,
+	instrument	i,
+	instrument curr,
+	macros		m,
+	party p
+where
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	and t.insaddr = i.insaddr
+	and curr.instype = 'Curr'
+	and i.curr = curr.insaddr
+	and i.instype not in ('FXSwap','CurrSwap','Swap')
+    and i.issuer_ptynbr = p.ptynbr
+    
+/*------------------------------------------------------------------
+	Creating Final DATA table
+------------------------------------------------------------------*/
+select
+	r.trdnbr,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.instype,
+	r.mm_product,
+	r.Cpty,
+	r.Issuer,
+	r.Curr,
+	r.nominal,
+	r.Hval
+into
+	final
+from
+	result r
+
+/*------------------------------------------------------------------
+DETAILS
+------------------------------------------------------------------*/
+select
+	r.trdnbr,
+	'Details'	'Section',
+	r.insid,
+	r.desk,
+	r.portfolio,
+	r.cpty,
+	r.Issuer,
+	r.Curr,
+	r.instype,
+	r.mm_product,
+	sum(r.nominal)		'Nominal',
+	sum(r.Hval) 'Hval'
+from
+	final r,
+	macros m
+where
+    m.det IN ('Yes','YES','yes','Y','y')
+
+union
+
+/*------------------------------------------------------------------
+TOTAL by counterparty instype, mm_product
+------------------------------------------------------------------*/
+select
+	count(r.trdnbr),
+	'TOTAL by CptyInstypeMM_Product' 'Section',
+	r.insid,
+	r.desk,
+	r.portfolio,
+	r.cpty,
+	r.Issuer,
+	r.Curr,
+	r.instype,
+	r.mm_product,
+	sum(r.nominal)		'Nominal',
+	sum(r.Hval) 'Hval'
+from
+	final r,
+	macros m
+where
+	m.TOTALCptyInstypeMMProduct IN ('Yes','YES','yes','Y','y')
+
+group by r.Issuer, r.instype, r.mm_product
+order by r.Issuer, r.instype, r.mm_product

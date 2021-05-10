@@ -1,0 +1,7 @@
+[Default]ExecutionAlgo:marketTradingHours = algoHomeTrading :* "marketTradingHours";
+[Default]FOrderBook:marketTradingHours = 24.0 * (marketClosingTime - marketOpeningTime);
+[Default]FPrePostTradeAnalysis:marketTradingHours = switch(homeTrading, 
+  nil->0, 
+  default->homeTrading :* "marketTradingHours");
+[Default]FSalesOrder:marketTradingHours = prePostTradeAnalysis:marketTradingHours;
+[Default]FTradingInterface:marketTradingHours = 24.0 * (marketClosingTime - marketOpeningTime);

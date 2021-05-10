@@ -1,0 +1,8 @@
+[Securities Lending]FAlert:secLendLastResetFee = select(subject.IsKindOf("FSecurityLoan"), 
+  true->subject:secLendLastResetFee, 
+  default->nil);
+[Securities Lending]FInstrument:secLendLastResetFee = nil;
+[Securities Lending]FSecurityLoan:secLendLastResetFee = getFeeFromLastFixing(getSecLendRerateHandler);
+[Securities Lending]FSingleInstrumentAndTrades:secLendLastResetFee = instrument:secLendLastResetFee;
+[Securities Lending]FTrade:secLendLastResetFee = instrument:secLendLastResetFee;
+[Securities Lending]FTradeRow:secLendLastResetFee = instrument:secLendLastResetFee;

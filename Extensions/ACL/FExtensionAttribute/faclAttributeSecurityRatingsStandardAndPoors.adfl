@@ -1,0 +1,13 @@
+[ACL]FInstrument:faclAttributeSecurityRatingsStandardAndPoors = select(faclIsFixedIncome, 
+  true->select(py("FACLFunctions", context).standardAndPoorsNumber, 
+    1->select(object.UsedRating1ChlItem, 
+      nil->nil, 
+      default->object.UsedRating1ChlItem.Name), 
+    2->select(object.UsedRating2ChlItem, 
+      nil->nil, 
+      default->object.UsedRating2ChlItem.Name), 
+    3->select(object.UsedRating3ChlItem, 
+      nil->nil, 
+      default->object.UsedRating3ChlItem.Name)), 
+  false->nil);
+[ACL]FTradeRow:faclAttributeSecurityRatingsStandardAndPoors = instrument:faclAttributeSecurityRatingsStandardAndPoors;

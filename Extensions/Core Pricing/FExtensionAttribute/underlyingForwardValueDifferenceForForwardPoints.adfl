@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:underlyingForwardValueDifferenceForForwardPoints = select(isFinite(underlyingForwardValueInStrikeCurrency) and isFinite(underlyingStartValueInStrikeCurrency), 
+  nil->nil, 
+  default->select(isReciprocal, 
+    true->denominatedvalue(underlyingForwardValueDifferenceInverted, calculationCurrency, , date(underlyingForwardValueInStrikeCurrency)), 
+    false->stripDateTimePart(underlyingForwardValueInStrikeCurrency) - stripDateTimePart(underlyingStartValueInStrikeCurrency)));

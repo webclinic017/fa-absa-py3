@@ -1,0 +1,12 @@
+#grouping: aef base/profit and loss
+
+[Default]FCombInstrMapAndTrades:dividends = nil;
+[Default]FDeliverableLinkAndTrades:dividends = nil;
+[Default]FInstrumentAndTrades:dividends = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->dividendsLive, 
+  "Inception to Historical"->dividendsEnd, 
+  "Historical to Present"->dividendsLive - dividendsStart, 
+  "Historical to Historical"->dividendsEnd - dividendsStart);
+[Default]FPriceAggregate:dividends = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "dividends");

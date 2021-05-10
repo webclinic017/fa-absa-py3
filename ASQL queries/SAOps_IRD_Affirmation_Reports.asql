@@ -1,0 +1,225 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAOps_IRD_Affirmation_Reports') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_IRD_Affirmation_Reports' and p.type = 'SQL Query' 
+
+/*
+Purpose             :   Highlights the Affirmation status of trades
+Department and Desk :   Ops
+Rquester            :   FATLM Project
+Developer           :   Heinrich Cronje
+CR Number           :   478334
+*/
+
+/*---------- Macros ----------*/
+select
+    @1_StartDate{Yesterday}  'startDate',
+    @2_EndDate{Today}   'endDate',
+    @7_Report{All;'Affirmation Status','Exception Queue'}   'report'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*---------- Trades ----------*/
+select
+    t.trdnbr,
+    po.prfid,
+    i.instype,
+    i.insid,
+    t.status,
+    add_info(t,'Affirmation')   'Affirmation_Status',
+    add_info(t,'Affirmation CP Ref')    'Affirm_CP_Ref',
+    to_date(t.time) 'trade_date',
+    t.value_day,
+    i.exp_day,
+    t.updat_time   'time',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    display_id(t,'trader_usrnbr')  'user_name',
+    p.ptyid,
+    nominal_amount(t,t.value_day)   'nominal',
+    nominal_amount(t,t.value_day) >= 0 ? 'B' : 'S'  'BuySell',
+    i.exp_day - to_date(t.execution_time)   'tenor'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    portfolio po,
+    party p,
+    macros m
+where
+        match_filter(t, @3_Filter{SAOps_IRD_Trades;tradefilter.fltid}, @4_TrdNos{})
+    and t.insaddr = i.insaddr
+    and t.prfnbr = po.prfnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed','Terminated')
+    and t.value_day >= m.startDate
+    and t.value_day <= m.EndDate
+    and ((@5_Portfolio{All;Portfolio.prfid*} in ('All')) or (po.prfid in (@5_Portfolio{All;Portfolio.prfid*})))
+    and ((@6_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@6_Counterparty{All;Party.ptyid*})))
+
+/*---------- Affirmation Status ----------*/
+select
+    'Affirmation Status' 'Report',
+    t.trdnbr,
+    t.prfid,
+    t.instype,
+    t.insid,
+    t.status,
+    t.Affirmation_Status,
+    t.Affirm_CP_Ref,
+    t.trade_date,
+    t.value_day,
+    t.exp_day,
+    t.time,
+    t.acquirer,
+    t.user_name,
+    t.ptyid,
+    t.nominal,
+    t.BuySell,
+    t.tenor
+from
+    temp t,
+    macros m
+where
+    m.report in ('All','Affirmation Status')
+    
+order by 7
+
+union
+
+/*---------- Exception Queue - BO Confirm Status ----------*/
+select
+    'Exception Queue - BO Confirm' 'Report',
+    t.trdnbr,
+    t.prfid,
+    t.instype,
+    t.insid,
+    t.status,
+    t.Affirmation_Status,
+    t.Affirm_CP_Ref,
+    t.trade_date,
+    t.value_day,
+    t.exp_day,
+    t.time,
+    t.acquirer,
+    t.user_name,
+    t.ptyid,
+    t.nominal,
+    t.BuySell,
+    t.tenor
+from
+    temp t,
+    macros m
+where
+        t.status = 'BO Confirmed'
+    and m.report in ('All','Exception Queue')
+
+union
+
+/*---------- Exception Queue - BO-BO Confirm with unmatched Confirmation status ----------*/
+select
+    'Exception Queue - BO-BO unmatched Conf' 'Report',
+    t.trdnbr,
+    t.prfid,
+    t.instype,
+    t.insid,
+    t.status,
+    t.Affirmation_Status,
+    t.Affirm_CP_Ref,
+    t.trade_date,
+    t.value_day,
+    t.exp_day,
+    t.time,
+    t.acquirer,
+    t.user_name,
+    t.ptyid,
+    t.nominal,
+    t.BuySell,
+    t.tenor
+from
+    temp t,
+    confirmation c,
+    choicelist cl,
+    macros m
+where
+        t.trdnbr = c.trdnbr
+    and c.event_chlnbr = cl.seqnbr
+    and t.status = 'BO-BO Confirmed'
+    and c.event_chlnbr = cl.seqnbr
+    and cl.entry = 'New Trade'
+    and c.status ~= 'Matched'
+    and m.report in ('All','Exception Queue')
+
+union
+
+/*---------- Exception Queue - Affirmation not sent ----------*/
+select
+    'Exception Queue - Affirmation not sent' 'Report',
+    t.trdnbr,
+    t.prfid,
+    t.instype,
+    t.insid,
+    t.status,
+    t.Affirmation_Status,
+    t.Affirm_CP_Ref,
+    t.trade_date,
+    t.value_day,
+    t.exp_day,
+    t.time,
+    t.acquirer,
+    t.user_name,
+    t.ptyid,
+    t.nominal,
+    t.BuySell,
+    t.tenor
+from
+    temp t,
+    macros m
+where
+        t.Affirmation_Status not in ('Affirmation Sent','Affirmed','Disputed')
+    and m.report in ('All','Exception Queue')
+
+union
+
+/*---------- Exception Queue - Not Affirmed >= T2  ----------*/
+select
+    'Exception Queue - Not Affirmed >=T2' 'Report',
+    t.trdnbr,
+    po.prfid,
+    i.instype,
+    i.insid,
+    t.status,
+    add_info(t,'Affirmation')   'Affirmation Status',
+    add_info(t,'Affirmation CP Ref')    'Affirm CP Ref',
+    to_date(t.time) 'trade_date',
+    t.value_day,
+    i.exp_day,
+    t.updat_time   'time',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    display_id(t,'trader_usrnbr')  'user_name',
+    p.ptyid,
+    nominal_amount(t,t.value_day)   'nominal',
+    nominal_amount(t,t.value_day) >= 0 ? 'B' : 'S'  'Buy/Sell',
+    i.exp_day - to_date(t.execution_time)   'tenor'
+from
+    trade t,
+    instrument i,
+    portfolio po,
+    party p,
+    macros m
+where
+        match_filter(t, @3_Filter{SAOps_IRD_Trades;tradefilter.fltid}, @4_TrdNos{})
+    and t.insaddr = i.insaddr
+    and t.prfnbr = po.prfnbr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.value_day <= date_add_banking_day(m.startDate,'ZAR',-2)
+    and add_info(t,'Affirmation') not in ('Affirmation Sent','Affirmed','Disputed')
+    and ((@5_Portfolio{All;Portfolio.prfid*} in ('All')) or (po.prfid in (@5_Portfolio{All;Portfolio.prfid*})))
+    and ((@6_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@6_Counterparty{All;Party.ptyid*})))
+    and m.report in ('All','Exception Queue')

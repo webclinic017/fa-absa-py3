@@ -1,0 +1,12 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:fees = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:fees = nil;
+[Profit and Loss]FInstrumentAndTrades:fees = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->feesLive, 
+  "Inception to Historical"->feesEnd, 
+  "Historical to Present"->feesLive - feesStart, 
+  "Historical to Historical"->feesEnd - feesStart);
+[Profit and Loss]FPriceAggregate:fees = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "fees");

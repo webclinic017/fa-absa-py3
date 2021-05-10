@@ -1,0 +1,7 @@
+[Core Risk]FObject:curveFilterForDeltaGamma = select(filterCurve == nil, 
+  true->select(ycVectorItemSetExternally, 
+    nil->select(filterCurveCurrency, 
+      nil->simpleCurvesFilter, 
+      default->interestRateDeltaCurrenciesFilter(value(filterCurveCurrency))), 
+    default->yieldCurveFilter(value(ycVectorItemSetExternally:yieldCurve))), 
+  false->yieldCurveFilter(value(filterCurve)));

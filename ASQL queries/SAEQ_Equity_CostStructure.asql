@@ -1,0 +1,134 @@
+/*-----------------------------------------------------------------------------------------------------------------------------------
+PURPOSE                 :  Comparitive report between JSE and ASB cost structures for equity portfolios
+DEPATMENT AND DESK      :  Prime Services
+REQUESTER               :  Francois Henrion
+DEVELOPER               :  Paul Jacot-Guillarmod
+CR NUMBER               :  328434
+
+Update:
+PURPOSE                 :  Adding three columns (Trading,Clearing,IPL) and scheduling a query to run on the first day of every month.
+DEPATMENT AND DESK      :  Prime Services PCG
+REQUESTER               :  Bruce Tinker
+DEVELOPER               :  Tshepo Mabena
+CR NUMBER               :  389513
+
+PURPOSE                 :  Adding three columns 
+DEPATMENT AND DESK      :  Prime Services PCG
+REQUESTER               :  James Jackson
+DEVELOPER               :  Ickin Vural
+CR NUMBER               :  C000000558733
+
+PURPOSE                 :  Update to allow for ETF
+DEPATMENT AND DESK      :  Prime Services PCG
+REQUESTER               :  James Jackson
+DEVELOPER               :  Ickin Vural
+CR NUMBER               :  C000000581376
+
+PURPOSE                 :  Update to run from beggining of month to current month date
+DEPATMENT AND DESK      :  Prime Services PCG
+REQUESTER               :  James Jackson
+DEVELOPER               :  Douglas Finkel
+CR NUMBER               :  C000000614955
+-------------------------------------------------------------------------------------------------------------------------------------*/
+
+select
+ael_i(p,'ASQL_log','SAEQ_Equity_CostStructure') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Equity_CostStructure' and p.type = 'SQL Query' 
+
+select
+    ael_s(,'SAEQ_EQ_CS.SAEQ_EQ_CS_MTD',@01_StartDate{yesterday})	'StartDate',
+    ael_s(,'SAEQ_EQ_CS.SAEQ_EQ_CS_MTD',@02_EndDate{today})	    	'EndDate',
+    to_double(@04_JSE_TradingCost{0.55})  				'TradingCost',
+    to_double(@05_JSE_TradingMin{5.48})   				'TradingMin',
+    to_double(@06_JSE_TradingMax{12.34})  				'TradingMax',
+    to_double(@07_JSE_ClearingCost{0.26}) 				'ClearingCost',
+    to_double(@08_JSE_ClearingMin{2.47})  				'ClearingMin',
+    to_double(@09_JSE_ClearingMax{10.00}) 				'ClearingMax',
+    to_double(@10_JSE_IPLCost{0.02})      				'IPLCost',
+    to_double(@11_JSE_IPLMin{0})          				'IPLMin',
+    to_double(@12_JSE_IPLMax{99999.99})   				'IPLMax',
+    to_double(@13_ASB_Fixed{11.10})       				'ASBFixed',
+    to_double(@14_Strate_Transaction_fee{2.48})           		'Strate_Transaction_fee',
+    to_double(@15_JSET_Transaction_fee{1.61})           		'JSET_Transaction_fee'
+into 
+    input
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    time_to_day(t.time)           'ReportDate',
+    p.prfid                       'port',
+    t.trdnbr                      'trd',
+    abs(t.quantity * t.price)/100 'value'
+into
+    data_temp
+from
+    trade t,
+    instrument i,
+    portfolio p,
+    party cp,
+    input d
+where
+    match_filter(t, @03_Input_Filter{SAEQ_All_Stocks;Tradefilter.fltid})
+and i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.ptyid in ('JSE')
+and t.status not in ('Simulated', 'Void')
+and time_to_day(t.time) >= d.StartDate
+and time_to_day(t.time) <= d.EndDate
+
+select
+    port,
+    ReportDate,
+    trd,
+    value,
+    minval(maxval((value * d.TradingCost)/10000, d.TradingMin), d.TradingMax)    'trading',
+    minval(maxval((value * d.ClearingCost)/10000, d.ClearingMin), d.ClearingMax) 'clearing',
+    minval(maxval((value * d.IPLCost)/10000, d.IPLMin), d.IPLMax)                'IPL',
+    d.Strate_Transaction_fee 'Strate_Transaction_fee',
+    d.JSET_Transaction_fee 'JSET_Transaction_fee'
+into
+    final
+from
+    data_temp,
+    input d
+
+select
+    port                          'Portfolio',
+    ReportDate                    'ReportDate',
+    count(trd)                    'Num_Trades',
+    sum(value)                    'Value',
+    sum(trading + clearing + IPL) 'JSE_Charge',
+    sum(trading)                  'Trading',
+    sum(Clearing)                 'Clearing',
+    sum(IPL)                      'IPL',
+    sum(Strate_Transaction_fee)   'Strate',
+    sum(JSET_Transaction_fee) 	  'JSET',
+    sum(IPL + clearing + trading + Strate_Transaction_fee + JSET_Transaction_fee) 'Markup'
+into
+    temp
+from
+    final
+
+group by 1,2
+
+select
+    t.ReportDate              'ReportDate',
+    t.Portfolio               'Portfolio',
+    t.Num_Trades              'Num Trades',
+    t.Value                   'Value',
+    t.JSE_Charge              'JSE Charge',
+    t.Trading                 'Trading',
+    t.Clearing                'Clearing',
+    t.IPL                     'IPL',
+    t.Strate                  'Strate',
+    t.JSET                    'JSET',
+    t.Markup * 1.25           'Markup'
+
+from
+    temp   t

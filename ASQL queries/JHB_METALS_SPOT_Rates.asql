@@ -1,0 +1,40 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','JHB_METALS_SPOT_Rates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'JHB_METALS_SPOT_Rates' and p.type = 'SQL Query' 
+select
+
+TODAY	'Report Date',
+i.insid,
+c.insid'expressed as',
+lp.settle'Latest',
+p.settle'Previous',
+lp.settle-p.settle'difference'
+
+
+
+
+from
+
+instrument i,
+instrument c,
+party party,
+price p ,
+lastprice lp
+
+where
+i.insaddr=p.insaddr
+and i.insaddr=lp.insaddr
+and lp.curr=c.insaddr
+and p.curr=c.insaddr
+
+and p.ptynbr=party.ptynbr
+and lp.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+
+
+and i.insid in ('ZAR','AUD','EUR','JPY','NZD','CAD','GBP','USD','XAU','XPT','XPT','XAG','MAL','MCU','MPB','MNI','MSN','MZN')
+
+and p.day=date_add_banking_day(yesterday,,@days_backwards[-1;])

@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:structureNominal = sumOf((object.Trades) :* "structureNominal");
+[ABSA Specific 4.3]FTrade:structureNominal = switch(py("InsOverride", context).objectSatisfiesQueryFolder(object, "Nominal Approx Notes"), 
+  true->object.Quantity * instrument:nominalAmountOrOne * instrument:maximumCurrentCashFlowNominalFactor [currentDate = object.TradeTime], 
+  default->object.Nominal);
+[ABSA Specific 4.3]FTradeRow:structureNominal = trade:structureNominal;

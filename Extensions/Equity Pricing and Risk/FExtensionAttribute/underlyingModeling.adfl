@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FCertificate:underlyingModeling = select(baseValuationOnUnderlyingComponents, 
+  true->"Multi", 
+  default->"Single");
+[Equity Pricing and Risk]FInstrument:underlyingModeling = nil;
+[Equity Pricing and Risk]FOption:underlyingModeling = select(isOptionValuedAsPureSingle, 
+  true->"Single", 
+  false->select(mappedModelIsBasketAsSingleUnderlying, 
+    true->"BASU", 
+    false->"Multi"));

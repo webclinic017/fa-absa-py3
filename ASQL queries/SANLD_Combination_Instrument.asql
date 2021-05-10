@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Combination_Instrument') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Combination_Instrument' and p.type = 'SQL Query' 
+
+
+
+/*
+
+Purpose   : List of individual members of combination instruments where the acquirer = 'Non Linear Deriv'
+Department : Trading
+Desk : Trading, Fixed income options
+Requestor : Boshoff, Alexandra Anne
+Developer : Anil Parbhoo
+CR Number : 201993
+
+*/
+
+
+
+select
+t.trdnbr,
+i.insid'instrument',
+i.instype,
+
+mem.instype'member instype',
+mem.insid'member instrument',
+mem.exp_day'member exp day',
+display_id(t,'prfnbr')'portfolio',
+t.status,
+display_id(t,'counterparty_ptynbr')'counter party',
+acq.ptyid'trade acquirer'
+
+
+from
+instrument i,
+trade t,
+combinationlink cl,
+instrument mem,
+
+party acq
+
+where
+i.instype = 'Combination'
+and t.insaddr=i.insaddr
+and t.status not in ('Simulated','Void','Terminated')
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = mem.insaddr
+and t.acquirer_ptynbr=acq.ptynbr
+and acq.ptyid = 'Non Linear Deriv'
+
+order by t.trdnbr
+
+
+

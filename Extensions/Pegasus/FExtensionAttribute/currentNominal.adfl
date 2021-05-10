@@ -1,0 +1,15 @@
+[Pegasus]FBill:currentNominal = select(isExpired, 
+  true->0, 
+  false->0 + convertToCurrency(denominatedvalue(sumOf(tradesInPosition :* "object.Nominal"), currency, , ), currency:immediateOrSpotFxRate [fxToCurrency = displayCurrency], displayCurrency).Number);
+[Pegasus]FCashFlowInstrument:currentNominal = 0 + sumOf(legs :* "currentNominal" [tradesInPosition, profitAndLossEndDate, displayCurrency]);
+[Pegasus]FIndexLinkedBond:currentNominal = select(isExpired, 
+  true->0, 
+  false->0 + sumOf(legs :* "currentNominal" [tradesInPosition, profitAndLossEndDate, displayCurrency]));
+[Pegasus]FInstrument:currentNominal = 0;
+[Pegasus]FLeg:currentNominal = convertToCurrency(denominatedvalue(py("currentNominal", context).currentNominal(object, profitAndLossEndDate, tradesInPosition), currency, , ), currency:immediateOrSpotFxRate [fxToCurrency = displayCurrency], displayCurrency).Number;
+[Pegasus]FLegAndTrades:currentNominal = select(singleTradePosition, 
+  nil->0, 
+  default->leg :* "currentNominal" [singleTradePosition, profitAndLossEndDate, displayCurrency]);
+[Pegasus]FMultiInstrumentAndTrades:currentNominal = sumOf(instruments :* "currentNominal" [positionObject, profitAndLossEndDate, displayCurrency]);
+[Pegasus]FSingleInstrumentAndTrades:currentNominal = instrument :* "currentNominal" [positionObject, profitAndLossEndDate, displayCurrency];
+[Pegasus]FTradeRow:currentNominal = instrument :* "currentNominal" [singleTradePosition, profitAndLossEndDate, displayCurrency];

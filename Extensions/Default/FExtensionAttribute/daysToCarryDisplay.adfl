@@ -1,0 +1,21 @@
+[Default]FInstrumentAndTrades:daysToCarryDisplay = select(instrument:hasValidExpiryDateTime, 
+  true->select(instrument:underlying, 
+    default->select(instrument:isMultiExercise, 
+      false->instrument:daysToCarry, 
+      true->select(instrument:exerciseEventsExist, 
+        true->instrument :* "daysToCarry" [exerciseEvents := lastExerciseEvent], 
+        false->nil)), 
+    nil->nil), 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:daysToCarryDisplay = nil;
+[Default]FOrderBook:daysToCarryDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->select(instrument:underlying, 
+    nil->nil, 
+    default->instrument:daysToCarry));
+[Default]FPriceAggregate:daysToCarryDisplay = priceFeed:daysToCarryDisplay;
+[Default]FPriceFeed:daysToCarryDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->select(instrument:underlying, 
+    nil->nil, 
+    default->instrument:daysToCarry));

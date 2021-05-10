@@ -1,0 +1,8 @@
+[Core Pricing]FBuySellBack:carryEndDate = object.ExpiryDate;
+[Core Pricing]FInstrument:carryEndDate = select(isMultiExercise, 
+  true->select(isCashSettled, 
+    true->value(object.CarryEndDate(underlyingForCarryEndDate, underlyingUnderlyingForCarryEndDate, expiryDateTime)), 
+    false->collapse(settlementDate)), 
+  false->select(underlying, 
+    nil->object.ExpiryDate, 
+    default->value(object.CarryEndDate(underlyingForCarryEndDate, underlyingUnderlyingForCarryEndDate, expiryDateTime))));

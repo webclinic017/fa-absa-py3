@@ -1,0 +1,6 @@
+[Profit and Loss]FCashFlowInstrument:pLLegInformationsAtValuationDate = select(usePlLegInformationAtValuationDate, 
+  true->shunt(plLegInformationsIsShifted, 
+    true->collapse(pLLegInformationsAll), 
+    false->shiftdropaxis(pLLegInformationsAll, valuationDateInPlLegInformations, [maxOf(valuationDate)])), 
+  false->collapse(pLLegInformationsAll));
+[Profit and Loss]FCreditDefaultSwap:pLLegInformationsAtValuationDate = pLLegInformationsAll;

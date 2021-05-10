@@ -1,0 +1,13 @@
+[ABSA PLExplain]FInstrumentAndTrades:profitAndLossExplainPerRiskFactorPLE = select(nil == timeBucketsSetExternally, 
+  true->select(profitAndLossExplainType, 
+    "Risk Factor Change"->profitAndLossExplainRiskFactorChange, 
+    "Risk Factor Change 2"->nil, 
+    "Delta Start"->profitAndLossExplainRiskFactorDeltaAtStartDate, 
+    "Delta End"->profitAndLossExplainRiskFactorDeltaAtEndDatePLE, 
+    "Gamma Start"->profitAndLossExplainRiskFactorGammaAtStartDate, 
+    "Gamma End"->profitAndLossExplainRiskFactorGammaAtEndDatePLE, 
+    "Value"->profitAndLossExplainRiskFactorTaylorApproximation, 
+    "Percent Of Total"->profitAndLossExplainRiskFactorTaylorApproximation / profitAndLossExplainTotalPL * 100, 
+    default->profitAndLossExplainRiskGreekForStorage), 
+  false->timeBucketsSetExternallyNilVector);
+[ABSA PLExplain]FRiskFactor:profitAndLossExplainPerRiskFactorPLE = rowObject:profitAndLossExplainPerRiskFactorPLE [displayCurrency, profitAndLossExplainType, riskFactorTypeName, includeDeltaAttribution, includeGammaAttribution, interestRateGranularity, weightMethod, riskFactorVectorItemSetExternally := object];

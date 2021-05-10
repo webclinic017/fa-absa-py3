@@ -1,0 +1,47 @@
+/*------------------------------------------------------------------
+    PS_Allocate
+
+    This query calculates the interest rate risk associated with the a DCRM trade filter.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2010-05-24  203010       Herman Hoon	Created
+    2012-08-03  368743       Peter Fabian   Added vwap/price column
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','PS_Allocate') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'PS_Allocate' 
+and p.type = 'SQL Query' 
+
+
+select
+    i.insid 'Stock code',
+    t.quantity > 0 ? 'Buy' : 'Sell' 'BuySell',
+    ael_s(t,'PS_Functions.XTPTradeTypeAel',t.trdnbr) 'TradeType',
+    t.price 'vwap',
+    t.quantity
+from
+    instrument i,
+    trade t,
+    portfolio p
+where
+    i.instype in ('Stock','ETF')
+and t.insaddr = i.insaddr
+and t.status ~= 'Void'
+and t.text1 = 'Allocation Process'
+and t.prfnbr = p.prfnbr
+and p.prfid = @Allocate_Portfolio{;portfolio.prfid}

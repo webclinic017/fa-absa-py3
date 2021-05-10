@@ -1,0 +1,9 @@
+[SwiftGateway]FInstrument:clientSwiftUnits = switch(isExpired, 
+  true->0, 
+  default->sumOf(tradesInPosition :* "clientSwiftUnits" [profitAndLossStartDate, profitAndLossEndDate]));
+[SwiftGateway]FSingleInstrumentAndTrades:clientSwiftUnits = instrument :* "clientSwiftUnits" [positionObject];
+[SwiftGateway]FTrade:clientSwiftUnits = select((object.Status == "Void") or (object.Status == "Confirmed Void") or (object.Status == "Simulated"), 
+  true->0, 
+  default->switch((tradeInclusionDate >= profitAndLossStartDate) and (tradeInclusionDate <= profitAndLossEndDate), 
+    true->object.Nominal, 
+    default->0));

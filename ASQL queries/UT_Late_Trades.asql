@@ -1,0 +1,37 @@
+/*
+Date        Changed by          CR              Description      
+26/06/2015  Lawrence Mucheka    CHNG0002944384	Update so it selects trades with execution
+                                                time between 15:30 yesterday and 07:00 today
+                                                and exclude trades with internal counterparties
+06/10/2015  Lawrence Mucheka    CHNG0003162140	Accommodate weekends+public holidays
+
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','UT_Late_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'UT_Late_Trades' and p.type = 'SQL Query' 
+
+Select
+    t.trdnbr
+
+From
+    Trade t,
+    User u,
+    Instrument i,
+    front.Group g,
+    Party cp
+    
+Where
+
+    t.creat_usrnbr = u.usrnbr
+    and g.grpnbr = u.grpnbr
+    and t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = cp.ptynbr
+    and i.instype ~= 'SecurityLoan'
+    and t.execution_time between time_of TODAY + 15*60*60 + 30*60 and time_of TOMORROW + 07*60*60
+    and t.Status ~= 'Simulated'
+    and g.grpid not in ('Integration Process', 'System Processes')
+    and cp.type ~= 'Intern Dept'

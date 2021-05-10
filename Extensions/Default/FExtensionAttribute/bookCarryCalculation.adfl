@@ -1,0 +1,9 @@
+[Default]FInstrumentAndTrades:bookCarryCalculation = select(isCashGrouping, 
+  true->collapse(cashCarry), 
+  default->collapse(bookAssetCarry));
+[Default]FMultiInstrumentAndTrades:bookCarryCalculation = select(isCashGrouping, 
+  true->collapse(cashCarry), 
+  default->select(isAssetGrouping, 
+    true->collapse(bookAssetCarry), 
+    default->collapse(bookCashAssetCarry)));
+[Default]FPortfolioInstrumentAndTrades:bookCarryCalculation = collapse(bookCashAssetCarry);

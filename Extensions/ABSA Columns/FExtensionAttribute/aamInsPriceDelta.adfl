@@ -1,0 +1,6 @@
+[ABSA Columns]FMultiInstrumentAndTrades:aamInsPriceDelta = nil;
+[ABSA Columns]FSingleInstrumentAndTrades:aamInsPriceDelta = select(instrumentType == "Option", 
+  true->select(instrument:underlyingType == "Bond", 
+    true->py("AAM_Delta", context).insPriceDelta(instrument, profitAndLossDisplayDateEnd), 
+    default->notANumberIsZero(priceDeltaInstrument)), 
+  default->notANumberIsZero(priceDeltaInstrument));

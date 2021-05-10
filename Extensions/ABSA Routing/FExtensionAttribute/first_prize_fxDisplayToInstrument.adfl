@@ -1,0 +1,11 @@
+[ABSA Routing]FInstrumentAndTrades:first_prize_fxDisplayToInstrument = switch(displayCurrency == (instrument:currency), 
+  true->1.0, 
+  default->displayCurrency :* "first_prize_immediateOrSpotFxRate" [fxToCurrency = (instrument:currency)]);
+[ABSA Routing]FMultiInstrumentAndTrades:first_prize_fxDisplayToInstrument = select(portfolio:currency, 
+  nil->nil, 
+  default->switch(displayCurrency == (portfolio:currency), 
+    true->1.0, 
+    default->displayCurrency :* "first_prize_immediateOrSpotFxRate" [fxToCurrency = (portfolio:currency)]));
+[ABSA Routing]FTradeRow:first_prize_fxDisplayToInstrument = switch(displayCurrency == (instrument:currency), 
+  true->1.0, 
+  default->displayCurrency :* "first_prize_immediateOrSpotFxRate" [fxToCurrency = (instrument:currency), current_trade := trade]);

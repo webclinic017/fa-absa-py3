@@ -1,0 +1,57 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Trades_Done_User_Info') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Trades_Done_User_Info' and p.type = 'SQL Query' 
+
+/*
+Date        Who             CR nbr  What
+2009-02-23  Heinrich Cronje         Created
+2011-01-19  Anwar Banoo             Amended
+
+Description
+All non Sumulated trades that were created frommirror_trdnbr
+a specific date onwards. Create user and trade
+info is required.
+Amended code so that trades moving from simulated to FO confirmed come through on the report as well by using execution time
+*/
+
+select
+	t.trdnbr,
+	t.time 'TradeDateTime',
+	t.creat_time,
+	create_user.userid 'CreatedBySystemId',
+	create_user.name 'CreatedBy',
+	trader.userid 'TraderSystemId',
+	trader.name 'Trader',
+	i.insid,
+	i.instype,
+	und_i.instype 'underlying_instype',
+	display_id(t,'prfnbr') 'prfid',
+	t.status,
+	t.mirror_trdnbr,
+    add_info(t,'MM_Instype') 'MM_Instype',
+    add_info(t,'Instype') 'AddInstype',
+    add_info(t,'Funding Instype') 'FundingInstype',
+    TradeCurr.insid 'trade_curr',
+    InsCurr.insid 'ins_curr',
+    display_id(t,'acquirer_ptynbr') 'Acquirer'
+
+from 
+	trade t,
+	instrument i,
+	instrument und_i,
+	user create_user,
+	user trader,
+	instrument TradeCurr,
+	instrument InsCurr
+where
+		t.insaddr = i.insaddr
+    and t.curr = TradeCurr.insaddr
+    and i.curr = InsCurr.insaddr
+	and i.und_insaddr *= und_i.insaddr
+	and t.creat_usrnbr = create_user.usrnbr
+	and t.trader_usrnbr *= trader.usrnbr 
+	and t.status ~= 'Simulated'
+	and ((to_date(t.creat_time) >= to_date(@1_Date{yesterday})) or (to_date(t.execution_time) >= to_date(@1_Date{yesterday})))

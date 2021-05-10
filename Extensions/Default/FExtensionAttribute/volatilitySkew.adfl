@@ -1,0 +1,8 @@
+#grouping: greek perimeters/price greek perimeters
+
+[Default]FOption:volatilitySkew = select(isReciprocal, 
+  true->volatilityDifferentialByNormalizedStrike * invertedStrikeDifferentialByStrike, 
+  false->volatilityDifferentialByNormalizedStrike);
+[Default]FVolatilityPoint:volatilitySkew = 
+# There should always be only 1 skew
+volatilityStructure.GetSkewsWithExpiryAndMaturity(object.ActualExpiryCoordinate, object.ActualUnderlyingMaturityCoordinate).First;

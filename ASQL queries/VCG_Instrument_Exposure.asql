@@ -1,0 +1,30 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','VCG_Instrument_Exposure') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'VCG_Instrument_Exposure' and p.type = 'SQL Query' 
+
+/*
+Changes:
+
+Purpose              :  [Created]
+Department and Desk  :  [PCG]
+Requester            :  [Palesa Mkhabele]
+Developer            :  [Willie van der Bank]
+CR Number            :  [C492635 16/11/2010]
+*/
+
+select distinct
+    @1_Filter{;tradefilter.fltid}  'filter',
+    i.instype,
+    i.und_instype,
+    display_id(i,'und_insaddr')
+ 
+from
+ instrument i,
+ trade t
+
+where
+        i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})

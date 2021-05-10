@@ -1,0 +1,34 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedSpread = select(isGenericSpreadQuoted, 
+  true->object.UnitValueToUnitQuote((marketUnitValue - nonCouponValue) / couponFactor, valuationDate, 1.0), 
+  false->select(numberOfFloatOrCapFloorLegs, 
+    1->firstNonFixedLeg :* "impliedSpread" [priceSource, marketPrice, implyValid], 
+    default->select(floatOrCapFloorPayLegOrNil, 
+      default->floatOrCapFloorPayLegOrNil :* "impliedSpread" [priceSource, marketPrice, implyValid], 
+      nil->nil)));
+[Fixed Income Pricing and Risk]FDeposit:impliedSpread = select((isGenericCouponQuoted or isGenericSpreadQuoted) and (count(floatLegs) > 0), 
+  true->object.UnitValueToUnitQuote((marketUnitValue - nonCouponValue) / couponFactor, valuationDate, 1.0), 
+  false->select(firstNonFixedLeg, 
+    nil->nil, 
+    default->firstNonFixedLeg :* "impliedSpread" [priceSource, marketPrice, implyValid]));
+[Fixed Income Pricing and Risk]FFra:impliedSpread = nil;
+[Fixed Income Pricing and Risk]FFuture:impliedSpread = select(isInterestRateFuture, 
+  true->impliedFlatYieldSpread, 
+  default->nil);
+[Fixed Income Pricing and Risk]FInstrument:impliedSpread = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedSpread = shunt(implyValid, 
+  true->instrument :* "impliedSpread" [priceSource], 
+  false->nil);
+[Fixed Income Pricing and Risk]FLeg:impliedSpread = select((nil == uniqueSpreadInTheoreticalPrice), 
+  true->nil, 
+  false->imply(uniqueSpreadInTheoreticalPrice, instrument:theoreticalPrice, marketPrice, implyPrecision, impliedSpreadMinValue, impliedSpreadMaxValue, implyMaxIterations));
+[Fixed Income Pricing and Risk]FLegAndTrades:impliedSpread = shunt(implyValid, 
+  true->select(instrument:isGenericSpreadQuoted, 
+    false->select(leg:isFloatOrCapFloorLeg, 
+      true->leg :* "impliedSpread" [priceSource], 
+      false->nil), 
+    true->nil), 
+  false->nil);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedSpread = nil;
+[Fixed Income Pricing and Risk]FTotalReturnSwap:impliedSpread = select(object.TotalReturnFundingLeg, 
+  nil->nil, 
+  default->(object.TotalReturnFundingLeg) :* "impliedSpread" [priceSource]);

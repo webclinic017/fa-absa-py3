@@ -1,0 +1,86 @@
+/*
+Purpose				: Extract all live trades subject to some rules
+Department and Desk : OPS
+Requester			: Letitia Roux
+Developer			: Lawrence Mucheka
+Date				: 2016/01/19
+CR Number			: CHNG0003395179
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Live_Trades_Extract') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Live_Trades_Extract' and p.type = 'SQL Query' 
+
+
+select 
+	t.trdnbr                                'TradeNumber',
+    i.insid                                 'InsId',
+    acq.ptyid                               'Acquirer',
+    cpty.ptyid                              'CounterpartyShortName',
+    cpty.fullname                           'CounterpartyFullName',
+    p.prfid                                 'Portfolio',
+    to_string(i.instype)					'InsType',
+    t.time                                  'TradeDate',
+    t.value_day                             'Value Date',
+    i.exp_day							    'TerminationDate',
+    to_string(i.instype)					'Instrument Type',
+    ui.insid                                'Underlying Instrument',
+    i.extern_id1                            'Instrument External ID 1',
+    t.optional_key                          'Trade External ID',
+    add_info(t, 'Funding Instype')          'Funding Ins Type',
+    l.fixed_rate                            'FixedRate',
+    nominal_amount(t)                       'Nominal',
+    to_string(t.status)                     'Status',
+    t.your_ref                              'CPref'
+from
+    trade t,
+    party cpty,
+    party acq,
+    Portfolio p,
+    Instrument i,    
+    Instrument ui,
+	leg l
+where t.counterparty_ptynbr = cpty.ptynbr
+and t.acquirer_ptynbr = acq.ptynbr
+and t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and i.und_insaddr *= ui.insaddr
+and t.insaddr *= l.insaddr
+
+and t.status not in ('Simulated', 'Internal', 'Void')
+and cpty.type ~= 'Intern Dept'
+and cpty.ptyid not in (
+						'JSE CLEAR',
+						'JSE SECURITIES EXCHANGE SOUTH AFRICA',
+						'JSE', 
+						'MIDAS DUAL KEY'
+					  )
+and acq.ptyid not in (
+						'SECURITY LENDINGS DESK', 
+						'MIDAS DUAL KEY', 
+						'AAM INTERNAL'
+					 )
+and i.instype not in (
+						'ETF', 
+						'CFD'
+					 )
+
+and not ( 
+			i.instype in ('Curr') 
+			and (	p.prfid in ('VOE') or 
+					add_info(t, 'MIDAS_MSG') = 'Sent' or 
+					acq.ptyid in ('CORPORATE SALES') 
+				)
+		)
+and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PB_CR_LIVE') = 0
+and (	t.execution_time >= @1_DateFrom{All;'All'} or 
+		@1_DateFrom{All;'All'} in ('','All','ALL')
+	) 
+and (	t.execution_time <= @2_DateTo{All;'All'} or 
+		@2_DateTo{All;'All'} in ('','All','ALL')
+	) 
+
+

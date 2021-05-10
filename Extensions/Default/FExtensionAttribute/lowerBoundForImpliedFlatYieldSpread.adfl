@@ -1,0 +1,9 @@
+[Default]FBond:lowerBoundForImpliedFlatYieldSpread = select(isCallable, 
+  true->select(marketPrice < theoreticalPriceRiskFree, 
+    true->0.0, 
+    default->-theoreticalYieldToMaturityRiskFreeNoCall), 
+  default->lowerBoundForImpliedFlatYieldSpreadDefault);
+[Default]FFuture:lowerBoundForImpliedFlatYieldSpread = select(isInterestRateFuture, 
+  true->-double(underlyingForwardCoupon), 
+  default->lowerBoundForImpliedFlatYieldSpreadDefault);
+[Default]FInstrument:lowerBoundForImpliedFlatYieldSpread = lowerBoundForImpliedFlatYieldSpreadDefault;

@@ -1,0 +1,9 @@
+[Default]FInstrument:volExpiry = switch(object.Generic, 
+  true->object.ActualExpiryPeriod, 
+  false->object.ActualExpiryDay);
+[Default]FInstrumentAndTrades:volExpiry = instrument:volExpiry;
+[Default]FOrderBook:volExpiry = instrument:volExpiry;
+[Default]FPriceAggregate:volExpiry = instrument:volExpiry;
+[Default]FVolatilityPoint:volExpiry = switch(object.IsGenericExpiry, 
+  true->object.ExpiryPeriod, 
+  false->object.ExpiryDay);

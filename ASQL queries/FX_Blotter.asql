@@ -1,0 +1,731 @@
+/*------------------------------------------------------------------
+    FX_Blotter
+    
+    This query extracts all the Non-ZAR cashflows (for CurrSwaps, FRA's and Swaps), 
+    one day before the cashflow will settle (t-1)
+    
+    Created by:  Herman Hoon 
+    Date:        2009-06-24
+------------------------------------------------------------------*/
+
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','FX_Blotter') 'Name'
+into  
+    ASQL_LOG_TEMP
+from TextObject p where 
+    p.name = 'FX_Blotter' and p.type = 'SQL Query' 
+    
+
+    
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+	to_date(@3_ReportDate{today})			'RepDay',
+    @4_PrevBusinessDate{} = '' ? date_add_banking_day(@3_ReportDate{today},@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1) : to_date(@4_PrevBusinessDate{}) 'PrevRepDay',
+    @5_FollBusinessDate{} = '' ? date_add_banking_day(@3_ReportDate{today},@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, 1) : to_date(@5_FollBusinessDate{})  'FollRepDay',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	        'hcur'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+    FX RATES
+------------------------------------------------------------------*/
+select
+    i.insid,
+    p.settle 'rate'
+into
+    USDFXrate
+from
+    instrument i,
+    price p,
+    party pa,
+    macros m
+where
+    i.insid in ('USD_ZAR_Scaling')
+and p.insaddr = i.insaddr
+and p.ptynbr  = pa.ptynbr
+and pa.ptyid  = 'SPOT'
+and to_date(p.updat_time) = m.PrevRepDay
+
+/*select the other currencies quoted against USD*/
+select
+    i.insid,
+    p.settle 'rate',
+    i.insid = 'USD_CAD_Scaling'? 'CAD' : i.insid = 'USD_CHF_Scaling'? 'CHF' : i.insid = 'USD_JPY_Scaling'? 'JPY' : i.insid = 'AUD_USD_Scaling'? 'AUD' : i.insid = 'EUR_USD_Scaling'? 'EUR' : i.insid = 'GBP_USD_Scaling'? 'GBP' : '' 'curr'
+into
+    NonUSDFXrate
+from
+    instrument i,
+    price p,
+    party pa,
+    macros m
+where
+    i.insid in ('USD_CAD_Scaling','USD_CHF_Scaling','USD_JPY_Scaling','AUD_USD_Scaling','EUR_USD_Scaling','GBP_USD_Scaling')
+and p.insaddr = i.insaddr
+and p.ptynbr  = pa.ptynbr
+and pa.ptyid  = 'SPOT'
+and to_date(p.updat_time) = m.PrevRepDay
+
+    
+
+/*------------------------------------------------------------------
+    Rule 1:
+    For the non scaling leg of swaps, select the fixed amount cashflows exchanged 
+    at the beginning and end of the trade into the FinalCF table,
+    on the start date of the leg. 
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr') 'Portfolio',
+    i.instype,
+    l.start_day      'leg_start_day',
+    l.end_day        'leg_end_day',
+    to_string(l.nominal_scaling)    'nominal_scaling',
+    to_string(cf.type)              'CFType',
+    cf.pay_day,
+    cf.start_day,
+    cf.end_day,
+    nominal_amount(cf)              'nominal',
+    projected_cf(cf)*t.quantity     'projCF',
+    curr.insid                      'curr',
+    m.FollRepday                    'FollRepday',
+    'ADBS'                          'CustNo',
+    projected_cf(cf)*t.quantity     'payment'  
+into
+    finalCF1
+from 
+    trade t,
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    macros m
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = cf.legnbr
+
+and l.curr    = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid  ~= m.hcur
+
+and l.nominal_scaling ~= 'FX'
+
+/*  only look at the leg start day*/
+and l.start_day   = m.FollRepDay
+and cf.type       = 'Fixed Amount'
+and cf.pay_day    in (l.start_day,l.end_day)
+
+
+/*-----------------------------------------------------------------
+        CONVERT THE FIRST AGREED CASHFLOWS
+------------------------------------------------------------------*/
+/*------------------------------------------------------------------
+        Rule 1.1: if the other leg is ZAR
+        What if the ZAR is a scaling leg? - will not be processed - an exception!!!!!!!!!!!
+------------------------------------------------------------------*/
+/*Select the corresponding ZAR payments*/
+select
+    t.trdnbr,
+    cf.pay_day                      'ZAR_pay_day',
+    projected_cf(cf)*t.quantity     'ZAR_payment',
+    'ZAR'   'curr'
+into
+    ZAR_CF1
+from 
+    trade t,
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    macros m
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = cf.legnbr
+
+and l.curr       = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid   = m.hcur
+
+and l.nominal_scaling ~= 'FX'
+
+/*  only look at the leg start day*/
+and l.start_day   = m.FollRepDay
+and cf.type       = 'Fixed Amount'
+and cf.pay_day    in (l.start_day,l.end_day)
+
+
+/*  
+    Join the ZAR CF with the corresponding Non ZAR - CF
+    Get the correct rate eiter CCY/ZAR OR ZAR/CCY
+*/
+select
+    fcf,
+    zcf.ZAR_payment,
+    fcf.curr = 'GBP' OR fcf.curr = 'EUR' OR fcf.curr = 'AUD' OR fcf.curr = 'USD'? abs(zcf.ZAR_payment/fcf.payment) : abs(fcf.payment/zcf.ZAR_payment)  'Rate'
+into
+    FINAL
+from
+    finalCF1 fcf,
+    ZAR_CF1  zcf
+where
+    fcf.trdnbr = zcf.trdnbr
+and fcf.pay_day = zcf.ZAR_pay_day
+
+
+/*------------------------------------------------------------------
+    Rule 2:
+    For the scaling leg of swaps, include the current and next return CF.
+    
+    The rule for obtianing the two cashflows is:   
+    Select all the return cashflows and then apply:
+        r.start_day      = tcf.FollRepDay 
+    or  tcf.end_day      = tcf.FollRepDay 
+    which means that the first return cashflow should end on FollRepDay and the next cashflow
+    should start on FollRepDay. 
+    
+    Invert the next cashflow notional amount and assign it to the current cashflow.
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr') 'Portfolio',
+    i.instype,
+    l.start_day      'leg_start_day',
+    l.end_day        'leg_end_day',
+    to_string(l.nominal_scaling)    'nominal_scaling',
+    to_string(cf.type)              'CFType',
+    cf.pay_day,
+    r.start_day,
+    cf.end_day,
+    nominal_amount(cf)              'nominal',
+    projected_cf(cf)*t.quantity     'projCF',
+    curr.insid                      'curr',
+    m.FollRepday                    'FollRepday',
+    'ADBS'                          'CustNo'  
+into
+    tempCFmtm
+from 
+    trade t,
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    reset r,
+    macros m
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = cf.legnbr
+and cf.cfwnbr = r.cfwnbr
+
+and l.curr    = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid  ~= m.hcur
+
+and l.nominal_scaling = 'FX'
+
+and cf.type in ('Return','Fixed Amount')
+and r.type  = 'Nominal Scaling'
+/*  look at the reset start day to get the next return CF
+    and at the current pay day to get the current CF*/
+and (r.start_day    = m.FollRepDay 
+    or  cf.pay_day  = m.FollRepDay)
+
+
+
+select
+    -1.00 * tcf.nominal 'invNominal',
+    tcf.trdnbr
+into
+    invNom
+from
+    tempCFmtm tcf
+where
+/*look at the reset start day to determine the next return cashflow that must be included and inversed*/
+    tcf.start_day  = tcf.FollRepDay
+/*exclude the first fixed amount - the start date of the reset on this CF is an exception to the rule*/
+and tcf.leg_start_day ~= tcf.pay_day
+
+/*replace the nominal with the inverse nominal for today's CF*/
+select
+    tcf,
+    tcf.pay_day = tcf.FollRepDay?
+        inv.invnominal
+         : tcf.nominal  'payment'
+into
+    finalCF2
+from
+    tempCFmtm tcf,
+    invNom inv
+where
+    inv.trdnbr = tcf.trdnbr
+
+/*-----------------------------------------------------------------
+    CONVERT ONLY THE FIRST AGREED CASHFLOW
+------------------------------------------------------------------*/
+/*------------------------------------------------------------------
+    CASE 2.1 - if the other leg is ZAR
+------------------------------------------------------------------*/
+
+/*  Select the corresponding ZAR cashflow*/
+select
+    t.trdnbr,
+    cf.pay_day 'ZAR_pay_day',
+    projected_cf(cf)*t.quantity     'ZAR_payment',
+    'ZAR'   'curr'
+into
+    ZAR_CF2
+from 
+    trade t,
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    macros m
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = cf.legnbr
+
+and l.curr       = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid   = m.hcur
+
+and l.nominal_scaling ~= 'FX'
+
+/*  only look at the leg start day*/
+and l.start_day   = m.FollRepDay
+and cf.type       = 'Fixed Amount'
+/*  only look at the first cashflow amount to exchange with the return cashflow*/
+and cf.pay_day    = l.start_day
+
+
+/*  
+    Join the ZAR CF value with the other return values - for only the first cashflow
+    NB - look at the currency of the other leg to determine what the quoted rate should be
+*/
+select
+    fcf,
+    zcf.ZAR_payment,
+    fcf.curr = 'GBP' OR fcf.curr = 'EUR' OR fcf.curr = 'AUD' OR fcf.curr = 'USD'? abs(zcf.ZAR_payment/fcf.payment) : abs(fcf.payment/zcf.ZAR_payment) 'Rate'
+into
+    FINAL
+from
+    finalCF2 fcf,
+    ZAR_CF2  zcf
+where
+    fcf.trdnbr = zcf.trdnbr
+
+
+
+/*------------------------------------------------------------------
+    CASE 2 - if the one of the legs is USD and the other is nonZAR
+    (work out the cross rate between USD and other leg)
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+    Rule 1.2 and 2.2 combined - if the other leg is Non ZAR
+------------------------------------------------------------------*/
+/*  Process: 
+        1. look for the USD leg and convert to ZAR using USD/ZAR Nominal Scaling rate (convert the sign of the payment as well)
+        2. take this converted payment and reverse engineer it to get the rate with the other Non ZAR Curr
+*/
+
+/*Join the finalCF tables used in rule 1 and 2*/
+select
+    *
+into
+    finalCF
+from
+    finalCF1
+
+select
+    *
+into
+    finalCF
+from
+    finalCF2
+
+/*Join the ZAR_CF tables used in rule 1 and 2*/
+select
+    *
+into
+    ZAR_CF
+from
+    ZAR_CF1
+    
+select
+    *
+into
+    ZAR_CF
+from
+    ZAR_CF2
+
+
+/*select all the trades with ZAR cashflows*/
+select distinct
+    zcf.trdnbr,
+    zcf.curr 'leg2curr'
+into
+    ZAR_Trades
+from
+    ZAR_CF zcf
+
+select
+    fcf,
+    zt.leg2curr
+into
+    tempZAR
+from
+    finalCF     fcf,
+    ZAR_Trades zt
+where
+    fcf.trdnbr *= zt.trdnbr
+
+/*select all trades with both legs not equal to ZAR*/
+select
+    *
+into
+    bothNONZAR
+from
+    tempZAR zt
+where
+    zt.leg2curr ~= 'ZAR' 
+
+/*convert the USD leg to ZAR on the first day*/
+select
+    fcf.trdnbr,
+    fcf.Counterparty,
+    fcf.Portfolio,
+    fcf.instype,
+    fcf.leg_start_day,
+    fcf.leg_end_day,
+    fcf.nominal_scaling,
+    fcf.CFType,
+    fcf.pay_day,
+    fcf.start_day,
+    fcf.end_day,
+    fcf.nominal,
+    fcf.projCF,
+    fcf.curr,
+    fcf.FollRepday,
+    fcf.CustNo,
+    fcf.payment, 
+    
+    -1 * fcf.payment * fx.rate  'ZAR_payment',
+    fx.rate
+into
+    FINAL
+from
+    bothNONZAR   fcf,
+    USDFXrate fx,
+    macros      m
+where
+    fcf.curr = 'USD'
+and fcf.leg_start_day = m.FollRepDay
+
+
+/* select only the USD payment on the first date and convert to ZAR*/
+select
+    fcf.trdnbr,
+    fcf.payment * fx.rate  'ZAR_payment'
+into
+    reverse
+from
+    bothNONZAR   fcf,
+    USDFXrate fx
+where
+    fcf.curr = 'USD'
+and fcf.leg_start_day = fcf.pay_day
+
+/*  calculate the reverse engineered rate with the Non USD curr
+    include the correct sign for the ZAR payment*/
+select
+    fcf.trdnbr,
+    fcf.Counterparty,
+    fcf.Portfolio,
+    fcf.instype,
+    fcf.leg_start_day,
+    fcf.leg_end_day,
+    fcf.nominal_scaling,
+    fcf.CFType,
+    fcf.pay_day,
+    fcf.start_day,
+    fcf.end_day,
+    fcf.nominal,
+    fcf.projCF,
+    fcf.curr,
+    fcf.FollRepday,
+    fcf.CustNo,
+    fcf.payment, 
+    
+    fcf.payment > 0? -1 * r.ZAR_payment : r.ZAR_payment 'ZAR_payment',
+    fcf.curr = 'GBP' OR fcf.curr = 'EUR' OR fcf.curr = 'AUD'? abs(r.ZAR_payment/fcf.payment) : abs(fcf.payment/r.ZAR_payment) 'Rate'
+into
+    FINAL
+from
+    reverse r,
+    bothNONZAR fcf
+where
+    fcf.curr ~= 'USD'
+and r.trdnbr  = fcf.trdnbr
+
+
+/*-----------------------------------------------------------------
+    CONVERT THE RETURN CASHFLOWS ON THE OTHER DATES (all the ones after the leg start date)
+
+    Use the FX rate of the previous date
+    Use the same principal as DERIV
+    select all the USD CF's into the final table and calculate the cross rate between USD/ZAR and USD/CCY
+------------------------------------------------------------------*/
+
+select
+    fcf,
+    -1 * fcf.payment * fx.rate  'ZAR_payment',
+    fx.rate
+into
+    FINAL
+from
+    finalCF   fcf,
+    USDFXrate fx,
+    macros      m
+where
+    fcf.curr = 'USD'
+and fcf.leg_start_day ~= m.FollRepDay
+
+
+select
+    fcf,
+    nfx.curr = 'JPY'? fcf.payment * ufx.rate / nfx.rate : nfx.curr = 'GBP' OR nfx.curr = 'EUR' OR nfx.curr = 'AUD'? fcf.payment * nfx.rate * ufx.rate : fcf.payment * nfx.rate / ufx.rate  'ZAR_payment',
+    nfx.curr = 'GBP' OR nfx.curr = 'EUR' OR nfx.curr = 'AUD'? nfx.rate * ufx.rate : nfx.rate / ufx.rate  'rate'
+into
+    FINAL
+from
+    finalCF   fcf,
+    NonUSDFXrate   nfx,
+    USDFXrate      ufx,
+    macros m
+where
+    fcf.curr ~= 'USD'
+and fcf.curr = nfx.curr
+and fcf.leg_start_day ~= m.FollRepDay
+
+
+/*------------------------------------------------------------------
+Rule 3: Normal cashflows on report day ('Float Rate','Fixed Rate','Fixed Amount')
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr') 'Portfolio',
+    i.instype,
+    l.start_day      'leg_start_day',
+    l.end_day        'leg_end_day',
+    to_string(l.nominal_scaling) 'nominal_scaling',
+    to_string(cf.type)           'CFType',
+    cf.pay_day,
+    cf.start_day,
+    cf.end_day,
+    nominal_amount(cf)              'nominal',
+    projected_cf(cf)*t.quantity     'projCF',
+    curr.insid                      'curr',
+    m.FollRepday                    'FollRepday',
+    'DERIV'                          'CustNo'  
+into
+    tempCFAll
+from 
+    trade t,
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    macros m
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.legnbr  = cf.legnbr
+
+and l.curr    = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid ~= m.hcur
+
+and cf.pay_day = m.FollRepday
+
+/*additional payments*/
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr') 'Portfolio',
+    i.instype,
+    p.payday            'leg_start_day',
+    p.payday            'leg_end_day',
+    'None'              'nominal_scaling',
+    'None'              'CFType',
+    p.payday            'pay_day',
+    p.payday            'start_day',
+    p.payday            'end_day',
+    p.amount            'nominal',
+    p.amount            'projCF',
+    curr.insid          'curr',
+    m.FollRepday        'FollRepday',
+    'DERIV'             'CustNo',
+    p.amount            'payment'   
+into 
+    finalCFDeriv
+from
+    trade t,
+    instrument i,
+    instrument curr,
+    macros m,
+    payment p
+where
+    match_filter(t, @1_Filter{Kelly_Blotter_Portfolios_Test;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and p.trdnbr  = t.trdnbr
+
+and p.curr       = curr.insaddr
+and	curr.instype = 'Curr'
+and curr.insid   ~= m.hcur
+
+and p.payday = m.FollRepday
+
+
+
+
+
+/*all 'Float Rate','Fixed Rate' cashflows*/
+select
+    tcf,
+    tcf.projCF  'payment'
+into
+    finalCFDeriv
+from
+    tempCFAll tcf
+where
+    tcf.CFtype in ('Float Rate','Fixed Rate')
+
+
+/*  Fixed amount cashflows that are not on the beginning or end of the trade
+    (Not notional exchanges)*/
+select
+    tcf,
+    tcf.projCF  'payment'
+into
+    finalCFDeriv
+from
+    tempCFAll tcf
+where
+    tcf.CFtype  = 'Fixed Amount'
+and tcf.pay_day not in (tcf.leg_start_day, tcf.leg_end_day)
+
+
+
+
+/*-----------------------------------------------------------------
+    CONVERT THE DERIV CASHFLOWS TO ZAR
+------------------------------------------------------------------*/
+/*------------------------------------------------------------------
+    Rule 3.1: if the DERIV leg is USD then convert direcly to ZAR
+-------------------------------------------------------------------*/
+select
+    fcf,
+    -1 * fcf.payment * fx.rate  'ZAR_payment',
+    fx.rate
+into
+    FINAL
+from
+    finalCFDeriv   fcf,
+    USDFXrate fx
+where
+    fcf.curr = 'USD'
+
+
+/*------------------------------------------------------------------
+    Rule 3.2: if the DERIV leg is not USD then use the cross rate to convert to ZAR
+------------------------------------------------------------------*/
+select
+    fcf,
+    nfx.curr = 'JPY'? fcf.payment * ufx.rate / nfx.rate : nfx.curr = 'GBP' OR nfx.curr = 'EUR' OR nfx.curr = 'AUD'? fcf.payment * nfx.rate * ufx.rate : fcf.payment * nfx.rate / ufx.rate  'ZAR_payment',
+    nfx.curr = 'GBP' OR nfx.curr = 'EUR' OR nfx.curr = 'AUD'? nfx.rate * ufx.rate : nfx.rate / ufx.rate  'rate'
+into
+    FINAL
+from
+    finalCFDeriv   fcf,
+    NonUSDFXrate   nfx,
+    USDFXrate      ufx
+where
+    fcf.curr ~= 'USD'
+and fcf.curr = nfx.curr
+and fcf.curr in ('JPY','GBP','EUR','AUD','CHF')
+
+/*all other currencies that are not Scaling*/
+select
+    fcf,
+    mtm_price(hc, m.PrevRepDay, fcf.curr) * fcf.payment      'ZAR_payment',
+    mtm_price(hc, m.PrevRepDay, fcf.curr)                           'rate'
+into
+    FINAL
+from
+    finalCFDeriv    fcf,
+    instrument      hc,
+    macros          m
+where
+    fcf.curr not in ('USD','JPY','GBP','EUR','AUD','CHF')
+and hc.insid = m.hcur
+
+/*------------------------------------------------------------------
+    Select all the cashflows from the final table and do the convertions
+------------------------------------------------------------------*/
+select distinct
+    cf.CustNo,
+    cf.pay_day                                                      'Val Date',
+    cf.payment > 0?  cf.curr    : 'ZAR'                             'P Curr',               
+    cf.payment > 0?  abs(cf.payment) : abs(cf.ZAR_payment)          'P Amt',
+    cf.payment < 0? 14 : cf.curr = 'USD'?  28 : cf.curr = 'EUR'? 5 : cf.curr = 'GBP'? 53 : cf.curr = 'JPY'? 04 : cf.curr = 'CHF'? 01 : 0     'P / Nostro',
+    
+    cf.payment < 0?  cf.curr    : 'ZAR'             'S Curr',  
+    cf.payment < 0?  abs(cf.payment) : abs(cf.ZAR_payment)          'S Amt',
+    cf.payment > 0? 14 : cf.curr = 'USD'?  28 : cf.curr = 'EUR'? 5 : cf.curr = 'GBP'? 53 : cf.curr = 'JPY'? 04 : cf.curr = 'CHF'? 01  : 0    'S / Nostro',
+    cf.rate  'Rate',
+    
+    cf.counterparty 'Description',
+    
+    cf.instype = 'CurrSwap'?
+        cf.nominal_scaling = 'FX'? 'MTM' : 'CCS' 
+    : cf.instype = 'FRA'? 'FRA' 
+    : cf.instype = 'SWAP'? 'USLI' : ''          'Trade type',
+    cf.trdnbr   'Front trade no.',
+    
+    cf.instype   = 'CurrSwap'? 391600538
+    : cf.instype = 'FRA'?      391600546 
+    : cf.instype = 'SWAP'?     391600600  : ''      'Account number',
+    
+    /*cf.Portfolio = 'LTFX' OR cf.Portfolio = 'LTFX_BASIS_PROP' OR cf.Portfolio = 'ERM_LTFX' OR cf.Portfolio = 'STIRT - FRA Trading' OR cf.Portfolio = 'Swap Risk_2' ? 9804*/
+    cf.Portfolio =  'STIRT_IRS_TRADING_MHARVEY'? 2770 
+    : cf.Portfolio = 'MM Rates Trading'? 2869 
+    : cf.Portfolio = 'Portfolio Risk Management'? 2796 
+    : cf.Portfolio = 'Trading Risk Management'? 2795 : 9804 'Cost centre',
+    
+    cf.Portfolio = 'LTFX' OR cf.Portfolio = 'LTFX_BASIS_PROP' OR cf.Portfolio = 'ERM_LTFX' OR cf.Portfolio = 'STIRT - FRA Trading' ? 'MMD' : cf.Portfolio = 'Swap Risk_2' ? 'DON' : cf.Portfolio = 'Non ZAR Fair Value' ? 'EUF' : 'UDM'       'Dealer code'
+from
+    final cf

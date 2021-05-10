@@ -1,0 +1,652 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_Fee_Allocation') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_Fee_Allocation' and p.type = 'SQL Query' 
+
+
+
+/* Written by Zaakirah Kajee */
+
+select 
+    to_double(@InternalFeePaid{0.45})/36500 'int_fee',
+    to_double(@AdminFee{0.01})/36500 'admin_fee',
+    to_double(@InternalFeeRec{0.35})/36500 'int_fee_rec'
+    
+into data
+from instrument i
+where i.insaddr =1
+
+select
+    p.day
+into
+    days
+from
+    price p,
+    instrument i,
+    party pp
+where
+    p.day <= @End{}
+and p.day >= @Start{}
+and p.insaddr = i.insaddr
+and i.insid = 'ZAR/ASA'
+and pp.ptyid = 'internal'
+and pp.ptynbr = p.ptynbr
+
+/* Get all Stock Positions */
+    
+select
+    i.insaddr,
+    i.insid,
+    t.value_day <= @Start{}? to_date(@Start{}) : t.value_day 'value_day',
+    sum(t.quantity) 'quantity',
+    ael_s(pf,'RootPortfolio.mapping')   'book',
+    pf.prfid 'port'
+into 
+    sl0
+from
+    instrument i,
+    trade t,
+    portfolio pf
+where
+   
+    t.insaddr = i.insaddr
+and i.instype = 'Stock'
+and t.status not in  ('Simulated', 'Void', 'Terminated')
+and t.value_day <= to_date(@End{})
+and t.prfnbr = pf.prfnbr
+and pf.prfid in ('43034',
+'47076',
+'47803_RAFFIN',
+'47811 Pairs Trading',
+'47043',
+'47159',
+'Delta One 4 47621',
+'47209 Book Build',
+'47696',
+'Delta One 4 45096',
+'Delta One 3 47613',
+'Delta One 2 47605',
+'47670',
+'Delta One 3 45088',
+'47001 STRADDLES',
+'Delta One 2 47605',
+'47688',
+'47035',
+'44404',
+'44255',
+'Delta One 3 47613',
+'Delta One 4 47621',
+'47829 USD Equity Swaps',
+'47795_RAFIND',
+'47787_RAFRES',
+'47662 EQ_SA_PairsOption',
+'47167',
+'47324',
+'47472',
+'47506 NRD',
+'47589',
+'Delta One 1 47464',
+'Delta One 1 45062',
+'Delta One 1 47464',
+'Delta One 2 45070',
+'47738',
+'42846',
+'47597 Client Trades',
+'47670',
+'43042',
+'47167',
+'47373',
+'47415',
+'44263',
+'44271 Telkom Delta',
+'47142',
+'47233',
+'47233 OML',
+'49007',
+'49007 EQ_SA_Opportunity',
+'49015',
+'49015 EQ_SA_Pairs',
+'49031 Eq_SA_TrendA',
+'49072',
+'49114',
+'49114 EQ_SA_StockVol',
+'49023',
+'49023 EQ_SA_RelativeVol',
+'47654 EQ_SA_PairsAuction',
+'47720 EQ-SA-DELTA1',
+'EQ_SA_PairsOption',
+'BRADS'
+)
+group by 2,3,5
+
+
+
+/* Get all script positions*/
+select 
+    i.insid,
+    i.insaddr,
+    add_info(t,'AllocatedDesk') ~= ''?  (add_info(t,'AllocatedDesk')= 'Structured Trans'? 'Structured Transactions':
+    (add_info(t,'AllocatedDesk')= 'Single Stock Tradin'? 'Single Stock Trading' : 
+    (add_info(t,'AllocatedDesk')= 'Structured Note'? 'Structured Note Products': 
+    (add_info(t,'AllocatedDesk')= 'Arbitrage Baskets'? 'Arbitrage Baskets':  
+    (add_info(t,'AllocatedDesk')= 'DELTA_ONE'? 'DELTA_ONE':  
+    (add_info(t,'AllocatedDesk')= 'Linear Trading'? 'Linear Trading': 
+    (add_info(t,'AllocatedDesk')= 'Alsi Trading'? 'ALSI_TRADING': 
+    (add_info(t,'AllocatedDesk')= 'Warrants'? 'Warrants': 'none')))))))):'none' 'allocated',
+    sum(t.quantity) 'quantity',
+    sum(((t.quantity)* t.price) / (i.quote_type = 'Per 100 Units' ? 100 : 1) * t.fee / 36500)    'TotFee',
+    sum((t.quantity* t.price) / (i.quote_type = 'Per 100 Units' ? 100 : 1)* d.admin_fee) 'nom',
+    t.value_day < @Start{}? to_date(@Start{}) : (date_add_banking_day((t.value_day),'ZAR', 1)) 'value_day',
+    t.fee,
+    'Total Script'              'TradePortf',
+    t.price
+into 
+    dailyfee1
+    
+from
+    instrument i,
+    trade t,
+    data d
+where
+    match_filter(t,@SLFilter{;TradeFilter.fltid})
+and t.insaddr = i.insaddr
+and t.value_day <= date_add_banking_day(to_date(@End{}),'ZAR', 1)
+and i.instype = 'Stock'
+and t.status not in  ('Simulated', 'Void', 'Terminated')
+group by 1,7,3
+
+/* Add allocated script positions to short stock positions*/
+select s.insaddr,
+    s.insid,
+    s.value_day,
+    s.quantity,
+    s.allocated 'book',
+    s.TradePortf 'port'
+    
+into sl0    
+from dailyfee1 s
+    
+where s.allocated ~= 'none'
+
+
+select s.insaddr,
+    s.insid,
+    s.value_day,
+    sum(quantity) 'quantity',
+    s.book
+into sl
+from sl0 s
+  
+where s.book ~= 'none'  
+group by 2,3,5
+
+select 
+    s.insaddr,
+    s.insid,
+    sum(s.value_day <= d.day ? s.quantity : 0)       'Pos',
+    s.book,
+    d.day
+into
+    sl1
+from
+    sl s,
+    days d
+group by 
+    1,4,5 
+    
+select * 
+
+into finstock 
+from sl1   
+where   Pos ~= 0
+
+select df.insid,
+        df.insaddr,
+        df.allocated,
+        sum(df.value_day <= d.day ? df.quantity : 0)       'Pos',
+        sum(df.value_day <= d.day ?df.TotFee : 0) 'TotFee',
+        sum(df.value_day <= d.day ?df.nom : 0) 'nom',
+        df.TradePortf,
+        d.day
+
+into dailyfee2
+from dailyfee1 df,
+    days d
+where df.allocated = 'none'
+group by 1,8,7
+
+select * into dailyfee from dailyfee2 where Pos > 0
+
+/* Get allocated positions*/
+select df.insid,
+        df.insaddr,
+        df.allocated,
+        sum(df.value_day <= d.day ? df.quantity : 0)       'Pos',
+        sum(df.value_day <= d.day ?df.TotFee : 0) 'TotFee',
+        sum(df.value_day <= d.day ?df.nom : 0) 'nom',
+        df.TradePortf,
+        d.day
+
+into allocated
+from dailyfee1 df,
+    days d
+where df.allocated ~= 'none'
+group by 1,3,8,7
+
+
+
+
+select
+    fs.insid,
+    sum(fs.Pos)      'Pos',
+    df.Pos      'ScriptPosition',
+    ((df.Pos) < sum(abs(fs.Pos)))? (df.Pos + sum(fs.Pos)) : 0 'Pos_Diff',
+    fs.book,
+    fs.day,
+    df.TotFee,
+    df.TradePortf
+into temp1
+from
+    finstock fs,
+    dailyfee df
+where
+    fs.Pos < 0.0
+and fs.insaddr *= df.insaddr
+and fs.day *= df.day
+group by 1,6
+
+select
+    fs.insid,
+    fs.Pos      'Pos',
+    df.Pos      'ScriptPosition',
+    fs.book,
+    fs.day,
+    df.TotFee,
+    df.nom 'admin',
+    df.TradePortf
+into temp2
+from
+    finstock fs,
+    dailyfee df
+where
+    fs.Pos < 0.0
+and fs.insaddr *= df.insaddr
+and fs.day *= df.day
+
+
+
+select
+    t.insid,
+    t.Pos,
+    t.ScriptPosition,
+    t.book,
+    t.day,
+    t.TotFee,
+    t2.Pos_Diff,
+    t2.Pos 'TStock',
+    t.TradePortf,
+    (t.ScriptPosition > abs(t2.Pos))? t.TotFee*(t.Pos/t2.Pos)*(abs(t2.Pos)/t.ScriptPosition) : t.TotFee*(t.Pos/t2.Pos) 'AllocFee',
+    (t.ScriptPosition > abs(t2.Pos))? t.admin*(t.Pos/t2.Pos)*(abs(t2.Pos)/t.ScriptPosition) : t.admin*(t.Pos/t2.Pos) 'admin'
+    
+into temp    
+from temp2 t,
+     temp1 t2
+    
+where t.day = t2.day
+and t.insid = t2.insid
+
+
+select insid,
+    Pos ,
+    book,
+    day,
+    Pos_Diff = 0? (Pos) : Pos_Diff 'UnAllocPos'
+into unall1
+from temp 
+
+where (Pos_Diff < 0 or ScriptPosition = 0)
+
+select insid,
+    sum(Pos) 'Pos',
+    book,
+    day,
+    Pos_Diff = 0? sum(Pos) : Pos_Diff 'UnAllocPos'
+into unall2
+from temp 
+
+where (Pos_Diff < 0 or ScriptPosition = 0)
+group by 1,4
+
+
+select 
+    u1.insid,
+    u1.Pos ,
+    u1.book,
+    u1.day,
+    u2.UnAllocPos,
+    u2.Pos 'Total_stock'
+into unall
+
+from unall1 u1,
+    unall2 u2
+    
+where u1.insid = u2.insid
+and u1.day = u2.day
+
+/* match uncovered positions to long positions*/
+select 
+  u.insid,
+  u.day,
+  u.Pos,
+  u.book 'stock_book',
+  u.UnAllocPos 'Unall_stock',
+  u.Total_stock 'Total_Stock',
+  f.Pos 'script_pos',
+  f.book 'script_book',
+  (used_price(i,(date_add_banking_day(f.day,i.insid,-1)),'ZAR'))/ (i.quote_type = 'Per 100 Units' ? 100 : 1) 'Price'
+  
+into internal    
+from unall u,
+    finstock f,
+    instrument i
+where
+ f.insid = u.insid
+and i.insid = f.insid
+and f.day = u.day
+and f.Pos > 0 
+
+
+select f.insid,
+    f.day,
+    f.book,
+    sum(f.Pos) 'T_script'
+    
+into int1
+from finstock f
+
+where f.Pos > 0
+group by 1,2
+
+select
+    'Internal Fees' 'Description',
+    u.insid,
+    u.day,
+    u.stock_book,
+    u.Pos,
+    u.Total_Stock,
+    u.Unall_stock,
+    u.script_book,
+    u.script_pos,
+    u1.T_script,
+    (u1.T_script< abs(u.Unall_stock))? (u1.T_script + u.Unall_stock) : 0 'Remaining',
+    (u1.T_script< abs(u.Unall_stock))? u1.T_script*d.int_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) : abs(u.Unall_stock)*d.int_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) 'Allocated_Fee_Pay',
+    (u1.T_script< abs(u.Unall_stock))? u1.T_script*d.int_fee_rec*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) : abs(u.Unall_stock)*d.int_fee_rec*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) 'Allocated_Fee_Rec',
+    (u1.T_script< abs(u.Unall_stock))? u1.T_script*d.int_fee*u.Price: abs(u.Unall_stock)*d.int_fee*u.Price 'Total_Allocated_fees',
+    -1*u.Unall_stock*u.Price*d.int_fee 'Total_Fee',
+    ((u1.T_script< abs(u.Unall_stock))? u1.T_script*d.admin_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) : abs(u.Unall_stock)*d.admin_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script)) < to_double(@MinAdminFee{0}) ?
+to_double(@MinAdminFee) : ((u1.T_script< abs(u.Unall_stock))? u1.T_script*d.admin_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script) : abs(u.Unall_stock)*d.admin_fee*u.Price*(u.script_pos*u.Pos)/(u.Total_Stock*u1.T_script)) 'Admin_Fee'
+
+into final
+    
+from internal u,
+    int1 u1,
+    data d
+    
+where u.insid = u1.insid
+and u.day = u1.day 
+
+
+
+select 'Script Fees' 'Description',
+    t.insid 'Instrument',
+    t.day 'Day',
+    t.book 'Stock_Book',
+    t.Pos 'Stock_Pos',
+    t.TStock 'Total_Stock',
+    t.TStock  'Unall_Stock',
+    t.TradePortf 'Script_Book',
+    t.ScriptPosition 'Script_Pos',
+    t.ScriptPosition 'T_script',
+    /*0.0 'UnAllocatedNom',*/
+    t.Pos_Diff 'Remaining',
+    t.AllocFee 'Allocated_Fee_Pay',
+    t.AllocFee 'Allocated_Fee_Rec',
+    t.AllocFee 'Total_Allocated_Fee',
+    t.TotFee 'Total_Fee',
+    (t.admin < to_double(@MinAdminFee)) ? to_double(@MinAdminFee) : t.admin  'Admin_Fee'
+into final
+from temp t 
+where 
+t.ScriptPosition ~= 0
+
+
+select 'Allocated' 'Description',
+    t.insid 'Instrument',
+    t.day 'Day',
+    t.allocated 'Stock_Book',
+    t.Pos 'Stock_Pos',
+    t.Pos 'Total_Stock',
+    t.Pos  'Unall_Stock',
+    t.TradePortf 'Script_Book',
+    t.Pos 'Script_Pos',
+    t.Pos 'T_script',
+    /*0.0 'UnAllocatedNom',*/
+    0.0 'Remaining',
+    t.TotFee 'Allocated_Fee_Pay',
+    t.TotFee 'Allocated_Fee_Rec',
+    t.TotFee 'Total_Allocated_Fee',
+    t.TotFee 'Total_Fee',
+    (t.nom < to_double(@MinAdminFee)) ? to_double(@MinAdminFee) : t.nom 'Admin_Fee'
+into final
+from allocated t 
+where t.Pos ~= 0
+
+
+select * from final
+
+union
+
+select 'Admin Fees' 'Description',
+     ' ' 'Instrument',
+    day 'Day',
+    ' ' 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    'Equity Script Lending' 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    0.0 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    (sum(Admin_Fee) < to_double(@MinAdminFee)) ? to_double(@MinAdminFee) : sum(Admin_Fee) 'Admin_Fee'
+    
+from final
+group by 1
+
+union
+
+select 'Fees Owed' 'Description',
+     ' ' 'Instrument',
+    day 'Day',
+    ' ' 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+group by 8
+
+union
+
+select 'Admin Fees To Be Paid' 'Description',
+     ' ' 'Instrument',
+    day 'Day',
+    Stock_Book 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    0.0 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    sum(Admin_Fee) 'Admin_Fee'
+    
+from final
+where Script_Book = 'Total Script'
+group by 3,4 
+
+ 
+union
+
+select 'Script Fees To Be Paid' 'Description',
+     ' ' 'Instrument',
+    day 'Day',
+    Stock_Book 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+group by 4,8 
+
+union
+
+select 'Script Fees To Be Paid Total' 'Description',
+     ' ' 'Instrument',
+    day 'Day',
+    Stock_Book 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+group by 4
+ 
+union
+
+select 'Fees For Ins' 'Description',
+    Instrument 'Instrument',
+    day 'Day',
+    '' 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    '' 'Script_Book',
+    0.0 'Script_Pos',
+    0.0 'T_script',
+    0.0 'Remaining',
+    sum(Allocated_Fee_Pay) 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+group by 2 
+
+union
+
+select 'Fees For Script' 'Description',
+    Instrument 'Instrument',
+    day 'Day',
+    '' 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    sum(T_script) 'T_script',
+    0.0 'Remaining',
+    sum(Allocated_Fee_Pay) 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+
+where Script_Book = 'Total Script'
+group by 2 
+union
+
+select 'Spread Fees For Script' 'Description',
+    Instrument 'Instrument',
+    day 'Day',
+    '' 'Stock_Book',
+    0.0 'Stock_Pos',
+    0.0 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    sum(T_script) 'T_script',
+    0.0 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    sum(Allocated_Fee_Pay- Allocated_Fee_Rec) 'Allocated_Fee_Rec',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+
+where Script_Book ~= 'Total Script'
+group by 2 
+union
+
+select 'Script with no short Stock' 'Description',
+    Instrument 'Instrument',
+    day 'Day',
+    Stock_Book 'Stock_Book',
+    Stock_Pos 'Stock_Pos',
+    Total_Stock 'Total_Stock',
+    0.0  'Unall_Stock',
+    Script_Book 'Script_Book',
+    0.0 'Script_Pos',
+    T_script 'T_script',
+    T_script + Total_Stock 'Remaining',
+    0.0 'Allocated_Fee_Pay',
+    0.0 'Allocated_Fee_Pay',
+    0.0 'Total_Allocated_Fee',
+    0.0 'Total_Fee',
+    0.0 'Admin_Fee'
+    
+from final
+
+where Script_Book = 'Total Script'
+and Remaining = 0
+and T_script > abs(Total_Stock)

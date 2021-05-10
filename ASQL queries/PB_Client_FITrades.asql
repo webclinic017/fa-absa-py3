@@ -1,0 +1,24 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_BOND_CLIENT1_CR', 'PB_CALL_CLIENT1_CR','PB_CASH_EQUITY_CLIENT1_CR','PB_SAFEX_CLIENT1_CR','PB_YIELDX_CLIENT1_CR','PB_BSB_CLIENT1_CR', 'PB_CFD_CLIENT1_CR','PB_DEFAULT_CLIENT1_CR','PB_FRA_CLIENT1_CR','PB_FRN_CLIENT1_CR','PB_IRS_CLIENT1_CR','PB_OPTION_EQ_CLIENT1_CR','PB_OPTION_FI_CLIENT1_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+i.und_instype not in ('Stock', 'EquityIndex')
+AND
+i.instype not in ('Stock', 'Deposit')
+AND
+t.status not in ('Simulated', 'Void')

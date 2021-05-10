@@ -1,0 +1,9 @@
+[Default]FCombInstrMapAndTrades:averagePrice = nil;
+[Default]FDeliverableLinkAndTrades:averagePrice = nil;
+[Default]FLegAndTrades:averagePrice = nil;
+[Default]FMultiInstrumentAndTrades:averagePrice = nil;
+[Default]FPriceAggregate:averagePrice = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "averagePrice");
+[Default]FSingleInstrumentAndTrades:averagePrice = instrument.UnitValueToQuote(-averageCleanValue, profitAndLossEndDate, valuationDate, false, pLLegInformations, staticLegInformations, instrument:quotation, instrument:couponToValueFactor, instrument:couponPriceAdjustment, , , instrument:roundingInformation, roundingInformationsPerLeg);
+[Default]FTradeRow:averagePrice = instrument.UnitValueToQuote(-averageCleanValue, profitAndLossEndDate, valuationDate, false, pLLegInformations, staticLegInformations, instrument:quotation, instrument:couponToValueFactor, instrument:couponPriceAdjustment, , , instrument:roundingInformation);

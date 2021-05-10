@@ -1,0 +1,206 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SAIRD_FX_Maturity_Ladder') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SAIRD_FX_Maturity_Ladder' and p.type = 'SQL Query' 
+/*
+This report only works for FXSWAPS and is intended to be used
+for the FX recon between Devon and Midas for DECIMAX Deals*/
+
+
+/*----------------------------------
+Select BASE CURRENCY LEG OF DEAL = USD
+------------------------------------*/
+
+select distinct
+i.insaddr,
+display_id(l,'curr')  'OtherCurr',
+projected_cf(c) /*nominal_amount(c)*/  'NominalAmountBase'
+
+into
+BaseCurrency1 
+
+from
+instrument i,
+trade t,
+leg l,
+cashflow c
+
+where
+i.insaddr=t.insaddr
+and l.insaddr=i.insaddr
+and l.legnbr=c.legnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.exp_day >= @ReportDay{}	
+and (display_id(l,'curr') = 'USD')
+
+/*----------------------------------
+Select BASE CURRENCY LEG OF DEAL NOT USD
+------------------------------------*/
+
+select distinct
+i.insaddr,
+display_id(l,'curr')  'OtherCurr',
+projected_cf(c) /*nominal_amount(c)*/  'NominalAmountBase'
+
+into
+BaseCurrency1
+
+from
+instrument i,
+trade t,
+leg l,
+cashflow c
+
+where
+i.insaddr=t.insaddr
+and l.insaddr=i.insaddr
+and c.legnbr=l.legnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.exp_day >= @ReportDay{}	
+and (display_id(l,'curr') ~= 'ZAR')
+
+
+
+
+
+
+/*
+All Base Currency Trades.
+Identifies all duplicate entries*/
+
+select distinct
+b.insaddr,
+b.othercurr
+
+into
+BaseCurrency2
+
+from
+BaseCurrency1 b
+
+/*group by 1*/
+
+
+
+
+select distinct
+b.insaddr,
+b.othercurr='' ? 'USD' : b.othercurr 'OtherCurr',
+b1.nominalamountbase
+
+into
+BaseCurrency
+
+from
+BaseCurrency2 b,
+BaseCurrency1 b1
+
+where
+b.insaddr=b1.insaddr
+and b.othercurr=b1.othercurr
+
+
+/* ----------------------------------------------
+FINAL SELECTION
+--------------------------------------------------*/
+
+Select
+i.instype,
+ael_s(t,'InstrType.InstrumentType')	'TradeType',
+l.start_day,
+l.end_day,
+t.trdnbr,
+t.optional_key  'DevRef',
+display_id(t,'prfnbr')  'Portfolio',
+display_id(t,'optkey1_chlnbr')  'TradeArea',
+
+oc.othercurr 'BaseCurr',
+oc.nominalamountbase 'Nominal_BaseCurr',
+
+display_id(l,'curr')  'Currency2',
+projected_cf(c) /*nominal_amount(c)*/ 'Nominal_Curr2',
+
+-projected_cf(c)/*nominal_amount(c)*//oc.nominalamountbase 'TradePrice',
+
+used_price(curr2,,curr1.insid)  'SpotPrice',
+forward_price(curr2,l.end_day,curr1.insid)  'FwdPrice',
+-oc.nominalamountbase*forward_price(curr2,l.end_day,curr1.insid) 'FwdValue_Curr2',
+oc.nominalamountbase*forward_price(curr2,l.end_day,curr1.insid)+projected_cf(c)/*nominal_amount(c)*/ 'Reval_Curr2',
+t.your_ref	'CptyRef'
+
+from
+
+instrument i,
+trade t,
+leg l,
+cashflow c,
+basecurrency oc,
+instrument curr1,
+instrument curr2
+
+where
+i.insaddr=t.insaddr
+and l.insaddr=i.insaddr
+and l.legnbr=c.legnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.exp_day >= @ReportDay{}	
+and i.insaddr=oc.insaddr
+and oc.othercurr=curr2.insid
+and l.curr=curr1.insaddr
+and t.type~='Adjust'
+and display_id(l,'curr') ~= oc.othercurr
+
+order by l.end_day
+
+/********* Totals per Trade Area ***************/
+union
+
+Select
+i.instype,
+ael_s(t,'InstrType.InstrumentType')	'TradeType',
+l.start_day,
+l.end_day,
+t.trdnbr,
+t.optional_key  'DevRef',
+display_id(t,'prfnbr')  'Portfolio',
+display_id(t,'optkey1_chlnbr')  'TradeArea',
+
+oc.othercurr 'BaseCurr',
+sum(oc.nominalamountbase) 'Nominal_BaseCurr',
+
+display_id(l,'curr')  'Currency2',
+sum(projected_cf(c)) /*nominal_amount(c)*/ 'Nominal_Curr2',
+
+-projected_cf(c)/*nominal_amount(c)*//oc.nominalamountbase 'TradePrice',
+
+used_price(curr2,,curr1.insid)  'SpotPrice',
+forward_price(curr2,l.end_day,curr1.insid)  'FwdPrice',
+-oc.nominalamountbase*forward_price(curr2,l.end_day,curr1.insid) 'FwdValue_Curr2',
+sum(oc.nominalamountbase*forward_price(curr2,l.end_day,curr1.insid)+projected_cf(c))/*nominal_amount(c)*/ 'Reval_Curr2',
+t.your_ref	'CptyRef'
+
+from
+
+instrument i,
+trade t,
+leg l,
+cashflow c,
+basecurrency oc,
+instrument curr1,
+instrument curr2
+
+where
+i.insaddr=t.insaddr
+and l.insaddr=i.insaddr
+and l.legnbr=c.legnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and i.exp_day >= @ReportDay{}	
+and i.insaddr=oc.insaddr
+and oc.othercurr=curr2.insid
+and l.curr=curr1.insaddr
+and t.type~='Adjust'
+and display_id(l,'curr') ~= oc.othercurr
+
+group by 9, /*BaseCurr*/8 /* TradeArea*/

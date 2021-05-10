@@ -1,0 +1,22 @@
+[Default]FAverageForward:riskPositionDisplay = riskPosition * positionDisplayScaleFactor;
+[Default]FCashFlowInstrument:riskPositionDisplay = riskPosition * normalizedNominalValue;
+[Default]FCombInstrMapAndTrades:riskPositionDisplay = riskPosition / tradedInstrument:contractSize;
+[Default]FInstrument:riskPositionDisplay = riskPosition * positionDisplayScaleFactor;
+[Default]FLegAndTrades:riskPositionDisplay = select(legType, 
+  "Position Total Return"->riskPosition * securityInstrumentAndTrades :* "riskPositionDisplay" [displayCurrency, filterUnit], 
+  default->instrument :* "riskPositionDisplay" [riskPosition, positionObject, displayCurrency, filterUnit, nominalValue]);
+[Default]FMultiInstrumentAndTrades:riskPositionDisplay = select(dispPosOnMultiRow, 
+  true->0.0 + sumOf(openInstruments :* "double(riskPositionDisplay)" [positionObject, displayCurrency, filterUnit]), 
+  default->select(instrumentGroupingReferenceRow, 
+    nil->nil, 
+    default->select(instrumentGroupingReferenceRow, 
+      nil->nil, 
+      default->instrumentGroupingReferenceRow :* "riskPositionDisplay" [positionObject, displayCurrency, filterUnit])));
+[Default]FPriceAggregate:riskPositionDisplay = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->instrument :* "riskPositionDisplay" [positionObject, displayCurrency, filterUnit]);
+[Default]FSingleInstrumentAndTrades:riskPositionDisplay = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->instrument :* "riskPositionDisplay" [positionObject, displayCurrency, filterUnit]);
+[Default]FTotalReturnSwap:riskPositionDisplay = riskPosition * positionDisplayScaleFactor;
+[Default]FTradeRow:riskPositionDisplay = instrument :* "riskPositionDisplay" [displayCurrency, filterUnit, singleTradePosition, includeAllTrades];

@@ -1,0 +1,4 @@
+[ABSA Proprietary Valuation]FCashFlow:nacmForwardRate = select((leg.AdditionalInfo.NacmCompoundPeriod <> nil) and (leg.AdditionalInfo.NacmCompoundPeriod <> ""), 
+  true->py("NacmValuationModule", context).ConvertToNacm(cashAnalysisForwardRate, leg.PayCalendar, object.StartDate, leg.FloatRateReference.LongestLeg.EndPeriod), 
+  false->rate);
+[ABSA Proprietary Valuation]FCashFlowAndTrades:nacmForwardRate = cashFlow:nacmForwardRate;

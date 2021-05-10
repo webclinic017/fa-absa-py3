@@ -1,0 +1,93 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_CashDividendReport') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_CashDividendReport' and p.type = 'SQL Query' 
+
+/*
+Purpose:                [Calculating the Cash dividends for the respective stocks in the different portfolios for a specific ex_div_day],[Included ETF instruments]
+Department and Desk:    [],[PSG]
+Requester:              [],[Marsha de Wet]
+Developer:              [Jurgens du Preez],[Willie van der Bank]
+R Number:               [2008-07-03],[C430410 16/09/2010]
+*/
+
+/*Stock*/
+select 
+	display_id(t,'insaddr')		'Instrument',
+    sum(t.quantity)			'Number_of_Contracts',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	i.instype = 'Stock' ? 'Stock' : 'ETF' 'File',
+	date_add_banking_day(@Date{YESTERDAY},'ZAR',0)	'DATA_DATE'
+into
+    temp
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+        t.insaddr = i.insaddr
+	and match_filter(t, @1_Filter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	and i.instype in ('Stock','ETF')
+	and t.prfnbr = pr.member_prfnbr
+	and time_to_day(t.time) < @Date
+
+group by 3, 1
+order by 3, 1
+
+/*Historical Dividends on Stocks for the specified ExDivDay*/
+
+select
+    i.insid     'Instrument',
+    d.ex_div_day    'ExDivDay',
+    sum(d.dividend)      'Dividend'
+    
+into divs
+
+from
+    instrument  i,
+    dividend    d
+    
+where i.insaddr = d.insaddr
+and d.ex_div_day = to_date(@Date{today})
+and i.instype in ('Stock','ETF')
+
+group by 1
+
+
+select 
+    te.Instrument,
+    sum(te.Number_of_Contracts)     'Number_of_Contracts',
+    te.SubPortFolio,
+    te.File,
+    te.DATA_DATE
+    
+into final
+
+from
+    temp te
+    
+where
+    abs(te.Number_of_Contracts) > 0
+    
+group by 3,1
+
+select
+    f.Instrument,
+    f.Number_of_Contracts,
+    round(d.dividend > 0 ? f.Number_of_Contracts * d.dividend : 0) 'DividendCash',
+    f.SubPortFolio,
+    f.File,
+    f.DATA_DATE
+    
+from
+    final   f,
+    divs    d
+
+where f.Instrument *= d.Instrument
+    
+order by 4,1

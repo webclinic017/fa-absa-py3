@@ -1,0 +1,41 @@
+/* 
+Coded by Anil Parbhoo
+to reflect the companion bond (where applicable)
+of bond related instruments traded on JSE
+*/
+
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','NUTRON') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'NUTRON' and p.type = 'SQL Query' 
+
+
+
+select
+
+i.insid,
+i.insaddr,
+i.creat_time,
+i.updat_time,
+i.isin,
+i.instype,
+i.extern_id1,
+i.exp_day,
+add_info(i,'Exchange')'Exchange',
+add_info(i,'Companion')'Companion'
+
+
+from
+
+instrument i
+
+where
+
+i.instype in ('Bond', 'FRN', 'IndexLinkedBond', 'Bill', 'Zero')
+and  add_info(i,'Exchange') = 'BESA'
+and i.exp_day >= Today
+

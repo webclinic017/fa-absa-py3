@@ -1,0 +1,43 @@
+/* 
+
+   Name      : Expired_Trades
+   Purpose   : Return all trades in portfolio that have expired but there is an additional settlement after the expiry day. 
+   Developer : Lukas Paluzga
+   Date      : 25/03/2013
+   CR Number : C902521
+   
+*/
+
+select
+    ael_i(p,'ASQL_log','Expired_Trades') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'Expired_Trades' and p.type = 'SQL Query'
+
+
+select
+    i.insid 'Instrument ID',
+    t.trdnbr 'Trade number',
+    t.status 'Trade status',
+    display_id(t,'prfnbr') 'Portfolio ID',
+    display_id(t,'counterparty_ptynbr') 'Counterparty ID',
+    i.settlement 'Settlement Type',
+    i.exp_day 'Expiration date',
+    date_add_banking_day(i.exp_day,'ZAR',i.pay_day_offset) 'Implied Settlement',
+    t.value_day 'Value Day',
+    present_value(t,'ZAR') 'Present value'
+    
+from
+    trade t,
+    instrument i
+where
+    i.exp_day < TODAY 
+    and date_add_banking_day(i.exp_day,'ZAR',i.pay_day_offset)  >= TODAY
+    and i.instype in ('Future/Forward','Option','TotalReturnSwap')
+    and match_portfolio(t,'9806')
+    and i.insaddr = t.insaddr
+    and t.status not in ('Void','Simulated')
+order by t.trdnbr    
+
+
+

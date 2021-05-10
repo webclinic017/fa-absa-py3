@@ -1,0 +1,7 @@
+[Default]FInstrument:genericMultiExoticEventsAsDenominatedValues = switch(adsPriceDate <> valuationDate, 
+  true->genericMultiExoticEventsTimeShifted, 
+  false->select(hasGenericMultiExoticEventToday, 
+    true->shunt(hasInvalidGenericMultiExoticEventToday, 
+      true->genericMultiExoticEventsAdjusted, 
+      false->genericMultiExoticEventsStored), 
+    false->genericMultiExoticEventsStored));

@@ -1,0 +1,9 @@
+[Default]FInstrument:isForwardStarting = false;
+[Default]FOption:isForwardStarting = select(isExotic, 
+  true->select(isCliquet, 
+    true->true, 
+    false->select(isForwardStart, 
+      true->not (hasPassedForwardStartDTAndIsInitialized), 
+      false->false)), 
+  false->false);
+[Default]FVolatilityFuture:isForwardStarting = isForwardStartingVariationSwap;

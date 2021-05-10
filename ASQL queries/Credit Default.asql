@@ -1,0 +1,111 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Credit Default') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Credit Default' and p.type = 'SQL Query' 
+
+/*
+Purpose:                Credit Default in the event of a credit event for single and combination CDS for a given Credit Ref, revery rate and Trade Filter
+Department and Desk:    Credit Desk
+Requester:              Jeshma Mowjee
+Developer:              Anil Prabhoo
+CR Number:              CHNG0002209171           
+*/
+
+
+
+
+
+
+
+
+/*where the instrument are combinations of match_filter(t,'CD_FLOW CREDIT')*/
+
+
+select
+@Trade_Filter{CD_FLOW CREDIT;Tradefilter.fltid}'Trade Filter',
+t.trdnbr,
+t.Quantity'Nominal',
+t.status,
+display_id(t,'prfnbr')'Portfolio',
+display_id(t,'counterparty_ptynbr')'counterparty',
+i.insid'ins name',
+i.instype,
+'YES' ? mem.insid : '' 'member name',
+'YES' ? mem.instype : '' 'member instype',
+cl.weight'member weight',
+
+cr.insid'Credit Ref insid',
+cr.instype 'Credit Ref instype',
+l.type'leg type of the credit reference',
+@RecoveryRate[0.0;]'Recovery Rate',
+-t.quantity*cl.weight * (1 - (@RecoveryRate[0.0;]))'-1 * Nominal * weight * (1-Recovery)'
+
+
+from
+trade t,
+
+instrument i,
+instrument mem,
+CombinationLink cl,
+leg l,
+instrument cr
+
+
+where
+
+match_filter(t,@Trade_Filter{CD_FLOW CREDIT;Tradefilter.fltid})   
+and t.status not in ('Void','Simulated')
+and t.insaddr = i.insaddr
+and cl.owner_insaddr = i.insaddr
+and cl.member_insaddr = mem.insaddr
+and mem.insaddr = l.insaddr
+and l.credit_ref = cr.insaddr
+and cr.insid = @CreditRef{African_Bank_LtdGeneric; Instrument.insid where instype = 'Bond'}
+and l.type = 'Credit Default'
+
+
+order by cr.insid
+
+union
+
+/*where the instrument has a credit default leg and match_filter(t,'CD_FLOW CREDIT') */
+
+
+select
+@Trade_Filter{CD_FLOW CREDIT;Tradefilter.fltid}'Trade Filter',
+t.trdnbr,
+t.Quantity* i.contr_size'Nominal',
+t.status,
+display_id(t,'prfnbr')'Portfolio',
+display_id(t,'counterparty_ptynbr')'counterparty',
+i.insid'ins name',
+i.instype,
+'''member name',
+'''member instype',
+1.0'member weight',
+cr.insid'Credit Ref insid',
+cr.instype 'Credit Ref instype',
+l.type'leg type of the credit reference',
+@RecoveryRate[0.0;]'Recovery Rate',
+t.quantity*i.contr_size*-1*(1 -(@RecoveryRate[0.0;]))'-1 * Nominal * weight * (1-Recovery)'
+
+from
+trade t,
+
+instrument i,
+leg l,
+instrument cr
+
+
+where
+
+match_filter(t,@Trade_Filter{CD_FLOW CREDIT;Tradefilter.fltid})  
+and t.insaddr = i.insaddr
+and l.type = 'Credit Default'
+and cr.insid = @CreditRef{African_Bank_LtdGeneric; Instrument.insid where instype = 'Bond'}
+and i.insaddr = l.insaddr
+and l.credit_ref = cr.insaddr
+
+

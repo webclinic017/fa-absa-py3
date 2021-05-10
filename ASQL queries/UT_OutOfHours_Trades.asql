@@ -1,0 +1,82 @@
+/* update_method=0 */
+/*--------------------------------------------------------------------------------------------------
+    Date        Who                 What
+    19/06/2019  Bhavnisha Sarawan   Add Breach Level (booked between 17:30 and 07:00)
+                                    and Breach Status (traders exempted for Out Of Hours booking).
+----------------------------------------------------------------------------------------------------*/
+
+SELECT ael_i(p,'ASQL_log','UT_OutOfHours_Trades') 'Name'
+INTO ASQL_LOG_TEMP
+FROM TextObject p
+WHERE p.name = 'UT_OutOfHours_Trades'
+    AND p.type = 'SQL Query' 
+
+SELECT
+	t.trdnbr                                                                            'Trdnbr'
+	,i.insid                                                                            'Instrument'
+	,i.instype                                                                          'InsType'
+	,i.exp_day                                                                          'ExpDay'
+	,display_id(t,'acquirer_ptynbr')                                                    'Acquirer'
+	,display_id(t,'prfnbr')                                                             'Portfolio'
+	,p.ptyid                                                                            'Counterparty'
+	,nominal_amount(t, t.value_day)                                                     'Nominal'	
+	,t.status                                                                           'Status'
+    ,time_to_day(t.time)                                                                'TradeTime'
+    ,t.value_day                                                                        'ValueDay'
+    ,c.name                                                                             'Trader'
+    ,display_id(c,'grpnbr')                                                             'Group'
+    ,t.time                                                                             'Trade Time'
+    ,t.execution_time                                                                   'Execution Time'
+    ,t.execution_time BETWEEN
+        to_time(time_to_day(t.execution_time)) + 00*60*60 
+        AND to_time(time_to_day(t.execution_time)) + 07*60*60 ? 'High':
+        t.execution_time BETWEEN 
+        to_time(time_to_day(t.execution_time)) + 21*60*60 + 30*60
+        AND to_time(time_to_day(t.execution_time)) + 24*60*60 ? 'High':
+        t.execution_time BETWEEN 
+        to_time(time_to_day(t.execution_time)) + 19*60*60 + 30*60
+        AND to_time(time_to_day(t.execution_time)) + 21*60*60 + 30*60 ? 'Medium':
+        t.execution_time BETWEEN
+        to_time(time_to_day(t.execution_time)) + 17*60*60 + 30*60
+        AND to_time(time_to_day(t.execution_time)) + 19*60*60 + 30*60 ? 'Low' :'N/A'    'Breach Level'
+    ,u.userid IN ('MOFOKENV',
+        'ABBW094',
+        'SAMUSHIR',
+        'ABVM454',
+        'PILLMANO',
+        'DOMINGOI',
+        'SULLIVGR',
+        'PINTOSER',
+        'MAWENIKH',
+        'ASSUREM',
+        'NICHOJUS',
+        'ABPB337',
+        'FENGHENR',
+        'DAVIDMI2',
+        'COUSINRO',
+        'MOWJEEJE',
+        'ABYK046',
+        'ENGLEGIN') ? 'No Breach': 'Breach'                                             'Breach Status'
+FROM
+	Trade t,
+	Instrument i,
+	Party p,
+	User u,
+	User c,
+	front.group g
+WHERE
+	t.insaddr = i.insaddr
+AND t.counterparty_ptynbr = p.ptynbr
+AND t.execution_time >= to_time(@FromTime{yesterday}) + 17*60*60 + 30*60
+AND t.execution_time <= to_time(@ToTime{today}) + 07*60*60
+/*only show trades between out of hours time if run over multiple dates*/
+AND (t.execution_time BETWEEN 
+    to_time(time_to_day(t.execution_time)) + 17*60*60 + 30*60 
+    AND to_time(time_to_day(t.execution_time)) + 24*60*60
+    OR t.execution_time BETWEEN
+    to_time(time_to_day(t.execution_time)) + 00*60*60 
+    AND to_time(time_to_day(t.execution_time)) + 07*60*60)
+AND t.trader_usrnbr = u.usrnbr
+AND t.creat_usrnbr = c.usrnbr
+AND g.grpnbr = c.grpnbr
+AND g.grpnbr NOT IN (494,495)

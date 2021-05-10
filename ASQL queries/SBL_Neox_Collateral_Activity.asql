@@ -1,0 +1,34 @@
+/* update_method=0 */
+/*
+    Project: NeoX/SBL
+    Jira: PCGDEV-564
+    Purpose: SBL Trades booked/executed in the last 10 minutes. To be included in Activity file for NeoX
+    Developer: Khaya Mbebe
+*/
+select
+    max(sc.creat_time < NOW ? NOW : sc.creat_time) 'max_creat_time'
+into
+    connections
+from 
+    serverconnections sc
+where
+    sc.status = 1
+
+
+select
+    distinct t.trdnbr
+from
+    trade t,
+    party cp,
+    instrument i,
+    connections c
+where
+    t.status in ('BO Confirmed', 'Void')
+and t.acquirer_ptynbr = 32668
+and t.counterparty_ptynbr = cp.ptynbr
+and t.status in ('BO Confirmed', 'BO-BO Confirmed')
+and i.instype in ('Stock', 'Bond', 'IndexLinkedBond', 'CD', 'Bill') 
+and cp.ptyid like 'SL%' 
+and t.category = 'Collateral' 
+and match_portfolio(t,'SBL_NONCASH_COLLATERAL')
+and t.creat_time > c.max_creat_time - 10*60

@@ -1,0 +1,96 @@
+
+/*This query pulls all trades with incorrect reset calendars and incorrect offset days. Incorrect being more than 1 reset calendar, incorrect reset calendar and incorrect offsett days for a specific currency.*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_Exception__Resets3') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_Resets3' and p.type = 'SQL Query'
+
+Select
+
+
+t.trdnbr 'Trade_Number',
+l.legnbr 'Leg_Number',
+display_id(l , 'curr') 'Currency',
+l.reset_day_offset 'Offset_Days',
+fr.insid 'Floating_Rate_Index',
+i.instype 'Instrument',
+display_id(t,'prfnbr') 'Portfolio',
+
+display_id(l, 'reset_calnbr') 'Reset_Calendar_1',
+display_id(l, 'reset2_calnbr') 'Reset_Calendar_2',
+display_id(l, 'reset3_calnbr') 'Reset_Calendar_3',
+display_id(l, 'reset4_calnbr') 'Reset_Calendar_4',
+display_id(l, 'reset5_calnbr') 'Reset_Calendar_5',
+
+display_id(l, 'reset_calnbr') ~= '' ? 1 : 0 'Cal1',
+display_id(l, 'reset2_calnbr') ~= '' ? 1 : 0 'Cal2',
+display_id(l, 'reset3_calnbr') ~= '' ? 1 : 0 'Cal3',
+display_id(l, 'reset4_calnbr') ~= '' ? 1 : 0 'Cal4',
+display_id(l, 'reset5_calnbr') ~= '' ? 1 : 0 'Cal5',
+
+
+t.status 'Status',
+r.day 'ResetDay'
+
+into temp
+
+from 
+
+trade t,
+leg l,
+instrument i,
+instrument fr,
+reset r
+
+where
+match_filter(t, @1_Filter{;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and l.float_rate = fr.insaddr
+and t.status not in ('Simulated','Void','Terminated')
+and i.instype ~= 'FxSwap'
+and i.exp_day > to_date(today)
+and r.cfwnbr = cf.cfwnbr
+and r.type = 'Single'
+
+select 
+
+Trade_Number,
+Leg_Number,
+Currency,
+Offset_Days,
+Floating_Rate_Index,
+Instrument,
+Portfolio,
+Reset_Calendar_1,
+Reset_Calendar_2,
+Reset_Calendar_3,
+Reset_Calendar_4,
+Reset_Calendar_5,
+Cal1 + Cal2 + Cal3 + Cal4 + Cal5 'Amount_of_Calendars',
+Currency = 'ZAR' ? Offset_Days ~= 0 ? 'Check Offset' : 'Offset Correct' : Offset_Days ~= -2 ? 'Offset Incorrect' : 'Offset Correct'    'Check_Offset',
+Currency = 'USD' ? Cal1 + Cal2 + Cal3 + Cal4 + Cal5 ~= 2 ? 'Calendar Incorrect' : Reset_Calendar_1 = 'GBP London' ? Reset_Calendar_2 = 'USD New York' ? 'Calender Correct' : 'Calendar Incorrect' : Reset_Calendar_1 = 'USD New York' ? Reset_Calendar_2 = 'GBP London' ? 'Calendar Correct' : 'Calendar Incorrect' : 'Calendar Incorrect' : Currency = 'ZAR' ? Cal1 + Cal2 + Cal3 + Cal4 + Cal5 ~= 1 ? 'Calendar Incorrect' : 'Calendar Correct' : 'Calendar Incorrect' 'Reset_Calendar_Check',
+/*Currency = 'USD' ? ResetDay ~= bankday_adjust(ResetDay,'USD','Mod. Following') ? 'plImpact' : ResetDay ~= bankday_adjust(ResetDay,'USD','Mod. Following') ? 'plImpact' : 'No Impact' : Currency = 'ZAR'*/
+
+
+Status
+
+
+into temp2
+
+from 
+
+temp
+
+select * 
+
+from temp2
+
+where 
+Check_Offset ~= 'Offset Correct'
+or Reset_Calendar_Check ~= 'Calendar Correct'
+
+

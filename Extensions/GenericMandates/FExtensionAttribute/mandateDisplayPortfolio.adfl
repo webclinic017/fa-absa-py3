@@ -1,0 +1,10 @@
+[GenericMandates]FInstrumentAndTrades:mandateDisplayPortfolio = 
+# Check if the parent object passes the mandates
+switch(mandateResultPortfolio, 
+  1->"Allowed", 
+  0->"Not Allowed", 
+  default->"Not Allowed");
+[GenericMandates]FTrade:mandateDisplayPortfolio = 
+# Get the evaluated Portfolio mandate for a specific trade.
+py("GenericMandatesEval", context).Get_Evaluated_Mandate_Number(object, "Mandate - Portfolio");
+[GenericMandates]FTradeRow:mandateDisplayPortfolio = trade:mandateDisplayPortfolio;

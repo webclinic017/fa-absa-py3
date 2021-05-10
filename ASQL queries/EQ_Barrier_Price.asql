@@ -1,0 +1,70 @@
+/*EQ_Barrier_Price
+  This query displays the price data for a Barrier option when the spot price has been updated during the report day
+*/
+
+/* Usage code for this ASQL */
+select
+	ael_i(p,'ASQL_log','EQ_Barrier_Price') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where 
+	p.name = 'EQ_Barrier_Price' and p.type = 'SQL Query' 
+
+select
+	to_date(@1_UpdateDate{yesterday})							            'RepDay'
+into 
+    macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    t.trdnbr,
+    t.quantity,
+    i.contr_size,
+    i.insid                         'InsId',
+    u.name                          'Updated_By',
+    u.userid                        'UserId',
+    p.updat_time                    'UpdateTime',
+    p.day                           'PriceDate',
+    pa.ptyid                        'Market',
+    p.last                          'LastPrice',
+    p.settle                        'SettlePrice',
+    ael_f(,'EQ_Barrier_Theor.theor', t,'ZAR')  'TheorPrice'
+into 
+    updated
+from
+    price p,
+    instrument i,
+    instrument und,
+    user u,
+    trade t,
+    exotic e,
+    party pa,
+    macros m
+where
+    p.insaddr = i.insaddr
+and t.insaddr = i.insaddr
+and p.updat_usrnbr = u.usrnbr
+and i.und_insaddr = und.insaddr
+and e.insaddr = i.insaddr
+
+and i.instype = 'Option' 
+and e.barrier_option_type not in ('None')
+and und.instype in ('Stock', 'EquityIndex')
+and t.status not in ('Void', 'Simulated')
+
+and p.ptynbr = pa.ptynbr
+and pa.ptyid  = 'SPOT'
+
+and i.exp_day >= m.RepDay
+and to_date(p.updat_time) = m.RepDay
+
+
+select
+    u,
+    u.SettlePrice - u.TheorPrice                                       'SettlePrice - TheorPrice',
+    (u.SettlePrice - u.TheorPrice) / u.TheorPrice * 100                '(SettlePrice - TheorPrice)/TheorPrice * 100'
+from
+    updated u

@@ -1,0 +1,9 @@
+[Prime Services]FInstrumentAndTrades:dateRangeExecutionFee = shunt(children.IsEmpty, 
+  false->sumOf(children :* "dateRangeExecutionFee"), 
+  default->0);
+[Prime Services]FSingleInstrumentAndTrades:dateRangeExecutionFee = switch(allFundingPortfolios, 
+  true->switch(fundingPortfolioType, 
+    "CFD"->-1 * py("PS_FundingCalculations", context).CalculateFee(cfdUnderlying, fundingInstruments, "ExecutionFee", isGeneralPortfolio, profitAndLossStartDate, profitAndLossEndDate), 
+    nil->"Not implemented", 
+    default->py("PS_TradeFees", context).ReturnTotalFee(tradesInPosition.AsArray, profitAndLossStartDate, profitAndLossEndDate)), 
+  false->0);

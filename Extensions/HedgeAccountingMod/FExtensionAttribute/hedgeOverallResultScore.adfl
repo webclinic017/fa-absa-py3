@@ -1,0 +1,7 @@
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeOverallResultScore = sumOf(children :* "hedgeOverallResultScore");
+[HedgeAccountingMod]FTradeRow:hedgeOverallResultScore = switch(object.OriginalTrade.DealPackage, 
+  nil->nil, 
+  default->switch(usedInHedge, 
+    default->nil, 
+    true->getTimeSeriesDvValue(object.OriginalTrade.DealPackage.Oid, timeSeriesSpecId, hedgeOverallResultId), 
+    default->nil));

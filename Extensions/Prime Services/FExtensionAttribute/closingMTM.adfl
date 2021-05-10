@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:closingMTM = sumOf(children :* "closingMTM");
+[Prime Services]FSingleInstrumentAndTrades:closingMTM = select(instrumentType, 
+  "CFD"->(object :* "profitAndLossPositionDisplay" [profitAndLossStartDate := longTimeAgo]).Number * closingPrice.Number * instrument:contractSizeMultiplier * instrument:quotationFactor, 
+  default->markToMarketValueEnd.Number);

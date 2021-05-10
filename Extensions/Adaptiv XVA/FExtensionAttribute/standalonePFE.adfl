@@ -1,0 +1,8 @@
+[Adaptiv XVA]FCreditBalance:standalonePFE = switch(cvaDeals.Size == 1, 
+  true->maximumPotentialFutureExposureValues, 
+  false->nil);
+[Adaptiv XVA]FTrade:standalonePFE = switch(nil == matchingCreditBalanceInstrument, 
+  true->nil, 
+  false->matchingCreditBalanceInstrument:standalonePFE);
+[Adaptiv XVA]FTradeRow:standalonePFE = trade:standalonePFE;
+[Adaptiv XVA]FUndefinedObject:standalonePFE = nil;

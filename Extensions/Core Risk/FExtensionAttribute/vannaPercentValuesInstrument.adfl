@@ -1,0 +1,11 @@
+[Core Risk]FCombInstrMap:vannaPercentValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->instrument :* "vannaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekShiftFilter, priceGreekIncludeVolatilityMovement, volatilityGreekFilter] * weight * contractSize * timeDistributionFactor * fxLegToInstrumentOnLegSpotDay, 
+  false->combinationSpotZero);
+[Core Risk]FCombination:vannaPercentValuesInstrument = select(splitCombination, 
+  true->select(priceGreekRiskFactorNodeCount > 0, 
+    true->sumOf((instrumentMaps) :* "vannaPercentValuesInstrument" [doSplitAll, priceSource, priceGreekShiftFilter, priceGreekIncludeVolatilityMovement, volatilityGreekFilter]) / combinationDivisionFactor, 
+    false->instrumentSpotZero), 
+  false->instrumentSpotZero);
+[Core Risk]FInstrument:vannaPercentValuesInstrument = select(priceGreekRiskFactorNodeCount > 0, 
+  true->differential(scenarioaxis(vegaPriceGreekRiskFactorsShiftedUp, <["calculateSecondOrderGreeksNumerically"], , , calculateVannaNumerically>, <"priceGreekRiskFactorReciprocalFxAdjustmentValue", , "*", vegaPriceGreekRiskFactorsShift>), vegaValuesInstrumentForPriceShift, valuationModelSpecificRelativePriceShift * 100), 
+  false->spotHandlingZero);

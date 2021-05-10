@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:theoreticalModelResult = select(hasModelValuationDate, 
+  true->collapse(theoreticalModelResultSettleDaysAdjusted), 
+  default->select(moveValueToValuationDate, 
+    default->repoCurve.DiscountValues(collapse(theoreticalModelResultSettleDaysAdjusted), valuationDate), 
+    "Discount"->discountCurve.DiscountValues(collapse(theoreticalModelResultSettleDaysAdjusted), valuationDate), 
+    "None"->collapse(theoreticalModelResultSettleDaysAdjusted)));

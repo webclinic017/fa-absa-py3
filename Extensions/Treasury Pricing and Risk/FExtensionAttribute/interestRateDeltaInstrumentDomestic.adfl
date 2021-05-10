@@ -1,0 +1,6 @@
+[Treasury Pricing and Risk]FInstrumentAndTrades:interestRateDeltaInstrumentDomestic = select(domesticCurrency == nil, 
+  true->nil, 
+  false->instrument :* "interestRateDeltaInstrumentPerCurrency" [interestRateDeltaCurrency := domesticCurrency]);
+[Treasury Pricing and Risk]FTradeRow:interestRateDeltaInstrumentDomestic = select(domesticCurrency == nil, 
+  true->nil, 
+  false->instrument :* "interestRateDeltaInstrumentPerCurrency" [currency = tradeRowCurrency, interestRateDeltaCurrency := domesticCurrency]);

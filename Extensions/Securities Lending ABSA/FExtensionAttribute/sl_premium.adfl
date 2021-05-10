@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FTrade:sl_premium = select(object.Instrument.ExpiryDateOnly > profitAndLossEndDate, 
+  true->select(object.ValueDay <= profitAndLossEndDate, 
+    true->denominatedvalue(object.Premium, currency, , ), 
+    false->instrument:currencyZero), 
+  false->instrument:currencyZero);

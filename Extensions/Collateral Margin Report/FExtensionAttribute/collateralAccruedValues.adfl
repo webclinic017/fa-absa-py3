@@ -1,0 +1,7 @@
+[Collateral Margin Report]FDeposit:collateralAccruedValues = riskPosition * collateralInstrumentAccrued / contractSize;
+[Collateral Margin Report]FInstrument:collateralAccruedValues = instrumentSpotZero;
+[Collateral Margin Report]FInstrumentAndTrades:collateralAccruedValues = openCollateralInstrument :* "collapse(collateralAccruedValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral];
+[Collateral Margin Report]FMultiInstrumentAndTrades:collateralAccruedValues = sumOf(openCollateralInstruments :* "collapse(collateralAccruedValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral]);
+[Collateral Margin Report]FTradeRow:collateralAccruedValues = shunt(isOpenCollateralPosition, 
+  true->instrument :* "collateralAccruedValues" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, tradeCategoryInclusionMaskDefault = tradeCategoryInclusionMaskCollateral], 
+  false->instrumentSpotZero);

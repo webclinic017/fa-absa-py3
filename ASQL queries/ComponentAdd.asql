@@ -1,0 +1,112 @@
+/*
+Description
+This code calls the AEL function called ComponentAdd. It searches for all userprofiles that contains a specified component and then adds another specified component to that profile.
+
+Date            Who                     What
+14/10/2009      Willie van der Bank     Created
+*/
+
+select
+    @1_CompName_Search{Fx Swap;component.compname}     'SearchComp',
+    @2_CompName_Add{FX Cash;component.compname}        'AddComp',
+    @3_CompName_Delete{;component.compname}        'DeleteComp',
+    s.srdnbr
+into macro
+from
+    serverdata s
+
+/*Add*/
+select
+    up.profid,
+    c.compname,
+    m.AddComp,
+    c.compnbr   'SearchCompNbr',
+    ca.compnbr  'AddCompNbr',
+    up.profnbr,
+    pc.seqnbr
+into final
+from
+    userprofile up,
+    component c,
+    component ca,
+    ProfileComponent pc,
+    macro m
+where
+        pc.compnbr = c.compnbr
+    and up.profnbr = pc.profnbr
+    and c.compname = m.SearchComp
+    and ca.compname = m.AddComp
+    and m.DeleteComp = ''
+
+/*Delete*/
+
+select
+    up.profid,
+    c.compname,
+    m.AddComp,
+    c.compnbr   'SearchCompNbr',
+    ca.compnbr  'AddCompNbr',
+    up.profnbr,
+    pc.seqnbr
+into final
+from
+    userprofile up,
+    component c,
+    component ca,
+    ProfileComponent pc,
+    macro m
+where
+        pc.compnbr = c.compnbr
+    and up.profnbr = pc.profnbr
+    and c.compname = m.SearchComp
+    and ca.compname = m.DeleteComp
+    and m.DeleteComp ~= ''
+
+/*Adding components*/
+select
+    f.profid,
+    ael_s(,'ComponentAdd.doComponentAdd',f.profnbr,f.AddCompNbr)        'AddResult',
+    ''                                                                  'Delresult'
+from
+    final f,
+    userprofile up,
+    macro m
+where
+        up.profid in (f.profid)
+    and m.AddComp ~= ''
+    and m.SearchComp ~= ''
+    and m.DeleteComp = ''
+    
+union
+
+/*Deleting components*/
+select
+    f.profid,
+    ''                                                                     'AddResult',
+    ael_s(,'ComponentAdd.doComponentDelete',f.profnbr,f.SearchCompNbr)     'DelResult'
+from
+    final f,
+    userprofile up,
+    macro m
+where
+        up.profid in (f.profid)
+    and m.SearchComp ~= ''
+    and m.AddComp = ''
+    and m.DeleteComp ~= ''
+    
+union
+
+/*Adding and deleting componets*/
+select
+    f.profid,
+    ael_s(,'ComponentAdd.doComponentAdd',f.profnbr,f.AddCompNbr)        'AddResult',
+    ael_s(,'ComponentAdd.doComponentDelete',f.profnbr,f.SearchCompNbr)     'DelResult'
+from
+    final f,
+    userprofile up,
+    macro m
+where
+        up.profid in (f.profid)
+    and m.AddComp ~= ''
+    and m.SearchComp ~= ''
+    and m.DeleteComp ~= ''

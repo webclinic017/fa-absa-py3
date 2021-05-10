@@ -1,0 +1,9 @@
+#grouping: sheet columns/tradesheet
+
+[ABSA Specific 4.3]FInstrumentAndTrades:exchangeFee = emptyListToZero(sumOf(tradesInPosition :* "exchangeFee"));
+[ABSA Specific 4.3]FPayment:exchangeFee = select(object.Type == "Exchange Fee", 
+  true->select((object.ValidFrom >= profitAndLossStartDate) and (object.ValidFrom <= profitAndLossEndDate) and (object.PayDay >= profitAndLossStartDate) and (object.PayDay <= profitAndLossEndDate), 
+    true->object.Amount, 
+    default->nil), 
+  default->nil);
+[ABSA Specific 4.3]FTrade:exchangeFee = sumOf(payments :* "exchangeFee");

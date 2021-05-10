@@ -1,0 +1,5 @@
+[Prime Services]FInstrumentAndTrades:closingOtherFee = sumOf(children :* "closingOtherFee");
+[Prime Services]FSingleInstrumentAndTrades:closingOtherFee = sumOf(tradesInPosition :* "closingOtherFee");
+[Prime Services]FTrade:closingOtherFee = convertToCurrency(denominatedvalue(switch((tradeDate <= profitAndLossEndDate) and isGeneralPortfolio, 
+  true->py("PaymentFees", context).ReturnOtherFee(object, profitAndLossEndDate), 
+  false->0), accountingCurrency, , ), currency:immediateOrSpotFxRate [fxToCurrency = accountingCurrency], symbol(accountingCurrency));

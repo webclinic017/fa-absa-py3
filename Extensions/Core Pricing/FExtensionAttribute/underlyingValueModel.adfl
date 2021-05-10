@@ -1,0 +1,14 @@
+[Core Pricing]FCertificate:underlyingValueModel = select(baseValuationOnUnderlyingComponents, 
+  true->multiUnderlyingValueLocalOrCompo, 
+  false->collapse(underlyingValue));
+[Core Pricing]FFuture:underlyingValueModel = underlyingValue;
+[Core Pricing]FInstrument:underlyingValueModel = select(useUnderlyingAdjustmentFactor, 
+  true->underlyingAdjustmentFactor * underlyingValue, 
+  false->collapse(underlyingValue));
+[Core Pricing]FOption:underlyingValueModel = select(isForwardStarting, 
+  true->underlyingValueForwardStart, 
+  false->select(isExerciseAmericanGA, 
+    true->underlyingValue - germanCorrectionAmount, 
+    false->select(baseValuationOnUnderlyingComponents, 
+      true->collapse(underlyingBasketAsSingleValue), 
+      false->collapse(underlyingValue))));

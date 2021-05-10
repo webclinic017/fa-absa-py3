@@ -1,0 +1,81 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','LateTrades_MO') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'LateTrades_MO' and p.type = 'SQL Query' 
+
+/*
+Purpose               : Report trades traded after specified time (ie close of business) for selected portfolios.
+Department and Desk   : PCG MO 
+Requester             : Jan Kotze
+Developer             : Jaysen Naicker
+CR Number             : 231321
+*/
+
+Select
+    p.prfid 'Portfolio/Curve', 
+    'n/a' 'Point',
+    display_id(t, 'insaddr') 'Instrument/Interpolation/Unit',
+    to_string(t.trdnbr) 'TrdNum/Updator', 
+    convert('time', @05_NewTradesOnly{0} = 1 ? t.time : t.updat_time,'%H:%M:%S') 'Time Updated',
+    convert('time', @05_NewTradesOnly{0} = 1 ? t.time : t.updat_time,'%d %b %Y') 'Day Updated'
+From
+    Portfolio p,
+    Trade t
+Where 
+    p.prfid in (@01_Portfolios{LTFX,Yieldx FLOW,RAJ - FRA Trading,RAJ - ED Futs,STIRT - Bonds FLO,STIRT - ED Futures FLO,STIRT - FRA FLO,STIRT - FRA Trading,STIRT - Futures Trading,STIRT-Bonds;Portfolio.prfid*})
+    and t.prfnbr = p.prfnbr
+    and t.status not in ('Simulated','Void')
+    and to_date(@05_NewTradesOnly{0} = 1 ? t.time : t.updat_time) => to_date(@02_DateFrom{yesterday})
+    and to_date(@05_NewTradesOnly{0} = 1 ? t.time : t.updat_time) =< to_date(@03_DateTo{yesterday})
+    and convert('time', @05_NewTradesOnly{0} = 1 ? t.time : t.updat_time,'%H:%M:%S') => @04_TimeFrom{'16:00:00'}
+Order by
+    5 desc
+ 
+UNION
+ 
+select
+    y.yield_curve_name,
+    'n/a',
+    to_string(y.interpolation_type),
+    display_id(y, 'updat_usrnbr'),
+    convert('time',y.updat_time,'%H:%M:%S'),
+    convert('time',y.updat_time,'%d %b %Y')
+from
+    YieldCurve y
+where
+    (y.yield_curve_name like '%SWAP%' or y.yield_curve_name like '%BASIS%')
+    and y.yield_curve_name not like '%Testing%'
+    and y.yield_curve_name not like '%(%'
+    and y.yield_curve_name not like '%Curve%'
+    and y.yield_curve_type in ('Benchmark','Attribute Spread')
+    and to_date(y.updat_time) =>  to_date(@02_DateFrom{yesterday})
+    and to_date(y.updat_time) =<  to_date(@03_DateTo{yesterday})
+order by
+    5 asc
+ 
+UNION
+ 
+select
+    display_id(yp, 'yield_curve_seqnbr'),
+    to_string(yp.date_period.count),
+    to_string(yp.date_period.unit),
+    display_id(yp, 'updat_usrnbr'),
+    convert('time',yp.updat_time,'%H:%M:%S'),
+    convert('time',yp.updat_time,'%d %b %Y')
+from
+    YieldCurvePoint yp,
+    YieldCurve y
+where
+    to_date(yp.updat_time) =>  to_date(@02_DateFrom{yesterday})
+    and to_date(yp.updat_time) =<  to_date(@03_DateTo{yesterday})
+    and y.seqnbr = yp.yield_curve_seqnbr
+    and (y.yield_curve_name like '%SWAP%' or y.yield_curve_name like '%BASIS%')
+    and y.yield_curve_name not like '%Testing%'
+    and y.yield_curve_name not like '%(%'
+    and y.yield_curve_name not like '%Curve%'
+    and y.yield_curve_type in ('Benchmark','Attribute Spread')
+order by
+    5 asc
+

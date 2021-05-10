@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:OdysseyNotional = select(fundingInsType == "IRD Funding", 
+  true->nil, 
+  default->select((object.InsType == "SecurityLoan") or ((object.InsType == "Deposit") and (fundingInsType.At(0) == "Call")) or (fundingInsType == "Non Zar CFC"), 
+    true->ddmBalanceREPCCY, 
+    default->ddmNominalREPCCY));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:OdysseyNotional = nil;

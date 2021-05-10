@@ -1,0 +1,69 @@
+/*
+    Purpose             : Identify a all the archive trades for a given aggregate trade number
+    Department and Desk : Ops - capital markets bonds
+    Requester           : SM IT
+    Developer           : Anil Parbhoo
+    CR Number           : CHNG0003396841
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Archive_trades_of_Aggregate') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Archive_trades_of_Aggregate' and p.type = 'SQL Query' 
+
+
+select
+i.insid,
+i.instype,
+t.trdnbr,
+t.status,
+t.Quantity,
+t.quantity*i.contr_size'Nominal',
+display_id(t, 'prfnbr')'Portfolio',
+party.ptyid'counterparty',
+t.aggregate_trdnbr
+
+from
+
+trade t,
+instrument i,
+party party
+
+where
+
+i.insaddr = t.insaddr
+and t.aggregate_trdnbr = @Aggregate_Trade{12551038;}
+and t.counterparty_ptynbr = party.ptynbr
+
+
+order by party.ptyid, t.status desc
+
+union
+
+select
+i.insid,
+i.instype,
+t.trdnbr,
+t.status,
+sum(t.Quantity),
+sum(t.quantity*i.contr_size)'Nominal',
+display_id(t, 'prfnbr')'Portfolio',
+party.ptyid'counterparty',
+t.aggregate_trdnbr
+
+from
+
+trade t,
+instrument i,
+party party
+
+where
+
+i.insaddr = t.insaddr
+and t.aggregate_trdnbr = @Aggregate_Trade{12551038;}
+and t.counterparty_ptynbr = party.ptynbr
+
+group by t.aggregate_trdnbr

@@ -1,0 +1,39 @@
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_MM_FV_perTrade') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_MM_FV_perTrade' and p.type = 'SQL Query' 
+
+
+
+select
+
+today   'Date',
+t.trdnbr    'Trade',
+i.insid 'Instrument',
+i.exp_day   'Expiry',
+nominal_amount(t)   'Nominal',
+i.instype   'Instype',
+p.prfid 'Portfolio',
+sum(mtm_value_fo(t,today,,,,,))  'MTM Value',
+sum(cash_balance(t,today,today,,,,)) 'Cash'
+
+
+from
+trade   t,
+instrument i,
+portfolio p
+
+where
+match_filter(t,@1_Filter{;tradefilter.fltid},)
+and p.prfnbr = t.prfnbr
+and i.insaddr = t.insaddr
+and t.status not in ('Void','Simulated')
+
+
+
+
+

@@ -1,0 +1,8 @@
+[Default]FCashFlowInstrument:impliedParRate = select(staticLegInformationsWithUniqueCouponInForwardValueCalculated, 
+  nil->nil, 
+  default->select(object.Generic, 
+    true->imply(uniqueCouponInShiftCouponForwardValueCalculated, shiftCouponForwardValueCalculated, dividedByHundred(unitGoalValueForPar), implyPrecisionForImpliedParRate, lowerBoundForImpliedCoupon, upperBoundForImpliedCoupon, implyMaxIterations), 
+    false->select(isMultiExercise, 
+      true->exerciseEvents :* "impliedParRate", 
+      false->imply(uniqueCouponInShiftCouponForwardPrice, shiftCouponForwardPrice, unitGoalValueForPar, implyPrecision, lowerBoundForImpliedCoupon, upperBoundForImpliedCoupon, implyMaxIterations))));
+[Default]FExerciseEvent:impliedParRate = imply(uniqueCouponInShiftCouponForwardPrice, shiftCouponForwardPrice, instrument:unitGoalValueForPar, implyPrecision, lowerBoundForImpliedCoupon, upperBoundForImpliedCoupon, implyMaxIterations);

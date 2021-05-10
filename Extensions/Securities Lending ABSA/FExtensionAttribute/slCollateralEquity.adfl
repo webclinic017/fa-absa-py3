@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slCollateralEquity = sumOf(children :* "slCollateralEquity");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slCollateralEquity = select(slIsCollateralEquity, 
+  true->select((sobMarketValue == []) or (sobMarketValue == nil), 
+    true->0, 
+    default->sobMarketValue.Number), 
+  default->0.0);

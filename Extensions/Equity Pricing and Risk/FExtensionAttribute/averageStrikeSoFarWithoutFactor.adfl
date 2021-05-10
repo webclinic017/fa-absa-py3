@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FInstrument:averageStrikeSoFarWithoutFactor = nil;
+[Equity Pricing and Risk]FOption:averageStrikeSoFarWithoutFactor = select(isAsian, 
+  false->nil, 
+  default->select(isOptionValuedAsPureSingle or mappedModelIsBasketAsSingleUnderlying, 
+    true->denominatedvalue(asianArithmeticAverageStrikeSoFar, unit(strikeValue), , expiryDate), 
+    false->asianBasketArithmeticAverageStrikeSoFar));

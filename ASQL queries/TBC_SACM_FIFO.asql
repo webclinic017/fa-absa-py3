@@ -1,0 +1,38 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_FIFO') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_FIFO' and p.type = 'SQL Query' 
+select 
+	p.prfid,
+	t.trdnbr,
+	i.insid,
+	sum(position(t)),
+	SACM_Fifo.avg_price_fifo(t,@EndDay{TODAY}),
+	add_info(t,'FIFO_POS')
+from
+	trade t, portfolio p,instrument i
+where
+	t.insaddr = i.insaddr 
+and	 p.prfnbr = t.prfnbr
+and 	match_filter(t,@Portfolio{;tradefilter.fltid})
+
+group by 1,3
+
+union
+
+select 
+	p.prfid,
+	t.trdnbr,
+	i.insid,
+	sum(position(t)),
+	t.price,
+	add_info(t,'FIFO_POS')
+from
+	trade t, portfolio p,instrument i
+where
+	t.insaddr = i.insaddr 
+and	 p.prfnbr = t.prfnbr
+and 	match_filter(t,@Portfolio{;tradefilter.fltid})
+and 	add_info(t,'FIFO_POS') ~= '0.0'

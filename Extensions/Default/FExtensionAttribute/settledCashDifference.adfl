@@ -1,0 +1,5 @@
+[Default]FSettlement:settledCashDifference = select(isSecurity and (object.Type <> "Security DvP"), 
+  true->nil, 
+  false->switch(settledDay <> 0, 
+    true->settledAmount - cashAmount, 
+    false->nil));

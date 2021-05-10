@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FCurrencySwap:floatOrCapFloorPayLegOrNil = select(insPayLeg, 
+  nil->nil, 
+  default->select(insPayLeg:isFloatLeg, 
+    true->insPayLeg, 
+    false->nil));
+[Fixed Income Pricing and Risk]FInstrument:floatOrCapFloorPayLegOrNil = nil;
+[Fixed Income Pricing and Risk]FSwap:floatOrCapFloorPayLegOrNil = select(insPayLeg, 
+  nil->nil, 
+  default->select(insPayLeg:isFloatOrCapFloorLeg, 
+    true->insPayLeg, 
+    false->nil));

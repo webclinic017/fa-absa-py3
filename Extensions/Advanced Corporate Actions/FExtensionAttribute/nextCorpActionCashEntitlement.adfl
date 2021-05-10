@@ -1,0 +1,20 @@
+[Advanced Corporate Actions]FInstrument:nextCorpActionCashEntitlement = select(corpActionSetExternally, 
+  default->select(corpActionSetExternally.Dividend, 
+    default->corpActionSetExternally.Dividend.Amount * corpActionEligiblePosition, 
+    nil->nil), 
+  nil->nil);
+[Advanced Corporate Actions]FInstrumentAndTrades:nextCorpActionCashEntitlement = select(corpActionSetExternally, 
+  default->select(corpActionSetExternally.Dividend, 
+    default->corpActionSetExternally.Dividend.Amount * corpActionEligiblePosition, 
+    nil->nil), 
+  nil->nil);
+[Advanced Corporate Actions]FSingleInstrumentAndTrades:nextCorpActionCashEntitlement = select(corpActionSetExternally, 
+  default->select(corpActionSetExternally.Dividend, 
+    default->corpActionSetExternally.Dividend.Amount * corpActionEligiblePosition, 
+    nil->nil), 
+  nil->nil);
+[Advanced Corporate Actions]FTradeRow:nextCorpActionCashEntitlement = select(nextCorpAction, 
+  default->select(nextCorpAction.Dividend, 
+    default->nextCorpAction.Dividend.Amount * corpActionEligiblePosition, 
+    nil->nil), 
+  nil->nil);

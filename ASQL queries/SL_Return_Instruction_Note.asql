@@ -1,0 +1,26 @@
+/* Usage code for this ASQL*/
+select
+ael_i(p,'ASQL_log','SL_Return_Instruction_Note') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_Return_Instruction_Note' and p.type = 'SQL Query' 
+
+/*
+Purpose: [Creates PDF return or receipt note for security loan]
+Department: Securities Lending
+Requester: Linda Breytenbach
+Developer: Willie van der Bank
+CR Number: [C656249 (19/05/2011)]
+*/
+
+Select
+    ael_s(,'SL_Return_Instruction_Note.ASQL') 'Result',
+    s.srdnbr
+into temp
+from
+    serverdata s
+
+Select
+    t.Result
+From
+    temp t

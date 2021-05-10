@@ -1,0 +1,9 @@
+[Default]FBuySellBack:marketValuesUndiscountedInstrumentPartForSpot = marketInstrumentPositionValues * timeDistributionFactor;
+[Default]FCashFlowInstrument:marketValuesUndiscountedInstrumentPartForSpot = shunt[priceSource, doSplitAll, contractSize, positionTradeQuantities, legs, valuesOnSpotOverride, useMarkToMarketPriceToday, useBidAskValuation](moveSpotPositionType, 
+  "None"->positionValue(positionTradeQuantities, marketSpotValues, contractSize, timeDistributionFactor), 
+  "Repo"->movePositionValueRepo(marketSpotValues, positionTradeQuantities, valuationDate, valuationOrSpotDate, repoCurve, moneyMarketCurve, instrumentSpotOrStartDate) * contractSize, 
+  "Full"->marketInstrumentPositionValues);
+[Default]FCombination:marketValuesUndiscountedInstrumentPartForSpot = marketInstrumentPositionValues * timeDistributionFactor;
+[Default]FDerivative:marketValuesUndiscountedInstrumentPartForSpot = positionValue(positionTradeQuantities, marketSpotValues, contractSize, timeDistributionFactor);
+[Default]FFxRate:marketValuesUndiscountedInstrumentPartForSpot = marketInstrumentPositionValues;
+[Default]FInstrument:marketValuesUndiscountedInstrumentPartForSpot = positionValue(positionTradeQuantities, marketSpotValues, contractSize, timeDistributionFactor);

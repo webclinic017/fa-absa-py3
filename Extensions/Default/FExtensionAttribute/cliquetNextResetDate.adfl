@@ -1,0 +1,14 @@
+[Default]FCashFlowInstrument:cliquetNextResetDate = nil;
+[Default]FCfd:cliquetNextResetDate = nil;
+[Default]FCombination:cliquetNextResetDate = nil;
+[Default]FConvertible:cliquetNextResetDate = nil;
+[Default]FDepositaryReceipt:cliquetNextResetDate = nil;
+[Default]FETF:cliquetNextResetDate = nil;
+[Default]FFuture:cliquetNextResetDate = nil;
+[Default]FOption:cliquetNextResetDate = select(isCliquet, 
+  true->select(count(cliquetFutureExpiryInfo) > 0, 
+    true->datetime(cliquetFutureExpiryInfo[0]), 
+    false->nil), 
+  false->nil);
+[Default]FStock:cliquetNextResetDate = nil;
+[Default]FVolatilityFuture:cliquetNextResetDate = nil;

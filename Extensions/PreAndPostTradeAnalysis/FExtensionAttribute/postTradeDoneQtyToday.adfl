@@ -1,0 +1,5 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:postTradeDoneQtyToday = sumOf(prePostTradeOrders :* "postTradeDoneQtyToday");
+[PreAndPostTradeAnalysis]FOrderProgram:postTradeDoneQtyToday = sumOf(memberOrders :* "postTradeDoneQtyToday");
+[PreAndPostTradeAnalysis]FOwnOrder:postTradeDoneQtyToday = switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+  false->todaysVWAPInstance.TotalQuantity, 
+  true->todaysVWAPInstance.TotalQuantityIncludingOTCDeals);

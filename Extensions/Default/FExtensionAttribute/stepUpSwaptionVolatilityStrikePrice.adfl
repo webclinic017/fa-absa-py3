@@ -1,0 +1,4 @@
+[Default]FExerciseEvent:stepUpSwaptionVolatilityStrikePrice = instrument :* "stepUpSwaptionVolatilityStrikePrice" [expiryDate, forwardPriceDate := settlementDateInverted];
+[Default]FInstrument:stepUpSwaptionVolatilityStrikePrice = select(volatilityStrikePriceType, 
+  Absolute->stepUpSwaptionAbsoluteStrikePrice, 
+  default->relativeStrikePriceFromAbsolute(underlyingPriceForVolatilityStrikeInVolatilityQuotation, stepUpSwaptionAbsoluteStrikePrice, volatilityStrikePriceType, needsPriceToYieldConversion));

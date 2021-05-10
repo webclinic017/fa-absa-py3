@@ -1,0 +1,45 @@
+[Default]FCashFlowInstrument:theoreticalInstrumentValueCore = select(isGenericCouponOrSpreadQuoted or isFxOutrightRateQuoted, 
+  true->collapse(theoreticalSpotValueFromTheoreticalPrice), 
+  false->select(splitValuationInCashFlowPart, 
+    false->select(valuationModelName, 
+      "Cash Flow"->collapse(theoreticalLegComponentsValueSimple), 
+      default->collapse(theoreticalModelValue)), 
+    true->theoreticalInstrumentComponentValue + theoreticalLegComponentsValue));
+[Default]FCfd:theoreticalInstrumentValueCore = setDateTimePart(theoreticalModelValue, instrumentSpotDate);
+[Default]FCombination:theoreticalInstrumentValueCore = select(hasMappedPriceCurve, 
+  true->collapse(theoreticalModelValue), 
+  default->shunt[priceSource, doSplitAll](isCalculatedTheoretically, 
+    true->collapse(theoreticalInstrumentValueCombinationAsSumOfConstituents), 
+    false->timeDistributionFactor * marketSpotValue));
+[Default]FCurrency:theoreticalInstrumentValueCore = marketSpotValue;
+[Default]FDepositaryReceipt:theoreticalInstrumentValueCore = underlying:forwardValue [priceSource, doSplitAll, forwardValueDate = instrumentSpotDate, calculationCurrency] * conversionRatio;
+[Default]FETF:theoreticalInstrumentValueCore = shunt[priceSource, doSplitAll](isCustomValued, 
+  true->collapse(theoreticalModelValue), 
+  false->shunt[priceSource, doSplitAll](priceNeedsDividendAdjustment, 
+    true->(underlying:discountCurve).DiscountValue(timeShiftDividendAdjustedPrice(underlying :* "timeShiftDividendAdjustedPrice(theoreticalOrMarketInstrumentValueInCalculationCurrency, dividendForecast, adsPriceDate, -dividendFactor) * timeDistributionFactor" [priceSource, doSplitAll], dividendForecast, adsPriceDate, dividendFactor), instrumentSpotDate) * fxUnderlyingToInstrument, 
+    default->(underlying:discountCurve).DiscountValue(underlying :* "theoreticalOrMarketInstrumentValueInCalculationCurrency * timeDistributionFactor" [priceSource, doSplitAll], instrumentSpotDate) * fxUnderlyingToInstrument));
+[Default]FFund:theoreticalInstrumentValueCore = setDateTimePart(portfolioInstrumentAndTrades :* "theoreticalEqualsMarketNAVPerUnit" [displayCurrency := currency], instrumentSpotDate);
+[Default]FFuture:theoreticalInstrumentValueCore = select(isReciprocal and normalizeFxRisk, 
+  true->theoreticalModelValue * priceGreekRiskFactorReciprocalFxAdjustmentValue, 
+  false->select(isQuanto and valuationModelNeedsFxConversion, 
+    true->theoreticalModelValue * fxStrikeToInstrument, 
+    false->collapse(theoreticalModelValue)));
+[Default]FFxRate:theoreticalInstrumentValueCore = select(isReciprocal, 
+  true->normalFxRate:invertedMarketSpotValue [priceSource], 
+  false->marketSpotValue);
+[Default]FInstrument:theoreticalInstrumentValueCore = select(isCalculatedTheoretically, 
+  true->select(isBuySellbackRepoRateQuoted, 
+    true->collapse(theoreticalSpotValueFromTheoreticalPrice), 
+    false->collapse(theoreticalModelValue)), 
+  false->marketSpotValue);
+[Default]FOdf:theoreticalInstrumentValueCore = select(isReciprocal and normalizeFxRisk, 
+  true->theoreticalModelValue * priceGreekRiskFactorReciprocalFxAdjustmentValue, 
+  false->collapse(theoreticalModelValue));
+[Default]FOption:theoreticalInstrumentValueCore = select(isFxAdjusted, 
+  true->select(valuationModelNeedsFxConversion, 
+    true->theoreticalModelValue * fxStrikeToInstrument, 
+    false->collapse(theoreticalModelValue)), 
+  false->collapse(theoreticalModelValue));
+[Default]FVolatilityFuture:theoreticalInstrumentValueCore = select(valuationModelNeedsFxConversion, 
+  true->theoreticalModelValue * fxStrikeToInstrument, 
+  default->collapse(theoreticalModelValue));

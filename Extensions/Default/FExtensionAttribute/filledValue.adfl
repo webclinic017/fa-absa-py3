@@ -1,0 +1,6 @@
+[Default]ExecutionAlgo:filledValue = object.DoneValue + switch(object.CurrentOrder, 
+  nil->0.0, 
+  default->object.CurrentOrder.FilledQuantity("Order") * object.CurrentOrder.FilledPrice);
+[Default]FOrderHandler:filledValue = filledQuantityFromOrder * filledPrice;
+[Default]FOwnCombOrder:filledValue = sumOf(memberOrders :* "filledValue * fxOrderBookMemberToParentInstrument");
+[Default]FOwnOrder:filledValue = filledQuantity * filledPrice;

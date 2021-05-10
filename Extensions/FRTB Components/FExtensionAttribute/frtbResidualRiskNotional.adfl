@@ -1,0 +1,7 @@
+[FRTB Components]FInstrument:frtbResidualRiskNotional = select(not isExpired and ("None" <> frtbResidualRiskType) and ((nil == frtbResidualRiskTypesSetExternally) or (frtbResidualRiskTypesSetExternally == frtbResidualRiskType)), 
+  true->convertToCurrency(ccrNotionalAmount, accountingCurrencyFxRates, accountingCurrency), 
+  false->accountingCurrencyZero);
+[FRTB Components]FInstrumentAndTrades:frtbResidualRiskNotional = instrument:frtbResidualRiskNotional [positionObject, frtbResidualRiskTypesSetExternally];
+[FRTB Components]FMultiInstrumentAndTrades:frtbResidualRiskNotional = switch(count(openInstruments), 
+  0->accountingCurrencyZero, 
+  default->sumOf(openInstruments :* "frtbResidualRiskNotional" [positionObject, frtbResidualRiskTypesSetExternally]));

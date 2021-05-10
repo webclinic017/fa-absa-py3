@@ -1,0 +1,9 @@
+[Default]FCombInstrMap:benchmarkVegaValuesInstrument = select(benchmarkVolatilityGreekRiskFactorCount > 0, 
+  true->instrument :* "benchmarkVegaValuesInstrument" [doSplitAll, priceSource, timeBucketsSetExternally, volatilityPoints, volatilityGreekFilter, benchmarkVegaCalculationType, vegaStrikeBucketsInfoSetExternally, useOnesidedShiftForVega] * weight * contractSize * timeDistributionFactor * fxLegToInstrumentOnLegSpotDay, 
+  false->timeBucketsSetExternallyZero);
+[Default]FCombination:benchmarkVegaValuesInstrument = select(splitCombination, 
+  true->sumOf((instrumentMaps) :* "benchmarkVegaValuesInstrument" [doSplitAll, priceSource, timeBucketsSetExternally, volatilityPoints, volatilityGreekFilter, benchmarkVegaCalculationType, vegaStrikeBucketsInfoSetExternally, useOnesidedShiftForVega]) / combinationDivisionFactor, 
+  false->timeBucketsSetExternallyZero);
+[Default]FInstrument:benchmarkVegaValuesInstrument = select(useOnesidedShiftForVega, 
+  true->oneSidedDifferential(volatilityGreekRiskFactorsBenchmarkShiftedUp - theoreticalInstrumentValueAtSpot, node(volatilityGreekRiskFactorsBenchmarkShiftedUp).Axis) / timesHundred(valuationModelSpecificRelativeVolatilityShift), 
+  default->differential(volatilityGreekRiskFactorsBenchmarkShiftedUp, theoreticalInstrumentValueAtSpot, timesHundred(valuationModelSpecificRelativeVolatilityShift)));

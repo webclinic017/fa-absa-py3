@@ -1,0 +1,502 @@
+/*  Developer           : Heinrich Cronje
+    Purpose             : SND implementation
+    Department and Desk : Operations
+    Requester           : Miguel
+    CR Number           : 662927*/
+
+/*---------- Macros ----------*/
+select
+    to_date(@3_StartDate{Today})   'startDay',
+    to_date(@4_EndDate{Today})   'endDay',
+    to_date(date_add_banking_day(@3_StartDate{Today}, 'ZAR', -1)) 'prev',
+    to_date(date_add_banking_day(@3_StartDate{Today}, 'ZAR', -2)) '2prev'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*---------- Trade ----------*/
+select
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    i.insid,
+    i.instype,
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+    t.your_ref  'CPRef',
+    display_id(t,'acquirer_ptynbr') 'acquirer',
+    nominal_amount(t)   'nominal',
+    display_id(t,'curr') 'trade_curr_id',
+    display_id(t,'prfnbr')  'portfolio',
+    display_id(t,'counterparty_ptynbr')  'cp',
+    t.optional_key  'external_id',
+    t.value_day,
+    t.quantity,
+    t.premium,
+    t.curr,
+    t.trade_process,
+    t.price,
+    i.insaddr,
+    i.exp_day,
+    i.und_insaddr,
+    i.index_factor,
+    i.ref_value,
+    i.start_day,
+    display_id(i,'curr') 'instr_curr_id',
+    i.contr_size,
+    i.paytype,
+    i.extern_id1    'Ins_ID'
+into
+    temp
+from
+    trade t,
+    instrument i
+where
+        match_filter(t, @1_Filter{SND_All_Trades;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+
+
+/*---------- Premium ----------*/
+
+select
+    'Premium'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    'Premium'   'CFType',
+    t.value_day 'payDay',
+    t.trade_curr_id 'curr',
+    t.premium   'amount'
+into
+    cash
+from
+    temp t,
+    macros m
+where
+        t.premium ~= 0.00
+    and t.value_day >= m.startDay
+    and t.value_day <= m.endDay
+    and t.instype ~= 'Curr'
+
+/*---------- Cashflow ----------*/
+
+select
+    'CashFlow'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    to_string(c.type)   'CFType',
+    c.pay_day 'payDay',
+    display_id(l,'curr') 'curr',
+    projected_cf(c) * t.quantity    'amount'
+into
+    cash
+from
+    temp t,
+    leg l,
+    cashflow c,
+    macros m
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.pay_day >= m.startDay
+    and c.pay_day <= m.endDay
+    and t.instype ~= 'Combination'
+
+/*---------- Combination ----------*/
+select
+    'Combination'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    to_string(c.type)   'CFType',
+    c.pay_day 'payDay',
+    display_id(l,'curr') 'curr',
+    projected_cf(c) * t.quantity / t.index_factor * cl.weight    'amount'
+into
+    cash
+from
+    temp t,
+    leg l,
+    combinationlink cl,
+    instrument u,
+    cashflow c,
+    macros m
+where
+        t.insaddr = cl.owner_insaddr
+    and cl.member_insaddr = u.insaddr
+    and u.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.pay_day >= m.startDay
+    and c.pay_day <= m.endDay
+    and t.instype = 'Combination'
+
+/*---------- Additional Payments ----------*/
+select
+    'Additional Payment'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    to_string(pa.type)   'CFType',
+    pa.payday 'payDay',
+    display_id(pa,'curr') 'curr',
+    pa.amount
+into
+    cash
+from
+    temp t,
+    payment pa,
+    macros m
+where
+        t.trdnbr = pa.trdnbr
+    and pa.payday >= m.startDay
+    and pa.payday <= m.endDay
+
+/*---------- End Premiums ----------*/
+select
+    'End Premium'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    'End Premium'   'CFType',
+    t.exp_day 'payDay',
+    t.instr_curr_id 'curr',
+    t.ref_value * t.quantity    'amount'
+into
+    cash
+from
+    temp t,
+    macros m
+where
+        t.instype in ('BuySellback','SecurityLoan')
+    and t.exp_day >= m.startDay
+    and t.exp_day <= m.endDay
+
+/*---------- BuySellBack Coupons ----------*/
+select
+    'BuySellBack Coupons'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    to_string(c.type)   'CFType',
+    c.pay_day 'payDay',
+    display_id(l,'curr') 'curr',
+    projected_cf(c) * t.quantity    'amount'
+into
+    cash
+from
+    temp t,
+    instrument u,
+    leg l,
+    cashflow c,
+    macros m
+where
+        t.und_insaddr = u.insaddr
+    and u.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.pay_day >= m.startDay
+    and c.pay_day <= m.endDay
+    and t.instype = 'BuySellback'
+    and t.start_day < date_add_delta(c.pay_day,-10)
+    and t.exp_day > date_add_delta(c.pay_day,-10)
+    and c.type = 'Fixed Rate'
+
+/*---------- Futures ----------*/
+select
+    'Future'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    'Future'   'CFType',
+    m.startDay 'payDay',
+    t.instr_curr_id 'curr',
+    t.value_day = m.prev ? t.quantity * t.contr_size * (t.price - mtm_price(i,m.prev,curr.insid)) : t.quantity * t.contr_size * (mtm_price(i,m.prev,curr.insid) - mtm_price(i,m.2prev,curr.insid)) 'amount'
+into
+    cash
+from
+    temp t,
+    instrument i,
+    instrument curr,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and t.curr = curr.insaddr
+    and t.instype = 'Future/Forward'
+    and t.paytype = 'Future'
+    and t.exp_day >= m.startDay
+    and t.value_day < m.endDay
+
+/*---------- Dividend Payments ----------*/
+select
+    'Dividend Payment'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    'Dividend'   'CFType',
+    d.pay_day 'payDay',
+    t.instr_curr_id 'curr',
+    t.quantity * d.dividend  'amount'
+into
+    cash
+from
+    temp t,
+    dividend d,
+    macros m
+where
+        d.insaddr = t.insaddr
+    and d.pay_day >= m.startDay
+    and d.pay_day <= m.endDay
+    and t.value_day < d.ex_div_day
+
+/*---------- Fx Swap ----------*/
+select
+    'Fx Swap'   'Section',
+    t.trdnbr,
+    t.trx_trdnbr,
+    t.time,
+    t.status,
+    t.insid,
+    t.Ins_ID,
+    t.instype,
+    t.MM_Instype,
+    t.CPRef,
+    t.acquirer,
+    t.nominal,
+    t.portfolio,
+    t.cp,
+    t.external_id,
+    'Premium'   'CFType',
+    t.value_day 'payDay',
+    curr.insid 'curr',
+    curr.insid = t.insid ? t.quantity : t.premium  'amount'
+into
+    cash
+from
+    temp t,
+    instrument curr,
+    macros m
+where
+        curr.insaddr in (t.curr, t.insaddr)
+    and curr.instype = 'Curr'
+    and t.instype = 'Curr'
+    and t.trade_process in (4096, 8192, 16384, 32768)
+    and t.value_day >= m.startDay
+    and t.value_day <= m.endDay
+    
+/*---------- SND Grouping ----------*/
+select
+    c.Section,
+    c.trdnbr,
+    c.trx_trdnbr,
+    c.time,
+    c.status,
+    c.insid,
+    c.Ins_ID,
+    c.instype,
+    c.MM_Instype,
+    c.CPRef,
+    c.acquirer,
+    c.nominal,
+    c.portfolio,
+    c.cp,
+    c.external_id,
+    c.CFType,
+    c.payDay,
+    c.curr,
+    c.amount,
+    m.startDay,
+    m.endDay
+into
+    final
+from
+    cash c,
+    macros m
+where
+    round(abs(c.amount),2) ~= 0.00
+    and c.trx_trdnbr = 0
+
+select
+    c.Section,
+    c.trdnbr,
+    c.trx_trdnbr,
+    c.time,
+    c.status,
+    c.insid,
+    c.Ins_ID,
+    c.instype,
+    c.MM_Instype,
+    c.CPRef,
+    c.acquirer,
+    c.nominal,
+    c.portfolio,
+    c.cp,
+    c.external_id,
+    c.CFType,
+    c.payDay,
+    c.curr,
+    sum(c.amount)   'amount',
+    m.startDay,
+    m.endDay
+into
+    final
+from
+    cash c,
+    macros m
+where
+    round(abs(c.amount),2) ~= 0.00
+    and c.trx_trdnbr ~= 0
+
+group by c.payDay, c.trx_trdnbr
+
+/*---------- Final ----------*/
+select
+    c.Section,
+    c.trdnbr,
+    c.trx_trdnbr,
+    c.time,
+    c.status,
+    c.insid,
+    c.Ins_ID,
+    c.instype,
+    c.MM_Instype,
+    c.CPRef,
+    c.acquirer,
+    c.nominal,
+    c.portfolio,
+    c.cp,
+    c.external_id,
+    c.CFType,
+    c.payDay,
+    c.curr,
+    c.amount,
+    m.startDay,
+    m.endDay
+from
+    cash c,
+    macros m
+where
+    round(abs(c.amount),2) ~= 0.00
+
+order by c.payDay
+
+union
+
+select
+    'Total by TRX NBR',
+    f.trdnbr,
+    f.trx_trdnbr,
+    f.time,
+    f.status,
+    f.insid,
+    f.Ins_ID,
+    f.instype,
+    f.MM_Instype,
+    f.CPRef,
+    f.acquirer,
+    f.nominal,
+    f.portfolio,
+    f.cp,
+    f.external_id,
+    f.CFType,
+    f.payDay,
+    f.curr,
+    f.amount,
+    f.startDay,
+    f.endDay
+from
+    final f
+
+order by f.payDay

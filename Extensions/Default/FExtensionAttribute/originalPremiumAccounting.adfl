@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:originalPremiumAccounting = nil;
+[Default]FDeliverableLinkAndTrades:originalPremiumAccounting = nil;
+[Default]FInstrument:originalPremiumAccounting = doubleSumOf((posOrigPremSubledger.Keys) :* "double(posOrigPremSubledger.At(object) * fxSpotRate)" [displayCurrency, posOrigPremSubledger, fxToCurrency = displayCurrency, fxBaseCurrency = currency]);
+[Default]FLegAndTrades:originalPremiumAccounting = nil;
+[Default]FMultiInstrumentAndTrades:originalPremiumAccounting = denominatedvalue(sumOf(instruments :* "originalPremiumAccounting" [positionObject, displayCurrency = valuationParameters.AccountingCurrency, profitAndLossEndDate]), valuationParameters.AccountingCurrency, nil, nil);
+[Default]FSingleInstrumentAndTrades:originalPremiumAccounting = denominatedvalue(instrument :* "originalPremiumAccounting" [positionObject, displayCurrency = valuationParameters.AccountingCurrency, profitAndLossEndDate], valuationParameters.AccountingCurrency, nil, nil);
+[Default]FTrade:originalPremiumAccounting = object.OriginalPremium(instrument:pLLegInformations, instrument:staticLegInformations, pLCurrencyOverride, historicalFXChoice, historicalFXDay, profitAndLossEndDate, tradeStatusInclusionMaskDefault, tradeInclusionDateTime, roundingInformation, roundingInformationsPerLeg);
+[Default]FTradeRow:originalPremiumAccounting = trade :* "originalPremiumAccounting" [profitAndLossEndDate];

@@ -1,0 +1,9 @@
+[Core Pricing]FInstrument:underlyingPriceInTheoreticalPriceInverse = select(underlyingForUnderlyingPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(underlyingPriceInTheoreticalPrice, 
+    nil->nil, 
+    default->underlyingPriceInTheoreticalPriceInverseImpl * underlyingPriceInTheoreticalPriceFxCalculationToUnderlying / underlyingPriceInTheoreticalPriceConversionRatio));
+[Core Pricing]FInstrumentAndTrades:underlyingPriceInTheoreticalPriceInverse = openInstrumentOrInstrument:underlyingPriceInTheoreticalPriceInverse [theoreticalPrice, usePerUnitQuotation, underlyingPriceInTheoreticalPriceInverseVariable];
+[Core Pricing]FMultiInstrumentAndTrades:underlyingPriceInTheoreticalPriceInverse = underlyingPriceInTheoreticalPriceInvConverted;
+[Core Pricing]FPortfolioInstrumentAndTrades:underlyingPriceInTheoreticalPriceInverse = nil;
+[Core Pricing]FPriceAggregate:underlyingPriceInTheoreticalPriceInverse = instrument:underlyingPriceInTheoreticalPriceInverse [theoreticalPrice, usePerUnitQuotation, underlyingPriceInTheoreticalPriceInverseVariable];

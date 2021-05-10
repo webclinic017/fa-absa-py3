@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FOption:asianPriceWeight = select(isOptionValuedAsPureSingle, 
+  true->1.0 / count(asianAveragePriceEvents), 
+  false->select(asianBasketAsSingleHasPriceEventsDefinedOnComponents, 
+    true->asianBasketAveragePriceWeight, 
+    false->1.0 / count(asianAveragePriceEvents)));

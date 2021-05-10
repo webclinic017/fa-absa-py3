@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FInstrument:thetaFromGammaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(thetaFromGammaPercentValuesInstrument, valuesOnSpot) * riskPosition);
+[ABSA Greeks 4.3]FInstrumentAndTrades:thetaFromGammaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->openInstrument :* "thetaFromGammaPercentValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, positionObject]));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:thetaFromGammaPercentValues = sumOf(openInstruments :* "thetaFromGammaPercentValues" [isSplitAllGrouped, priceSource, priceGreekShiftFilter, positionObject]);

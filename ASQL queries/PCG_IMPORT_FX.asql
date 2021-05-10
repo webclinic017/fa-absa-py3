@@ -1,0 +1,14 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_IMPORT_FX') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_IMPORT_FX' and p.type = 'SQL Query' 
+ 
+  select
+    dirk_fx_import.import_fx(@00_FileName['c:\\temp\\LIVEXPF.CSV'])       'ret',
+    ins.insid
+from
+    instrument ins
+where
+    ins.insid = 'ZAR'

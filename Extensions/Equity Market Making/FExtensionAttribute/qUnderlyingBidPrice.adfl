@@ -1,0 +1,14 @@
+[Equity Market Making]FCombination:qUnderlyingBidPrice = object.UnitValueToQuote(shunt(qUnderlyingPriceType, 
+  "Default"->theoreticalInstrumentValue, 
+  "SprAvg"->theoreticalSpotValueSpreadAverage, 
+  "Bid/Ask"->select(isUndPositive, 
+    true->theoreticalInstrumentValueBid, 
+    false->theoreticalInstrumentValueAsk), 
+  "Bid"->theoreticalInstrumentValueBid, 
+  "Ask"->theoreticalInstrumentValueAsk, 
+  "Last"->theoreticalSpotValueLast), valuationDate, valuationDate, true, nil, nil, quotation, 1.0, 0.0, , , roundingInformation);
+[Equity Market Making]FQuoteController:qUnderlyingBidPrice = select(underlyingIsValuedFromLegs, 
+  true->underlying:qUnderlyingBidPrice [priceSource, qUnderlyingPriceType, isUndPositive], 
+  false->shunt(qUnderlyingPriceType.IsEqual("Default") and not qIsServerSideQuotingEnabled, 
+    true->underlyingPriceNodeInTheoreticalPrice, 
+    default->underlyingBidQuotingPrice));

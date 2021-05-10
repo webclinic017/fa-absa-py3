@@ -1,0 +1,11 @@
+[_convertible_pricing_and_risk_exts]FInstrument:marketYieldToNextCall = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->shunt(nextCallInFuture, 
+      nil->nil, 
+      default->imply(snoop(theoreticalInstrumentSpotValueCleanFromYieldToNextCall, "yield"), theoreticalInstrumentSpotValueCleanFromYieldToNextCall, marketUnitValueCleanForImpliedCalculations, ytmAccuracy, -0.5, 1.0, implyMaxIterations))), 
+  false->nil);
+[_convertible_pricing_and_risk_exts]FInstrumentAndTrades:marketYieldToNextCall = instrument :* "marketYieldToNextCall";
+[_convertible_pricing_and_risk_exts]FMultiInstrumentAndTrades:marketYieldToNextCall = nil;
+[_convertible_pricing_and_risk_exts]FOrderBook:marketYieldToNextCall = instrument :* "marketYieldToNextCall";
+[_convertible_pricing_and_risk_exts]FPriceFeed:marketYieldToNextCall = instrument :* "marketYieldToNextCall";

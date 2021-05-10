@@ -1,0 +1,160 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','.Maint/PayCal/Interest') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = '.Maint/PayCal/Interest' and p.type = 'SQL Query' 
+/* Name:  Maint/PayCal/Interest
+
+EDIT HISTORY
+
+Date    Who     What
+------------------------------------------------------------
+981210	DC	Used display_id()
+950919	CB	Added macro values
+950530	CE	Standardised the query
+950123  CE      Created
+
+Reports connected: .Maint/PayCal/Int/Totals
+                   .Maint/PayCal/Int/Detail
+
+
+Cash flow netting cannot be executed here since we can only group either all 
+records or no. We cannot differentiate in one statement, we would need two 
+statements, but then the reports would not look very good.
+
+*/
+select
+        t.trdnbr                                        	'TrdNo',
+        t.bo_trdnbr                                     	'BONo',
+        i.insid                                         	'Instrument',
+        t.quantity*i.contr_size                         	'Nom',
+        cf.pay_day                                      	'PayDay',
+        @StartDay                                       	'StartDay',
+        @EndDay                                         	'EndDay',
+        'CashFlow'                                      	'PayType',
+        projected_cf(cf,,,display_id(l,'curr'))*t.quantity      'Payment',
+        display_id(l,'curr')                            	'Curr',
+	display_id(t,'acquirer_ptynbr')				'Acquirer',
+        display_id(t,'counterparty_ptynbr')                     'Counterparty',
+        (t.optkey1_chlnbr > 0 ?
+        tk1.list :'' )                                 'TradeKey1' ,
+        (t.optkey2_chlnbr > 0 ?
+        tk2.list : '')                                 'TradeKey2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.list : '')                                 'TradeKey3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.list : '')                                 'TradeKey4',
+
+        (t.optkey1_chlnbr > 0 ?
+        tk1.entry :'' )            			'TradeKeyEntry1' ,
+        (t.optkey2_chlnbr > 0 ?
+        tk2.entry : '')                                 'TradeKeyEntry2',
+        (t.optkey3_chlnbr > 0 ?
+        tk3.entry : '')                                 'TradeKeyEntry3',
+        (t.optkey4_chlnbr > 0 ?
+        tk4.entry : '')                                 'TradeKeyEntry4',
+
+        t.cfnetting = 'Yes' ? 'Yes' : ''                'CFNetting',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift : '' : ''
+                                                        'CpSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift2 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift2 : '' : ''
+                                                        'CpSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift3 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift3 : '' : ''
+                                                        'CpSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity < 0 ?
+        used_account(t,display_id(l,'curr'),1) = pc1.accnbr ?
+        pc1.swift4 :
+        used_account(t,display_id(l,'curr'),1) = pc2.accnbr ?
+        pc2.swift4 : '' : ''
+                                                        'CpSwiftCode4',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift : '' : ''
+                                                        'WeSwiftCode1',
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift2 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift2 : '' : ''
+                                                        'WeSwiftCode2',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift3 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift3 : '' : ''
+                                                        'WeSwiftCode3',
+
+	projected_cf(cf,,,display_id(l,'curr'))*t.quantity > 0 ?
+        used_account(t,display_id(l,'curr'),0) = pw1.accnbr ?
+        pw1.swift4 :
+        used_account(t,display_id(l,'curr'),0) = pw2.accnbr ?
+        pw2.swift4 : '' : ''
+                                                        'WeSwiftCode4'
+
+
+from
+        front.instrument i,
+        front.trade t,
+        front.leg l,
+        front.cashflow cf,
+        front.account pc1 fill          /*payments to cp*/,
+        front.account pc2 fill          /*payments to cp*/,
+        front.account pw1 fill          /*payments to us*/,
+        front.account pw2 fill          /*payments to us*/,
+        front.choicelist tk1 fill,      /*Trade Key 1*/
+        front.choicelist tk2 fill,      /*Trade Key 2*/
+        front.choicelist tk3 fill,      /*Trade Key 3*/
+        front.choicelist tk4 fill,      /*Trade Key 4*/
+        front.party d fill
+
+where
+        cf.pay_day between @StartDay{TODAY} and @EndDay{TODAY}
+and     i.insaddr = t.insaddr
+and     l.insaddr = i.insaddr
+and     cf.legnbr = l.legnbr
+and     i.instype not in('Future/Forward','Option','Warrant')
+
+and     pc1.accnbr = t.pay1_accnbr
+and     pc2.accnbr = t.pay2_accnbr
+and     pw1.accnbr = t.rec1_accnbr
+and     pw2.accnbr = t.rec2_accnbr
+
+and     t.acquirer_ptynbr = d.ptynbr
+and     ('None' in (@InsType{None;instrument.instype*})
+        or i.instype in (@InsType{}))
+and     ('None' in (@UndInsType{None;instrument.instype*})
+        or i.und_instype in (@UndInsType{})
+        or i.und_instype = 'None')
+and     ('None' in (@AcquireDep{None;party.ptyid* where type = 'Intern Dept'}) 
+	or d.ptyid in (@AcquireDep{}))
+and     t.status in (@TradeStatus{FO Confirmed,BO Confirmed,BO-BO Confirmed,Legally Confirmed;Trade.status*})
+
+and     tk1.seqnbr = t.optkey1_chlnbr
+and     tk2.seqnbr = t.optkey2_chlnbr
+and     tk3.seqnbr = t.optkey3_chlnbr
+and     tk4.seqnbr = t.optkey4_chlnbr
+
+order by 5, 2
+
+;
+

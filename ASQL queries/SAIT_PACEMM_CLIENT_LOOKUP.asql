@@ -1,0 +1,13 @@
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr')
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow c
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.cfwnbr = 16749327

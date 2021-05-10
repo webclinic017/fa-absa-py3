@@ -1,0 +1,9 @@
+[Default]FInstrument:yieldToWorstOfNext = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->minOf(flattenAndRemoveNil([marketYieldToNextPut, marketYieldToNextCall, marketYieldToMaturity]))), 
+  false->nil);
+[Default]FInstrumentAndTrades:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";
+[Default]FMultiInstrumentAndTrades:yieldToWorstOfNext = nil;
+[Default]FOrderBook:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";
+[Default]FPriceFeed:yieldToWorstOfNext = instrument :* "yieldToWorstOfNext";

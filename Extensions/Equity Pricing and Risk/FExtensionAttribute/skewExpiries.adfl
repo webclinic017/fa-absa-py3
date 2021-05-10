@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:skewExpiries = select(volatilityInformation == nil, 
+  true->nil, 
+  false->select(volatilityInformation.VolatilityOrUnderlyingIsParametric, 
+    true->volatilityInformation.SkewExpiries(isCall), 
+    false->nil));

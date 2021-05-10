@@ -1,0 +1,6 @@
+[SA-CCR (Beta)]FCreditBalance:saccrReplacementCosts = shunt(ccrIsNetting, 
+  false->saccrPositiveMarkToMarketValue, 
+  true->max(saccrMtMValues - ccrCollateralMarkToMarketValues, ccrZero));
+[SA-CCR (Beta)]FInstrument:saccrReplacementCosts = ccrZero;
+[SA-CCR (Beta)]FMultiInstrumentAndTrades:saccrReplacementCosts = sumOf(openInstruments :* "saccrReplacementCosts");
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrReplacementCosts = openInstrument :* "saccrReplacementCosts";

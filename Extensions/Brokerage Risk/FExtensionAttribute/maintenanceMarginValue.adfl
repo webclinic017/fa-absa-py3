@@ -1,0 +1,7 @@
+[Brokerage Risk]FCurrency:maintenanceMarginValue = nil;
+[Brokerage Risk]FInstrument:maintenanceMarginValue = shunt((collateralPosition == 0) and (portfolio:portfolioType <> "Cash Account") and not (spanInstruments.HasKey(object.Oid)), 
+  true->shunt(maintenanceMarginCondition <> nil, 
+    true->maintenanceMarginCurve.MinValue / 100, 
+    false->1), 
+  false->nil);
+[Brokerage Risk]FSingleInstrumentAndTrades:maintenanceMarginValue = instrument:maintenanceMarginValue [portfolio, positionObject];

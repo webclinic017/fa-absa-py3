@@ -1,0 +1,5 @@
+[Core Risk]FTimeBucketAndObject:vegaStrikeBucketsTimeSheetIsSensitive = select(vegaStrikeBucketsTimeSheetReferenceInstrument, 
+  nil->true, 
+  default->select(isValidDateTime(timeBucketShiftStartDate), 
+    true->(timeBucketShiftStartDate < vegaStrikeBucketsTimeSheetMaxExpiryDate), 
+    false->smallDate < vegaStrikeBucketsTimeSheetMaxExpiryDate));

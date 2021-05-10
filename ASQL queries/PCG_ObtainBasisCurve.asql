@@ -1,0 +1,55 @@
+/*This query creates temporary tables */
+
+select 
+     yc.yield_curve_name  'CurveName',   
+    i.insid         'Currency',
+    l.daycount_method  'DayCount',
+    date_add_banking_day(TODAY,i.insid,i.Spot_banking_days_offset) 'SpotDate'
+    /*date_add_delta(TODAY,i.Spot_banking_days_offset,0,0) 'SpotDate'*/
+    
+INTO
+   CurveDetail 
+        
+from
+    yieldcurve yc,
+    instrument i,
+    Leg l
+where
+
+    yc.yield_curve_name in(@Yield_Curve_Name{'ZAR-BASIS','GBP-BASIS','EUR-BASIS','JPY-BASIS','CHF-BASIS';yieldcurve.yield_curve_name*})
+ and  yc.curr=i.insaddr
+ and  l.insaddr=i.insaddr
+ 
+/* This creates the depo curves from the specified curves*/
+
+select
+    yc.yield_curve_name             'yc',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,1,0,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'1D',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,7,0,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'1W',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,1,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'1M',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,2,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'2M',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,3,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'3M',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,6,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'6M',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,9,0),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'9M',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,1),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'1Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,2),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'2Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,3),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'3Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,4),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'4Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,5),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'5Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,6),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'6Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,7),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'7Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,8),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'8Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,9),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'9Y',
+    yc_rate(yc,c.SpotDate,date_add_delta(c.SpotDate,0,0,10),'Simple',c.DayCount,'Spot Rate',,c.Currency)	'10Y',
+    c.DayCount,
+    c.SpotDate
+from
+    yieldcurve yc,
+    instrument i,
+    CurveDetail c
+where
+
+    yc.yield_curve_name in(@Yield_Curve_Name{'ZAR-BASIS','GBP-BASIS','EUR-BASIS','JPY-BASIS','CHF-BASIS';yieldcurve.yield_curve_name*})
+  and  yc.curr=i.insaddr
+  and  c.CurveName=yc.yield_curve_name
+    

@@ -1,0 +1,27 @@
+[OperationsViewerAxlFormulas]FObject:Security Failed Deliveries
+{
+}
+isValueDayBeforeToday = Compare.IsLess(&'value_day', DateTime.Today());
+
+{
+}
+isAmountNegative = Compare.IsNegative(&'amount');
+
+{
+  DisplayInformation:
+  {
+    Label:'Failed Delivieries',
+    GroupLabel:'Security',
+    Description:'UnSettled security settlements, with negative amount, and value day prior to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(And(&'unSettledSecurityExtAttr', And(@isValueDayBeforeToday(), @isAmountNegative())), &'amount', 0.0));
+
+...

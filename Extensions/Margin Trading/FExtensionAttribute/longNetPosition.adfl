@@ -1,0 +1,5 @@
+[Margin Trading]FCompoundPortfolio:longNetPosition = sumOf(allPhysicalPortfolios :* "longNetPosition" [instrument, positionObject, valuationDate]);
+[Margin Trading]FInstrument:longNetPosition = max(tradesAndSellActiveOrdersQuantity, 0);
+[Margin Trading]FMultiInstrumentAndTrades:longNetPosition = nil;
+[Margin Trading]FPortfolio:longNetPosition = instrument:longNetPosition [activeOrders, positionObject, tradedPortfolio = object, valuationDate];
+[Margin Trading]FSingleInstrumentAndTrades:longNetPosition = portfolio:longNetPosition [instrument, positionObject, valuationDate];

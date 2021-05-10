@@ -1,0 +1,128 @@
+/* update_method=1 */
+/* TBR_CallDealTicketPrinting: last updated on Fri Aug 21 17:21:50 2009. Extracted by Stowaway on 04/09/2009.*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Deal_Ticket_Printing') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Deal_Ticket_Printing' and p.type = 'SQL Query' 
+
+/*
+Date            Who                 CR Number	What
+07/11/2007      Heinrich Cronje     		Created
+25/11/2008      Heirnich Cronje     		Updating Call_Settle_Method in Settlement manager
+25/11/2009      Heinrich Cronje     		Optimised Code
+15/12/2009      Heinrich Cronje     		Added Settlement status to report.
+28/11/2011      Heinrich Cronje     852513	Optimised Code
+15/05/2013      Sinethemba Saul     1027597 Added two additional info fields. 
+Description:
+
+Report all the cashflows  (transactions) done on call account. 
+That is instype = Deposit and legtype = call fixed adjustable.
+
+*/
+
+/*--------------------------------------------------
+                    Macro
+--------------------------------------------------*/
+select
+    to_date(@3_Start_Date{Today})  'Start_Date',
+    to_date(@4_End_Day{Today}) 'End_Date'
+into
+    macros
+from
+    serverdata s
+where
+    srdnbr > 0
+
+/*--------------------------------------------------
+                    Trade Selection
+--------------------------------------------------*/
+
+select
+    t.trdnbr,
+    display_id(t,'counterparty_ptynbr') 'counterparty',
+    i.insid,
+    display_id(t,'prfnbr')   'portfolio',
+    add_info(t,'Funding Instype')   'Funding_Instype',
+    add_info(t, 'Confo Date Sent') 'Confo_Date',
+    add_info(t, 'Confo Text') 'Confo_Text',
+    i.insaddr,
+    t.quantity
+into
+    trades
+from
+    trade t,
+    instrument i
+where
+        match_filter(t, @1_Filter{Call_All_Trades;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+
+/*--------------------------------------------------
+                    CashFlow Selection
+--------------------------------------------------*/
+
+select
+    t.trdnbr,
+    t.counterparty,
+    t.insid,
+    t.portfolio,
+    t.Funding_Instype,
+    t.Confo_Date,
+    t.Confo_Text,
+    c.type = 'Fixed Amount' ? to_double(t.quantity*c.fixed_amount) : to_double(t.quantity*projected_cf(c)) 'amount',
+    c.cfwnbr,
+    c.pay_day,
+    c.creat_time   'deal_time',
+    display_id(c,'creat_usrnbr')   'dealer',
+    c.type,
+    c.start_day,
+    c.end_day,
+    add_info(c,'Settle_Type') 'Settlement_Type'
+into
+    cashflows
+from
+    trades t,
+    leg l,
+    cashflow c,
+    macros m
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and c.creat_time >= m.Start_Date
+    and c.creat_time <= m.End_Date
+    and (c.type in ('Fixed Amount','Fixed Rate Adjustable')
+    or (c.type =  'Call Fixed Rate Adjustable'
+    and c.start_day < m.Start_Date
+    and c.end_day <= m.End_Date))
+
+/*--------------------------------------------------
+                    Final Selection
+--------------------------------------------------*/
+
+select
+    c.trdnbr,
+    c.counterparty,
+    c.insid,
+    c.cfwnbr,
+    s.seqnbr is Null ? c.amount : s.amount	'amount',
+    c.pay_day,
+    c.deal_time,
+    c.portfolio,
+    c.Funding_Instype,
+    c.dealer,
+    c.type,
+    c.start_day,
+    c.end_day,
+    c.Settlement_Type,
+    add_info(s,'Call_Settle_Method')    'Call_Settle_Method',
+    s.seqnbr,
+    s.status,
+    c.Confo_Date,
+    c.Confo_Text
+from
+    cashflows c,
+    settlement s
+where
+        c.trdnbr *= s.trdnbr
+    and c.cfwnbr *= s.cfwnbr

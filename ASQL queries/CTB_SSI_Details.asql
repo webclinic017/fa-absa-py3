@@ -1,0 +1,116 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CTB_SSI_Details') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CTB_SSI_Details' and p.type = 'SQL Query'
+
+/*
+Purpose             : Retrieves the party details needed for the FICA project                
+Department and Desk : IT - CTB
+Requester           : Karin Bonthuys
+Developer           : Bhavnisha Sarawan          
+CR Number           : C514880     
+*/
+
+select
+    p.ptynbr,
+    pa.alias
+into
+    pAlias
+from
+    party p,
+    partyalias pa,
+    InstrAliasType iat
+where
+        p.ptynbr = pa.ptynbr
+    and pa.type = iat.oid
+    and iat.alias_type_name = 'SWIFT'
+
+select distinct
+    p.ptynbr                                                                'Party_Num',
+    p.ptyid                                                                 'Party_Name',
+    add_info(p,'BarCap_SMS_CP_SDSID')                                       'BarCap_SMS_CP_SDSID',
+	add_info(p,'BarCap_SMS_LE_SDSID')                                       'BarCap_SMS_LE_SDSID',
+    to_string(si.instype)                                                   'Instrument_Type',
+    to_string(si.settle_cf_type)                                            'Settle_cf_type',
+    p.fullname                                                              'Account_Name',
+    display_id(a,'correspondent_bank_ptynbr')                               'Name_of_Bank',
+    pa.alias                                                                'CP_Code',
+    a.account                                                               'Stored_Account_Number',
+    a.account ~= '' ? ael_s(,'CTB_Account_funcs.accNum',a.account) : a.account             'Account_Number',
+    a.account ~= '' ? ael_s(,'CTB_Account_funcs.accBranch',a.account) : a.account          'Branch_Code'
+into
+    Final
+from
+	party p,
+	pAlias pa,
+	account	a,
+    settleInstruction si,
+    settleInstructionRule sr
+where
+        p.ptynbr = si.ptynbr
+    and si.seqnbr = sr.settle_seqnbr
+    and sr.accnbr = a.accnbr
+    and a.account not in ('DIRECT','.DIRECT','')
+    and a.correspondent_bank_ptynbr *= pa.ptynbr
+
+
+select
+    p.ptynbr 'Pty',
+    a.accnbr,
+    count(sir.settle_seqnbr) 'Num'
+into
+    temp
+from
+	account	a,
+    settleinstructionrule sir,
+    party p
+where
+        a.account not in ('DIRECT','.DIRECT','')
+    and a.accnbr *= sir.accnbr
+    and p.ptynbr = a.ptynbr
+group by 1
+  
+select
+    p.ptynbr                                                                'Party_Num',
+    p.ptyid                                                                 'Party_Name',
+    add_info(p,'BarCap_SMS_CP_SDSID')                                       'BarCap_SMS_CP_SDSID',
+	add_info(p,'BarCap_SMS_LE_SDSID')                                       'BarCap_SMS_LE_SDSID',
+	''                                                                      'Instrument_Type',
+    ''                                                                      'Settle_cf_type',
+    p.fullname                                                              'Account_Name',
+    display_id(a,'correspondent_bank_ptynbr')                               'Name_of_Bank',
+    pa.alias                                                                'CP_Code',
+    a.account                                                               'Stored_Account_Number',
+    a.account ~= '' ? ael_s(,'CTB_Account_funcs.accNum',a.account) : a.account             'Account_Number',
+    a.account ~= '' ? ael_s(,'CTB_Account_funcs.accBranch',a.account) : a.account          'Branch_Code'
+into
+    Final
+from
+	party p,
+	account	a,
+    pAlias pa,
+    temp t
+where
+        a.ptynbr *= p.ptynbr
+    and a.account not in ('DIRECT','.DIRECT','')
+    and a.correspondent_bank_ptynbr *= pa.ptynbr
+    and t.Pty = p.ptynbr
+    and t.Num = 0
+
+select distinct
+    f1.Party_Num                                                         'Party Num',
+    f1.Party_Name                                                        'Party Name',
+    f1.BarCap_SMS_CP_SDSID                                               'BarCap_SMS_CP_SDSID',
+	f1.BarCap_SMS_LE_SDSID                                               'BarCap_SMS_LE_SDSID',
+    f1.Instrument_Type                                                   'Instrument Type',
+    f1.Settle_cf_type                                                    'CashFlow Type',
+    f1.Account_Name                                                      'Account Name',
+    f1.Name_of_Bank                                                      'Name of Bank',
+    f1.CP_Code                                                           'CP_Code',
+    f1.Stored_Account_Number                                             'Stored Account Number',
+    f1.Account_Number                                                    'Account Number',
+    f1.Branch_Code                                                       'Branch Code'
+from
+    Final f1

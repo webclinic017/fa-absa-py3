@@ -1,0 +1,590 @@
+[Default]FObject:QuoteAndHedge
+
+Properties =
+  Abstract=Yes
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=Quote and Hedge
+  EditPermission=System
+  Granularity=10
+  InheritsFrom=FAgent
+  TradingEnabled=Yes
+
+State Hedge =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Pending =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Quote =
+  Description=
+  OnEntry=<none>
+  OnExit=<none>
+
+State Start =
+  Description=
+  OnEntry=ActionEnterStartState
+  OnExit=<none>
+
+State Stop =
+  Description=
+  OnEntry=WithdrawActiveOrdersAndReport
+  OnExit=<none>
+
+Transitions =
+  agentDoneTransition=Hedge -> agentDone / <none> -> Stop
+  agentRestartTransition=Hedge -> agentRestart / <none> -> Start
+  deletedHedgeOrderExistsTransition2=Hedge -> deletedHedgeOrderExists / ActionHandleDeletedHedgeOrders -> Hedge
+  doneHedgeOrdersExistsTransition2=Hedge -> doneHedgeOrderExists / ActionHandleDoneHedgeOrders -> Hedge
+  marketNotOkTransition=Quote -> marketNotOk / ActionMarketNotOk -> Start
+  marketOkTransition=Start -> marketOk / ActionSaveAndSendQuoteLeg -> Pending
+  quoteLegModifyTransition=Quote -> quoteLegModify / ActionSaveAndSendQuoteLeg -> Quote
+  quoteLegPartiallyFilledTransition=Quote -> quoteLegPartiallyFilled / ActionQuoteLegPartiallyFilled -> Quote
+  quoteOrderDoneTransition=Quote -> quoteOrderDone / ActionQuoteOrderFilled -> Hedge
+  quoteOrderOkTransition=Pending -> quoteOrderOk / <none> -> Quote
+  remainingQuantityTooSmallTransition=Start -> remainingQuantityTooSmall / <none> -> Stop
+
+Panel Hedge Info =
+  DisplayName=
+  Orientation=Vertical
+  Variables=hedgeLegMarketPriceDisplay
+
+Panel HedgeLeg =
+  DisplayName=Hedge Leg
+  Orientation=Vertical
+  Variables=hedgeLegBuyOrSell, hedgeLegOrderBook, hedgeLegTradingStrategy, hedgeOrderAccount, hedgeOrderReference, sendHedgeOrders
+
+Panel InformationParameters =
+  DisplayName=Information Parameters
+  Orientation=Horizontal
+  Panels=Quote Info, Hedge Info
+
+Panel InputParameters =
+  DisplayName=Input Parameters
+  Orientation=Horizontal
+  Panels=InputParams1, InputParams2
+
+Panel InputParams1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityToQuote
+
+Panel InputParams2 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteLegTotalQuantity
+
+Panel Legs =
+  DisplayName=
+  Orientation=Horizontal
+  Panels=QuoteLeg, HedgeLeg
+
+Panel Parameters =
+  DisplayName=Update Options
+  Orientation=Horizontal
+  Panels=UpdateOptions1, UpdateOptions2
+
+Panel Performance =
+  DisplayName=Performance
+  Orientation=Vertical
+  Variables=quoteLegPosition, hedgeLegPosition, quoteLegAveragePrice, hedgeLegAveragePrice
+
+Panel PriceRatio =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteAndHedgePriceRatio, quoteAndHedgeQuantityRatio, fxRateFromHedgeToQuote
+
+Panel Prices =
+  DisplayName=
+  Orientation=Vertical
+
+Panel Quantities =
+  DisplayName=
+  Orientation=Vertical
+
+Panel QuantityRatio =
+  DisplayName=
+  Orientation=Vertical
+  Variables=priceRatioType, quantityRatioType, fxRateDisplay
+
+Panel Quote Info =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteLegCalculatedPriceDisplay, quoteLegCalculatedQuantityDisplay, potentialResultDisplay
+
+Panel QuoteLeg =
+  DisplayName=Quote Leg
+  Orientation=Vertical
+  Variables=quoteLegBuyOrSell, quoteLegOrderBook, quoteLegTradingStrategy, quoteOrderAccount, quoteOrderReference
+
+Panel QuoteQuantity =
+  DisplayName=
+  Orientation=Horizontal
+
+Panel QuoteQuantityRestrictions =
+  DisplayName=
+  Orientation=Horizontal
+
+Panel Ratios =
+  DisplayName=Ratios
+  Orientation=Horizontal
+  Panels=PriceRatio, QuantityRatio
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Legs, InputParameters, Ratios, InformationParameters, Parameters
+
+Panel UpdateOptions1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteLegPriceSlack, quoteAndHedgeQuantitySlack
+
+Panel UpdateOptions2 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quoteMaxFactorOfHedgeQuantity, minimumQuantityToQuote
+
+Enums =
+  EnumDirection=Buy, Sell
+  EnumPriceSpreadUnit=In Quote Leg, In Hedge Leg
+  EnumQuoteAndHedgePriceRatioType=Quote Price / Hedge Price, Hedge Price / Quote Price
+  EnumQuoteAndHedgeQuantityRatioType=Quote Qty / Hedge Qty, Hedge Qty / Quote Qty
+
+Conditions =
+  agentDone=noHedgeOrdersActive and (quoteLegFilledQuantityAccumulated >= quoteLegTotalQuantity)
+  agentRestart=noHedgeOrdersActive and quoteLegQuantityFilledLessThanTotal
+  deletedHedgeOrderExists=deletedHedgeOrders.Size > 0
+  doneHedgeOrderExists=doneHedgeOrders.Size > 0
+  infoRuleHedgeLegInternalOrderBookPresent=(hedgeLegTradingStrategy == nil) and (hedgeLegUsedOrderBook.ImTradingInterface == nil)
+  infoRuleHedgeLegOrderBookIsNotEmpty=not hedgeLegOrderBookIsEmpty
+  infoRuleHedgeLegOrderBookIsNotMatching=not hedgeLegOrderBookIsMatching
+  infoRuleHedgeLegOrderBookIsTradeable=hedgeLegOrderBookIsTradeable
+  infoRuleQuoteLegCalculatedQuantityOverMinimum=quoteLegCalculatedQuantityOverMinimum
+  infoRuleQuoteLegInternalOrderBookPresent=(quoteLegTradingStrategy == nil) and (quoteLegUsedOrderBook.ImTradingInterface == nil)
+  infoRuleQuoteLegOrderBookIsConnected=quoteLegUsedOrderBook.IsAvailable
+  infoRuleQuoteLegPriceAndQuantityIsRational=quoteLegPriceAndQuantityIsRational
+  infoRuleQuoteOrderPriceIsSafe=quoteOrderPriceIsSafe
+  marketNotOk=quoteLegUsedOrderBook.IsAvailable and (not quoteOrderHasBeenFilled) and (quoteLegQuantityNotOk or (quoteOrderIsInactive and (not quoteMarketIsCHIX)) or quoteOrderPriceIsSafeFailed or (not hedgeLegOrderBookIsTradeable) or (hedgeLegOrderBookIsEmpty) or ((not quoteLegPriceAndQuantityIsRational) and (not hedgeLegOrderBookIsMatching)))
+  marketOk=quoteOrderPriceIsSafe and (quoteLegPriceAndQuantityIsRational) and (quoteOrderIsInactive or quoteOrderIsActive) and (not hedgeLegOrderBookIsMatching) and (quoteLegUsedOrderBook.IsAvailable) and (hedgeLegOrderBookIsTradeable) and (not hedgeLegOrderBookIsEmpty) and (quoteLegCalculatedQuantityOverMinimum)
+  noHedgeOrdersActive=hedgeOrders.IsEmpty
+  quoteLegModify=(not quoteOrderHasBeenFilled) and marketOk and quoteOrder.IsOrderActive and (quoteLegPriceSlackExceeded or quoteLegQuantitySlackExceeded)
+  quoteLegPartiallyFilled=(not quoteOrderDone) and quoteOrderHasBeenFilled and (quoteOrder.Quantity > 0.0)
+  quoteLegPriceSlackExceeded=switch(quoteLegIsSell, \
+      true->((quoteLegCalculatedPriceRounded > quoteOrderPrice) or ((not almostEqual(quoteLegCalculatedPriceRounded, quoteOrderPrice - abs(quoteLegPriceSlack))) and (quoteLegCalculatedPriceRounded < (quoteOrderPrice - abs(quoteLegPriceSlack))))), \
+      false->((quoteLegCalculatedPriceRounded < quoteOrderPrice) or ((not almostEqual(quoteLegCalculatedPriceRounded, quoteOrderPrice + abs(quoteLegPriceSlack))) and (quoteLegCalculatedPriceRounded > (quoteOrderPrice + abs(quoteLegPriceSlack))))))
+  quoteLegQuantitySlackExceeded=(quoteLegCalculatedQuantity < quoteOrderQuantity) or (quoteLegCalculatedQuantity > (quoteOrderQuantity + quoteAndHedgeQuantitySlack))
+  quoteOrderDone=quoteOrder.IsOrderDone
+  quoteOrderOk=quoteOrderIsActive or quoteOrderDone
+  quoteOrderPriceIsSafeFailed=not quoteOrderPriceIsSafe
+  remainingQuantityTooSmall=(quoteLegTotalQuantity - quoteLegFilledQuantity) < minimumQuantityToQuote
+
+Actions =
+  CreateAndSendHedgeOrder=!CreateAndSendHedgeOrder
+  CreateQuoteOrder=!CreateQuoteOrder
+  DeleteQuoteOrder=!DeleteQuoteOrder
+  HandleDeletedHedgeOrders=!HandleDeletedHedgeOrders
+  HandleDoneHedgeOrders=!HandleDoneHedgeOrders
+  ResetQuoteQuantityUnmodified=0.0 => quoteLegQuantityUnmodified
+  SaveHedgeOrderPrice=hedgePriceFromLastFillPrice => hedgeOrderPrice
+  SaveHedgeOrderQuantity=hedgeQuantityBasedOnFilled => hedgeOrderQuantity
+  SaveQuoteLegFilledQuantity=quoteLegFilledQuantityAccumulated => quoteLegFilledQuantity
+  SaveQuoteOrderPrice=quoteLegCalculatedPriceRounded => quoteOrderPrice
+  SaveQuoteOrderQuantity=quoteLegCalculatedQuantity => quoteOrderQuantity
+  SaveQuoteQuantityUnmodified=quoteLegQuantityLastFilled + quoteLegQuantityUnmodified => quoteLegQuantityUnmodified
+  SetAndSendQuoteOrder=!SetAndSendQuoteOrder
+  WithdrawActiveOrdersAndReport=!WithdrawActiveOrdersAndReport
+
+ActionLists =
+  ActionEnterStartState=CreateQuoteOrder, ResetQuoteQuantityUnmodified
+  ActionHandleDeletedHedgeOrders=HandleDeletedHedgeOrders
+  ActionHandleDoneHedgeOrders=HandleDoneHedgeOrders
+  ActionMarketNotOk=DeleteQuoteOrder
+  ActionQuoteLegPartiallyFilled=ActionQuoteOrderFilled
+  ActionQuoteOrderFilled=SaveHedgeOrderPrice, SaveHedgeOrderQuantity, SaveQuoteQuantityUnmodified, SaveQuoteLegFilledQuantity, SaveQuoteOrderQuantity, CreateAndSendHedgeOrder
+  ActionSaveAndSendQuoteLeg=ResetQuoteQuantityUnmodified, SaveQuoteOrderPrice, SaveQuoteOrderQuantity, SetAndSendQuoteOrder
+
+Variable deletedHedgeOrders =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable doneHedgeOrders =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable fxRateDisplay =
+  Description=The used Fx Rate
+  Domain=string
+  Type=ReadOnly
+  Value=switch((quoteLegUsedOrderBook <> nil) and (hedgeLegUsedOrderBook <> nil), \
+      true->quoteLegUsedOrderBook.Currency.Name + "/" + hedgeLegUsedOrderBook.Currency, \
+      default->"")
+
+Variable fxRateFromHedgeToQuote =
+  Description=Used FX rate
+  DisplayName=Fx Rate
+  Domain=double
+  Type=Public
+  Value=double(fxHedgeToQuote)
+
+Variable hedgeLegAveragePrice =
+  Description=The average price of the hedge leg
+  DisplayName=Hedge Avg Price
+  Domain=double
+  Type=ReadOnly
+  Value=shunt(hedgeLegFilledQuantityFromOrders, \
+      0->0, \
+      default->hedgeLegFilledValue / hedgeLegFilledQuantityFromOrders)
+
+Variable hedgeLegBuyOrSell =
+  Description=Buy or sell opposite to the quote leg
+  DisplayName=Hedge Buy/Sell
+  Domain=enum(BuyOrSell)
+  Type=ReadOnly
+  Value=switch("Buy" == quoteLegBuyOrSell, \
+      true->"Sell", \
+      false->"Buy")
+
+Variable hedgeLegFilledQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable hedgeLegMarketPriceDisplay =
+  Description=The calculated hedge price
+  DisplayName=Hedge Price
+  Domain=double
+  Type=ReadOnly
+  Value=hedgeLegMarketPrice
+
+Variable hedgeLegOrderBook =
+  Description=Drag an order book from the Explorer or the Trading Manager
+  DisplayName=Hedge Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable hedgeLegPosition =
+  Description=The total position in the hedge leg
+  DisplayName=Hedge Position
+  Domain=double
+  Type=ReadOnly
+  Value=sumOf(hedgeLegOrders :* "filledQuantityFromOrder * bidOrAskSign")
+
+Variable hedgeLegResidual =
+  Description=The total volume of all active hedge orders.
+  DisplayName=Residual
+  Domain=int
+  Type=ReadOnly
+  Value=switch(hedgeLegOrders.IsEmpty, \
+      true->0.0, \
+      default->switch(hedgeLegIsSell, \
+        true->(-1.0) * sumOf(hedgeLegOrders :* "activeQuantity"), \
+        default->sumOf(hedgeLegOrders :* "activeQuantity")))
+
+Variable hedgeLegResidualAmount =
+  Description=The amount that yet have not been hedged.
+  DisplayName=Residual Amount
+  Domain=double
+  Type=ReadOnly
+  Value=hedgeLegRemainingResidual * hedgeLegResidualPrice
+
+Variable hedgeLegTradingStrategy =
+  Description=The SMART trading strategy to be used
+  DisplayName=Hedge Trading Strategy
+  Domain=FAlgoTradingStrategy
+  Mandatory=No
+  Type=InputFixed
+  Value=
+
+Variable hedgeLegUsedOrderBook =
+  Domain=FTradingInterface
+  Type=Private
+  Value=
+
+Variable hedgeOrderAccount =
+  Description=The account of the order (hedge leg)
+  DisplayName=Hedge Account
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=hedgeLegUsedOrderBook.GetDefaultValueEx("ownOrderAccount", context)
+
+Variable hedgeOrderPrice =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable hedgeOrderQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable hedgeOrderReference =
+  Description=The reference of the order (hedge leg)
+  DisplayName=Hedge Reference
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=hedgeLegUsedOrderBook.GetDefaultValueEx("ownOrderReference", context)
+
+Variable hedgeOrders =
+  Domain=FDependentArray
+  Type=Private
+  Value=
+
+Variable latestHedgeOrder =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable minimumQuantityToQuote =
+  Description=The minimum quantity to quote at beginning of new Quote&Hedge cycle.
+  DisplayName=Min Qty to Quote
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=1.0
+
+Variable potentialResultDisplay =
+  Description=Displays the potential result of starting the agent now.
+  DisplayName=Potential Result
+  Domain=string
+  Type=ReadOnly
+  Value=potentialResult
+
+Variable priceRatioType =
+  Domain=EnumQuoteAndHedgePriceRatioType
+  Mandatory=No
+  Type=Input
+  Value="Hedge Price / Quote Price"
+
+Variable quantityRatioType =
+  Domain=EnumQuoteAndHedgeQuantityRatioType
+  Mandatory=No
+  Type=Input
+  Value=switch(priceRatioType, \
+      "Quote Price / Hedge Price"->"Hedge Qty / Quote Qty", \
+      default->"Quote Qty / Hedge Qty")
+
+Variable quantityToQuote =
+  Description=The quantity to quote, at least round lot, this quantity will repeatedly be quoted until Total Quantity is filled.
+  DisplayName=Qty to Quote
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable quoteAndHedgePriceRatio =
+  Description=Price scaling factor between the quote and hedge leg
+  DisplayName=Price Ratio
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=1.0
+
+Variable quoteAndHedgeQuantityRatio =
+  Description=Quantity scaling factor between the quote and hedge leg
+  DisplayName=Quantity Ratio
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=1.0
+
+Variable quoteAndHedgeQuantitySlack =
+  Description=Requoting quantity slack
+  DisplayName=Quantity Slack
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=quantityToQuote
+
+Variable quoteLegAveragePrice =
+  Description=The average price of the quote leg.
+  DisplayName=Quote Avg Price
+  Domain=double
+  Type=ReadOnly
+  Value=shunt(quoteLegFilledQuantityFromOrders, \
+      0->0.0, \
+      default->quoteLegFilledValue / quoteLegFilledQuantityFromOrders)
+
+Variable quoteLegBuyOrSell =
+  Description=Select buy or sell for your quote leg
+  DisplayName=Quote Buy/Sell
+  Domain=EnumDirection
+  Mandatory=No
+  Type=InputFixed
+  Value="Buy"
+
+Variable quoteLegCalculatedPriceDisplay =
+  Description=The calculated quote price.
+  DisplayName=Quote Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteLegCalculatedPriceRounded
+
+Variable quoteLegCalculatedQuantityDisplay =
+  Description=Adjusted quote quantity
+  DisplayName=Quote Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=quoteLegCalculatedQuantity
+
+Variable quoteLegFilledQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable quoteLegFilledQuantityPreviously =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable quoteLegOrderBook =
+  Description=Drag an order book from the Explorer or the Trading Manager
+  DisplayName=Quote Order Book
+  Domain=FOrderBookInterface
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable quoteLegPosition =
+  DisplayName=Quote Position
+  Domain=double
+  Type=ReadOnly
+  Value=sumOf(quoteLegOrders :* "filledQuantityFromOrder * bidOrAskSign")
+
+Variable quoteLegPriceSlack =
+  Description=Requoting slack
+  DisplayName=Price Slack
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+Variable quoteLegQuantityUnmodified =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable quoteLegTotalQuantity =
+  Description=The total quantity to be traded in the quote leg
+  DisplayName=Total Quantity
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=quantityToQuote
+
+Variable quoteLegTradingStrategy =
+  Description=The SMART trading strategy to be used
+  DisplayName=Quote Trading Strategy
+  Domain=FAlgoTradingStrategy
+  Mandatory=No
+  Type=InputFixed
+  Value=
+
+Variable quoteLegUsedOrderBook =
+  Domain=FTradingInterface
+  Type=Private
+  Value=
+
+Variable quoteMaxFactorOfHedgeQuantity =
+  Description=The maximum factor of the available hedge quantity that should be quoted, a value between 0.0 and 1.0.
+  DisplayName=Quote Ratio
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=1.0
+
+Variable quoteOrder =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable quoteOrderAccount =
+  Description=The account of the order (quote leg)
+  DisplayName=Quote  Account
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=quoteLegUsedOrderBook.GetDefaultValueEx("ownOrderAccount", context)
+
+Variable quoteOrderPrice =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable quoteOrderQuantity =
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable quoteOrderReference =
+  Description=The reference of the order (quote leg)
+  DisplayName=Quote Reference
+  Domain=string
+  Mandatory=No
+  Type=Input
+  Value=quoteLegUsedOrderBook.GetDefaultValueEx("ownOrderReference", context)
+
+Variable sendHedgeOrders =
+  Description=If disabled, hedge orders are created, but inactive and not sent to the market.
+  DisplayName=Send Hedge Orders
+  Domain=bool
+  Mandatory=No
+  Type=InputFixed
+  Value=true
+
+Variable tradingSession =
+  Domain=FTradingSession
+  Type=Private
+  Value=
+
+ParameterRule hedgeLegBuyOrSell =
+  Behavior=Enable
+  Expression=enableHedging
+
+ParameterRule RuleMinimumQuantityToQuoteGreaterOrEqualToOne =
+  Behavior=Validate
+  ErrorMessage=Min Quantity to Quote must be greater or equal to one.
+  Expression=object.MinimumQuantityToQuote >= 1.0
+
+ParameterRule RulePriceRatioGreaterThanZero =
+  Behavior=Validate
+  ErrorMessage=Price Ratio must be greater than zero.
+  Expression=object.QuoteAndHedgePriceRatio > 0.0
+
+ParameterRule RulePriceSlackGreaterThanZero =
+  Behavior=Validate
+  ErrorMessage=Price Slack must be greater or equal to zero.
+  Expression=object.QuoteLegPriceSlack >= 0.0
+
+ParameterRule RuleQtyGreaterOrEqualToOne =
+  Behavior=Validate
+  ErrorMessage=Quantity to Quote must be greater or equal to one.
+  Expression=object.QuantityToQuote >= 1.0
+
+ParameterRule RuleQuantityRatioGreaterThanZero =
+  Behavior=Validate
+  ErrorMessage=Quantity Ratio must be greater than zero.
+  Expression=object.QuoteAndHedgeQuantityRatio > 0.0
+
+ParameterRule RuleQuantityToQuoteGreaterOrEqualToMinimumQuantityToQuote =
+  Behavior=Validate
+  ErrorMessage=Quantity to Quote must be greater or equal to Minimum Quantity to Quote.
+  Expression=object.QuantityToQuote >= object.MinimumQuantityToQuote
+
+ParameterRule RuleQuoteRatioGreaterThanZero =
+  Behavior=Validate
+  ErrorMessage=Quote Ratio must be greater than zero.
+  Expression=object.QuoteMaxFactorOfHedgeQuantity > 0.0
+
+<end>

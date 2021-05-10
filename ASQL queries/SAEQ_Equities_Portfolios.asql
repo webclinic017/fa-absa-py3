@@ -1,0 +1,75 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Equities_Portfolios') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Equities_Portfolios' and p.type = 'SQL Query' 
+
+/*
+Date            Who                 CR Number	    What
+2019-06-13      Marian Zdrazil      CHG1001877373   Created
+
+Description:
+
+This report will report a premium forecast for the next
+5 banking days of a specified date based on a specified
+trade filter or trade number.
+*/
+
+/*---------- Calculating dates ----------*/
+select
+    @3_Date{Today}  'Today'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    m.Today 'T0',
+    date_add_banking_day(m.Today, 'ZAR', 1) 'T1',
+    date_add_banking_day(m.Today, 'ZAR', 2) 'T2',
+    date_add_banking_day(m.Today, 'ZAR', 3) 'T3',
+    date_add_banking_day(m.Today, 'ZAR', 4) 'T4',
+    date_add_banking_day(m.Today, 'ZAR', 5) 'T5'
+into
+    dates
+from
+    macros m
+
+/*---------- Headers ----------*/
+select
+    'Portfolio'     'prfid',
+    'Instrument'    'insid',
+    to_string(d.T0) 'T0',
+    to_string(d.T1) 'T1',
+    to_string(d.T2) 'T2',
+    to_string(d.T3) 'T3',
+    to_string(d.T4) 'T4',
+    to_string(d.T5) 'T5'
+from
+    dates d
+
+union
+
+/*---------- Data ----------*/
+select
+    display_id(t,'prfnbr')   'prfid',
+    i.insid,
+    to_string(sum(t.value_day = d.T0 ? t.premium : 0)) 'T0',
+    to_string(sum(t.value_day = d.T1 ? t.premium : 0)) 'T1',
+    to_string(sum(t.value_day = d.T2 ? t.premium : 0)) 'T2',
+    to_string(sum(t.value_day = d.T3 ? t.premium : 0)) 'T3',
+    to_string(sum(t.value_day = d.T4 ? t.premium : 0)) 'T4',
+    to_string(sum(t.value_day = d.T5 ? t.premium : 0)) 'T5'
+from
+    trade t,
+    instrument i,
+    dates d
+where
+        t.insaddr = i.insaddr
+    and match_filter(t, @1_Filter{SAEQ_Equities_Portfolios;tradefilter.fltid}, @2_TrdNos{})
+
+group by 1, 2

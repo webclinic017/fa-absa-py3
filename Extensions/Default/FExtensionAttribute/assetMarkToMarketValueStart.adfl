@@ -1,0 +1,10 @@
+[Default]FCombInstrMapAndTrades:assetMarkToMarketValueStart = nil;
+[Default]FDeliverableLinkAndTrades:assetMarkToMarketValueStart = nil;
+[Default]FInstrumentAndTrades:assetMarkToMarketValueStart = select(isCashGrouping, 
+  true->collapse(cashHistoricalValueStartDisplay), 
+  false->shunt(profitAndLossStartDateIsActivated, 
+    true->marketValueStart, 
+    false->plZero));
+[Default]FPriceAggregate:assetMarkToMarketValueStart = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "assetMarkToMarketValueStart");

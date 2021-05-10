@@ -1,0 +1,11 @@
+[Default]FSecurityMoneyFlow:securityNominal = select(instrument.InsType, 
+  "Repo/Reverse"->tradeQuantities * instrument.RefValue, 
+  "SecurityLoan"->select(security:isPhysicalQuotation, 
+    true->tradeQuantities * security:contractSizeInQuotation, 
+    false->tradeQuantities * instrument.RefValue), 
+  default->tradeQuantities * weight * nominalOrContractSize);
+[Default]FSettlement:securityNominal = select(object.Type, 
+  "Security Nominal"->settlementAmount, 
+  default->select(securitySibling, 
+    nil->nil, 
+    default->securitySibling:settlementAmount));

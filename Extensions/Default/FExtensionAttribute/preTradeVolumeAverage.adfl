@@ -1,0 +1,7 @@
+[Default]FGroupingOrder:preTradeVolumeAverage = nil;
+[Default]FOrderProgram:preTradeVolumeAverage = nil;
+[Default]FOwnOrder:preTradeVolumeAverage = nil;
+[Default]FPrePostTradeAnalysis:preTradeVolumeAverage = switch(includeOTCDealsInPreAndPostTradeAnalysis, 
+  true->preTradeVolumePattern.DailyQuantity(true) + preTradeVolumePattern.DailyQuantity(false), 
+  false->preTradeVolumePattern.DailyQuantity(false));
+[Default]FSalesOrder:preTradeVolumeAverage = prePostTradeAnalysis:preTradeVolumeAverage;

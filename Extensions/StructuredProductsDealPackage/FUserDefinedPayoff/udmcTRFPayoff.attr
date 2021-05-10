@@ -1,0 +1,105 @@
+[StructuredProductsDealPackage]FObject:udmcTRFPayoff
+# ------------------------------------------
+# PAYOFF EXPRESSION
+# Target Redemption Forward
+#
+# Features:
+# - KI Barrier on "down side", only local not with "memory"
+# ------------------------------------------
+
+# PARAMETERS
+param double targetValue;
+param double barrier;
+param int adjustStrike;
+param matrix(double) notional1;
+param matrix(double) notional2;
+param double strike;
+param double accumulatedValue;
+param int isCallOption;
+param matrix(double) timeSteps;
+param int invertedTarget;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double callOrPut = 2.0 * isCallOption - 1.0;
+double accumulated = accumulatedValue;
+int barrierIsHit = 1;
+double intrinsicValue = 0.0;
+double intrinsicValueInverted = 0.0;
+double adjustedStrike = 0.0;
+double barrierIntrinsic = 0.0;
+int tMax = length(timeSteps);
+int t = 0;
+int terminationEvent = 0;
+double settlementValue = 0.0;
+double previousAccumulated = accumulatedValue;
+double accumulatedVsTarget = 0.0;
+double zeroComparison = 0.00000001;
+
+# MAIN LOOP
+terminationEvent = 0;
+accumulated = accumulatedValue;
+
+for t = 0 to tMax
+{
+        if (not terminationEvent)
+        {
+              previousAccumulated = accumulated;
+              intrinsicValue = (S[t] - strike) * callOrPut;
+              barrierIsHit = 1;
+
+              if (intrinsicValue  > 0.0)
+              {
+              # The ITM side, which is where we compare to the Target Level.
+                        if (invertedTarget)
+                        {
+                            intrinsicValueInverted = (1.0 / S[t] - 1.0 / strike) * callOrPut * (-1.0);
+                            accumulated = accumulated + intrinsicValueInverted;
+                            adjustedStrike = 1.0 / ((1.0 / S[t]) - (targetValue - previousAccumulated) * callOrPut * (-1.0));
+                        }
+                        else
+                        {
+                            accumulated = accumulated + intrinsicValue;
+                            adjustedStrike = S[t] - (targetValue - previousAccumulated) * callOrPut
+                        };
+
+                        accumulatedVsTarget = targetValue - accumulated;
+                        if (accumulatedVsTarget < zeroComparison)
+                        {
+                                terminationEvent = 1;
+                                if(adjustStrike)
+                                {
+                                        intrinsicValue = (S[t] - adjustedStrike) * callOrPut;
+                                };
+                        };
+                        settlementValue = notional1[t] * intrinsicValue;
+               }
+               else
+               {
+               # The OTM side, which is where we check against a potential barrier
+                      if (barrier > zeroComparison)
+                      {
+                              barrierIntrinsic =  (barrier - S[t]) * callOrPut;
+                              if (barrierIntrinsic < 0.0)
+                              {
+                                        barrierIsHit = 0;
+                              };
+                      };
+                      settlementValue = notional2[t] * intrinsicValue * barrierIsHit;
+                };
+                
+                #CASHFLOW
+                cashFlow(t, settlementValue);
+        };
+
+};        
+
+# ------------------------------------------
+#PEL IMPLEMENTATION
+# ------------------------------------------
+
+
+
+...

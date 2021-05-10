@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:volatilityStructureInTheoreticalPriceTransformNoSimulation = select(volatilityStructureInTheoreticalPriceObject, 
+  nil->nil, 
+  default->select(useATMVolAsVolatility, 
+    true->referenceInstrumentForVolatility:referenceATMVol [volatilityInformation = volatilityStructureInTheoreticalPriceObject, priceSource, isSplitAllGrouped], 
+    false->referenceInstrumentForVolatility:volatilityStructureValue [volatilityInformation = volatilityStructureInTheoreticalPriceObject, priceSource, isSplitAllGrouped]));

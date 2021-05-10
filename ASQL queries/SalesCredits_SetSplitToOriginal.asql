@@ -1,0 +1,26 @@
+/*
+Developer   : Ickin Vural
+Module      : 
+Date        : 2011-02-28
+Department and Desk : PCG
+Requester           : Thalia Petousis
+Description : Sets sales credits of connected trades created by splitting to zero
+CR		    : C000000591609
+*/
+
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','SalesCredits_SetSplitToOriginal') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'SalesCredits_SetSplitToOriginal' and p.type = 'SQL Query'
+
+
+select
+	ael_s(,'SalesCredits_SetSplitToOriginal.ASQL')	  /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

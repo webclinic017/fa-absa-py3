@@ -1,0 +1,10 @@
+[Default]FMultiInstrumentAndTrades:agentPortfolioHedgerInstrument = select(groupingReference, 
+  nil->select(parent, 
+    nil->nil, 
+    default->parent:agentPortfolioHedgerInstrument), 
+  default->select(groupingReference.IsKindOf("FStock"), 
+    true->groupingReference, 
+    default->select(parent, 
+      nil->nil, 
+      default->parent:agentPortfolioHedgerInstrument)));
+[Default]FObject:agentPortfolioHedgerInstrument = nil;

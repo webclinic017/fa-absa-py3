@@ -1,0 +1,217 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_SARB_Settlements') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_SARB_Settlements' and p.type = 'SQL Query' 
+ 
+  /*
+
+query to identify SARB settlements
+
+*/
+
+
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+i.insid,
+t.quantity*1000000'Nominal',
+p.prfid,
+cl.entry'tradearea',
+t.premium'premium',
+party.ptyid'CP',
+party.hostid
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+choicelist cl fill
+
+where
+
+i.insaddr=t.insaddr
+and t.optkey1_chlnbr=cl.seqnbr
+and i.instype in ('Bond','IndexLinkedBond','FRN')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Simulated')
+and t.value_day>=@settlement{Today;}
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and party.ptyid like '%SARB%'
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+order by i.instype, i.insid
+
+/*----bsb where t.value day = settlement = cash1 ---------*/
+
+select
+t.value_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+ui.insid,
+t.premium>=0 ? abs(t.quantity)*1000000*-1 : abs(t.quantity)*1000000*1 'Nominal',
+p.prfid,
+cl.entry'tradearea',
+t.premium'premium',
+party.ptyid'CP',
+party.hostid
+
+into temp
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+choicelist cl fill
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Simulated')
+and t.optkey1_chlnbr=cl.seqnbr
+and t.value_day>=@settlement{Today;}
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and party.ptyid like '%SARB%'
+order by i.instype, ui.insid
+
+
+/*---bsb where i.exp day = settlement = cash2 -----*/
+
+select
+i.exp_day'Settlement',
+t.trdnbr,
+t.creat_time,
+t.status,
+i.instype,
+ui.insid,
+i.ref_value*t.quantity>0 ? abs(t.quantity)*1000000*-1 : abs(t.quantity)*1000000*1 'Nominal',
+p.prfid,
+cl.entry'tradearea',
+i.ref_value*t.quantity'premium',
+party.ptyid'CP',
+party.hostid
+
+into temp
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party party,
+instrument ui,
+choicelist cl fill
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype in ('BuySellback','Repo/Reverse')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Simulated')
+and t.optkey1_chlnbr=cl.seqnbr
+and party.ptyid like '%SARB%'
+and p.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3','Telkom Structure','LIABILITIES 9830')
+
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=party.ptynbr
+and i.und_insaddr=ui.insaddr
+and i.exp_day>=@settlement{Today;}
+order by i.instype, ui.insid
+
+
+/*----select all from temp table ------*/
+
+
+select
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'YES' ? t.status : '' 'status',
+'YES' ? t.instype : '' 'instype',
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+t.Nominal,
+t.prfid,
+'Yes' ? t.tradearea : '' 'tradearea',
+t.premium,
+t.CP 'CP',
+t.hostid
+from 
+
+temp t
+
+order by  t.CP,t.insid,5/*t.instype*/
+
+union
+
+select
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+'Sub Total By CP and B_S'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+t.Nominal,
+' ' /*t.prfid*/,
+' ' /*t.tradearea*/,
+sum(t.premium),
+ t.CP,
+t.hostid
+
+from 
+
+temp t
+
+group by t.CP,7 /*B_S*/
+
+
+order by t.CP
+
+
+
+
+
+union
+
+select
+t.Settlement,
+t.trdnbr,
+t.creat_time,
+' Total Sett Date'/*t.status*/,
+' ' /*t.instype*/,
+t.insid,
+t.Nominal>0 ? 'B' : 'S' 'B_S',
+sum(t.Nominal),
+' ' /*t.prfid*/,
+' ' /* t.tradearea  'tradearea'*/,
+sum(t.premium),
+
+ '' /* 'CP'*/,
+t.hostid
+
+from 
+
+temp t
+
+group by 1
+
+

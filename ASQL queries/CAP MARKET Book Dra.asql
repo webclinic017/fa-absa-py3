@@ -1,0 +1,109 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','BSBHein') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CAP MARKET Book Dra' and p.type = 'SQL Query'
+
+/*
+Date            Who                  CR Number  What
+19/02/2007      Heinrich Cronje      N/A        Created
+20/11/2008      Heinrich Cronje      4624       Removed join to TradeFilter
+
+Functionality:
+
+Calculate the positions of selected securities in selected portfolios and move T+2
+to T+3. This is done by booking BuySellback in opposite possition on the same
+portfolio and a same position in the chosen portfolio.
+*/
+
+select
+    @2_TakePosition{JOB12;portfolio.prfid}  'TakePosition',
+    @3_Security{;instrument.insid where instype = 'Bond'}  'Security',
+    @4_RepoRate{}   'RepoRate'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+select
+    i.instype in ('Repo/Reverse','BuySellback') ? ii.insid : i.insid      'Security',
+    i.insaddr   'Insaddr',
+    i.instype in ('Repo/Reverse','BuySellback') ? ii.instype : i.instype   'InsType',
+    p.prfid     'Portfolio',
+    round(sum(position(t,,,,,1)))	 		'Total',
+    round(sum(position(t,,,,date_add_banking_day(today,,0))))  'Current',
+    round(sum(position(t,,,,date_add_banking_day(today,,1))))  'Pos1d',
+    round(sum(position(t,,,,date_add_banking_day(today,,2))))  'Pos2d',
+    round(sum(position(t,,,,date_add_banking_day(today,,3))))  'Pos3d',
+    round(sum(position(t,,,,date_add_banking_day(today,,4))))  'Pos4d',
+    round(sum(position(t,,,,date_add_banking_day(today,,5))))  'Pos5d',
+    ael_i(,'BSBHein.CheckBSB',p.prfid,i.instype in ('Repo/Reverse','Bond','BuySellback','IndexLinkedBond') ? ii.insid : i.insid)  'Flag'
+into 
+    temp
+from
+    trade t,
+    instrument i,
+    instrument ii,
+    portfolio p,
+    macro m
+    
+where
+        match_filter(t, @1_Trade_Filter_Has_Position_In{All_Bond_Portf_excl_Job6/7/12;tradefilter.fltid})
+    and t.insaddr = i.insaddr
+    and i.und_insaddr *= ii.insaddr
+    and t.prfnbr = p.prfnbr
+    and i.instype in ('Repo/Reverse','Bond','BuySellback','IndexLinkedBond')
+    and ( (ii.insid = m.Security) or (i.insid= m.Security))
+
+group by p.prfid
+
+
+
+
+select
+    q.Security,
+    q.InsType,
+    q.Portfolio,
+    q.Total,
+    q.Current,
+    q.Pos1d,
+    q.Pos2d,
+    q.Pos3d,
+    q.Pos4d,
+    q.Pos5d,
+    ael_s(,'BSBHein.CreateBSB',q.Security,m.RepoRate,q.Pos2d,q.Portfolio,m.TakePosition)
+into
+    temp1
+from
+    temp q,
+    macro m
+where
+    q.Flag = 0
+
+select
+    t.trdnbr    'TrdNbr',
+    i.insid     'InsId',
+    i.instype   'InsType',
+    display_id(t,'prfnbr')  'Portfolio',
+    t.status    'Status',
+    t.value_day 'StartDay',
+    i.exp_day   'EndDay',
+    nominal_amount(t)   'Nominal',
+    i.rate      'RepoRate',
+    t.premium   'Start Cash',
+    i.ref_value * t.quantity    'End Cash',
+    t.price 'Start Rate',
+    i.ref_price 'End Rate',
+    display_id(i,'creat_usrnbr')    'User'
+from
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and i.creat_time >= today
+    and display_id(t,'creat_usrnbr') in (@5_ABNumber{ABHH006;'ABHH006','ABSW305'*})
+
+    

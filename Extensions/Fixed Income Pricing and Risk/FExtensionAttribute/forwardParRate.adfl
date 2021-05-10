@@ -1,0 +1,5 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:forwardParRate = select(forwardParRateFromModelCall, 
+  true->theoreticalModelForwardParRate, 
+  false->shunt(almostZero(double(couponFactor), 1e-10), 
+    true->denominatedvalue(0.0, , , forwardValueDate), 
+    default->(unitGoalValueForParOnParRateDate - forwardNonCouponValue) / couponFactor));

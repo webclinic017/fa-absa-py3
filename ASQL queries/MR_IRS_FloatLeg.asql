@@ -1,0 +1,52 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Swap_Float_Leg') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Swap_Float_Leg' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Swap_Float_Leg.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Swap_Float_Leg.csv'},@3_PositionName{'MR_Swap_Float_Leg_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(u,'MR_Swap_Float_Leg.Write',@1_path{'f:\'},@2_FileName{'MR_Swap_Float_Leg.csv'},@3_PositionName{'MR_Swap_Float_Leg_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i,
+	Instrument u
+Where (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('Option')
+And i.und_instype in ('Swap')
+And i.und_insaddr = u.insaddr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

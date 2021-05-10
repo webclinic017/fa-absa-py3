@@ -1,0 +1,4 @@
+[Core Risk]FInstrument:priceDeltaPercentForHedgeValues = select(valuesOnSpot, 
+  true->priceDeltaPercentForHedgeValuesUndiscounted, 
+  false->discountAndFilterCurrency(priceDeltaPercentForHedgeValuesUndiscounted, instrumentMoneyMarketCurvesNoDiscountingType, discountAndConvertToBaseDate, filterUnit));
+[Core Risk]FInstrumentAndTrades:priceDeltaPercentForHedgeValues = priceDeltaHedgeAlternativeChosen :* "priceDeltaPercentForHedgeValues" [priceSource, isSplitAllGrouped, filterUnit, groupingSpotDiscountDate];

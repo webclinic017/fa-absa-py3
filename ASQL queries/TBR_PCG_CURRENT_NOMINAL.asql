@@ -1,0 +1,103 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBR_PCG_CURRENT_NOMINAL') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBR_PCG_CURRENT_NOMINAL' and p.type = 'SQL Query' 
+ 
+  /* 
+    ================================================================
+    asql used to calc basis deltas
+    done by simulating a 1bp bump on basis for given curve
+    Dirk Strauss    14-Sept-2007
+    ================================================================
+*/
+
+select
+	trd.trdnbr,
+	trd.status,	
+	display_id(trd, 'counterparty_ptynbr')                           'cntrpty',    
+	ins.instype,
+	ins.start_day,
+	ins.exp_day,
+	display_id(leg, 'curr')								'curr',
+	'Yes' ? leg.nominal_scaling : ''						'nominal_scaling',
+    leg.nominal_scaling = 'None' ? 1 / leg.nominal_factor :
+        1/leg.initial_index_value							'init_fx',	
+	ael_f(leg, 'dirk_utils.current_nominal_leg', @00_RepDate{TODAY})
+			* trd.quantity							'current_nominal',
+    nominal_amount(leg) * trd.quantity              'initial_nominal',
+    interest_accrued(leg, , @00_RepDate{TODAY})     'accr_int'     
+into
+	temp
+from
+	trade trd,
+	instrument ins,
+	leg
+where
+	match_filter(trd, @02_Filter{Dirk_tmp;tradefilter.fltid}, @03_TrdNbrs{})
+	AND ins.insaddr = trd.insaddr
+	AND ins.insaddr *= leg.insaddr
+	AND ins.instype in ('FXSwap','CurrSwap')
+
+/* =================================================================================================== */
+
+select
+	trd.trdnbr,
+	trd.status,
+	display_id(trd, 'counterparty_ptynbr')                           'cntrpty',    
+	ins.instype,
+	ins.start_day,
+	ins.exp_day,
+	display_id(leg, 'curr')								'curr',
+	'Yes' ? leg.nominal_scaling : ''						'nominal_scaling',
+	1/leg.initial_index_value							'init_fx',	
+	ael_f(leg, 'dirk_utils.current_nominal_leg', @00_RepDate{TODAY})
+			* trd.quantity							'current_nominal',
+    nominal_amount(leg) * trd.quantity              'initial_nominal',
+    interest_accrued(leg, , @00_RepDate{TODAY})     'accr_int'
+
+into
+	temp
+from
+	trade trd,
+	instrument ins,
+	leg
+where
+	match_filter(trd, @02_Filter{Dirk_tmp;tradefilter.fltid}, @03_TrdNbrs{})
+	AND ins.insaddr = trd.insaddr
+	AND ins.insaddr *= leg.insaddr
+	AND ins.instype in ('Swap')
+	AND leg.payleg = 'Yes'
+
+/* =================================================================================================== */
+
+select
+	trd.trdnbr,
+	trd.status,
+	display_id(trd, 'counterparty_ptynbr')                           'cntrpty',    
+	ins.instype,
+	ins.start_day,
+	ins.exp_day,	
+	display_id(ins, 'curr')								'curr',
+	'None'										'nominal_scaling',
+	0.0										'init_fx',
+	nominal_amount(trd)								'current_nominal',
+	nominal_amount(trd)								'initial_nominal',
+    interest_accrued(trd, , @00_RepDate{TODAY})     'accr_int'	
+into
+	temp
+from
+	trade trd,
+	instrument ins,
+	leg
+where
+	match_filter(trd, @02_Filter{Dirk_tmp;tradefilter.fltid}, @03_TrdNbrs{})
+	AND ins.insaddr = trd.insaddr
+	AND ins.insaddr *= leg.insaddr
+	AND ins.instype not in ('FXSwap','CurrSwap', 'Swap')
+
+/* =================================================================================================== */
+
+select * from temp
+

@@ -1,0 +1,6 @@
+[Core Pricing]FVolatilityStructure:pointDataToSkewStrikeConverters = select(referenceInstrument, 
+  nil->nil, 
+  default->select(strikeType, 
+    "Delta"->nil, 
+    "Spread"->nil, 
+    default->createPointDataStrikeConverters(referenceInstrument, dataStrikeQuotation, referenceInstrument:quoteConversionFromConverter [quoteConversionFromQuotation = dataStrikeQuotation, priceSource, doSplitAll], referenceInstrument:forwardValueProvider [priceSource, doSplitAll, calculationCurrency = currency, forwardValuationInInstrumentCurrency = false, exposeForwardValueProviderTargets = false], ConstantValueModel(referenceInstrument:marketSpotValue [priceSource, doSplitAll]))));

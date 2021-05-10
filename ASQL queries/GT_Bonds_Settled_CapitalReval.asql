@@ -1,0 +1,454 @@
+
+
+/* Usage code for this ASQL */
+
+select
+ael_i(p,'ASQL_log','SACM_Bonds_Settled_CapitalReval') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Bonds_Settled_CapitalReval' and p.type = 'SQL Query'
+ 
+/* SACM_Bonds_Settled_CapitalRevFI: last updated on Wed Jun 02 14:28:06 2004. Extracted by Stowaway on 2004-06-04.*/
+/* Updated by Aaeda Waja 16/01/2004*/
+/* Call No : 55939 (a)*/
+/* previously called AndriesSettletCapitalReval */
+/*
+2008-07-24
+
+based on the query = SACM_Bonds_Settled_CapitalRevFI with the following change:
+link to historical price table for each of end(e) start(s) and year-end(ye) dates and
+create corresponding macro inputs to the market based on 'SACM_Bonds_settled_CaoitalRevFI'
+
+Changes:
+
+Purpose              :  [To exclude ABN17 instruments and include  DV23],[Changes from value day accounting to trade date accounting]
+Department and Desk  :  [ABSA Group Treasury : Risk Analyst]
+Requester            :  Lodewyk van der Vyver
+Developer            :  [Tshepo Mabena],[Willie van der Bank]
+CR Number            :  [225308],[C487786 09/11/2010]
+
+*/
+
+/*----------------------------------------- SET UP -----------------------------------------------*/
+
+select
+	s.srdnbr,
+	to_date(@1_StartDate{TODAY})					                    'Start',
+	to_date(@2_EndDate{TODAY})						                    'End',
+	to_date(@3_YearEnd{TODAY})						                    'YearEnd',
+	date_add_banking_day(@2_EndDate{TODAY},
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  		'PrevRepDay',
+	@7_Accounting_Method{;'Accrual','MtM'}					            'AccMethod',
+	date_add_banking_day('2003-04-01',,0)					            'YE',
+	date_add_banking_day(Today,,3)						                'vdate'
+	
+into
+   temp
+from
+   serverdata s
+where
+   s.srdnbr > 0 
+
+/*-------------------------------------- Selecting Coupons --------------------------------------*/
+
+select distinct
+
+    i.insid 			        'ins',
+	projected_cf(c)		        'coup',
+	c.pay_day		            'cpd'
+	
+into
+	coupon
+from
+	trade      t,
+	instrument i,
+	leg        l,
+	cashflow   c,
+	temp       tt
+where
+        match_filter(t,@Filter{;tradefilter.fltid})
+    and t.status not in ('Void', 'Terminated', 'Reserved', 'Simulated')
+    and c.type = 'Fixed Rate'
+    and t.creat_time <= tt.End
+    and i.exp_day >= tt.End
+    and t.insaddr = i.insaddr
+    and l.insaddr =* i.insaddr
+    and l.legnbr  *= c.legnbr
+    and date_add_delta(c.pay_day,-10,,) >= tt.Start
+    and date_add_delta(c.pay_day,-10,,) <= tt.End
+
+/*---------------------------------------- Current Settled Bonds ------------------------------------*/
+
+select
+    p.prfid				    'prfid',
+    tt.End				    'EndDay',
+    t.trdnbr,
+    cp.ptyid,
+    time_to_day(t.time)		'time',
+    t.value_day,
+    c.entry                 'TradeArea',
+    i.extern_id1            'insid',
+
+    t.quantity < 0 ? t.quantity * i.contr_size : to_double(add_info(t,'FIFO_POS'))		'Nominal',
+
+    t.price				    'TradeYield',
+    
+    clean_from_yield(i, tt.End,,,t.price) * (t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))) /100.0	
+    + (interest_accrued(i,, tt.End) * (t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/i.contr_size) 			'AllInPrice',
+
+    clean_from_yield(i, tt.End,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))) / 100.0	        'BookValueEnd',
+    t.value_day > tt.Start ? 0.0 : clean_from_yield(i, tt.Start,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))) / 100.0	'BookValueStart',
+    clean_from_yield(i, tt.YE,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))) / 100.0	        'BookValueYE',
+    pricee.settle			'MtM_Yield',
+
+    clean_from_yield(i, tt.End,,,pricee.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))) /100.0	
+    + interest_accrued(i,, tt.End) * (( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/ i.contr_size)			'AllInPriceMtM',
+
+    t.value_day=i.exp_day ? to_double(add_info(t,'FIFO_POS')) : (clean_from_yield(i,tt.End,,,(i.instype='Bond' ? 
+        (t.value_day<=tt.vdate ? pricee.settle : forward_ytm(i,tt.End)) : 
+        pricee.settle)) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) 			                    'CleanMtMEnd',
+
+    t.value_day=i.exp_day ? to_double(add_info(t,'FIFO_POS')) : (clean_from_yield(i,tt.Start,,,(i.instype='Bond' ? 
+        (t.value_day<=tt.vdate ? prices.settle : forward_ytm(i,tt.Start)) : 
+        prices.settle)) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) 			                    'CleanMtMStart',
+
+    t.value_day=i.exp_day ? to_double(add_info(t,'FIFO_POS')) : (clean_from_yield(i,tt.YearEnd,,,(i.instype='Bond' ? 
+        (t.value_day<=tt.vdate ? priceye.settle : forward_ytm(i,tt.YearEnd)) : 
+        priceye.settle)) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) 			                    'CleanMtMYe',
+
+
+    t.value_day=i.exp_day ? to_double(add_info(t,'FIFO_POS')) : (dirty_from_yield(i,tt.End,,,(i.instype='Bond' ? 
+        (t.value_day<=tt.vdate ? pricee.settle : forward_ytm(i,tt.End)) : 
+        pricee.settle)) * to_double(add_info(t,'FIFO_POS'))) 			                                                                            'DirtyMtM',
+
+    ((Clean_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS'))))                                                              'Capital_Value',
+
+    (((Dirty_from_yield(i,tt.End,,,pricee.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100))-
+        ((Clean_from_yield(i,tt.End,,,pricee.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100)))   'Acc_Int_MtMEnd',
+    (((Dirty_from_yield(i,tt.Start,,,prices.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100))-
+        ((Clean_from_yield(i,tt.Start,,,prices.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100))) 'Acc_Int_MtMStart',
+    (((Dirty_from_yield(i,tt.YearEnd,,,priceye.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))))-
+        ((Clean_from_yield(i,tt.YearEnd,,,priceye.settle) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))))))  'Acc_Int_MtMYE',
+
+    (Dirty_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS')))		                                                          'Dirty_MtM',
+
+    ((Clean_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay)) * to_double(add_info(t,'FIFO_POS'))))  	                                      'Prev_Capital_Value',
+
+    (((Dirty_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay)) * to_double(add_info(t,'FIFO_POS'))))-
+        ((Clean_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay)) * to_double(add_info(t,'FIFO_POS')))))                                        'Prev_Acc_Int_MtM',
+
+    (Dirty_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay)) * to_double(add_info(t,'FIFO_POS')))		                                       'Prev_Dirty_MtM',
+
+
+    dirty_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100				'AllIn',
+    (Clean_from_yield(i,t.value_day,,,t.price)* ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))))/100				'Capital_Amount',
+    (dirty_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) / 100.0) - 
+        (clean_from_yield(i, t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS')) /100.0)'AccruedInterest',
+
+
+    ((Dirty_from_yield(i,tt.End,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100)-
+        (Clean_from_yield(i,tt.End,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100))			     'Acc_Int_TradeEnd',
+
+    t.value_day > tt.Start ? 0.0 : (((Dirty_from_yield(i,tt.Start,,,t.price) * to_double(add_info(t,'FIFO_POS'))/100)-
+        (Clean_from_yield(i,tt.Start,,,t.price) * to_double(add_info(t,'FIFO_POS'))/100))) 
+    /*interest_accrued(i,t.value_day,tt.start) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/i.contr_size	*/	'Acc_Int_TradeStart',
+
+    ((Dirty_from_yield(i,tt.YearEnd,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))))-
+        (Clean_from_yield(i,tt.YearEnd,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS')))))) 		     'Acc_Int_TradeYE',
+
+
+    (((Clean_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS'))))+
+        ((Clean_from_yield(i,tt.End,,,t.price) * to_double(add_info(t,'FIFO_POS'))*-1)))		'Cap_PL',
+
+    ((((Dirty_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS'))))-
+        ((Clean_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS')))))+((t.premium)-
+        ((Clean_from_yield(i,tt.End,,,t.price) * to_double(add_info(t,'FIFO_POS'))*-1))))		'Int_PL',
+
+    (((Dirty_from_yield(i,tt.End,,,pricee.settle) * to_double(add_info(t,'FIFO_POS'))))+(t.premium))	'PL',
+
+    (((Clean_from_yield(i,tt.YearEnd,,,forward_price(i,tt.YearEnd)) * to_double(add_info(t,'FIFO_POS'))))+
+        ((Clean_from_yield(i,t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS'))*-1)))		    'Cap_PL_YE',
+
+    ((((Dirty_from_yield(i,tt.YearEnd,,,forward_price(i,tt.YearEnd)) * to_double(add_info(t,'FIFO_POS'))))-
+        ((Clean_from_yield(i,tt.YearEnd,,,forward_price(i,tt.YearEnd)) * to_double(add_info(t,'FIFO_POS')))))+((t.premium)-
+        ((Clean_from_yield(i,t.value_day,,,t.price) * to_double(add_info(t,'FIFO_POS'))*-1))))		      'Int_PL_YE',
+
+    (((Dirty_from_yield(i,tt.YearEnd,,,priceye.settle) * to_double(add_info(t,'FIFO_POS'))))+(t.premium)) 'PL_YE',
+
+    ((t.value_day > tt.Start) and  (t.value_day <= tt.End) and t.quantity > 0) ? (dirty_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) - 
+    (clean_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) : 0.0		'Purchase_Accrued_Int',
+    ((t.value_day > tt.Start) and  (t.value_day <= tt.End) and t.quantity < 0) ? (dirty_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) - 
+    (clean_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) : 0.0		'Sale_Accrued_Int',
+    date_add_delta(co.cpd,-10,,) < t.value_day  ? 0.0 : ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/i.contr_size * co.coup	'CF',
+
+    (((t.value_day > tt.Start) and  (t.value_day <= tt.End) and t.quantity > 0) ? 
+    (clean_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) : 0.0)		'PurchaseClean',
+
+    (((t.value_day > tt.Start) and  (t.value_day <= tt.End) and t.quantity < 0) ? 
+    (clean_from_yield(i,t.value_day,,,t.price) * ( t.quantity < 0 ? (t.quantity * i.contr_size) : (to_double(add_info(t,'FIFO_POS'))))/100) : 0.0)		'SaleClean'
+
+into
+   settled
+from
+   instrument i,
+   trade      t,
+   portfolio  p,
+   party      cp,
+   temp       tt,
+   choicelist c,
+   coupon     co,
+   party partye,
+   price pricee,
+   party partys,
+   price prices,
+   party partyye,
+   price priceye
+
+where
+        match_filter(t, @Filter{;tradefilter.fltid})
+    and 	i.insaddr = t.insaddr
+    and 	i.instype in ('Bond','IndexLinkedBond')
+    and 	i.insid *= co.ins
+    and 	i.exp_day >= tt.YearEnd
+    and 	t.prfnbr = p.prfnbr
+    and 	t.counterparty_ptynbr=cp.ptynbr
+    and 	t.status not in('Void','Terminated','Reserved','Simulated')
+    and 	t.creat_time <= tt.End
+    and 	t.optkey1_chlnbr=c.seqnbr
+
+    and     i.insaddr*=pricee.insaddr
+    and     pricee.ptynbr =* partye.ptynbr
+    and     partye.ptyid=@Market_end{;'SPOT','SPOT_BESA'}
+    and     pricee.day=*tt.End
+
+    and     i.insaddr*=prices.insaddr
+    and     prices.ptynbr =* partys.ptynbr
+    and     partys.ptyid=@Market_start{;'SPOT','SPOT_BESA'}
+    and     prices.day=*tt.Start
+
+    and     i.insaddr*=priceye.insaddr
+    and     priceye.ptynbr =* partyye.ptynbr
+    and     partyye.ptyid=@Market_ye{;'SPOT','SPOT_BESA'}
+    and     priceye.day=*tt.YearEnd
+    and 	(to_double(add_info(t,'FIFO_POS'))) ~= 0.0
+    
+/*------------------------------------------- Resultant Query -----------------------------------------*/
+
+select
+
+    'Detail'			            'Section',
+    t2.EndDay			            'EndDate',
+    t2.prfid			            'Portfolio',
+    t2.trdnbr 			            'TradeNo',
+    t2.insid	 		            'Instrument',
+    t2.ptyid			            'CounterParty',
+    t2.time				            'DealDate',
+    t2.value_day			        'SettlementDate',
+    t2.TradeArea			        'TradeArea',
+    (t2.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+    t2.TradeYield			        'TradeYield',
+    t2.MtM_Yield			        'MtMYield',
+    t2.Nominal	 		            'Nominal',
+    t2.AllIn			            'All_In',
+    t2.Capital_Amount 		        'Settled_Capital',
+    t2.AccruedInterest		        'AccIntTD',
+    t2.AllInPrice			        'BV_AllInPrice',
+    t2.BookValueEnd			        'BV_CleanPrice',
+    t2.Acc_Int_TradeEnd		        'BV_AccInt',
+    t2.AllInPriceMtM		        'MV_AllInPrice',
+    t2.CleanMtMEnd			        'MV_CleanPrice',
+    t2.Acc_Int_MtMEnd		        'MV_AccInt',
+    t2.Acc_Int_TradeStart		    'Acc_Int_start',
+    t2.Purchase_Accrued_Int,
+    t2.Sale_Accrued_Int,
+    t2.CF,
+    t2.Acc_Int_TradeEnd		        'Acc_Int_end',
+    -1*(t2.Acc_Int_TradeStart + t2.Purchase_Accrued_Int - t2.Sale_Accrued_Int - t2.CF - t2.Acc_Int_TradeEnd)    'AccInt_IS',
+    t2.BookValueStart		        'Clean_Start',
+    t2.PurchaseClean,
+    t2.SaleClean,
+    t2.BookValueEnd			        'Clean_End',
+    -1*(t2.BookValueStart + t2.PurchaseClean - t2.SaleClean - t2.BookValueEnd)                                  'Discount_IS'
+
+from
+    settled t2
+where
+    t2.insid not in ('ABN17')
+
+union
+
+select
+
+    'Total by Portfolio'		                        'Section',
+    t2.EndDay			                                'EndDate',
+    t2.prfid			                                'Portfolio',
+    t2.trdnbr 			                                'TradeNo',
+    t2.insid	 		                                'Instrument',
+    t2.ptyid			                                'CounterParty',
+    t2.time				                                'DealDate',
+    t2.value_day			                            'SettlementDate',
+    t2.TradeArea			                            'TradeArea',
+    (t2.Nominal > 0 ? 'B' : 'S') 	                    'Buy/Sell',
+    (sum(t2.TradeYield * t2.Nominal))/sum(t2.Nominal)	'TradeYield',
+    (sum(t2.MtM_Yield * t2.Nominal))/sum(t2.Nominal)	'MtMYield',
+    sum(t2.Nominal)	 		                            'Nominal',	
+    sum(t2.AllIn)			                            'All_In',
+    sum(t2.Capital_Amount) 		                        'Settled_Capital',
+    sum(t2.AccruedInterest)		                        'AccIntTD',
+    sum(t2.AllInPrice)		                            'BV_AllInPrice',
+    sum(t2.BookValueEnd)		                        'BV_CleanPrice',
+    sum(t2.Acc_Int_TradeEnd)	                        'BV_AccInt',
+    sum(t2.AllInPriceMtM)		                        'MV_AllInPrice',
+    sum(t2.CleanMtMEnd)		                            'MV_CleanPrice',
+    sum(t2.Acc_Int_MtMEnd)		                        'MV_AccInt',
+    sum(t2.Acc_Int_TradeStart)		                    'AccInt_start',
+    sum(t2.Purchase_Accrued_Int),
+    sum(t2.Sale_Accrued_Int),
+    sum(t2.CF),
+    sum(t2.Acc_Int_TradeEnd)		                    'Acc_Int_end',
+    -1*sum(t2.Acc_Int_TradeStart + t2.Purchase_Accrued_Int - t2.Sale_Accrued_Int - t2.CF - t2.Acc_Int_TradeEnd) 	'AccInt_IS',
+    sum(t2.BookValueStart)			                    'Clean_Start',
+    sum(t2.PurchaseClean),
+    sum(t2.SaleClean),
+    sum(t2.BookValueEnd)			                    'Clean_End',
+    -1*sum(t2.BookValueStart + t2.PurchaseClean - t2.SaleClean - t2.BookValueEnd)                                   'Discount_IS'
+
+from
+   settled t2
+where
+   t2.insid not in ('ABN17')
+
+group by t2.prfid
+
+union
+
+select
+   'Total by Instrument'		                        'Section',
+    t2.EndDay			                                'EndDate',
+    t2.prfid			                                'Portfolio',
+    t2.trdnbr 			                                'TradeNo',
+    t2.insid	 		                                'Instrument',
+    t2.ptyid			                                'CounterParty',
+    t2.time				                                'DealDate',
+    t2.value_day			                            'SettlementDate',
+    t2.TradeArea			                            'TradeArea',
+    (t2.Nominal > 0 ? 'B' : 'S') 	                    'Buy/Sell',
+    (sum(t2.TradeYield * t2.Nominal))/sum(t2.Nominal)	'TradeYield',
+    (sum(t2.MtM_Yield * t2.Nominal))/sum(t2.Nominal)	'MtMYield',
+    sum(t2.Nominal)	 		                            'Nominal',	
+    sum(t2.AllIn)			                            'All_In',
+    sum(t2.Capital_Amount) 		                        'Settled_Capital',
+    sum(t2.AccruedInterest)		                        'AccIntTD',
+    sum(t2.AllInPrice)		                            'BV_AllInPrice',
+    sum(t2.BookValueEnd)		                        'BV_CleanPrice',
+    sum(t2.Acc_Int_TradeEnd)	                        'BV_AccInt',
+    sum(t2.AllInPriceMtM)		                        'MV_AllInPrice',
+    sum(t2.CleanMtMEnd)		                            'MV_CleanPrice',
+    sum(t2.Acc_Int_MtMEnd)		                        'MV_AccInt',
+    sum(t2.Acc_Int_TradeStart)		                    'AccInt_start',
+    sum(t2.Purchase_Accrued_Int),
+    sum(t2.Sale_Accrued_Int),
+    sum(t2.CF),
+    sum(t2.Acc_Int_TradeEnd)		                    'Acc_Int_end',
+    -1*sum(t2.Acc_Int_TradeStart + t2.Purchase_Accrued_Int - t2.Sale_Accrued_Int - t2.CF - t2.Acc_Int_TradeEnd)     'AccInt_IS',
+    sum(t2.BookValueStart)			                    'Clean_Start',
+    sum(t2.PurchaseClean),
+    sum(t2.SaleClean),
+    sum(t2.BookValueEnd)			                    'Clean_End',
+    -1*sum(t2.BookValueStart + t2.PurchaseClean - t2.SaleClean - t2.BookValueEnd)                                   'Discount_IS'
+
+from
+   settled t2
+where
+   t2.insid not in ('ABN17')
+
+group by t2.Insid
+
+union
+
+select
+    'Total by Portfolio & Instrument'	                'Section',
+    t2.EndDay			                                'EndDate',
+    t2.prfid			                                'Portfolio',
+    t2.trdnbr 			                                'TradeNo',
+    t2.insid	 		                                'Instrument',
+    t2.ptyid			                                'CounterParty',
+    t2.time				                                'DealDate',
+    t2.value_day			                            'SettlementDate',
+    t2.TradeArea			                            'TradeArea',
+    (t2.Nominal > 0 ? 'B' : 'S') 	                    'Buy/Sell',
+    (sum(t2.TradeYield * t2.Nominal))/sum(t2.Nominal)	'TradeYield',
+    (sum(t2.MtM_Yield * t2.Nominal))/sum(t2.Nominal)	'MtMYield',
+    sum(t2.Nominal)	 		                            'Nominal',	
+    sum(t2.AllIn)			                            'All_In',
+    sum(t2.Capital_Amount) 		                        'Settled_Capital',
+    sum(t2.AccruedInterest)		                        'AccIntTD',
+    sum(t2.AllInPrice)		                            'BV_AllInPrice',
+    sum(t2.BookValueEnd)		                        'BV_CleanPrice',
+    sum(t2.Acc_Int_TradeEnd)	                        'BV_AccInt',
+    sum(t2.AllInPriceMtM)		                        'MV_AllInPrice',
+    sum(t2.CleanMtMEnd)		                            'MV_CleanPrice',
+    sum(t2.Acc_Int_MtMEnd)		                        'MV_AccInt',
+    sum(t2.Acc_Int_TradeStart)		                    'AccInt_start',
+    sum(t2.Purchase_Accrued_Int),
+    sum(t2.Sale_Accrued_Int),
+    sum(t2.CF),
+    sum(t2.Acc_Int_TradeEnd)		                    'Acc_Int_end',
+    -1*sum(t2.Acc_Int_TradeStart + t2.Purchase_Accrued_Int - t2.Sale_Accrued_Int - t2.CF - t2.Acc_Int_TradeEnd)     'AccInt_IS',
+    sum(t2.BookValueStart)			                    'Clean_Start',
+    sum(t2.PurchaseClean),
+    sum(t2.SaleClean),
+    sum(t2.BookValueEnd)			                    'Clean_End',
+    -1*sum(t2.BookValueStart + t2.PurchaseClean - t2.SaleClean - t2.BookValueEnd)                                    'Discount_IS'
+
+from
+    settled t2
+where
+    t2.insid not in ('ABN17')
+
+group by t2.prfid, t2.Insid
+
+union
+
+select
+
+    'Total'				                                        'Section',
+    t2.EndDay			                                        'EndDate',
+    t2.prfid			                                        'Portfolio',
+    t2.trdnbr 			                                        'TradeNo',
+    t2.insid 			                                        'Instrument',
+    t2.ptyid			                                        'CounterParty',
+    t2.time				                                        'DealDate',
+    t2.value_day			                                    'SettlementDate',
+    t2.TradeArea			                                    'TradeArea',
+    (t2.Nominal > 0 ? 'B' : 'S') 	                            'Buy/Sell',
+    (sum(t2.TradeYield * t2.Nominal))/sum(t2.Nominal)		    'TradeYield',
+    (sum(t2.MtM_Yield * t2.Nominal))/sum(t2.Nominal)			'MtMYield',
+    sum(t2.Nominal)	 		                                    'Nominal',	
+    sum(t2.AllIn)			                                    'All_In',
+    sum(t2.Capital_Amount) 		                                'Settled_Capital',
+    sum(t2.AccruedInterest)		                                'AccIntTD',
+    sum(t2.AllInPrice)		                                    'BV_AllInPrice',
+    sum(t2.BookValueEnd)		                                'BV_CleanPrice',
+    sum(t2.Acc_Int_TradeEnd)	                                'BV_AccInt',
+    sum(t2.AllInPriceMtM)		                                'MV_AllInPrice',
+    sum(t2.CleanMtMEnd)		                                    'MV_CleanPrice',
+    sum(t2.Acc_Int_MtMEnd)		                                'MV_AccInt',
+    sum(t2.Acc_Int_TradeStart)		                            'AccInt_start',
+    sum(t2.Purchase_Accrued_Int),
+    sum(t2.Sale_Accrued_Int),
+    sum(t2.CF),
+    sum(t2.Acc_Int_TradeEnd)		                            'Acc_Int_end',
+    -1*sum(t2.Acc_Int_TradeStart + t2.Purchase_Accrued_Int - t2.Sale_Accrued_Int - t2.CF - t2.Acc_Int_TradeEnd)     'AccInt_IS',
+    sum(t2.BookValueStart)			                            'Clean_Start',
+    sum(t2.PurchaseClean),
+    sum(t2.SaleClean),
+    sum(t2.BookValueEnd)			                            'Clean_End',
+    -1*sum(t2.BookValueStart + t2.PurchaseClean - t2.SaleClean - t2.BookValueEnd)                                   'Discount_IS'
+
+from
+   settled t2
+where
+    t2.insid not in ('ABN17')
+
+group by 1

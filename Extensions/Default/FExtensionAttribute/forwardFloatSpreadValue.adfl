@@ -1,0 +1,10 @@
+[Default]FCashFlowInstrument:forwardFloatSpreadValue = collapse(forwardValueDateZero);
+[Default]FInstrument:forwardFloatSpreadValue = nil;
+[Default]FLeg:forwardFloatSpreadValue = select(count(projectedNonCouponFloatSpreads), 
+  0->denominatedvalue(0.0, currency, , forwardValueDate), 
+  default->select(isCredit, 
+    true->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, riskFreeDiscountCurve, repoCurve, projectedNonCouponFloatSpreads, projectedNonCouponHazardFactors, fxRateToInstrument, instrumentCurrency), 
+    false->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, discountCurve, repoCurve, projectedNonCouponFloatSpreads, fxRateToInstrument, instrumentCurrency)));
+[Default]FSwap:forwardFloatSpreadValue = switch(floatLeg:staticLegInformation.HasZeroFloatSpreadLive(valuationDate), 
+  false->floatLeg:forwardFloatSpreadValue [forwardValueDate], 
+  true->denominatedvalue(0.0, currency, , forwardValueDate));

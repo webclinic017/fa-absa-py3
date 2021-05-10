@@ -1,0 +1,12 @@
+[Default]FInstrument:instrumentSpreadDeltaInstrument = select(priceGreekIncludeQuoteScaling, 
+  true->select(isSupportingQuoteScaling, 
+    true->spotValueToQuoteFactor * differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, instrumentSpreadRiskFactorNames), riskFactorShiftInstrumentSpread instrumentSpreadShiftParametersUp), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001), 
+    false->spotHandlingZero), 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, instrumentSpreadRiskFactorNames), riskFactorShiftInstrumentSpread instrumentSpreadShiftParametersUp), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001));
+[Default]FInstrumentAndTrades:instrumentSpreadDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->openInstrumentOrInstrument :* "collapse(instrumentSpreadDeltaInstrument)" [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling] * combinationInstrumentMapFactor);
+[Default]FMultiInstrumentAndTrades:instrumentSpreadDeltaInstrument = nil;
+[Default]FPriceAggregate:instrumentSpreadDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument :* "instrumentSpreadDeltaInstrument" [priceSource, priceGreekIncludeQuoteScaling]);

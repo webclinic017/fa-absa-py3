@@ -1,0 +1,212 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Bonds_Settled_Today_AE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Bonds_Settled_Today_AE' and p.type = 'SQL Query' 
+/* Updated by Aaeda Waja 19/01/2004
+/* Call No : 55939 (c)
+/* previously called AndriesBondSettledTodayAE */
+
+
+/*----------SET UP------------------*/
+select
+s.srdnbr,
+	to_date(@3_ReportDate{TODAY})						'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  		'PrevRepDay',
+
+date_add_banking_day('2003-04-01',,0)'YE',
+date_add_banking_day(Today,,3)'vdate'
+
+into
+temp
+
+from
+serverdata s
+
+
+
+/*----------------------------current settled bonds--------------*/
+
+select
+
+p.prfid'prfid',
+t.trdnbr,
+cp.ptyid,
+time_to_day(t.time)		'time',
+t.value_day,
+c.entry 'TradeArea',
+i.extern_id1'insid',
+t.price			'TradeYield',	
+
+(t.quantity*1000000)'Nominal',
+
+
+((Clean_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000))'Capital_Value',
+(((Dirty_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000))-((Clean_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000)))'Acc_Int_MtM',
+(Dirty_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000)'Dirty_MtM',
+((Clean_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay))*t.quantity*10000))'Prev_Capital_Value',
+(((Dirty_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay))*t.quantity*10000))-((Clean_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay))*t.quantity*10000)))'Prev_Acc_Int_MtM',
+(Dirty_from_yield(i,tt.PrevRepDay,,,mtm_price(i,tt.PrevRepDay))*t.quantity*10000)'Prev_Dirty_MtM',
+
+
+(Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000)'Capital_Amount',
+((Dirty_from_yield(i,t.value_day,,,t.price)*t.quantity*10000)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000)))'Acc_Int_Trade',
+/*(Dirty_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100*-1)'Consideration',*/
+t.premium *-1 'Consideration',
+
+(((Clean_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000))+((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Cap_PL',
+((((Dirty_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000))-((Clean_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000)))+((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Int_PL',
+(((Dirty_from_yield(i,tt.RepDay,,,mtm_price(i,tt.RepDay))*t.quantity*10000))+(t.premium))'PL',
+
+(accumulated_cash(t, tt.PrevRepDay)- accumulated_cash(t, tt.RepDay))	'CF_Today',
+accumulated_cash(t, tt.RepDay)		'cash_RepDate',
+accumulated_cash(t, tt.PrevRepDay)	'cash_PrevRepDate',
+mtm_price(i,tt.RepDay)			'MtM_Yield',
+t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity) 'DirtyMtM',
+t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity) 'CleanMtM',
+(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity))-(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity)) 'IntMtM',
+(t.value_day=i.exp_day ? t.quantity*1000000 : (clean_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity))-
+(t.value_day=i.exp_day ? t.quantity*1000000 : clean_from_yield(i,tt.RepDay,,,t.price)*10000*t.quantity) 'Clean_PL_Incep',
+((t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(dirty_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity))-(t.value_day=i.exp_day ? t.quantity*1000000 : 
+	(clean_from_yield(i,tt.RepDay,,,(i.instype='Bond' ? (t.value_day<=tt.vdate ? mtm_price(i,tt.RepDay) : forward_ytm(i,tt.RepDay)) : mtm_price(i,tt.RepDay)))*10000*t.quantity)) )-((t.value_day=i.exp_day ? t.quantity*1000000 : 
+	dirty_from_yield(i,tt.RepDay,,,t.price)*10000*t.quantity) - (t.value_day=i.exp_day ? t.quantity*1000000 : clean_from_yield(i,tt.RepDay,,,t.price)*10000*t.quantity))	'Int_Incep'
+
+into
+settled
+
+
+from
+instrument i,
+trade t,
+portfolio p,
+party cp,
+temp tt,
+choicelist c
+
+where
+match_filter(t, @Filter{;tradefilter.fltid})
+and i.insaddr=t.insaddr
+and i.instype in ('Bond','IndexLinkedBond')
+and t.value_day>=tt.YE
+and t.prfnbr=p.prfnbr
+and t.counterparty_ptynbr=cp.ptynbr
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and (t.value_day=tt.RepDay
+and time_to_day(t.creat_time)<tt.RepDay)
+and t.optkey1_chlnbr*=c.seqnbr
+/*and c.entry not in('ABS001','ABS002')*/
+/*and t.trdnbr not in (136909,157334,157336,165995,170819,171431,
+172056,172057,173038,173397,173457,173623,173639,174161,
+174168,174287,174313,174335,174337,174407,174542,174589,
+174610,174961)*/
+
+/*Group by 3,2 i.externid1 and then by c.entry
+
+-----------------resultant query--------------*/
+
+select
+
+tt.RepDay 			'ReportDate',
+t2.prfid			'Portfolio',
+t2.trdnbr 			'TradeNo',
+t2.insid	 		'Instrument',
+t2.ptyid			'CounterParty',
+t2.time		 		'DealDate',
+t2.value_day			'SettlementDate',
+t2.TradeArea			'TradeArea',
+(t2.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+t2.TradeYield,			
+t2.Nominal	 		'Nominal',	
+t2.Consideration		'Consideration',
+t2.Capital_Amount 		'Settled Capital',
+t2.Acc_Int_Trade		'AccIntTD',
+t2.MtM_Yield,
+t2.DirtyMtM,
+t2.CleanMtM,
+t2.IntMtM,
+/*'' 'PL_Incep'*/
+(t2.Clean_Pl_Incep >= 0 ? t2.Clean_Pl_Incep : -1*t2.Clean_Pl_Incep) 'PL_Incep',
+t2.Int_Incep
+/*sum(s.Clean_PL_ON)*/
+
+
+from
+settled t2,
+temp tt
+
+
+union
+
+
+select
+
+tt.RepDay 			'ReportDate',
+t2.prfid			'Portfolio',
+t2.trdnbr 			'TradeNo',
+t2.insid	 		'Instrument',
+t2.ptyid			'CounterParty',
+t2.time		 		'DealDate',
+t2.value_day			'SettlementDate',
+t2.TradeArea			'TradeArea',
+(t2.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+sum(t2.TradeYield * t2.Nominal)/sum(t2.Nominal),
+sum(t2.Nominal)	 		'Nominal',
+sum(t2.Consideration)		'Consideration',
+sum(t2.Capital_Amount) 		'Settled Capital',
+sum(t2.Acc_Int_Trade)		'AccIntTD',
+sum(t2.MtM_Yield * t2.Nominal)/sum(t2.Nominal),
+sum(t2.DirtyMtM),
+sum(t2.CleanMtM),
+sum(t2.IntMtM),
+/*'' 'PL_Incep'*/
+sum((t2.Clean_Pl_Incep >= 0 ? t2.Clean_Pl_Incep : -1*t2.Clean_Pl_Incep)) 'PL_Incep',
+sum(t2.Int_Incep)
+
+
+from
+settled t2,
+temp tt
+
+group by t2.prfid
+
+
+union
+
+
+select
+
+tt.RepDay 			'ReportDate',
+t2.prfid			'Portfolio',
+t2.trdnbr 			'TradeNo',
+t2.insid	 		'Instrument',
+t2.ptyid			'CounterParty',
+t2.time		 		'DealDate',
+t2.value_day			'SettlementDate',
+t2.TradeArea			'TradeArea',
+(t2.Nominal > 0 ? 'B' : 'S') 	'Buy/Sell',
+sum(t2.TradeYield * t2.Nominal)/sum(t2.Nominal),
+sum(t2.Nominal)	 		'Nominal',
+sum(t2.Consideration)		'Consideration',
+sum(t2.Capital_Amount) 		'Settled Capital',
+sum(t2.Acc_Int_Trade)		'AccIntTD',
+sum(t2.MtM_Yield * t2.Nominal)/sum(t2.Nominal),
+sum(t2.DirtyMtM),
+sum(t2.CleanMtM),
+sum(t2.IntMtM),
+/*'' 'PL_Incep'*/
+sum((t2.Clean_Pl_Incep >= 0 ? t2.Clean_Pl_Incep : -1*t2.Clean_Pl_Incep)) 'PL_Incep',
+sum(t2.Int_Incep)
+
+
+from
+settled t2,
+temp tt
+
+group by t2.Insid

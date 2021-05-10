@@ -1,0 +1,7 @@
+#grouping: risk factors/monte carlo simulations
+
+[UDMCUtilMod]FInstrument:udmcSimulations = select(udmcDescription.At("simulations"), 
+  default->udmcDescription.At("simulations"), 
+  nil->select(udmcProcessVolType, 
+    "Stochastic"->monteCarloDefaultSimulationsStochasticVol, 
+    default->monteCarloDefaultSimulationsDeterministicVol));

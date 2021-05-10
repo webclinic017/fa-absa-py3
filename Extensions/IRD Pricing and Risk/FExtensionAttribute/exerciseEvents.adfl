@@ -1,0 +1,6 @@
+[IRD Pricing and Risk]FInstrument:exerciseEvents = select(underlying, 
+  nil->nil, 
+  default->switch(exerciseEventCount, 
+    0->sortedExerciseEventsLast.Element, 
+    1->sortedExerciseEvents[0], 
+    default->lot(sortedExerciseEvents)));

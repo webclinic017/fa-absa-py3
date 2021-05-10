@@ -1,0 +1,6 @@
+[Automated Trading]ExecutionAlgo:algoMinEquilibriumQtyRequired = select(algoAuctionQuantityRatio > 0.0001, 
+  true->object.AuctionSliceQuantity / algoAuctionQuantityRatio, 
+  default->object.AuctionSliceQuantity * 4);
+[Automated Trading]ExecutionAlgoVolumeParticipation:algoMinEquilibriumQtyRequired = select(algoAuctionQuantityRatio > 0.0001, 
+  true->min((object.AuctionSliceQuantity / algoAuctionQuantityRatio), (algoPeriodAverageTradeSize / algoAuctionQuantityRatio)), 
+  default->min((object.AuctionSliceQuantity * 4), (algoPeriodAverageTradeSize * 4)));

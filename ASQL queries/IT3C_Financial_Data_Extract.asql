@@ -1,0 +1,132 @@
+/* update_method=0 */
+/*----------------------------------------------------------------------------------------------------
+MODULE
+    IT3C_Financial_Data_Extract
+
+DESCRIPTION
+    Date      : 2019-08-12
+    Purpose   : Extracts Financial Data for the bank's IT3C report submission
+    Developer : Qaqamba Ntshobane
+    Requester : Nhlanhleni Mchunu
+    Department: PCG
+
+=======================================================================================================
+HISTORY:
+    Date: 	            Change No:          Developer:		            Description:   
+-------------------------------------------------------------------------------------------------------
+    2019-06-19          FTF-161             Qaqamba Ntshobane	        Initial Design
+    2020-02-28          FTF-325             Qaqamba Ntshobane	        Changed BoUV calculation
+    2020-09-28          PCGDEV-540          Qaqamba Ntshobane           Another change to BoUV, added
+                                                                        SDSID and removed unused vars
+
+ENDDESCRIPTION
+-------------------------------------------------------------------------------------------------------
+
+
+******************************************** COUNTERPARTIES ******************************************/
+
+select
+    p.ptyid,
+    p.ptynbr,
+    add_info(p, 'BarCap_Eagle_SDSID') 'sdsid'
+into
+    cpty
+from
+    party p
+where p.ptyid not like '%ZZZ%'
+
+
+/* ********************************************** FX RATES *******************************************/
+
+select
+    cur.insid                   'currency',
+	ael_f(cur,'sars_reporting_functions.usd_rate', to_date(@ValueDate{Today})) 'fx_rate'
+into
+    fx_rates
+from
+	instrument	cur
+where
+    cur.instype = 'Curr'
+
+
+/* ******************************************** INSTRUMENTS ******************************************/
+
+select
+   i.insaddr,
+   i.instype,
+   i.insid,
+   f.fx_rate
+into
+    ins
+from
+    instrument i,
+    fx_rates f
+where
+    i.instype in (@InstrumentType{Bond,Bill,BuySellback,CD,Commodity,Curr,Deposit,EquityIndex,ETF,FRN,PromisLoan,Repo/Reverse,Stock;Instrument.instype*})
+and f.currency = display_id(i,'curr')
+and i.insid not like '%test%'
+and i.insid not like '%TEST%'
+and i.insid not like '%_do not use%'
+and i.insid not like '%DONOTUSE'
+and i.insid not like '%Replica'
+and i.insid not like '%notuse%'
+and ael_f(i, 'sars_reporting_functions.ins_expires_in_period', to_date(@ValueDate{Today})) = 1
+
+
+/* ************************************* PERFORM CALCULATIONS ****************************************/
+
+select
+    i.insaddr,
+    i.insid,
+    i.instype,
+    cp.ptyid        'client_name',
+    p.prfid         'portfolio',
+    cp.ptynbr       'client_code',
+    cp.sdsid,
+    i.fx_rate,
+    sum(ael_f(t,'sars_reporting_functions.get_nominal', to_date(@ValueDate{Today}))) 'balance_of_units',
+    sum(ael_f(t,'sars_reporting_functions.get_nominal', to_date(@ValueDate{Today})) = 0 ? 0:
+        ael_f(t,'sars_reporting_functions.get_bouv', to_date(@ValueDate{Today}))) 'balance_of_units_value',
+    sum(ael_f(t,'sars_reporting_functions.get_premium', to_date(@ValueDate{Today}))) 'proceeds',
+    sum(ael_f(t,'sars_reporting_functions.sold') = 0 ? 0: 
+        ael_f(t,'sars_reporting_functions.get_nominal', to_date(@ValueDate{Today}))) 'units_sold',
+    0.0       'base_cost',
+    0.0       'gains_and_losses'
+into
+	trades
+from
+    ins i,
+    cpty cp,
+    trade t,
+    portfolio p
+where
+    i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and t.status not in ('Void','Simulated','Terminated')
+and t.time < to_date(@ValueDate{Today})
+and t.value_day < to_date(@ValueDate{Today})
+group by 2, 4, 5
+
+
+/* *********************************** WHAT YOU'LL SEE IN COLUMNS ************************************/
+
+select
+    t.instype                'Instrument Type',
+    t.insid                  'Instrument Name',
+    t.client_name            'Counterparty',
+    t.client_code            'Counterparty Code',
+    t.sdsid                  'BarCap Eagle SDSID',
+    t.portfolio              'Portfolio',
+    t.fx_rate                'FX Rate',
+    abs(sum(t.balance_of_units))  'Balance of Units',
+    abs(sum(t.units_sold))        'Units Sold',
+    abs(sum(t.proceeds))          'Proceeds',
+    abs(sum(t.base_cost))         'Base Cost',
+    abs(sum(t.gains_and_losses))  'Gains and Losses',
+    abs(sum(t.balance_of_units)) = 0? 0: abs(sum(t.balance_of_units_value)) 'Balance of Units Value'
+from trades t
+group by 2, 4
+
+
+/* ******************************************** THE END **********************************************/

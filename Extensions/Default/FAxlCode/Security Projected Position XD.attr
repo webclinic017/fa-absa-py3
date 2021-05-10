@@ -1,0 +1,66 @@
+[Default]FObject:Security Projected Position XD
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+isValueDayBeforeOrEqualTodayPlusXWeekDays = Or(Compare.IsLess(&'value_day', DateTime.AddWeekday($X)), Compare.IsEqual(&'value_day', DateTime.AddWeekday($X)));
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+unSettledAmountBeforeOrEqualToTodayPlusXWeekDays = If(And(&'unSettledSecurityExtAttr', @isValueDayBeforeOrEqualTodayPlusXWeekDays($X)), &'amount', 0.0);
+
+{
+}
+settledAmount = If(&'settledSecurityExtAttr', &'amount', 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+         Label:'Number of weekdays',
+         Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'Projected Position XD',
+    GroupLabel:'Security',
+    Description:'Projected balance for security settlements for today + given number of weekdays.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'Projected Position {X.Label}D',
+    Description:'Projected balance for security settlements for today + {X.Label} weekdays.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(Not(Compare.IsNegative($X)), @settledAmount() + @unSettledAmountBeforeOrEqualToTodayPlusXWeekDays($X), 0.0));
+
+
+...

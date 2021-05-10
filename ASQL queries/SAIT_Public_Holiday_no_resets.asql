@@ -1,0 +1,408 @@
+/* Usage code for this ASQL */
+
+/*
+Purpose: To identify all trades that have Value day, expiry day, cashflow pay day, trade payment date, 
+        for a specific currency and date where there are new public holidays
+        and these days needs to be changed.
+Department: IT
+Requester: Anil Parbhoo
+Developer: Anil Parbhoo
+CR Number: CHG1001381203
+*/
+
+select ael_i(p,'ASQL_log','SAIT_Public_Holiday_no_resets') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAIT_Public_Holiday_no_resets' and p.type = 'SQL Query' 
+
+select
+    to_date(@2_Date{Today}) 'date',
+    i.insaddr
+into
+    macros
+from
+    instrument i
+where
+    i.insid = @1_Currency{ZAR;Instrument.insid where instype = 'curr'}
+
+
+select
+    'Value_Day' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    to_date('1970-01-01')   'cf_start_day',
+    to_date('1970-01-01')   'cf_end_day',
+    to_date('1970-01-01')   'cf_pay_day',
+    0 'cfwnbr',
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    to_date('1970-01-01')'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name'Trader'
+from
+    trade t,
+    instrument i,
+    macros m,
+    user u
+where
+        i.curr = m.insaddr
+    and t.value_day = m.date
+    and i.insaddr = t.insaddr
+    and t.status not in ('Simulated','Terminated','Void')
+    and t.trader_usrnbr = u.usrnbr
+    and i.instype not in ('Curr') /* cannot change value dates for fx trades in FA*/
+
+order by 1,5,2   
+    
+union
+
+select
+    'Expiry_Day' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    to_date('1970-01-01')   'cf_start_day',
+    to_date('1970-01-01')   'cf_end_day',
+    to_date('1970-01-01')   'cf_pay_day',
+    0 'cfwnbr',
+  
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    to_date('1970-01-01')'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+    
+from
+    trade t,
+    instrument i,
+    macros m,
+    user u,
+    party p
+where
+        t.insaddr = i.insaddr
+    and i.curr = m.insaddr
+    and i.exp_day = m.date
+    and t.status not in ('Simulated','Terminated','Void')
+    and t.trader_usrnbr = u.usrnbr
+    and i.issuer_ptynbr *= p.ptynbr
+    and p.ptyid ~= 'SARB'
+
+order by 1,5,2
+
+union
+
+select
+    'Und_Expiry_Day' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    to_date('1970-01-01')   'cf_start_day',
+    to_date('1970-01-01')   'cf_end_day',
+    to_date('1970-01-01')   'cf_pay_day',
+    0 'cfwnbr',
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    to_date('1970-01-01')'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+from
+    trade t,
+    instrument i,
+    instrument und,
+    macros m,
+    user u, 
+    party p
+where
+        t.insaddr = i.insaddr
+    and i.und_insaddr = und.insaddr
+    and und.curr = m.insaddr
+    and und.exp_day = m.date
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.exp_day > Today
+    and t.trader_usrnbr = u.usrnbr
+    and i.issuer_ptynbr *= p.ptynbr
+    and p.ptyid ~= 'SARB'
+    
+    
+
+order by 1,5,2
+    
+union
+
+
+
+select
+    'Cashflow'  'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day'start_day',
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+from
+    trade t,
+    instrument i,
+    leg l,
+    cashflow c,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and l.curr = m.insaddr
+    and (c.pay_day = m.date
+    or c.start_day = m.date
+    or c.end_day = m.date)
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.exp_day > Today
+    and t.trader_usrnbr = u.usrnbr
+
+order by 1,5,2 
+
+union
+
+select
+    'Und_Cashflow'  'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day,
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+    
+from
+    trade t,
+    instrument i,
+    instrument und,
+    leg l,
+    cashflow c,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and i.und_insaddr = und.insaddr
+    and und.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and l.curr = m.insaddr
+    and (c.pay_day = m.date
+    or c.start_day = m.date
+    or c.end_day = m.date)
+    and t.status not in ('Simulated','Terminated','Void')
+    and i.exp_day > Today
+    and t.trader_usrnbr = u.usrnbr
+    
+order by 1,5,2
+
+union
+
+select
+    'Start_Day' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    to_date('1970-01-01')   'cf_start_day',
+    to_date('1970-01-01')   'cf_end_day',
+    to_date('1970-01-01')   'cf_pay_day',
+    0 'cfwnbr',
+  
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day,
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+    
+from
+    trade t,
+    instrument i,
+    leg l,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and l.curr = m.insaddr
+    and t.status not in ('Simulated','Terminated','Void')
+    and t.trader_usrnbr = u.usrnbr
+    and i.insaddr = l.insaddr
+    and l.start_day = m.date
+
+
+order by 1,5,2 
+
+union
+
+select
+    'Trade_Payment' 'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    to_date('1970-01-01')   'cf_start_day',
+    to_date('1970-01-01')   'cf_end_day',
+    to_date('1970-01-01')   'cf_pay_day',
+    0 'cfwnbr',
+ 
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    to_date('1970-01-01')'start_day',
+    p.paynbr,
+    p.payday,
+    u.name
+    
+from
+    trade t,
+    instrument i,
+    macros m,
+    user u,
+    payment p
+where
+        t.insaddr = i.insaddr
+    and t.trdnbr = p.trdnbr
+    and p.curr = m.insaddr
+    and t.status not in ('Simulated','Terminated','Void')
+    and t.trader_usrnbr = u.usrnbr
+    and p.payday = m.date
+
+
+
+order by 1,5,2 
+
+union
+
+
+select
+    'Member_Cashflow'  'Section',
+    t.trdnbr,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    i.exp_day,
+    t.value_day,
+    c.start_day 'cf_start_day',
+    c.end_day 'cf_end_day',
+    c.pay_day   'cf_pay_day',
+    c.cfwnbr,
+
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    l.start_day,
+    0 'paynbr',
+    to_date('1970-01-01')'payday',
+    u.name
+    
+from
+    trade t,
+    instrument i,
+    instrument mi,
+    combinationlink cl,
+    leg l,
+    cashflow c,
+    macros m,
+    user u
+where
+        t.insaddr = i.insaddr
+    and cl.owner_insaddr=i.insaddr
+    and cl.member_insaddr=mi.insaddr
+
+    and mi.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and l.curr = m.insaddr
+    and (c.pay_day = m.date
+    or c.start_day = m.date
+    or c.end_day = m.date)
+    and t.status not in ('Simulated','Terminated','Void')
+    /*
+    and i.exp_day > Today
+    */
+    and t.trader_usrnbr = u.usrnbr
+    
+order by 1,5,2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

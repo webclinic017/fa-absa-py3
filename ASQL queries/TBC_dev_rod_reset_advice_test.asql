@@ -1,0 +1,316 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_dev_rod_reset_advice_test') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_dev_rod_reset_advice_test' and p.type = 'SQL Query' 
+
+select
+to_int(convert('double', days_between(@From{},
+                   @To{}, 'Act/365')))              'nodays',
+
+period_rate(c,@From{},@To{})	'Period',
+t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(t)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+projected_cf(c)*t.quantity	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*''	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'AverageRate') 'float',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'RevisedNotional') 'compound',
+t.your_ref			'YourRef'
+
+into tempcash
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='Swap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	@ResetDate{} >= c.start_day 
+and	l.fixed_rate~=0
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and ael_s(t,'InstrType.InstrumentType') = 'ROD'
+and t.status not in ('Simulated', 'Terminated')
+
+
+select
+to_int(convert('double', days_between(@From{},
+                   @To{}, 'Act/365')))              'nodays',
+period_rate(c,@From{},@To{})	'Period',
+t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(t)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+projected_cf(c)*t.quantity	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'AverageRate')'float',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'RevisedNotional') 'compound',	
+t.your_ref			'YourRef'
+
+into tempcash
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+
+and 	i.instype='Swap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+
+
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and ael_s(t,'InstrType.InstrumentType') = 'ROD'
+and t.status not in ('Simulated', 'Terminated')
+
+
+
+/*==========================================================*/
+select
+to_int(convert('double', days_between(@From{},
+                   @To{}, 'Act/365')))              'nodays',
+period_rate(c,@From{},@To{})	'Period',
+t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(t)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*''	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'AverageRate') 'float',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'RevisedNotional') 'compound',
+t.your_ref			'YourRef'
+
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='Swap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	@ResetDate{} >= c.start_day 
+and	l.fixed_rate~=0
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and ael_s(t,'InstrType.InstrumentType') = 'ROD'
+and t.status not in ('Simulated', 'Terminated')
+union
+
+select
+to_int(convert('double', days_between(@From{},
+                   @To{}, 'Act/365')))              'nodays',
+period_rate(c,@From{},@To{})	'Period',
+t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(t)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'AverageRate')'float',
+ael_f(t,'RODResetAdvice.RODRate',@ResetDate{today;},'RevisedNotional') 'compound',	
+t.your_ref			'YourRef'
+
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+
+and 	i.instype='Swap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+
+
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and ael_s(t,'InstrType.InstrumentType') = 'ROD'
+and t.status not in ('Simulated', 'Terminated')
+
+
+union
+
+select 
+
+nodays,
+Period,
+DevNbr,
+Curr,
+Method,
+Nominal,
+Trdnbr,
+BOTrdnbr,
+Time,
+Start,
+End,
+CP,
+FixedPayer,
+ FloatPayer,
+Attention,
+Address,
+Address2,
+Zipcode,
+City,
+Fax,
+Pay_Dates,
+Rate,
+Float_Rate,
+Spread,
+Daycount,
+Business_Days,
+CP_Country,
+Status,
+sum(cashflow) 'cashflow',
+RPL,
+days,
+usyou,
+float,
+ compound,
+YourRef
+
+
+from tempcash
+
+group by trdnbr

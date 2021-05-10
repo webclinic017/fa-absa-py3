@@ -1,0 +1,16 @@
+[_markit_securities_finance_extensions]FInstrument:secLendTradableFee = nil;
+[_markit_securities_finance_extensions]FMultiInstrumentAndTrades:secLendTradableFee = switch(grouper == "Underlying", 
+  true->secLendGetMasterLoan:secLendTradableFee [priceTypeSet], 
+  default->nil);
+[_markit_securities_finance_extensions]FPortfolioInstrumentAndTrades:secLendTradableFee = nil;
+[_markit_securities_finance_extensions]FSecurityLoan:secLendTradableFee = select(secLendMarkitMarket, 
+  default->switch(secLendGetMasterLoan, 
+    default->secLendGetMasterLoan :* "marketPriceFind" [priceSource = "ADS", orderBookMarketSearchOrder = [secLendMarkitMarket], priceFindingMarketSet = true, marketPriceSearchOrder = [priceTypeSet]], 
+    nil->nil), 
+  nil->nil);
+[_markit_securities_finance_extensions]FSingleInstrumentAndTrades:secLendTradableFee = select(instrument:secLendLoanIsMaster, 
+  true->instrument:secLendTradableFee [priceTypeSet], 
+  default->nil);
+[_markit_securities_finance_extensions]FStock:secLendTradableFee = nil;
+[_markit_securities_finance_extensions]FTradeRow:secLendTradableFee = instrument:secLendTradableFee [priceTypeSet];
+[_markit_securities_finance_extensions]FUndefinedObject:secLendTradableFee = nil;

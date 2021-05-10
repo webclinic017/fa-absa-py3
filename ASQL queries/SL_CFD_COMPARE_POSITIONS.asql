@@ -1,0 +1,71 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_CFD_COMPARE_POSITIONS') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_CFD_COMPARE_POSITIONS' and p.type = 'SQL Query' 
+ 
+  select
+    p.day
+into 
+    dates
+from
+    instrument i,
+    price p,
+    party py
+where
+    p.day >= @From{}
+and p.day <= @To{}
+and i.insid = 'ZAR/ASA'
+and py.ptyid = 'SPOT'
+and py.ptynbr = p.ptynbr
+and p.insaddr = i.insaddr
+
+select
+    i.insid,
+    position(i,tf.fltid,,d.day),
+    d.day,
+    tf.fltid
+into
+    temp1
+from
+    instrument i,
+    tradefilter tf,
+    dates d
+where
+    i.instype = 'Stock'
+and tf.fltid = @Filter{;TradeFilter.fltid}
+
+select
+    i.insid,
+    position(i,tf.fltid,,d.day),
+    d.day,
+    tf.fltid
+into
+    temp2
+from
+    instrument i,
+    tradefilter tf,
+    dates d
+where
+    i.instype = 'Stock'
+and tf.fltid = @Filter2{;TradeFilter.fltid}
+
+
+
+select
+    t1.insid,
+    t1.position,
+    t1.day,
+    t2.insid,
+    t2.position,
+    t2.day,
+    t1.position - t2.position   'Diff'
+from
+    temp1   t1,
+    temp2   t2
+where
+    t1.insid = t2.insid
+and t1.position ~= 0
+and t2.position ~= 0
+and t1.day = t2.day

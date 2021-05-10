@@ -1,0 +1,7 @@
+[Default]FInstrument:stdCalcTheoreticalPrice = scenarioaxis(theoreticalPrice, ["theoreticalOrMarketInstrumentValue", "theoreticalInstrumentSpotValuesForPrice"], <["currency", "fxToCurrency", "adsPriceCurrency"], , , stdCalcCurrency>);
+[Default]FInstrumentAndTrades:stdCalcTheoreticalPrice = select(isSettled, 
+  true->instrument:valuationDateZero, 
+  false->instrument :* "stdCalcTheoreticalPrice" [priceSource, isSplitAllGrouped, mtmPriceCurrency, filterUnit = stdCalcFilterUnit]);
+[Default]FMultiInstrumentAndTrades:stdCalcTheoreticalPrice = select(instrumentGroupingReference, 
+  nil->denominatedValueZero, 
+  default->instrumentGroupingReference :* "theoreticalPrice" [priceSource, isSplitAllGrouped, filterUnit]);

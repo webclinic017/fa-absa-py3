@@ -1,0 +1,12 @@
+#grouping: enabled
+
+[Core Risk]FObject:fxMatrixCurrencyPair =
+  Description=Shift of FX spot rates in relative percentage terms in a scenario. A specific currency pair is identified dynamically based on the grouping in the portfolio sheet. This currency pair is shifted in relative percentage terms. x is the cross rate constructed of currency pair y and z and p is the shift size. If Currency 1 is chosen as shift currency, the shift will be a simple shift where currency 1 is shifted with (1+p). If Currency 2 is chosen as shift currency, the shift will be a shift where currency 2 is shifted with (1/(1+p)). If Currency 1 and Currency 2 are chosen as shift currencies, y and z are shifted as: x(1+p) = y(1+r) / z(1-r) where r = p / (p+2). The 'IsHistorical' filter determines whether only historical ('Yes'), only live rates ('No'), or both historical and live rate (default value 'None') are to be shifted.
+  ExtensionAttributeGroupItem=fx matrix
+  FilterTransform=FEvalCriteriaProxy
+  FilterType=FFxMatrix
+  GroupLabel=FX
+  MatchTopNodeOnly=true
+  ShiftFunctions=shiftFXMatrixRelativePercentNoCurrencyPair
+  ShiftFunctionWithDynamicParameters=shiftFXMatrixRelativePercentCurrencyPairDynamic
+

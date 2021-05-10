@@ -1,0 +1,167 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_CFD_ShortFees') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_CFD_ShortFees' and p.type = 'SQL Query' 
+ 
+/* Calculate Script fee payable on all share borrows for the CFD portfolio for selected counterparties 
+   Paul Jacot-Guillarmod 2009/03/27 */
+
+
+/* Get the previous days closing price of all instruments in the CFD portfolio against selected counterparties within
+   the specified time interval */
+select distinct
+    i.insaddr,
+    i.insid 'Instrument',
+    p.day 'Date',
+    mtm_price(i,date_add_banking_day(p.day,'ZAR',-1))/100 'ClosePrice'
+into
+    market_val
+from
+    instrument i,
+    trade t,
+    party cp,
+    price p,
+    portfolio pr
+where
+    i.insaddr = t.insaddr
+and t.counterparty_ptynbr = cp.ptynbr
+and t.prfnbr = pr.prfnbr
+and p.insaddr = i.insaddr
+and p.day >= @StartDate{}
+and p.day <= @EndDate{}
+and pr.prfid = @Portfolio{;Portfolio.prfid}
+and cp.ptyid in (@CounterParty{;Party.ptyid*})
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated')
+and display_id(p,'ptynbr') = 'internal'
+and time_to_day(t.time) <= @EndDate{}
+
+/* Get quantity and fee for all trades before the end date of the time interval.  This will be used to group
+   positions by fee */
+select
+    i.insaddr,
+    i.insid,
+    cp.ptyid 'CounterParty',
+    pr.prfid,
+    time_to_day(t.time) 'Date',
+    t.fee,
+    t.quantity
+into
+    fee_positions 
+from
+    instrument i,
+    trade t,
+    portfolio pr,
+    party cp
+where
+    i.insaddr = t.insaddr
+and time_to_day(t.time) < @EndDate{}
+and pr.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and pr.prfid = @Portfolio{;Portfolio.prfid}
+and cp.ptyid in (@CounterParty{;Party.ptyid*})
+and t.status not in ('Void', 'Simulated')
+
+/* Calculate daily positions within the given time interval, grouped by fee and matched with the 
+   previous days close price */
+select
+    fp.CounterParty,
+    fp.insid,
+    mv.Date,
+    fp.fee 'Rate',
+    mv.ClosePrice,
+    sum(fp.quantity) 'Position'
+into
+    final_positions
+from
+    fee_positions fp,
+    market_val mv
+where
+    mv.insaddr = fp.insaddr
+and fp.Date < mv.Date
+group by 1, 2, 3, 4
+
+/* Calculate the final fees and charges */
+select
+    CounterParty,
+    insid 'Instrument',
+    'YES'?Date:'' 'Date',
+    'YES'?Rate:'' 'Rate',
+    'YES'?ClosePrice:'' 'ClosePrice',
+    Position 'Position',
+    Rate*ClosePrice*Position/36500 'Fee',
+    to_double(@AdminFee{})*ClosePrice*Position/36500 'AdminCharge',
+    Rate < to_double(@InternalFeeRec{})? (to_double(@InternalFeeRec{})-Rate)*ClosePrice*Position/36500: 0.0 'FeeDiff'
+into
+    final
+from
+    final_positions
+where
+    Position ~= 0
+
+select
+    'Detail',
+    CounterParty,
+    Instrument,
+    Date,
+    Rate,
+    ClosePrice,
+    Position,
+    Fee,
+    AdminCharge,
+    FeeDiff
+from
+    final
+    
+union
+
+select
+    'Day Summary',
+    CounterParty,
+    Instrument,
+    Date,
+    '',
+    '',
+    sum(Position),
+    sum(Fee),
+    sum(AdminCharge),
+    sum(FeeDiff)
+from
+    final
+group by 2, 3, 4
+
+union
+
+select
+    'Instrument Summary',
+    '',
+    Instrument,
+    '',
+    '',
+    '',
+    sum(Position),
+    sum(Fee),
+    sum(AdminCharge),
+    sum(FeeDiff)
+from
+    final
+group by 3
+
+union
+
+select
+    'Grand Totals',
+    '',
+    '',
+    '',
+    '',
+    '',
+    sum(Position),
+    sum(Fee),
+    sum(AdminCharge),
+    sum(FeeDiff)
+from
+    final
+group by 2

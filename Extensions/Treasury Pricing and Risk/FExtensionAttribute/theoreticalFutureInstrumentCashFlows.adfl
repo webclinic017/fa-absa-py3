@@ -1,0 +1,17 @@
+[Treasury Pricing and Risk]FBuySellBack:theoreticalFutureInstrumentCashFlows = refValue * riskPosition + underlying :* "theoreticalFutureInstrumentCashFlows" [positionObject, tradesInPosition, projectedPaymentDate := object.ExpiryDate] - underlying :* "theoreticalFutureInstrumentCashFlows" [positionObject, tradesInPosition, projectedPaymentDate := object.StartDate];
+[Treasury Pricing and Risk]FCashFlowInstrument:theoreticalFutureInstrumentCashFlows = select(isCustomValued, 
+  true->theoreticalFutureCashFlowsLegPart, 
+  false->select(valuationModelName, 
+    "Cash Flow"->theoreticalFutureCashFlowsLegPart, 
+    "Simplistic TRS"->theoreticalFutureCashFlowsLegPart, 
+    default->riskPosition * theoreticalInstrumentComponentValue + theoreticalFutureCashFlowsLegPart));
+[Treasury Pricing and Risk]FCombInstrMap:theoreticalFutureInstrumentCashFlows = basketComponentWeight * instrument :* "theoreticalFutureInstrumentCashFlows" [positionObject, tradesInPosition];
+[Treasury Pricing and Risk]FCombination:theoreticalFutureInstrumentCashFlows = sumOf(instrumentMaps :* "theoreticalFutureInstrumentCashFlows" [positionObject, tradesInPosition]);
+[Treasury Pricing and Risk]FFuture:theoreticalFutureInstrumentCashFlows = select(payType, 
+  "Future"->select(mtmFromFeed, 
+    true->marketSpotValue * riskPosition, 
+    default->theoreticalInstrumentValue * riskPosition), 
+  default->discountCurve.DiscountValue(theoreticalInstrumentValue, spotOrForwardDate) * riskPosition);
+[Treasury Pricing and Risk]FFxRate:theoreticalFutureInstrumentCashFlows = instrumentSpotZero;
+[Treasury Pricing and Risk]FInstrument:theoreticalFutureInstrumentCashFlows = theoreticalInstrumentValue * riskPosition;
+[Treasury Pricing and Risk]FOdf:theoreticalFutureInstrumentCashFlows = theoreticalModelCashFlowProjectedValue * riskPosition;

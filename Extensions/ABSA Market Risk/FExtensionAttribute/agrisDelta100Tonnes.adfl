@@ -1,0 +1,7 @@
+[ABSA Market Risk]FFuture:agrisDelta100Tonnes = agrisDeltaValue;
+[ABSA Market Risk]FInstrument:agrisDelta100Tonnes = agrisDelta2;
+[ABSA Market Risk]FInstrumentAndTrades:agrisDelta100Tonnes = shunt(children.IsEmpty, 
+  false->sumOf(children :* "agrisDelta100Tonnes" [includeAllTrades = false]), 
+  default->0.0);
+[ABSA Market Risk]FSingleInstrumentAndTrades:agrisDelta100Tonnes = instrument :* "agrisDelta100Tonnes" [positionObject, priceDelta];
+[ABSA Market Risk]FTradeRow:agrisDelta100Tonnes = instrument :* "agrisDelta100Tonnes" [includeAllTrades = false, singleTradePosition, priceDelta];

@@ -1,0 +1,15 @@
+[Core Risk]FCombInstrMap:vegaStrikeBucketsSetExternallyZero = 
+# We need to create an axis with the same cardinality as the time buckets. Just creating a lot will not work with instrument lots.
+select(nil == vegaStrikeBucketsInfoSetExternally, 
+  true->valuationDateZero, 
+  false->scenarioaxis(valuationDateZero, <["valuationDate"], , , vegaStrikeBucketsInfoSetExternally :* "valuationDate">));
+[Core Risk]FInstrument:vegaStrikeBucketsSetExternallyZero = 
+# We need to create an axis with the same cardinality as the time buckets. Just creating a lot will not work with instrument lots.
+select(nil == vegaStrikeBucketsInfoSetExternally, 
+  true->valuationDateZero, 
+  false->scenarioaxis(valuationDateZero, <["valuationDate"], , , vegaStrikeBucketsInfoSetExternally :* "valuationDate">));
+[Core Risk]FInstrumentAndTrades:vegaStrikeBucketsSetExternallyZero = 
+# We need to create an axis with the same cardinality as the time buckets. Just creating a lot will not work with instrument lots.
+select(nil == vegaStrikeBucketsInfoSetExternally, 
+  true->valuationDateZero, 
+  false->scenarioaxis(valuationDateZero, <["valuationDate"], , , vegaStrikeBucketsInfoSetExternally :* "valuationDate">));

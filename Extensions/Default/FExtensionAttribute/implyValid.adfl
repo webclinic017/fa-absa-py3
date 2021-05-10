@@ -1,0 +1,13 @@
+[Default]FDerivative:implyValid = select(isLiveForImply, 
+  false->false, 
+  true->isFinite(marketPrice));
+[Default]FFloor:implyValid = select(isLiveForImply, 
+  false->false, 
+  true->isFinite(marketPrice) and (marketPrice >= implyPrecision));
+[Default]FInstrument:implyValid = select(isLiveForImply, 
+  false->false, 
+  true->isFinite(marketPrice));
+[Default]FInstrumentAndTrades:implyValid = instrument :* "implyValid" [priceSource];
+[Default]FLeg:implyValid = instrument :* "implyValid" [priceSource];
+[Default]FLegAndTrades:implyValid = instrument :* "implyValid" [priceSource];
+[Default]FMultiInstrumentAndTrades:implyValid = nil;

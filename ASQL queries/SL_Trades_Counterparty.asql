@@ -1,0 +1,32 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Trades_Counterparty') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Trades_Counterparty' and p.type = 'SQL Query' 
+ 
+  /* update_method=1 */
+select
+    t.trdnbr,
+    t.price,
+    t.quantity,
+    t.time,
+    t.fee,
+    display_id(t,'counterparty_ptynbr')             'Counterparty',
+    display_id(t,'insaddr')                         'Instrument',
+    display_id(t,'acquirer_ptynbr')                 'Acquirer',
+    date_add_banking_day(t.acquire_day,'ZAR',1)     'Settlementdate'
+    
+from
+    trade t,
+    portfolio p, 
+    party pt
+where
+    p.prfid = @Portfolio{;Portfolio.prfid}
+and t.prfnbr = p.prfnbr
+and t.status not in ('Void')
+and t.counterparty_ptynbr = pt.ptynbr
+and pt.ptyid in (@Party{;Party.ptyid*})
+and date_add_banking_day(t.acquire_day,'ZAR',1) <= @Date{}
+/*and display_id(t,'counterparty_ptynbr') = 'HSBC 1'*/
+order by 6,7,4

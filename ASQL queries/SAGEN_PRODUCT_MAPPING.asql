@@ -1,0 +1,26 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_PRODUCT_MAPPING') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_PRODUCT_MAPPING' and p.type = 'SQL Query' 
+/*
+Name:		SAGEN_PRODUCT_MAPPING
+Created_By:	Hardus Jacobs	
+History:	
+Description:	To give the product mapping from Front Arena to Midbase
+*/
+	
+
+select
+	i.insaddr				'InsAddr',
+	i.insid					'Instrument',
+	ael_s(t,'InstrType.InstrumentType')	'Instype'
+from 
+	instrument i,
+	trade t
+where 
+	i.insaddr = t.insaddr 
+and 	i.instype = 'Swap'
+and 	i.exp_day > '2008-12-31'
+

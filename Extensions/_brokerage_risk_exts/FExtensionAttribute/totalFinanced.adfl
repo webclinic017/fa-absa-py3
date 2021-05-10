@@ -1,0 +1,5 @@
+[_brokerage_risk_exts]FInstrument:totalFinanced = switch(portfolio:portfolioType, 
+  "Financing Account"->-collateralCash - equityPremiumValue, 
+  default->currencyZero);
+[_brokerage_risk_exts]FMultiInstrumentAndTrades:totalFinanced = convertToCurrency(sumOf(instruments :* "collapse(totalFinanced)" [portfolio, priceSource, valuesOnSpotOverride, positionObject]), portfolioFxRates, displayCurrencySymbol, filterUnit);
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:totalFinanced = convertToCurrency(instrument:totalFinanced [portfolio, priceSource, valuesOnSpotOverride, positionObject], portfolioFxRates, displayCurrencySymbol, filterUnit);

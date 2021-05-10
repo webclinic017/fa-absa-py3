@@ -1,0 +1,10 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:volatilityInProjectedMoneyFlowIfExists = select(count(snoop(projectedMoneyFlow, "volatility")) == 1, 
+  true->select(cashFlowProjectedFromModelCall and not (cashFlow.CashFlowType == "Float Rate") and not (cashFlow.CashFlowType == "Fixed Amount"), 
+    true->cashFlow:volatility, 
+    default->snoop(projectedMoneyFlow, "volatility")), 
+  false->cashFlow:volatility);
+[Core Cash Flow Pricing]FResetMoneyFlow:volatilityInProjectedMoneyFlowIfExists = select(count(snoop(projectedMoneyFlow, "volatility")) == 1, 
+  true->select(cashFlow:cashFlowProjectedFromModelCall and not (cashFlow.CashFlowType == "Float Rate") and not (cashFlow.CashFlowType == "Fixed Amount"), 
+    true->reset:volatility, 
+    default->snoop(projectedMoneyFlow, "volatility")), 
+  false->reset:volatility);

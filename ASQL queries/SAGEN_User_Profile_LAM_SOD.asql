@@ -1,0 +1,65 @@
+/* ******************  ASQL USAGE LOG  *********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAGEN_User_Profile_LAM_SOD') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_User_Profile_LAM_SOD' and p.type = 'SQL Query' 
+ 
+ 
+ 
+select
+    'Front Arena User'                      'Section',
+    u.userid                                'ID',
+    u.name                                  'Description',
+    org.orgid                               'Organisation',
+    g.grpid                                 'Group'
+    
+into
+    UserAccess
+    
+from
+    User u,
+    front.Group g,
+    Organisation org
+    
+where
+    u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+
+
+
+
+select
+    'Front Arena Group'                     'Section',   
+    g.grpid                                 'ID',                              
+    g.description                           'Description',
+    org.orgid                               'Organisation',
+    g.grpid                                 'Group'
+
+into
+    UserAccess
+
+from
+    front.Group g,
+    Organisation org,
+    GroupProfileLink gpl,
+    UserProfile p
+
+where
+    g.orgnbr = org.orgnbr
+
+
+
+
+
+select
+    t.Section,   
+    t.ID,
+    t.Description,
+    t.Organisation,
+    t.Group
+    
+from
+    UserAccess t
+    
+order by 2

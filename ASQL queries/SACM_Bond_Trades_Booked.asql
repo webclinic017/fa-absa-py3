@@ -1,0 +1,47 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SACM_Bond_Trades_Booked') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SACM_Bond_Trades_Booked' and p.type = 'SQL Query' 
+ 
+  select
+@1From{Yesterday} 'Trades From',
+@2UpTo{Today} 'Trades UpTo',
+port.prfid'Portfolio',
+c.entry'TradeArea',
+u.name 'Traded by',
+t.creat_time'Deal Date',
+t.value_day'Settle Date',
+'YES' ? i.extern_id1 : '' 'Bond',
+'YES' ? t.trdnbr : '' 'Trade number',
+party.ptyid'Ptyid',
+(t.quantity*1000000)'Nominal',
+t.price'Trade Yield'
+
+from
+
+user u,
+instrument i,
+trade t,
+party party,
+portfolio port,
+choicelist c, 
+party acq
+
+where
+u.usrnbr = t.trader_usrnbr
+and i.insaddr=t.insaddr
+and t.counterparty_ptynbr=party.ptynbr
+and t.prfnbr=port.prfnbr
+and t.optkey1_chlnbr=c.seqnbr
+and t.acquirer_ptynbr = acq.ptynbr
+
+and i.instype in ('Bond','IndexLinkedBond')
+and time_to_day(t.creat_time) <= @2UpTo{Today}
+and time_to_day(t.creat_time) >= @1From{Yesterday}
+and match_portfolio(t, @3Portfolio{;portfolio.prfid})
+
+and t.status not in ('Void','Reserved','Terminated','Simulated')
+and c.entry not in ('ABS001','ABS002')
+and acq.ptyid ~= 'ABACAS'

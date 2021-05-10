@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:cashInventoryNonNormalized = 
+# Discount to today if Instrument Spot is set to Report Date as there is no common date
+select("Instrument Spot" == reportDate, 
+  true->object:cashInventoryAtReportDateNonNormalized [priceSource, isSplitAllGrouped, currenciesForVectorColumn, profitAndLossSeparateHistorical, includeInceptionCash, valuesOnSpotOverride := "P/L Until Spot OFF"], 
+  false->collapse(cashInventoryAtReportDateNonNormalized));

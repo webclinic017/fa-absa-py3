@@ -1,0 +1,384 @@
+[Default]FObject:CrouchingTiger
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=No
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=Crouching Tiger
+  EditPermission=System
+  Granularity=100
+  InheritsFrom=FAgent
+  StartState=Wait
+  StoreTraceLog=No
+  TradingEnabled=Yes
+
+State Crouch =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State SafetyRulesBreached =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnSafetyBreached
+  OnExit=<none>
+  SuperState=<none>
+
+State Stop =
+  Description=
+  InitialSubState=<none>
+  OnEntry=CleanUp
+  OnExit=<none>
+  SuperState=<none>
+
+State StrikeAsk =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State StrikeBid =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Wait =
+  Description=
+  InitialSubState=<none>
+  OnEntry=OnEnterWait
+  OnExit=<none>
+  SuperState=<none>
+
+Transitions =
+  t0=Wait -> marketOk / <none> -> Crouch
+  t1=Crouch -> marketNotOk / <none> -> Wait
+  t2=Crouch -> okToHitAsk / ActionHitAsk -> StrikeAsk
+  t3=Crouch -> okToHitBid / ActionHitBid -> StrikeBid
+  t4=StrikeAsk -> orderDone / UpdatePositionBid -> Crouch
+  t5=StrikeBid -> orderDone / UpdatePositionAsk -> Crouch
+  t6=Crouch -> safetyRulesNotOK / <none> -> SafetyRulesBreached
+  t7=SafetyRulesBreached -> safetyRulesOK / <none> -> Crouch
+
+Panel Info =
+  DisplayName=Info
+  Orientation=Vertical
+  Variables=askHedgeReqOK, bidHedgeReqOK, hitAskPrice, hitBidPrice, maxOrderQuantity, maxPos, position, strategy, triggerBidPrice, triggerAskPrice, triggerQuantity
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Info
+
+Conditions =
+  askSideNotEmpty=not crouchingTigerPriceFeed.AskPriceDepth.IsEmpty
+  bidSideNotEmpty=not crouchingTigerPriceFeed.BidPriceDepth.IsEmpty
+  marketNotOk=not marketOk
+  marketOk=trading.MarketPlace.IsConnected and trading.Status.AutomaticTrade
+  okToHitAsk=crouchingTigerOkToHitAsk
+  okToHitBid=crouchingTigerOkToHitBid
+  orderDone=tigerOrder.IsOrderDone or tigerOrder.IsOrderDeleted
+  safetyRuleRefAskPriceCheckOK=switch(refPriceCheckActive and crouchingTigerPriceFeed.IsValidPrice(refBasePrice) and (sendAskOrderPrice > 0), \
+      true->switch(refPriceLimitsValid, \
+        true->((sendAskOrderPrice >= lowerLimRefPriceCheck) and (sendAskOrderPrice <= upperLimRefPriceCheck)), \
+        false->false), \
+      false->true)
+  safetyRuleRefBidPriceCheckOK=switch(refPriceCheckActive and crouchingTigerPriceFeed.IsValidPrice(refBasePrice) and (sendBidOrderPrice > 0), \
+      true->switch(refPriceLimitsValid, \
+        true->((sendBidOrderPrice >= lowerLimRefPriceCheck) and (sendBidOrderPrice <= upperLimRefPriceCheck)), \
+        false->false), \
+      false->true)
+  safetyRuleRefPriceCheckOK=safetyRuleRefBidPriceCheckOK and safetyRuleRefAskPriceCheckOK
+  safetyRulesNotOK=(not safetyRuleRefPriceCheckOK) or (not safetyRuleUndPriceMoveOK)
+  safetyRulesOK=not safetyRulesNotOK
+  safetyRuleUndPriceMoveOK=switch(priceMoveCheckActive, \
+      true->(not priceListenerLimitExceeded), \
+      false->true)
+
+Actions =
+  CleanUp=!CleanUp
+  CreateAskOrder=!CreateAskOrder
+  CreateBidOrder=!CreateBidOrder
+  OnEnterWait=!OnEnterWait
+  OnSafetyBreached=!OnSafetyBreached
+  UpdatePositionAsk=position - tigerOrder.FilledQuantity("Order") => position
+  UpdatePositionBid=position + tigerOrder.FilledQuantity("Order") => position
+  WithdrawActiveOrders=
+
+ActionLists =
+  ActionHitAsk=CreateBidOrder
+  ActionHitBid=CreateAskOrder
+
+Variable askHedgeReqOK =
+  Description=Indicates if there is enough hedge volume available to cover a Crouching Tiger ask order
+  DisplayName=Ask Hedge Req OK
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerAskHedgeReqOK
+
+Variable bidHedgeReqOK =
+  Description=Indicates if there is enough hedge volume available to cover a Crouching Tiger bid order
+  DisplayName=Bid Hedge Req OK
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerBidHedgeReqOK
+
+Variable crouchingTigerAccount =
+  Description=Crouching Tiger Account to be set on orders
+  DisplayName=Crouching Tiger Account
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerAccount
+
+Variable crouchingTigerReference =
+  Description=Crouching Tiger Reference to be set on orders
+  DisplayName=Crouching Tiger Reference
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerReference
+
+Variable currentAskPrice =
+  DisplayName=Current Ask Price
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.AskPriceDepth.LimitPriceForQuantity(triggerQuantity, false)
+
+Variable currentBidPrice =
+  DisplayName=Current Bid Price
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.BidPriceDepth.LimitPriceForQuantity(triggerQuantity, false)
+
+Variable hitAskPrice =
+  Description=The current price when Crouching Tiger will send a bid Fill-and-Kill order
+  DisplayName=Hit Ask
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerHitAsk
+
+Variable hitBidPrice =
+  Description=The current price when Crouching Tiger will send an ask Fill-and-Kill order
+  DisplayName=Hit Bid
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerHitBid
+
+Variable lowerLimRefPriceCheck =
+  Description=Lower Limit of the range used for Reference Price Check Safety Rule
+  DisplayName=Lower Limit Price Check
+  Domain=double
+  Type=ReadOnly
+  Value=(refBasePrice - (refPriceSpread))
+
+Variable maxOrderQuantity =
+  Description=The maximum size of each order that Crouching Tiger is allowed to send
+  DisplayName=Max Order Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerMaxQuantity
+
+Variable maxPos =
+  Description=The maximum position that Crouching Tiger is allowed to take
+  DisplayName=Max Position
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerMaxPos
+
+Variable position =
+  Description=The current position of the Crouching Tiger
+  DisplayName=Position
+  Domain=double
+  Type=Private
+  Value=0
+
+Variable priceListener =
+  Description=Underlying OrderBook Last Price Listener
+  DisplayName=Underlying OrderBook Last Price Listener
+  Domain=FPriceListener
+  Type=Public
+  Value=quoteController:crouchingTigerUnderlyingPriceListener
+
+Variable priceListenerLimitExceeded =
+  Description=Variable that captures last price movements
+  DisplayName=Price Listener Limits Exceeded
+  Domain=bool
+  Type=ReadOnly
+  Value=(priceListener <> nil) and priceListener.IsPriceLimitExceeded(priceMoveTimeUnit, priceMoveTimeLimit, priceMoveDifferenceLimit, (priceMoveDifferenceType == "Absolute"))
+
+Variable priceMoveCheckActive =
+  Description=Is the Crouching Tiger Underlying Price Move Check active
+  DisplayName=Crouching Tiger Underlying Price Move Check
+  Domain=bool
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerUnderlyingMovementCheck
+
+Variable priceMoveDifferenceLimit =
+  Description=Underlying Price Move Difference Limit
+  DisplayName=Price Move Difference Limit
+  Domain=double
+  Type=ReadOnly
+  Value=switch(priceMoveDifferenceType, \
+      "Percent"->(quoteController:crouchingTigerMovementDifferenceAllowedEx) * 0.01, \
+      "Absolute"->(quoteController:crouchingTigerMovementDifferenceAllowedEx))
+
+Variable priceMoveDifferenceType =
+  Description=Underlying Price Move Difference Type
+  DisplayName=Price Move Difference Type
+  Domain=differenceType
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerMovementDifferenceTypeEx
+
+Variable priceMoveTimeLimit =
+  Description=Underlying Price Move Time Limit
+  DisplayName=Price Move Time Limit
+  Domain=int
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerMovementTimeEx
+
+Variable priceMoveTimeUnit =
+  Description=Underlying Price Move Time Unit
+  DisplayName=Price Move Time Unit
+  Domain=int
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerMovementTimeUnitEx
+
+Variable propAskPrice =
+  DisplayName=Proposed Ask Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerPropAsk
+
+Variable propBidPrice =
+  DisplayName=Proposed Bid Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerPropBid
+
+Variable quoteController =
+  Domain=FQuoteController
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable refBasePrice =
+  Description=Reference Price of Orderbook as double
+  DisplayName=Reference Price of Orderbook
+  Domain=double
+  Type=ReadOnly
+  Value=double(quoteController:qReferencePrice)
+
+Variable refPriceCheckActive =
+  Description=Is the Crouching Tiger Reference Price Check Activated
+  DisplayName=Price Check Active
+  Domain=bool
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerPriceReasonabilityCheckActive
+
+Variable refPriceDifferenceAllowed =
+  Description=Crouching Tiger Reference Price Difference Allowed
+  DisplayName=Price Difference Allowed
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerPriceDifferenceAllowedEx
+
+Variable refPriceDifferenceType =
+  Description=Crouching Tiger Reference Price Difference Type
+  DisplayName=Price Difference Type
+  Domain=differenceType
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerPriceDifferenceTypeEx
+
+Variable refPriceLimitsValid =
+  Description=Are the calculated upper and lower reference price limits valid as a related of tick related rounding
+  DisplayName=Validity Of Reference Price Limits
+  Domain=bool
+  Type=ReadOnly
+  Value=(lowerLimRefPriceCheck > 0.0) and (upperLimRefPriceCheck > 0.0) and (refPriceSpread > 0.0) and (not acm.Math.AlmostEqual(lowerLimRefPriceCheck, upperLimRefPriceCheck))
+
+Variable refPriceSpread =
+  Description=Reference Price Spread used to calculate lower and upper bounds for bid/ask order price
+  DisplayName=Reference Price Spread
+  Domain=double
+  Type=ReadOnly
+  Value=switch(refPriceDifferenceType, \
+      "Percent"->(refBasePrice * refPriceDifferenceAllowed * 0.01), \
+      "Absolute"->(refPriceDifferenceAllowed))
+
+Variable sendAskOrderPrice =
+  DisplayName=Send Ask Order Price
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.RoundTick(crouchingTigerPriceFeed.BidPriceDepth.LimitPriceForQuantity(triggerQuantity, false))
+
+Variable sendAskOrderVolume =
+  DisplayName=Send Ask Order Volume
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.AskPriceDepth.QuantityAtPrice(currentAskPrice)
+
+Variable sendBidOrderPrice =
+  DisplayName=Send Bid Order Price
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.RoundTick(crouchingTigerPriceFeed.AskPriceDepth.LimitPriceForQuantity(triggerQuantity, false))
+
+Variable sendBidOrderVolume =
+  DisplayName=Send Bid Order Volume
+  Domain=double
+  Type=ReadOnly
+  Value=crouchingTigerPriceFeed.BidPriceDepth.QuantityAtPrice(currentBidPrice)
+
+Variable strategy =
+  Description=The strategy used by Crouching Tiger
+  DisplayName=Strategy
+  Domain=quoteSpreadStrategy
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerStrategy
+
+Variable tag =
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable tigerOrder =
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable trading =
+  DisplayName=OrderBook
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=quoteController.TradingInterface
+
+Variable triggerAskPrice =
+  Description=The percentage of the difference between theoretical value and proposed ask quote. The value is subtracted from the proposed ask quote
+  DisplayName=Trigger Ask Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerTriggerAsk
+
+Variable triggerBidPrice =
+  Description=The percentage of the difference between theoretical value and proposed bid quote. The value is added to the proposed bid quote
+  DisplayName=Trigger Bid Price
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerTriggerBid
+
+Variable triggerQuantity =
+  Description=The minimum volume that must be available before the Crouching Tiger attempts to hit an order
+  DisplayName=Trigger Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=quoteController:crouchingTigerTriggerVolume
+
+Variable upperLimRefPriceCheck =
+  Description=Upper Limit of the range used for Reference Price Check Safety Rule
+  DisplayName=Upper Limit Price Check
+  Domain=double
+  Type=ReadOnly
+  Value=(refBasePrice + (refPriceSpread))
+
+<end>

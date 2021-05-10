@@ -1,0 +1,178 @@
+#grouping: application/preferences
+
+[Default]FExplorerNodeModel:explorer - standard
+Business Objects
++App Workspace
+++Templates,@@pset FAppWorkspaceTemplate
+++Private,@@pset FAppWorkspace
++Automated Trading
+++Agent
++++My,@@pset FStoredAgentSetup createUser = ##user
++++Others,@@pset FStoredAgentSetup createUser <> ##user
+++Log
++++My,@@pset FAgentTrace createUser = ##user
++++Others,@@pset FAgentTrace createUser <> ##user
++Calendars,@@pset FCalendar
++Instruments
+++ABS/MBS,@@pset FAssetMortgageBackedSecurity
+++Autocallables,@@pset FAutocallable
+++Average Future/Forward,@@pset FAverageForward
+++Average Option,@@pset FAverageOption
+++Basket Repos,@@pset FBasketRepo
+++Basket Security Loans,@@pset FBasketSecurityLoan
+++Bills,@@pset FBill
+++Bonds,@@pset FBond
+++Buy Sellbacks,@@pset FBuySellBack
+++Caps,@@pset FCap
+++CDs,@@pset FCertificateOfDeposit
+++Certificates,@@pset FCertificate
+++CFDs,@@pset FCfd
+++Collaterals,@@pset FCollateral
+++Combinations,@@pset FCombination
+++Commodities,@@pset FCommodity
+++Commodity Indexes,@@pset FCommodityIndex
+++Commodity Variants,@@pset FCommodityVariant
+++Convertibles,@@pset FConvertible
+++Credit Balance,@@pset FCreditBalance 
+++Credit Default Swaps,@@pset FCreditDefaultSwap
+++Credit Indexes,@@pset FCreditIndex
+++Credit Link Notes,@@pset FCln
+++Currencies,@@pset FCurrency
+++Currency Swaps,@@pset FCurrencySwap
+++Depositary Receipts,@@pset FDepositaryReceipt
+++Equity Indexes,@@pset FEquityIndex
+++Deposits,@@pset FDeposit
+++Dividend Point Indexes,@@pset FDividendPointIndex
+++Dual Currency Bonds,@@pset FDualCurrencyBond
+++ETF,@@pset FETF
+++Flexi Bonds,@@pset FFlexiBond
+++Floors,@@pset FFloor
+++FRAs,@@pset FFra
+++Free Defined Cash Flows,@@pset FFreeDefinedCashFlow
+++FRNs,@@pset FFrn
+++Fund,@@pset FFund
+++Futures,@@pset FFuture
+++FX Option Dated Forwards,@@pset FOdf
+++FX Swaps,@@pset FFxSwap
+++Index Linked Bonds,@@pset FIndexLinkedBond
+++Index Linked Swaps,@@pset FIndexLinkedSwap
+++Options,@@pset FOption
+++Portfolio Swaps,@@pset FPortfolioSwap
+++Price Indexes,@@pset FPriceIndex
+++Price Swaps,@@pset FPriceSwap
+++Promissory Loans,@@pset FPromisLoan
+++Rate Indexes,@@pset FRateIndex
+++Repos,@@pset FRepo
+++Rolling Schedule,@@pset FRollingSchedule
+++Security Loans,@@pset FSecurityLoan
+++Stocks,@@pset FStock
+++Swaps,@@pset FSwap
+++Total Return Swaps,@@pset FTotalReturnSwap
+++Variance Swaps,@@pset FVarianceSwap
+++Volatility Swaps,@@pset FVolatilitySwap
+++Warrants,@@pset FWarrant
+++Zero Bonds,@@pset FZeroBond
++Limits
+++My,@@pset FLimit createUser = ##user
+++Others,@@pset FLimit createUser <> ##user
++Marketplaces,@@pset FMarketPlace dataSource <> ""
++Order Books,@@pset FMarketPlace dataSource <> "",MarketSegments/OrderBooks
++Portfolios
+++Physical,@@pset FPhysicalPortfolio compound = 0,SubPortfolios
+++Tree,@@pset FCompoundPortfolio ,SubPortfolios
+++Trade Filters,@@pset FTradeSelection
++Tickers
+++News Ticker
++++My,@@pset FNewsTickerSheet createUser = ##user
++++Others,@@pset FNewsTickerSheet createUser <> ##user
+++Order Ticker
++++My,@@pset FOrderTickerSheet createUser = ##user
++++Others,@@pset FOrderTickerSheet createUser <> ##user
+++Trade Ticker
++++My,@@pset FTradeTickerSheet createUser = ##user
++++Others,@@pset FTradeTickerSheet createUser <> ##user
++Time Buckets
+++My,@@pset FStoredTimeBuckets createUser = ##user
+++Others,@@pset FStoredTimeBuckets createUser <> ##user
++Trading Sheet Templates
+++My,@@pset FTradingSheetTemplate createUser = ##user
+++Others,@@pset FTradingSheetTemplate createUser <> ##user
++Valuation Parameters
+++Correlation Matrices,@@pset FCorrelationMatrix
+++Curves,@@pset FYieldCurve
+++Dividend Streams,@@pset FDividendStream
+++Volatility Structures,@@pset FVolatilityStructure
++Workbooks
+++My,@@pset FWorkbook createUser = ##user
+++Others,@@pset FWorkbook createUser <> ##user
++Workspaces
+++My,@@pset FWorkspace createUser = ##user
+++Others,@@pset FWorkspace createUser <> ##user
++Query Folders
+++My,@@pset FStoredASQLQuery createUser = ##user
+++Others,@@pset FStoredASQLQuery createUser <> ##user
++Python Modules,@@acm|PythonModules(##context)
++Reconciliation Documents
+++My,@@pset FReconciliationDocument createUser = ##user
+++Others,@@pset FReconciliationDocument createUser <> ##user
++Scheduled Tasks,@@pset FAelTaskSchedule
++Scripts
+++All,@@acm|PythonScripts(##context)
+++Cross Asset Risk,@@acm|PythonScripts(##context 'groupCrossAssetRisk')
+++Position Storage Management,@@acm|PythonScripts(##context 'groupPositionStorageManagement')
+++Proprietary Valuation,@@acm|PythonScripts(##context 'groupProprietaryValuation')
+++Reporting,@@acm|PythonScripts(##context 'groupReporting')
+++Structured Equity,@@acm|PythonScripts(##context 'groupSEQ')
++Tasks,@@pset FAelTask
+Market Objects
++Accounts,@@pset FMarketPlace dataSource <> "",Accounts
++Order Books,@@pset FMarketPlace dataSource <> "",Lists/OrderBooks
++Quote Rules,@@pset FMarketPlace dataSource <> "",QuoteRules/SpreadTable/SpreadRules/Intervals
++Ticksize Lists,@@pset FMarketPlace dataSource <> "",TickSizeLists/TickSizeIntervals
++Tiering Categories,@@pset FMarketPlace dataSource <> "",TieringCategories
+Back Office
++Party
+++All,@@pset FParty
+++Broker,@@pset FBroker
++++Clearing Broker,@@pset FBroker clearingBroker = 1
++++Issuer,@@pset FBroker issuer = 1
+++Clearing House,@@pset FClearingHouse
++++Issuer,@@pset FClearingHouse issuer = 1
+++Client,@@pset FClient
++++Issuer,@@pset FClient issuer = 1
+++Counterparty,@@pset FCounterParty
++++Issuer,@@pset FCounterParty issuer = 1
+++Depot,@@pset FDepot
++++Issuer,@@pset FDepot issuer = 1
+++Internal Department,@@pset FInternalDepartment
++++Issuer,@@pset FInternalDepartment issuer = 1
+++Issuer,@@pset FIssuer
+++Market Place,@@pset FMarketPlace
++++Issuer,@@pset FMarketPlace issuer = 1
+++Middleware,@@pset FMiddleware
++++Issuer,@@pset FMiddleware issuer = 1
+++MTM Market,@@pset FMTMMarket
++++Issuer,@@pset FMTMMarket issuer = 1
+++Repository,@@pset FRepository
++++Issuer,@@pset FRepository issuer = 1
+++Venue,@@pset FVenue
++++Issuer,@@pset FVenue issuer = 1
++Account,@@pset FAccount
++Calendar,@@pset FCalendar
++Confirmation Instruction,@@pset FConfInstruction
++Settle Instruction,@@pset FSettleInstruction
++Choice List,@@pset FChoiceList list = 'MASTER'
++Portfolio
+++Physical,@@pset FPhysicalPortfolio compound = 0,SubPortfolios
+++Tree,@@pset FCompoundPortfolio ,SubPortfolios
+++Trade Filter,@@pset FTradeSelection
++AliasType
+++Instrument Alias Type,@@pset FInstrAliasType
+++Party Alias Type,@@pset FPartyAliasType
++Alias
+++Party Alias,@@pset FPartyAlias
++Agreement,@@pset FAgreement
++Contact Rule,@@pset FContactRule
++Contact,@@pset FContact
++Scripts,@@acm|PythonScripts(##context 'groupBackoffice')
+...

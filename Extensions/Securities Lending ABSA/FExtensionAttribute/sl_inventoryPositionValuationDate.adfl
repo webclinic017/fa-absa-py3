@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FDateTime:sl_inventoryPositionValuationDate = select((trade.AcquireDay <= object) and (trade.Status <> "Simulated") and (trade.Status <> "Void") and (trade.Status <> "Terminated") and (trade.Status <> "Confirmed Void"), 
+  true->trade.Quantity, 
+  false->0);
+[Securities Lending ABSA]FETF:sl_inventoryPositionValuationDate = sumOf(tradesInPosition :* "sl_inventoryPositionValuationDate" [profitAndLossEndDate]);
+[Securities Lending ABSA]FTrade:sl_inventoryPositionValuationDate = profitAndLossEndDate :* "sl_inventoryPositionValuationDate" [trade = object];

@@ -1,0 +1,6 @@
+[Adaptiv XVA]FCreditBalance:cvaInterestRateVolatilityString = balancePortfolioInstrumentAndTrades :* "cvaInterestRateVolatilityString" [currency, includeAllTrades, priceSource, cvaMappedMoneyMarketLink = discountingUnit:mappedMoneyMarketLink];
+[Adaptiv XVA]FInstrument:cvaInterestRateVolatilityString = createInterestRateVolatilityString(addArraysAndRemoveDuplicates(cvaVolatilityInformations, []), volatilityPointsForwardRatesDict, valuationDate);
+[Adaptiv XVA]FMultiInstrumentAndTrades:cvaInterestRateVolatilityString = createInterestRateVolatilityString(addArraysAndRemoveDuplicates(cvaVolatilityInformations, interestRateProcessVolatilityInformations), volatilityPointsForwardRatesDict, valuationDate);
+[Adaptiv XVA]FOption:cvaInterestRateVolatilityString = select(underlying.IsKindOf("FBond"), 
+  true->createBondYieldVolatilityString(object, underlying:modifiedDuration, volatilityValueModel), 
+  false->createInterestRateVolatilityString(addArraysAndRemoveDuplicates(cvaVolatilityInformations, []), volatilityPointsForwardRatesDict, valuationDate));

@@ -1,0 +1,1249 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* select 
+      ael_i(p,'ASQL_log','LandingArea_frn_dep_bill_cd') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_frn_dep_bill_cd' and p.type = 'SQL Query' */
+ 
+/*
+2007-06-13  Neil Retief     The changes made are to incorporate Money Market Accrued Interest into the Midbase Landing Area according to daily accruel
+                            rules based in SAGEN_Accrued_Interest ASQL Report
+2008-03-03  Heinrich Cronje Money Market Project - Added the sections for Call Accounts
+
+Date                : [2010-04-22],[2010-07-30],[]
+Purpose             : [Update nominal calcultion to current nominal],[send all call accounts (not just Funding Desk) except for AFRICA DESK],
+                      [Updated Purchase_PV and Sale_PV]
+Department and Desk : [SM PCG MONEY MARKET],[SM PCG MONEY MARKET],[MR]
+Requester           : [Lizel Graham],[Chipo Madziva],[Moepa Malataliana]
+Developer           : [Jaysen Naicker],[Aaeda Salejee],[Willie van der Bank]
+CR Number           : [C289044],[C387110],[278731 2012-07-13]
+
+*/
+/*
+Project                 : Client Valuation 
+Purpose                 : Added the following fields for the Client Val: Underlying_Expiry, SEDOL, Underlying_Fwd_Price and StartDate.   
+                           
+Department and Desk     : IT - CTB Primary Markets  
+Requester               : Phil Ledwaba
+Developer               : Tshepo Mabena
+CR Number               : 829680 
+*/
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_ReportDate{yesterday})							                          'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},
+		@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)                     'PrevRepDay',
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH
+		? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1
+		: TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})                                       'ME',
+	to_date(@5_YearEndDate{2008-12-31;})					                              'YE',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	                          'hcur',
+	@10_ShowDetails{Yes;'Yes','No'}		                                                  'det'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+	mtm_price(hc, m.RepDay, curr.insid)		                                'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			                        'fxPrevRepDay',
+	mtm_price(hc, m.ME, curr.insid)				                            'fxME',
+	mtm_price(hc, m.YE, curr.insid)				                            'fxYE'
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+/******************************************************* Money Market Acc Int ********************************************************************/
+/*******************************************************         BEGIN        ********************************************************************/
+/* Create temp tables for all the Bill instrument trades */
+
+
+/******************************************************** BILLS ********************************************************************/
+/* THE WHOLE CALCULATION OF ACCRUED INTEREST NEED TO BE REVISITED
+/* BILLS ON PORTFOLIO MONY 0681 INCLUDING NCD's*/
+
+
+/* Get all the instruments which need to have a value calculated EXCLUDING NCD's*/
+SELECT I.InsID,
+       'Yes'    'Calc_Int'
+into
+	TTCalc_Int0681
+
+from
+	instrument      i,
+	trade           t,
+	macros		    m,
+	Portfolio       p
+
+where
+	i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and	add_info(t,'MM_Instype') ~= 'NCD'
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(m.RepDay,1,0,0))
+    and	t.value_day < to_date(date_add_delta(m.RepDay,1,0,0))
+    and t.prfnbr = p.prfnbr
+    and p.prfid = 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having sum(i.exp_day < to_date(date_add_delta(m.RepDay,1,0,0)) ? 0.0 : t.quantity*i.contr_size) > 1.000000000
+
+/* Get all the instruments which need to have a value calculated ONLY NCD's*/
+SELECT I.InsID,
+       'Yes'    'Calc_Int'
+into
+	TTCalc_Int0681
+
+from
+	instrument      i,
+	trade           t,
+	macros		    m,
+	Portfolio       p
+
+where
+	i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and	add_info(t,'MM_Instype') = 'NCD'
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(m.RepDay,1,0,0))
+    and	t.value_day < to_date(date_add_delta(m.RepDay,1,0,0))
+    and t.prfnbr = p.prfnbr
+    and p.prfid = 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having (sum(i.exp_day < to_date(date_add_delta(m.RepDay,1,0,0)) ? 0.0 : (t.quantity*i.contr_size)) > 1.000000000  OR I.insID = 'ZAR/070110-070803/ABSA BANK LTD - B1')
+
+
+/* BILLS ON ALL PORTFOLIOS EXCLUDING MONY 0681*/
+/* Get all the instruments which need to have a value calculated */
+SELECT I.InsID,
+       'Yes' 'Calc_Int'
+into
+	TTCalc_Int_Rest
+
+from
+	instrument      i,
+	trade           t,
+	macros		    m,
+	Portfolio       p
+
+where
+	i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(m.RepDay,1,0,0))
+    and	t.value_day < to_date(date_add_delta(m.RepDay,1,0,0))
+    and t.prfnbr = p.prfnbr
+    and p.prfid ~= 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having sum(i.exp_day < to_date(date_add_delta(m.RepDay,1,0,0)) ? 0.0 : i.contr_size) > 1.000000000
+
+/******************************************************* Money Market Acc Int ********************************************************************/
+/*******************************************************         END          ********************************************************************/
+
+
+SELECT distinct
+    t.trdnbr,
+	projected_cf(t,m.RepDay,,)                             'Amt',
+	projected_cf(t,m.Repday,,) * (1/fx.fxrepday)           'HAmt',
+	ccy.insid                                              'Curr',
+	ccy.insaddr		                                       'Currnbr',
+	used_price(ccy,m.RepDay,'ZAR')                         'ccyRepDay',
+    used_price(ccy,m.RepDay,'USD')                         'ccyRepDayUSD',
+    projected_cf(t,m.RepDay,,)                             'Amt_Proj_Cf',
+    present_value(t)                                       'Amt_PV'
+
+INTO tmpSellBuy	
+
+FROM
+	trade		t,
+	instrument	i,      
+	instrument 	u,
+	instrument	ccy,
+	portfolio   p,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	/*AND l.insaddr =* i.insaddr
+	AND cf.legnbr =* l.legnbr*/
+	AND i.und_insaddr *= u.insaddr
+	AND currency_included(t, ccy.insid) = 1
+	AND fx.curr = ccy.insid
+	/*AND ccy.insaddr= l.curr*/
+    AND i.instype in ('Bill', 'Deposit', 'FRN', 'CD')
+    and t.prfnbr = p.prfnbr
+    and p.prfid not like 'Call%'
+	AND add_info(t,'Funding Instype') not like 'Call%'
+    /*AND cf.pay_day > m.repday*/
+GROUP BY t.trdnbr
+
+
+
+
+/*---------------------------------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (FRN, Deposit, Bill, CD, excluding Call Accounts)
+-----------------------------------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr                                                'TrdNbr',   
+	t.optional_key						                    'DevonRef',
+	i.insid                                                 'InsID',
+	display_id(t, 'acquirer_ptynbr')			            'Desk',
+	display_id(t, 'prfnbr')					                'portfolio',
+	curr.insid							                    'curr',
+	ael_s(t,'InstrType.InstrumentType')				        'instype',
+	fx.hcurr							                    'hcurr',
+	position(t,,,m.RepDay)	 					            'Position',
+	/*nominal_amount(t,m.repday,curr.insid)				    'Nominal',*/
+	ael_f(,'SAIT_LandingArea_Functions.CurrentNominal', t,m.RepDay,curr.insid)   'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00      'Premium',
+	i.exp_day							                    'Exp_day',
+	m.RepDay							                    'RepDay',
+	t.status							                    'Status',
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				
+                                                            'mtm_und_RepDay',
+	mtm_price(i, m.RepDay, curr.insid)			            'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		            'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			                'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			                'mtmpx_YE',
+
+	1/fx.fxRepDay							                'fxRepDay',
+	1/fx.fxPrevRepDay						                'fxPrevRepDay',
+	1/fx.fxME							                    'fxME',
+	1/fx.fxYE							                    'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		    'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, curr.insid, 2, 0, 1)		        'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')            								'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')                    					'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')                								'cash_YE',
+	
+	display_id(t,'counterparty_ptynbr')	                    'Cpty',
+	t.your_ref                                              'CptyRef',
+	display_id(t,'optkey1_chlnbr')	                        'TradeArea',
+	add_info (t,'MM_Instype')	                            'MM_Product',
+    (bs.amt < 0 ? '' : bs.Currnbr)        'PurchaseCurrNbr',
+	(bs.amt < 0 ? bs.Currnbr : '')	        'SaleCurrNbr',
+
+	(bs.amt < 0 ? '' : bs.curr)		            'PurchaseCurr',
+	(bs.amt < 0 ? bs.curr : '')		            'SaleCurr',
+
+	(bs.amt < 0 ? 0 : bs.amt)		            'PurchaseAmount',
+	(bs.amt < 0 ? bs.amt : 0)		            'SaleAmount',
+	
+	(bs.amt < 0 ? 0 : bs.HAmt)		            'HPurchaseAmount',
+	(bs.amt < 0 ? bs.HAmt : 0)		            'HSaleAmount',
+	
+	bs.ccyRepDay,
+		
+    bs.Amt_PV < 0 ? 0 : bs.ccyRepDayUSD            'Purchase_USD',
+    bs.Amt_PV < 0 ? bs.ccyRepDayUSD : 0            'Sale_USD',
+    
+    bs.Amt_proj_cf < 0 ? 0 : bs.Amt_proj_cf             'Purchase_Projected_CF',
+    bs.Amt_proj_cf < 0 ? bs.Amt_proj_cf : 0             'Sale_Projected_CF',
+    
+    bs.Amt_PV < 0 ? 0 : bs.Amt_PV                  'Purchase_PV',
+    bs.Amt_PV < 0 ? bs.Amt_PV : 0                  'Sale_PV',
+    u.exp_day                                      'Underlying_Expiry' ,
+    ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                                         'SEDOL' ,*/
+    forward_price(u,today)                         'Underlying_Fwd_Price',
+    i.start_day                                    'StartDate'  
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	Portfolio   p,
+	macros		m,
+	fxrates		fx,
+	tmpSellBuy	bs
+
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND bs.trdnbr =* t.trdnbr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr =* curr.insid
+	AND i.instype in ('Bill', 'Deposit', 'FRN', 'CD')
+	and t.prfnbr = p.prfnbr
+    and p.prfid not like 'Call%'
+	AND add_info(t,'Funding Instype') not like 'Call%'
+
+
+SELECT distinct
+    t.trdnbr,
+	projected_cf(t,m.RepDay,,)                             'Amt',
+	projected_cf(t,m.Repday,,) * (1/fx.fxrepday)           'HAmt',
+	ccy.insid                                              'Curr',
+	ccy.insaddr		                                       'Currnbr',
+	used_price(ccy,m.RepDay,'ZAR')                         'ccyRepDay',
+    used_price(ccy,m.RepDay,'USD')                         'ccyRepDayUSD',
+    projected_cf(t,m.RepDay,,)                             'Amt_Proj_Cf',
+    present_value(t)                                       'Amt_PV'
+
+INTO tmpSellBuy2
+
+FROM
+	trade		t,
+	instrument	i,      
+	instrument 	u,
+	instrument	ccy,
+	leg		    l,
+	cashflow    cf,
+	macros		m,
+	fxrates		fx,
+	party p
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND l.insaddr =* i.insaddr
+	AND cf.legnbr =* l.legnbr	
+	AND i.und_insaddr *= u.insaddr
+	AND currency_included(t, ccy.insid) = 1
+	AND fx.curr = ccy.insid
+	AND ccy.insaddr= l.curr
+	AND i.instype = 'Deposit'
+	AND l.type = 'Call Fixed Adjustable'
+	AND i.open_end = 'Open End'
+	AND cf.type = 'Redemption Amount'
+    AND cf.pay_day > m.repday
+    AND t.acquirer_ptynbr = p.ptynbr
+    AND p.ptyid ~= 'AFRICA DESK'
+GROUP BY t.trdnbr
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (Call Accounts)
+----------------------------------------------------------------------------*/
+select distinct
+	t.trdnbr                                                'TrdNbr',   
+	add_info(t,'Account_Name')			                    'DevonRef',
+	i.insid                                                 'InsID',
+	display_id(t, 'acquirer_ptynbr')			            'Desk',
+	display_id(t, 'prfnbr')					                'portfolio',
+	curr.insid							                    'curr',
+	ael_s(t,'InstrType.InstrumentType')				        'instype',
+	fx.hcurr							                    'hcurr',
+	position(t,,,m.RepDay)	 					            'Position',
+    -1*t.quantity*projected_cf(cf) - ael_f(,'CallFuturePayments.futPayment',i.insid,m.RepDay)                          'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00      'Premium',
+	i.exp_day							                    'Exp_day',
+	m.RepDay							                    'RepDay',
+	t.status							                    'Status',
+	u.instype = 'Curr' ? used_price(u, m.RepDay,curr.insid,,,'SPOT') : mtm_price(u, m.RepDay, curr.insid)				
+                                                            'mtm_und_RepDay',
+	mtm_price(i, m.RepDay, curr.insid)			            'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		            'mtmpx_PrevRepDay',
+	mtm_price(i, m.ME, curr.insid)			                'mtmpx_ME',
+	mtm_price(i, m.YE, curr.insid)			                'mtmpx_YE',
+
+	1/fx.fxRepDay							                'fxRepDay',
+	1/fx.fxPrevRepDay						                'fxPrevRepDay',
+	1/fx.fxME							                    'fxME',
+	1/fx.fxYE							                    'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		    'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	mtm_value_fo(t, m.YE, curr.insid, 2, 0, 1)		        'mtm_YE',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')            								'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')                    					'cash_PrevRepDate',
+	accumulated_cash(t, m.YE, curr.insid, 2, 0, , 1, 'None')                								'cash_YE',
+	
+	display_id(t,'counterparty_ptynbr')	                    'Cpty',
+	t.your_ref                                              'CptyRef',
+	add_info(t,'Call_Region')   	                        'TradeArea',
+	add_info (t,'MM_Instype')	                            'MM_Product',
+    (bs.amt < 0 ? '' : bs.Currnbr)        'PurchaseCurrNbr',
+	(bs.amt < 0 ? bs.Currnbr : '')	        'SaleCurrNbr',
+
+	(bs.amt < 0 ? '' : bs.curr)		            'PurchaseCurr',
+	(bs.amt < 0 ? bs.curr : '')		            'SaleCurr',
+
+	(bs.amt < 0 ? 0 : bs.amt)		            'PurchaseAmount',
+	(bs.amt < 0 ? bs.amt : 0)		            'SaleAmount',
+	
+	(bs.amt < 0 ? 0 : bs.HAmt)		            'HPurchaseAmount',
+	(bs.amt < 0 ? bs.HAmt : 0)		            'HSaleAmount',
+	
+	bs.ccyRepDay,
+		
+    bs.Amt_PV < 0 ? 0 : bs.ccyRepDayUSD            'Purchase_USD',
+    bs.Amt_PV < 0 ? bs.ccyRepDayUSD : 0            'Sale_USD',
+    
+    bs.Amt_proj_cf < 0 ? 0 : bs.Amt_proj_cf             'Purchase_Projected_CF',
+    bs.Amt_proj_cf < 0 ? bs.Amt_proj_cf : 0             'Sale_Projected_CF',
+    
+    bs.Amt_PV < 0 ? 0 : bs.Amt_PV                  'Purchase_PV',
+    bs.Amt_PV < 0 ? bs.Amt_PV : 0                  'Sale_PV',
+    u.exp_day                                      'Underlying_Expiry' ,
+    ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*i.isin                                         'SEDOL' ,*/
+    forward_price(u,m.RepDay)                      'Underlying_Fwd_Price',
+    i.start_day                                    'StartDate'  
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx,
+	leg l,
+	cashflow cf,
+	party p,
+	tmpSellBuy2	bs
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND bs.trdnbr =* t.trdnbr
+	AND i.insaddr = l.insaddr
+	AND l.legnbr = cf.legnbr
+	AND t.acquirer_ptynbr = p.ptynbr
+	AND i.instype = 'Deposit'
+	AND l.type = 'Call Fixed Adjustable'
+	AND i.open_end = 'Open End'
+	AND cf.type = 'Redemption Amount'
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr =* curr.insid
+    AND p.ptyid ~= 'AFRICA DESK'
+/*------------------------------------------------------------------
+        Creating Final DATA table - ONLY FOR BILLS
+                            BEGIN
+------------------------------------------------------------------*/
+
+SELECT
+	r.trdnbr,
+	r.DevonRef,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.TradeArea,
+	r.curr,
+	r.instype,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	r.position           		                        'Position',
+	r.nominal		                                    'Nominal',
+	r.premium		                                    'Premium',
+	/*PLINCEP*/
+	r.mtm_RepDate						                'Val',
+	sum(r.cash_repdate)					                'CashIncep',
+	sum((r.mtm_RepDate-r.mtm_YE))		                'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))		                'ChangeCash_YTD',
+    hcurr,
+	sum(r.Premium)*r.fxRepDay				            'HPremium',
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay	'HPLIncep',
+	i.insid in ('ZAR/060601-070601/7.625/#1','ZAR/060606-070606/7.53','ZAR/060906-070606/7.56') 
+        ? (nominal_amount(t) * used_price(i, m.RepDay))/100 
+        : r.mtm_RepDate*r.fxRepDay				        'HVal',
+	r.cash_repdate*r.fxRepDay				            'HCashIncep',
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)	'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)			'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)		'HChangeCash_YTD',
+	/*PLMTD Home Curr*/
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON', 
+	r.fxRepDay,
+	r.fxPrevRepDay,
+	r.fxME,
+	r.fxYE,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	r.SaleAmount,
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+	nominal_amount(t, t.value_day)		'Nominal_val',
+	dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+	t.premium + ael_f(t, 'SA_AccruedInterest.accrued_interest', , t.value_day)	        'Clean_value_day',
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Clean_tdy',
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Dirty_yesterday',
+	clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Clean_yesterday',
+/*	t.prfnbr = 1219 and add_info(t,'Funding Instype') = 'FDI'
+        ? ael_f(t, 'SA_AccruedInterest.accrued_interest',  , m.RepDay, 'FDI')
+        : ael_f(t, 'SA_AccruedInterest.accrued_interest', m.RepDay, m.RepDay)	'AccInt', */
+
+
+
+/* New added code for bills */
+    TTCalc_Int0681.Calc_Int = 'Yes' and	add_info(t,'MM_Instype') = 'NCD'
+        ? to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (1 / 36500)
+        : TTCalc_Int0681.Calc_Int = 'Yes' and add_info(t,'MM_Instype') ~= 'NCD' 
+            ? ((1 / 365)* nominal_amount(t,t.value_day) * t.price/100)
+/*            : TTCalc_Int_Rest.Calc_Int = 'Yes'
+                ? ((days_between(m.PrevRepDay,m.RepDay, 'Act/365') / 365)* nominal_amount(t,t.value_day) * ael_f(,'IssuedRate.ReturnRate_LastTrade',i)/100)*/
+                : 0.00 'AccInt',
+
+
+	0.0					'Coupon',
+	nominal_amount(t,t.value_day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+	(nominal_amount(t,t.value_Day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity)))
+ 	/ (days_between(t.value_day,i.exp_day,'Act/365'))			        'Daily_Pull_to_Par',
+	m.RepDay	'R1',
+	m.PrevRepDay	'R2',
+	(i.exp_day - to_date(date_add_delta(m.RepDay,2,0,0)))  'RemainingTenure',
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', i.start_day, m.RepDay)		'CouponAccrued',
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', , m.RepDay)	'AccInt_Incep',
+	0.0	'CouponRate',
+    days_between(t.value_day, date_add_delta(m.RepDay,1), 'Act/365')		'AccIntDays',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+	ael_s(,'RollingPeriod.RP',l)			'InterestFrequency',
+	ael_s(l,'SAGEN_Cashflows_JF.PeriodDays',m.RepDay,0)	'PeriodDays',
+	i.strike_price			'Strike',
+	r.nominal >= 0 ? 'Buy' : 'Sell'	'BuySell',
+	i.contr_size			'ContractSize',
+	r.mtm_und_RepDay,
+	ael_s(l,'SAGEN_Cashflows_JF.ForwardRate',m.repday,0) 'Price',
+	/*    r.Purchase_Projected_CF,*/
+    r.Purchase_Projected_CF * r.Purchase_USD    'Purchase_USDEq',
+    r.Purchase_PV,
+    r.Purchase_PV * r.Purchase_USD              'Purchase_PV_USDEq',
+    
+	/*    r.Sale_Projected_CF,*/
+    r.Sale_Projected_CF * r.Sale_USD            'Sale_USDEq',
+    r.Sale_PV,
+    r.Sale_PV * r.Sale_USD                      'Sale_PV_USDEq',
+    r.Underlying_Expiry ,
+    r.SEDOL ,
+    r.Underlying_Fwd_Price,
+    r.StartDate  
+
+INTO
+	final
+
+FROM
+	result		    r,
+	trade		    t,
+	instrument	    i,
+	Portfolio       p,
+	leg		        l,
+	macros		    m,
+	TTCalc_Int0681
+	
+WHERE
+	r.trdnbr = t.trdnbr
+    AND	i.insaddr = t.insaddr
+    AND i.InsID *= TTCalc_Int0681.InsID
+	AND i.instype = 'Bill'
+	and t.prfnbr = p.prfnbr
+    and p.prfid = 'MONB 0681'
+    AND	i.insaddr = l.insaddr
+
+
+SELECT
+	r.trdnbr,
+	r.DevonRef,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.TradeArea,
+	r.curr,
+	r.instype,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	r.position           		                        'Position',
+	r.nominal		                                    'Nominal',
+	r.premium		                                    'Premium',
+	/*PLINCEP*/
+	r.mtm_RepDate						                'Val',
+	sum(r.cash_repdate)					                'CashIncep',
+	sum((r.mtm_RepDate-r.mtm_YE))		                'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))		                'ChangeCash_YTD',
+    hcurr,
+	sum(r.Premium)*r.fxRepDay				            'HPremium',
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay	'HPLIncep',
+	i.insid in ('ZAR/060601-070601/7.625/#1','ZAR/060606-070606/7.53','ZAR/060906-070606/7.56') 
+        ? (nominal_amount(t) * used_price(i, m.RepDay))/100 
+        : r.mtm_RepDate*r.fxRepDay				        'HVal',
+	r.cash_repdate*r.fxRepDay				            'HCashIncep',
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)	'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)			'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)		'HChangeCash_YTD',
+	/*PLMTD Home Curr*/
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON', 
+	r.fxRepDay,
+	r.fxPrevRepDay,
+	r.fxME,
+	r.fxYE,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	r.SaleAmount,
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+	nominal_amount(t, t.value_day)		'Nominal_val',
+	dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+	t.premium + ael_f(t, 'SA_AccruedInterest.accrued_interest', , t.value_day)	        'Clean_value_day',
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Clean_tdy',
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Dirty_yesterday',
+	clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Clean_yesterday',
+/*	t.prfnbr = 1219 and add_info(t,'Funding Instype') = 'FDI'
+        ? ael_f(t, 'SA_AccruedInterest.accrued_interest',  , m.RepDay, 'FDI')
+        : ael_f(t, 'SA_AccruedInterest.accrued_interest', m.RepDay, m.RepDay)	'AccInt', */
+/* New added code for bills */
+/*    TTCalc_Int0681.Calc_Int = 'Yes' and	add_info(t,'MM_Instype') = 'NCD'
+        ? to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (days_between(m.PrevRepDay,m.RepDay, 'Act/365') / 36500)
+        : TTCalc_Int0681.Calc_Int = 'Yes' and add_info(t,'MM_Instype') ~= 'NCD' 
+            ? ((days_between(m.PrevRepDay,m.RepDay, 'Act/365') / 365)* nominal_amount(t,t.value_day) * t.price/100)*/
+   TTCalc_Int_Rest.Calc_Int = 'Yes'
+    ? ((1 / 365)* nominal_amount(t,t.value_day) * ael_f(,'IssuedRate.ReturnRate_LastTrade',i)/100)
+    : 0.00 'AccInt',
+	0.0					'Coupon',
+	nominal_amount(t,t.value_day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+	(nominal_amount(t,t.value_Day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity)))
+ 	/ (days_between(t.value_day,i.exp_day,'Act/365'))			        'Daily_Pull_to_Par',
+	m.RepDay	'R1',
+	m.PrevRepDay	'R2',
+	(i.exp_day - to_date(date_add_delta(m.RepDay,2,0,0)))  'RemainingTenure',
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', i.start_day, m.RepDay)		'CouponAccrued',
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', , m.RepDay)	'AccInt_Incep',
+	0.0	'CouponRate',
+    days_between(t.value_day, date_add_delta(m.RepDay,1), 'Act/365')		'AccIntDays',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+	ael_s(,'RollingPeriod.RP',l)			'InterestFrequency',
+	ael_s(l,'SAGEN_Cashflows_JF.PeriodDays',m.RepDay,0)	'PeriodDays',
+	i.strike_price			'Strike',
+	r.nominal >= 0 ? 'Buy' : 'Sell'	'BuySell',
+	i.contr_size			'ContractSize',
+	r.mtm_und_RepDay,
+	ael_s(l,'SAGEN_Cashflows_JF.ForwardRate',m.repday,0) 'Price',
+	/*    r.Purchase_Projected_CF,*/
+    r.Purchase_Projected_CF * r.Purchase_USD    'Purchase_USDEq',
+    r.Purchase_PV,
+    r.Purchase_PV * r.Purchase_USD              'Purchase_PV_USDEq',
+	/*    r.Sale_Projected_CF,*/
+    r.Sale_Projected_CF * r.Sale_USD            'Sale_USDEq',
+    r.Sale_PV,
+    r.Sale_PV * r.Sale_USD                      'Sale_PV_USDEq',
+    r.Underlying_Expiry ,
+    r.SEDOL ,
+    r.Underlying_Fwd_Price,
+    r.StartDate  
+INTO
+	final
+
+FROM
+	result		    r,
+	trade		    t,
+	instrument	    i,
+	Portfolio       p,
+	leg		        l,
+	macros		    m,
+	TTCalc_Int_Rest
+	
+WHERE
+	r.trdnbr = t.trdnbr
+    AND	i.insaddr = t.insaddr
+    AND i.InsID *= TTCalc_Int_Rest.InsID
+	AND i.instype = 'Bill'
+	and t.prfnbr = p.prfnbr
+    and p.prfid ~= 'MONB 0681'
+    AND	i.insaddr = l.insaddr
+
+
+/*------------------------------------------------------------------
+        Creating Final DATA table - ONLY FOR BILLS
+                            END
+------------------------------------------------------------------*/
+
+
+/*-----------------------------------------------------------------------
+        Creating Final DATA table - EXCLUDING ALL BILLS AND CALL ACCOUNTS
+                            BEGIN
+-------------------------------------------------------------------------*/
+SELECT
+	r.trdnbr,
+	r.DevonRef,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.TradeArea,
+	r.curr,
+	r.instype,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	r.position           		                        'Position',
+	r.nominal		                                    'Nominal',
+	r.premium		                                    'Premium',
+	
+	/*PLINCEP*/
+	r.mtm_RepDate						                'Val',
+	sum(r.cash_repdate)					                'CashIncep',
+	
+	sum((r.mtm_RepDate-r.mtm_YE))		                'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))		                'ChangeCash_YTD',
+
+	hcurr,
+	sum(r.Premium)*r.fxRepDay				            'HPremium',
+
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay	'HPLIncep',
+	i.insid in ('ZAR/060601-070601/7.625/#1','ZAR/060606-070606/7.53','ZAR/060906-070606/7.56') 
+        ? (nominal_amount(t) * used_price(i, m.RepDay))/100 
+        : r.mtm_RepDate*r.fxRepDay				        'HVal',
+	r.cash_repdate*r.fxRepDay				            'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)	'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)			'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)		'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON', 
+	
+	r.fxRepDay,
+	r.fxPrevRepDay,
+	r.fxME,
+	r.fxYE,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	r.SaleAmount,
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+
+	nominal_amount(t, t.value_day)		'Nominal_val',
+
+	dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+	t.premium + ael_f(t, 'SA_AccruedInterest.accrued_interest', , t.value_day)	        'Clean_value_day',
+
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Clean_tdy',
+
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Dirty_yesterday',
+	clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Clean_yesterday',
+
+/*	r.instype = 'Bill' and t.prfnbr ~= 1219 and add_info(t,'Funding Instype') ~= 'FDI' ? ((days_between(m.PrevRepDay, m.repDay, 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)*/
+	t.prfnbr = 1219 and add_info(t,'Funding Instype') = 'FDI' 
+        ? ael_f(t, 'SA_AccruedInterest.accrued_interest',  , m.RepDay, 'FDI') 
+        : ael_f(t, 'SA_AccruedInterest.accrued_interest', m.RepDay, m.RepDay)	'AccInt',
+
+	0.0					'Coupon',
+
+	nominal_amount(t,t.value_day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+
+	(nominal_amount(t,t.value_Day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity)))
+ 	/ (days_between(t.value_day,i.exp_day,'Act/365'))			        'Daily_Pull_to_Par',
+
+	m.RepDay	'R1',
+	m.PrevRepDay	'R2',
+	i.exp_day < TODAY ? 0 : i.exp_day - date_add_delta(m.RepDay,-1)  'RemainingTenure',
+/*	interest_accrued(i, i.start_day, date_add_delta(m.RepDay,1)) * t.quantity	'CouponAccrued',*/
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', i.start_day, m.RepDay)		'CouponAccrued',
+
+/*	r.instype = 'Bill' ? ((days_between(t.value_day, date_add_delta(m.repDay,1), 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)
+			   : interest_accrued(i, , date_add_delta(m.RepDay,1)) * t.quantity	'AccInt_Incep',*/
+
+/*	r.instype = 'Bill' ? ((days_between(t.value_day, date_add_delta(m.repDay,1), 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)*/
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', , m.RepDay)	'AccInt_Incep',
+
+	0.0	'CouponRate',
+	
+/*	r.instype = 'Bill' ? days_between((date_add_delta((i.exp_day < m.RepDay ? i.exp_day : m.RepDay),1,0,0)), i.exp_day, 'Act/365') */
+    days_between(t.value_day, date_add_delta(m.RepDay,1), 'Act/365')		'AccIntDays',
+
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+
+	ael_s(,'RollingPeriod.RP',l)			'InterestFrequency',
+	ael_s(l,'SAGEN_Cashflows_JF.PeriodDays',m.RepDay,0)	'PeriodDays',
+
+	i.strike_price			'Strike',
+	r.nominal >= 0 ? 'Buy' : 'Sell'	'BuySell',
+	i.contr_size			'ContractSize',
+	r.mtm_und_RepDay,
+	ael_s(l,'SAGEN_Cashflows_JF.ForwardRate',m.repday,0) 'Price',
+    /*    r.Purchase_Projected_CF,*/
+    r.Purchase_Projected_CF * r.Purchase_USD    'Purchase_USDEq',
+    r.Purchase_PV,
+    r.Purchase_PV * r.Purchase_USD              'Purchase_PV_USDEq',
+    
+	/*    r.Sale_Projected_CF,*/
+    r.Sale_Projected_CF * r.Sale_USD            'Sale_USDEq',
+    r.Sale_PV,
+    r.Sale_PV * r.Sale_USD                      'Sale_PV_USDEq',
+    r.Underlying_Expiry ,
+    r.SEDOL ,
+    r.Underlying_Fwd_Price,
+    r.StartDate  
+
+INTO
+	final
+
+FROM
+	result		r,
+	trade		t,
+	instrument	i,
+	Portfolio   p,
+	leg		    l,
+	macros		m
+
+WHERE
+	r.trdnbr = t.trdnbr
+    AND	t.insaddr = i.insaddr
+	AND i.instype in ('Deposit', 'FRN', 'CD')
+    AND	i.insaddr = l.insaddr
+    and t.prfnbr = p.prfnbr
+    and p.prfid not like 'Call%'
+    AND add_info(t,'Funding Instype') not like 'Call%'
+
+/*-----------------------------------------------------------------------
+        Creating Final DATA table - EXCLUDING ALL BILLS AND CALL ACCOUNTS
+                                END
+-------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+        Creating Final DATA table - CALL ACCOUNTS
+                            BEGIN
+------------------------------------------------------------------*/
+SELECT
+	r.trdnbr,
+	r.DevonRef,
+	r.insid,
+	r.Desk,
+	r.portfolio,
+	r.TradeArea,
+	r.curr,
+	r.instype,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.exp_day,
+	r.status,
+	r.repday,
+	r.position           		                        'Position',
+	r.nominal		                                    'Nominal',
+	r.premium		                                    'Premium',
+	
+	/*PLINCEP*/
+	r.mtm_RepDate						                'Val',
+	sum(r.cash_repdate)					                'CashIncep',
+	
+	sum((r.mtm_RepDate-r.mtm_YE))		                'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))		                'ChangeCash_YTD',
+
+	hcurr,
+	sum(r.Premium)*r.fxRepDay				            'HPremium',
+
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay	'HPLIncep',
+	i.insid in ('ZAR/060601-070601/7.625/#1','ZAR/060606-070606/7.53','ZAR/060906-070606/7.56') 
+        ? (nominal_amount(t) * used_price(i, m.RepDay))/100 
+        : r.mtm_RepDate*r.fxRepDay				        'HVal',
+	r.cash_repdate*r.fxRepDay				            'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)	'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)			'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)		'HChangeCash_YTD',
+
+	/*PLMTD Home Curr*/
+
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON', 
+	
+	r.fxRepDay,
+	r.fxPrevRepDay,
+	r.fxME,
+	r.fxYE,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_ME,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	r.SaleAmount,
+    r.HPurchaseAmount,
+	r.HSaleAmount,
+	
+	nominal_amount(t, t.value_day)		'Nominal_val',
+
+	dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+	t.premium + ael_f(t, 'SA_AccruedInterest.accrued_interest', , t.value_day)	        'Clean_value_day',
+
+	dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Dirty_tdy',
+	clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(t,m.RepDay)/100		'Clean_tdy',
+
+	dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Dirty_yesterday',
+	clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(t,m.PrevRepDay)/100	'Clean_yesterday',
+
+/*	r.instype = 'Bill' and t.prfnbr ~= 1219 and add_info(t,'Funding Instype') ~= 'FDI' ? ((days_between(m.PrevRepDay, m.repDay, 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)*/
+	ael_f(,'Call_AccInt.get_AccInt',t.trdnbr,'1970-01-01',m.RepDay)	'AccInt',
+
+	0.0					'Coupon',
+
+	nominal_amount(t,t.value_day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+
+	(nominal_amount(t,t.value_Day) + 
+	(t.premium + (interest_accrued(i, , t.value_day) * t.quantity)))
+ 	/ (days_between(t.value_day,i.exp_day,'Act/365'))			        'Daily_Pull_to_Par',
+
+	m.RepDay	'R1',
+	m.PrevRepDay	'R2',
+	i.exp_day < TODAY ? 0 : i.exp_day - date_add_delta(m.RepDay,-1)  'RemainingTenure',
+/*	interest_accrued(i, i.start_day, date_add_delta(m.RepDay,1)) * t.quantity	'CouponAccrued',*/
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', i.start_day, m.RepDay)		'CouponAccrued',
+
+/*	r.instype = 'Bill' ? ((days_between(t.value_day, date_add_delta(m.repDay,1), 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)
+			   : interest_accrued(i, , date_add_delta(m.RepDay,1)) * t.quantity	'AccInt_Incep',*/
+
+/*	r.instype = 'Bill' ? ((days_between(t.value_day, date_add_delta(m.repDay,1), 'Act/365') / 365)* nominal_amount(t) * ael_f(,'IssuedRate.ReturnRate',i)/100)*/
+	ael_f(t, 'SA_AccruedInterest.accrued_interest', , m.RepDay)	'AccInt_Incep',
+
+	0.0	'CouponRate',
+	
+/*	r.instype = 'Bill' ? days_between((date_add_delta((i.exp_day < m.RepDay ? i.exp_day : m.RepDay),1,0,0)), i.exp_day, 'Act/365') */
+    days_between(t.value_day, date_add_delta(m.RepDay,1), 'Act/365')		'AccIntDays',
+
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+
+	ael_s(,'RollingPeriod.RP',l)			'InterestFrequency',
+	ael_s(l,'SAGEN_Cashflows_JF.PeriodDays',m.RepDay,0)	'PeriodDays',
+	i.strike_price			'Strike',
+	r.nominal >= 0 ? 'Buy' : 'Sell'	'BuySell',
+	i.contr_size			'ContractSize',
+	r.mtm_und_RepDay,
+	ael_s(,'CallCurrentRate.call_current_rate',t.trdnbr) 'Price',
+    /*    r.Purchase_Projected_CF,*/
+    r.Purchase_Projected_CF * r.Purchase_USD    'Purchase_USDEq',
+    r.Purchase_PV,
+    r.Purchase_PV * r.Purchase_USD              'Purchase_PV_USDEq',
+	/*    r.Sale_Projected_CF,*/
+    r.Sale_Projected_CF * r.Sale_USD            'Sale_USDEq',
+    r.Sale_PV,
+    r.Sale_PV * r.Sale_USD                      'Sale_PV_USDEq',
+    r.Underlying_Expiry,
+    r.SEDOL ,
+    r.Underlying_Fwd_Price,
+    r.StartDate  
+
+INTO
+	final
+
+FROM
+	result		r,
+	trade		t,
+	instrument	i,
+	leg		    l,
+	macros		m,
+	cashflow cf,
+	party p
+
+WHERE
+    r.trdnbr = t.trdnbr
+and t.acquirer_ptynbr = p.ptynbr
+AND	t.insaddr = i.insaddr
+AND i.instype = 'Deposit'
+AND	i.insaddr = l.insaddr
+and l.legnbr = cf.legnbr
+and cf.type = 'Redemption Amount'
+and l.type = 'Call Fixed Adjustable'
+and i.open_end = 'Open End'
+and p.ptyid ~= 'AFRICA DESK'
+
+
+/*------------------------------------------------------------------
+        Creating Final Select for all instruments
+                                BEGIN
+------------------------------------------------------------------*/	
+SELECT
+	r.trdnbr                                                        'trdnbr',   
+	r.DevonRef                                                      'ExternalSystemRef',
+	'Details'				                                        'Section',
+	i.insaddr				                                        'Insaddr',
+	r.insid					                                        'Instrument_ID',
+	r.desk,
+	r.portfolio,
+	r.TradeArea,
+	r.cpty,
+	r.CptyRef,
+	r.curr,
+	r.instype = 'Swap' ? 'Swap' : r.instype				            'Instrument_Type',
+	/*r.mm_product,*/
+	t.acquire_day				                                    'Acquire_Date',	
+	t.creat_time				                                    'Create_Date_Time',
+	t.creat_usrnbr				                                    'Created_By',
+	display_id(t,'creat_usrnbr')		                            'Created_By_ABno',
+	t.updat_usrnbr				                                    'Updated_By',
+	display_id(t,'updat_usrnbr')		                            'Updated_By_ABno',
+	i.curr					                                        'Currency',
+	display_id(i,'curr')			                                'Currency_Code',
+	i.exercise_type = 'American' ? 'American' : i.exercise_type	    'ExerciseType',
+	t.fee					                                        'Fee',
+	t.guarantor_ptynbr			                                    'Gaurantor',
+	display_id(t,'guarantor_ptynbr')	                            'GaurantorID',
+	t.hedge_trdnbr				                                    'Hedge_Trade_no',
+	i.extern_id1				                                    'Instrument_Stock_Code',
+	t.bo_trdnbr				                                        'Opening_BO_TradeNo',
+	'Excluded' 				                                        'Option_Type',	
+	r.instype = 'Bill'
+        ? t.price
+        : r.price = '0001-01-01'
+            ? i.rate 
+            : r.price			                                    'Price',
+	t.quantity				                                        'Quantity',
+	i.ref_value				                                        'Ref_Value',
+	t.time					                                        'Trade_Date_and_Time',
+	t.trader_usrnbr				                                    'Trader',
+	display_id(t,'trader_usrnbr')		                            'TraderID',
+	display_id(i,'und_insaddr')		                                'Underlying_Instrument',
+	i.und_instype = 'Swap' ? 'Swap' : i.und_instype		            'Underlying_Instype',
+	t.value_day				                                        'Value_date',
+	r.exp_day				                                        'Expiry_Date',
+	r.status = 'BO Confirmed' ? 'BO Confirmed' : r.status	        'status',
+	r.position				                                        'Position',
+	r.nominal				                                        'Nominal',
+	r.nominal				                                        'ZARNominal',
+	r.premium				                                        'Premium',
+	i.issuer_ptynbr				                                    'IssuerPtynbr',
+	display_id(i,'issuer_ptynbr')		                            'Issuer',
+	/*PLINCEP*/
+	r.Val			                                                'Val',
+	r.CashIncep		                                                'CashIncep',
+	r.ChangeMTM_YTD                                                 'ChangeUnRealsd_YTD',
+	r.ChangeCash_YTD                                                'ChangeCash_YTD',
+	r.hcurr                                                         'hcurr',
+	r.HPremium		                                                'HPremium',
+	
+    /*PLIncep Home Curr*/
+	r.HPLIncep	                                                    'HPLIncep',
+	r.HVal		                                                    'HVal',
+	r.HCashIncep	                                                'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	r.HPLYTD1                                                       'HPLYTD',
+	r.fxRepDay		                                                'FXRepDay',
+	avg(r.fxYE)  		                                            'FXYE',		
+	m.RepDay,
+	m.YE,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurr,
+	r.SaleAmount,
+	0.0	                                                            'FV',
+	''	                                                            'MM_DEMAT_TRADE',
+	display_id(t,'broker_ptynbr')	                                'BrokerID',
+	t.broker_ptynbr			                                        'BrokerPtynbr',
+	t.prfnbr			                                            'PortfolioNumber',
+	t.counterparty_ptynbr		                                    'CptyNbr',
+	r.PurchaseCurrNbr,
+	r.SaleCurrNbr,
+	i.isin,
+	t.updat_time,
+
+	/*PLON*/
+	sum(r.HPLON1)                                                   'HPLON',
+	sum(r.HChangeMTM_ON)                                            'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON)                                           'HChangeCash_ON',
+
+	r.Dirty_value_day,
+	r.Clean_value_day,
+
+    /*---------------r.AccIntValueDay, --------*/
+
+	r.Dirty_tdy,
+	r.Clean_tdy,
+
+	r.Dirty_yesterday,
+	r.Clean_yesterday,
+
+	r.AccInt,
+	r.Coupon,
+	r.Daily_Pull_to_Par,
+	r.RemainingTenure 			                                    'RemainingTenure',
+	r.CouponAccrued,
+	add_info(t,'PurchaseSaleMatch')		                            'PurchaseSaleMatch',
+	r.CouponRate,
+	r.AccIntDays 				                                    'AccIntDays',
+	r.MM_Instype,
+	'0000-01-01'				                                    'NextCouponDate',
+	0.0					                                            'CouponsToDate',
+
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+
+	r.Prem_Disc_Value_day - (r.Daily_Pull_to_Par * (r.AccIntDays))	'Pull_to_Par_Balance',
+
+    /*CODE ADDED FOR ALL BILLS Accrued_Disc_Balance*/
+    (t.prfnbr = 1219 and add_info(t,'Funding Instype') = 'FDI')
+        ? r.AccInt
+        : r.instype = 'Bill' and t.trdnbr = 891572
+            ? (r.Prem_Disc_Value_day - (r.Daily_Pull_to_Par * r.AccIntDays) - ael_f(t, 'SA_AccruedInterest.accrued_interest',  , m.RepDay, ''))*-1
+            : i.instype = 'Bill' and t.trdnbr ~= 891572
+                ? r.AccInt + (r.AccInt * r.RemainingTenure)
+                : (r.Prem_Disc_Value_day - (r.Daily_Pull_to_Par * r.AccIntDays) - r.AccInt_Incep)*-1 'Accrued_Disc_Bal',
+    /*CODE ADDED FOR ALL BILLS Accrued_Disc_Balance*/
+
+	0.0					                                            'CreditDefaultSpread',
+	r.nominal * r.fxRepDay			                                'Notional_Amount',
+
+	r.InterestFrequency,
+	ael_f(i,'FYieldConverter.yield_converter' , 
+		(r.InterestFrequency = '1y' ? 1 : 
+		 r.InterestFrequency = '6m' ? 2 :
+		 r.InterestFrequency = '3m' ? 4 :
+		 r.InterestFrequency = '1m' ? 12 : 365), 'Yield', r.PeriodDays, t.price, 'NACM')	'NACMRate',	
+	''		                                                        'AgriStatus',
+
+	r.Strike,
+	r.BuySell,
+	r.ContractSize,
+	r.mtm_und_RepDay	                                            'Underlying_Price',
+	0.00                                                            'ExchangePrice',
+	t.sales_credit                                                  'SalesCredit',
+	display_id(t,'sales_person_usrnbr')                             'SalesPerson',
+    add_info(t,'Qualifier')                                         'Qualifier',
+	add_info(t,'ValueAddCredits')                                   'ValueAddCredits',
+    add_info(t,'Sales_Credit2')                                     'SalesCredit2',
+    add_info(t,'Sales_Credit3')                                     'SalesCredit3',
+    add_info(t,'Sales_Person2')                                     'SalesPerson2',
+    add_info(t,'Sales_Person3')                                     'SalesPerson3',
+    0.0                                                             'Clean_PL',
+    ''                                                              'CreditRef',
+    0                                                               'CreditRef_Issuer_Ptynbr',
+    ''                                                              'CreditRef_Issuer' ,
+
+    abs(r.Purchase_USDEq) > 1000000000000 ? 0.0 : r.Purchase_USDEq          'Purchase_USDEq',
+    abs(r.Sale_USDEq) > 1000000000000 ? 0.0 : r.Sale_USDEq		            'Sale_USDEq',
+    
+    r.instype in ('Bill','FRN') ?
+        r.Val >= 0.00 ? 
+            abs(r.Val) > 1000000000000 ? 0.0 : r.Val : 0.0
+    : abs(r.Purchase_PV) > 1000000000000 ? 0.0 : r.Purchase_PV                'Purchase_PV',
+    
+    r.instype in ('Bill','FRN') ?
+        r.Val <= 0.00 ?
+            abs(r.Val) > 1000000000000 ? 0.0 : r.Val : 0.0
+    : abs(r.Sale_PV) > 1000000000000 ? 0.0 : r.Sale_PV                        'Sale_PV',
+    
+    abs(r.Purchase_PV_USDEq) > 1000000000000 ? 0.0 : r.Purchase_PV_USDEq    'Purchase_PV_USDEq',
+    abs(r.Sale_PV_USDEq) > 1000000000000 ? 0.0 : r.Sale_PV_USDEq            'Sale_PV_USDEq',
+    1.0                                                                     'Delta',
+    
+    add_info(t, 'SND_Trade_Type')                                   'SND_Trade_Type',
+    t.trx_trdnbr                                                    'Trans_Ref',
+    0.0                                                             'Repo_Exposure',
+    r.Underlying_Expiry ,
+    r.SEDOL ,
+    r.Underlying_Fwd_Price,
+    r.StartDate  
+    /*(t.price - used_price(t, m.RepDay, curr.insid,,, 'SPOT')) 
+        * nominal_amount(t,m.repday,curr.insid)   'Repo_Exposure'*/
+    
+FROM
+	final r,
+	macros m,
+	trade t,
+	instrument i
+	
+WHERE
+    m.det IN ('Yes','YES','yes','Y','y')
+AND	t.trdnbr = r.trdnbr
+AND	i.insaddr = t.insaddr
+
+GROUP BY
+    r.trdnbr

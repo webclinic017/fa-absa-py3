@@ -1,0 +1,95 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Party_Info') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_Party_Info' and p.type = 'SQL Query'
+
+select
+    p.ptynbr,
+    pa.alias
+into
+    pAlias
+from
+    party p,
+    partyalias pa,
+    InstrAliasType iat
+where
+        p.ptynbr = pa.ptynbr
+    and pa.type = iat.oid
+    and iat.alias_type_name = 'SWIFT'
+
+select
+    'General'   'General',
+	p.ptynbr,
+    p.ptyid,
+	p.ptyid2    'alias',
+	p.fullname,
+    p.type,
+	p.cls,
+	display_id(p,'business_status_chlnbr')  'business_status',
+	p.bis_status,
+    p.issuer,
+    p.correspondent_bank,
+    p.isda_member,
+    p.not_trading,
+    display_id(p,'parent_ptynbr')   'parent',
+    display_id(p,'relation_chlnbr') 'rel_parent',
+    display_id(p,'guarantor_ptynbr')    'guarantor',
+	p.attention,
+	p.hostid,
+	p.address,
+	p.address2,
+	p.zipcode,
+	p.city,
+	p.country,
+	p.contact1,
+	p.contact2,
+	p.telephone,
+	p.fax,
+	p.email,
+	p.swift 'BIC',
+	'Details'   'Details',
+	add_info(p,'BarCap_Eagle_Incl') 'BarCap_Eagle_Incl',
+	add_info(p,'BarCap_Eagle_SDSID') 'BarCap_Eagle_SDSID',
+	add_info(p,'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+	add_info(p,'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID',
+	add_info(p,'BESA_Member_Agree') 'BESA_Member_Agree',
+	add_info(p,'FICA_Compliant') 'FICA_Compliant',
+	add_info(p,'PartyStatus') 'PartyStatus',
+	'Account'   'Account',
+	a.account,
+    pa.alias    'CP_Code',
+    'Contact'  'Contact',
+    c.fullname  'name',
+    c.attention,
+    c.address,
+    c.address2,
+    c.zipcode,
+    c.city,
+    c.country,
+    c.telephone,
+    c.fax,
+    c.email,
+    add_info(c,'Comm Freq') 'Stmnt_Freq',
+    add_info(c,'Comm Freq - Monthly') 'Stmnt_Freq_Monthly',
+    add_info(c,'Comm Freq - Weekly') 'Stmnt_Freq_Weekly',
+    add_info(c,'Comm Type - Daily') 'Stmnt_Type_Daily',
+    add_info(c,'Comm Type - Monthly') 'Stmnt_Type_Monthly',
+    add_info(c,'Comm Type - Weekly') 'Stmnt_Type_Weekly',
+    'Agreement' 'Agreement',
+    display_id(ag,'interndept_ptynbr')  'department',
+    ag.instype,
+    display_id(ag,'document_type_chlnbr')   'agreement',
+    ag.dated
+from
+	party p,
+	pAlias pa,
+	account	a,
+	contact c,
+	agreement ag
+where
+        a.ptynbr =* p.ptynbr
+    and a.correspondent_bank_ptynbr *= pa.ptynbr
+    and p.ptynbr *= c.ptynbr
+    and p.ptynbr *= ag.counterparty_ptynbr

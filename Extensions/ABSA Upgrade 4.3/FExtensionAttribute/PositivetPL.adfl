@@ -1,0 +1,7 @@
+[ABSA Upgrade 4.3]FInstrument:PositivetPL = select(tPL > 0, 
+  true->tPL, 
+  false->nil);
+[ABSA Upgrade 4.3]FInstrumentAndTrades:PositivetPL = select(tPL > 0, 
+  true->tPL, 
+  false->nil);
+[ABSA Upgrade 4.3]FMultiInstrumentAndTrades:PositivetPL = sumOf(children :* "select(PositivetPL, nil->currencyZero, default->PositivetPL)");

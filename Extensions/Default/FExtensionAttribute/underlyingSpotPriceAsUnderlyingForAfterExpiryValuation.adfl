@@ -1,0 +1,5 @@
+[Default]FInstrument:underlyingSpotPriceAsUnderlyingForAfterExpiryValuation = select(isCashSettled, 
+  true->shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor](underlyingMtMPriceSourceExpiry.PriceExists, 
+    true->underlyingMtMPriceSourceExpiryAdjusted * fxUnderlyingToStrikeExpiry, 
+    false->underlying :* "spotPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency]), 
+  false->underlying :* "spotPriceAsUnderlying" [priceSource, doSplitAll, underlyingFutureObservationDate, calculationCurrency]);

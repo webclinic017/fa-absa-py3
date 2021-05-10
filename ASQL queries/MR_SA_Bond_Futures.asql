@@ -1,0 +1,46 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+------------------------------------------------------------------------------------------------
+2010-09-01     264536, 627760   Natalie Austin     Douglas Finkel     Original
+2012-02-06     888715           Susan Kruger       Willie vd Bank     Included IndexLinkedBonds
+2020-09-30                      Thando Mpalala     Andile Biyana      https://absa.atlassian.net/browse/CMRI-707 Include bond index model
+*/
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_SA_Bond_Futures.OpenFile',@1_path{'f:\'},@2_FileName{'MR_SA_Bond_Futures.csv'},@3_PositionName{'MR_SA_Bond_Futures_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_SA_Bond_Futures.Write',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    macro
+From
+    instrument i
+Where
+    (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Future/Forward')
+    and i.und_instype in ('Bond','IndexLinkedBond')
+    and i.paytype in ('Future')
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

@@ -1,0 +1,253 @@
+/*
+
+Purpose                 :Market Risk feed files - Daily Specific Risk (Standardised Approach)
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger
+CR Number               :C000000739037; C000000821076
+
+/*  C000000821076
+Changed the ZAR_Position calculation from sum(nominal_amount(t)*1/fx.fxRepDay) to sum(t.quantity*cl.weight*1/fx.fxRepDay)
+for Combination instruments.
+Added group by Issuer for Combination instruments.
+Commented second combination filter out
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_FRTB_DRC') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_FRTB_DRC' and p.type = 'SQL Query' 
+
+select
+	hc.insid						                            'hcurr',
+	curr.insid						                            'curr',
+	curr.insaddr                                                'insaddr',
+        @Date{today}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)        'fxRepDay'
+into fxrates
+from instrument	hc, instrument	curr
+where hc.insid = 'ZAR' and curr.instype = 'Curr'
+
+
+select 
+	t.trdnbr                                'TradeID',
+	i.insid                                 'Instrument',
+	i.instype                               'Instype',
+	i.exp_day                               'Expiry',
+	i.insid                                 'und_insid',
+	i.instype                               'und_instype',
+	i.exp_day                               'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)    'ZAR_Nominal',
+        sum(present_value(t)*1/fx.fxRepDay)     'ZAR_PV',
+	display_id(i,'issuer_ptynbr')	        'Issuer'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    party p,
+    fxrates fx
+where
+    i.insaddr = t.insaddr
+and i.curr = fx.insaddr
+and i.issuer_ptynbr = p.ptynbr
+and i.instype in ('Bond','Zero','IndexLinkedBond','FRN', 'Bill', 'CD')
+and i.exp_day > Today
+and add_info(t,'MM_Instype') ~= 'BA'
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+and p.ptyid not in ('ABSA BANK LTD')
+
+Group by 2,4,8
+
+
+select 
+	t.trdnbr                                'TradeID',
+	i.insid                                 'Instrument',
+	i.instype                               'Instype',
+	i.exp_day                               'Expiry',
+	u.insid                                 'und_insid',
+	u.instype                               'und_instype',
+	u.exp_day                               'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)    'ZAR_Nominal',
+        sum(present_value(t)*1/fx.fxRepDay)     'ZAR_PV',
+ 	display_id(u,'issuer_ptynbr')	        'Issuer'
+into
+    temp
+from 
+    instrument i,
+    instrument u,
+    party p,
+    trade t,
+    fxrates fx
+where
+	i.insaddr = t.insaddr
+and i.und_insaddr = u.insaddr
+and u.issuer_ptynbr = p.ptynbr
+and i.curr = fx.insaddr
+and i.instype in ('Future/Forward')
+and u.instype in ('Bond')
+and p.ptyid not in ('ABSA BANK LTD')
+and	i.exp_day > Today
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+Group by 2,4,8
+
+select 
+	t.trdnbr                                'TradeID',
+	i.insid                                 'Instrument',
+	i.instype                               'Instype',
+	i.exp_day                               'Expiry',
+	u.insid                                 'und_insid',
+	u.instype                               'und_instype',
+	u.exp_day                               'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)    'ZAR_Nominal',
+        sum(present_value(t)*1/fx.fxRepDay)     'ZAR_PV',
+	display_id(u,'issuer_ptynbr')	        'Issuer'
+into
+    temp
+from 
+    instrument i,
+    instrument u,
+    party p,
+    leg l,
+    trade t,
+    fxrates fx
+where
+	i.insaddr = t.insaddr
+and i.insaddr = l.insaddr
+and l.index_ref = u.insaddr
+and u.issuer_ptynbr = p.ptynbr
+and i.curr = fx.insaddr
+and i.exp_day > today
+and i.instype in ('TotalReturnSwap')
+and u.instype in ('Bond', 'IndexLinkedBond')
+and p.ptyid not in ('ABSA BANK LTD')
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+and l.type = 'Total Return'
+Group by 2,4,8
+
+/* *********** TotalReturnSwap * CreditDefaultSwap * FreeDefCF *********** */
+select 
+	t.trdnbr                                'TradeID',
+	i.insid                                 'Instrument',
+	i.instype                               'Instype',
+	i.exp_day                               'Expiry',
+	cr.insid                                 'und_insid',
+	cr.instype                               'und_instype',
+	cr.exp_day                               'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)    'ZAR_Nominal',
+        sum(present_value(t)*1/fx.fxRepDay)     'ZAR_PV',
+	display_id(cr,'issuer_ptynbr')	        'Issuer'
+into
+    temp
+from     
+    trade t,
+    instrument i,
+    instrument cr,
+    party p,
+    leg l,
+    fxrates fx
+
+where 
+    t.insaddr = i.insaddr    
+and i.curr = fx.insaddr
+and i.insaddr = l.insaddr
+and l.credit_ref = cr.insaddr
+and cr.issuer_ptynbr = p.ptynbr
+and l.type = 'Credit Default'
+and i.exp_day > today
+and i.instype in ('CreditDefaultSwap', 'FreeDefCF')
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+and p.ptyid not in ('ABSA BANK LTD')
+group by 2, 4, 8
+
+/* *********************** Combination Instruments *********************** */
+select 
+	t.trdnbr                                'TradeID',
+	i.insid                                 'Instrument',
+	und_ins.instype                         'Instype',
+	und_ins.exp_day                         'Expiry',
+	cr.insid                                'und_insid',
+	cr.instype                              'und_instype',
+	cr.exp_day                              'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(t.quantity*cl.weight*1/fx.fxRepDay) 'ZAR_Nominal',
+        sum(present_value(t)*1/fx.fxRepDay)     'ZAR_PV',
+	display_id(cr,'issuer_ptynbr')	        'Issuer'
+into
+    temp
+from     
+    instrument      i,
+    trade           t,
+    leg             l,
+    instrument      cr,
+    CombinationLink cl,
+    party p,
+    Instrument      und_ins,
+    ChoiceList      clist,
+    fxrates fx
+where
+    i.insaddr    = t.insaddr
+and clist.seqnbr = und_ins.product_chlnbr
+and l.type = 'Credit Default'
+and i.insaddr    = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr   = l.insaddr
+and cr.issuer_ptynbr = p.ptynbr
+and i.curr = fx.insaddr
+and l.credit_ref *= cr.insaddr
+and i.instype = 'Combination'
+and und_ins.exp_day > today
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+and p.ptyid not in ('ABSA BANK LTD')
+group by 2, 4, 8, 11
+
+/*
+select 
+	t.trdnbr                                'TradeID',
+	und_ins.insid                           'Instrument',
+	und_ins.instype                         'Instype',
+	und_ins.exp_day                         'Expiry',
+	und_ins.insid                           'und_insid',
+	und_ins.instype                         'und_instype',
+	und_ins.exp_day                         'und_exp_day',
+	display_id(t, 'prfnbr')	                'Book',
+        display_id(i,'curr')                    'Currency',
+	sum(nominal_amount(t)*1/fx.fxRepDay)    'ZAR_Position',
+	display_id(und_ins,'issuer_ptynbr')	    'Issuer'
+into
+    temp
+from     
+    instrument      i,
+    trade           t,
+    party p,
+    CombinationLink cl,
+    Instrument      und_ins,
+    ChoiceList      clist,
+    fxrates fx
+where
+    i.insaddr    = t.insaddr
+and clist.seqnbr = und_ins.product_chlnbr
+and i.insaddr    = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.issuer_ptynbr = p.ptynbr
+and i.curr = fx.insaddr
+and i.instype = 'Combination'
+and und_ins.exp_day > today
+and match_filter(t, @1_Filter{MR_SpecificRisk_IR;tradefilter.fltid})
+and p.ptyid not in ('ABSA BANK LTD')
+
+group by 2, 4, 8
+*/
+
+select * from temp t where t.ZAR_Nominal ~= 0

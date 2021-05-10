@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FInstrument:quantityOfUnderlying = select((object.InsType == "Repo/Reverse") or (object.InsType == "SecurityLoan") or (object.InsType == "BuySellback"), 
+  true->sumOf(tradesInPosition :* "tradeLogicDecorator(object).QuantityOfUnderlying"), 
+  default->nil);

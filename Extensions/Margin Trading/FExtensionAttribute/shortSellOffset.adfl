@@ -1,0 +1,7 @@
+[Margin Trading]FMultiInstrumentAndTrades:shortSellOffset = nil;
+[Margin Trading]FPortfolio:shortSellOffset = select(isShortSellLimitPortfolio, 
+  true->select(shortSellOffsetPortfolio, 
+    nil->0, 
+    default->instrument:positionCARTradeQuantity [positionObject = shortSellOffsetPortfolio]), 
+  default->nil);
+[Margin Trading]FSingleInstrumentAndTrades:shortSellOffset = portfolio:shortSellOffset [instrument];

@@ -1,0 +1,11 @@
+[Default]FCashFlowInstrument:couponPriceAdjustment = select(isCouponOrSpreadQuoted, 
+  true->nonCouponValue / couponFactor, 
+  false->0.0);
+[Default]FFxSwap:couponPriceAdjustment = select(isCouponOrSpreadQuoted, 
+  true->nonCouponValue / couponFactor / unitQuoteScaling, 
+  false->0.0);
+[Default]FInstrument:couponPriceAdjustment = 0.0;
+[Default]FOption:couponPriceAdjustment = 0.0;
+[Default]FOrderBook:couponPriceAdjustment = instrument:couponPriceAdjustment;
+[Default]FPriceFeed:couponPriceAdjustment = instrument:couponPriceAdjustment;
+[Default]FQuoteController:couponPriceAdjustment = instrument:couponPriceAdjustment;

@@ -1,0 +1,13 @@
+[Default]FCashFlowMoneyFlow:theoreticalValueAtAcquireDay = shunt[valuesOnSpotOverride](tradeHasRightToCashFlow, 
+  false->collapse(projectedMoneyFlowZeroAtPositionAdjustmentDate), 
+  true->select(instrumentHasCustomMoveFunction, 
+    true->collapse(customMoveValue), 
+    false->select(payTypeForward, 
+      true->collapse(projectedCashFlow), 
+      false->select(payType, 
+        "Future"->setDateTimePart(projectedCashFlow, valuationDate), 
+        default->shunt[valuesOnSpotOverride](exCouponDateHasPassed, 
+          true->collapse(projectedMoneyFlowZeroAtPositionAdjustmentDate), 
+          false->setDateTimePart(shunt[valuesOnSpotOverride](cashFlowModelValueNeedsCapitilization, 
+            false->cashFlowModelValue, 
+            true->repoCurve.DiscountValue(cashFlowModelValue, max(positionAdjustmentDates, valuationDate))), positionAdjustmentDates))))));

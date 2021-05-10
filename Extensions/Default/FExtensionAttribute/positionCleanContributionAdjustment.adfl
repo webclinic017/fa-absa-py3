@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:positionCleanContributionAdjustment = select(accruedArrear, 
+  false->[], 
+  true->shunt(maxOfAny(includes(positionFlatAccruedAdjustment, true)), 
+    true->object:positionCleanContribution [priceSource, tradesInPosition = tradesFlatAccruedOffFiltered, valuesOnSpotOverride, includeAllTrades], 
+    false->[]));
+[Default]FCombination:positionCleanContributionAdjustment = select(hasAccruedInArrearConstiuent, 
+  false->[], 
+  true->sumOf(combinationConstituentInstruments :* "positionCleanContributionAdjustment" [positionTradeQuantities, valuesOnSpotOverride, includeAllTrades]));
+[Default]FInstrument:positionCleanContributionAdjustment = [];

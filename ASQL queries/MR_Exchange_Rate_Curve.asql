@@ -1,0 +1,53 @@
+/* update_method=0 */
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+
+-- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003500355   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-461
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Exchange_Rate_Curve.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Exchange_Rate_Curve.csv'})    'BuildConfirmation'
+Into
+    macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(,'MR_Exchange_Rate_Curve.Write',pe, @1_path{'f:\'},@2_FileName{'MR_Exchange_Rate_Curve.csv'})     'BuildConfirmation'
+Into
+    macro
+from 
+    Price pe,
+    Party pty,
+    instrument i
+where
+    i.insaddr = pe.insaddr
+    and i.instype in ('Curr')
+    and pe.day = Today
+    and pe.ptynbr = pty.ptynbr
+    and pty.ptyid in ('SPOT')
+    and pe.insaddr ~= pe.curr
+
+Select
+    'Close File'    'Process', 
+    ael_s(,'MR_Exchange_Rate_Curve.WriteOutput',@1_path{'f:\'},@2_FileName{'MR_Exchange_Rate_Curve.csv'})     'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

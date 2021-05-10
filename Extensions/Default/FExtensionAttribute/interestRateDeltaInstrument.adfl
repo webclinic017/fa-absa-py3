@@ -1,0 +1,12 @@
+[Default]FInstrument:interestRateDeltaInstrument = select(priceGreekIncludeQuoteScaling, 
+  true->select(isSupportingQuoteScaling, 
+    true->spotValueToQuoteFactor * differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, yieldCurveRiskFactorNames), delta fixedYieldShift), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001), 
+    false->spotHandlingZero), 
+  false->differential(shift(theoreticalInstrumentSpotValueForPrice, snoop(theoreticalInstrumentSpotValueForPrice, yieldCurveRiskFactorNames), delta fixedYieldShift), theoreticalInstrumentSpotValueForPrice, abs(fixedYieldShift) / 0.0001));
+[Default]FInstrumentAndTrades:interestRateDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->openInstrumentOrInstrument :* "collapse(interestRateDeltaInstrument)" [isSplitAllGrouped, priceSource, priceGreekIncludeQuoteScaling] * combinationInstrumentMapFactor);
+[Default]FMultiInstrumentAndTrades:interestRateDeltaInstrument = nil;
+[Default]FPriceAggregate:interestRateDeltaInstrument = select(isSettled, 
+  true->spotHandlingZero, 
+  false->interestRateDeltaInstrument = instrument :* "interestRateDeltaInstrument" [priceSource, priceGreekIncludeQuoteScaling]);

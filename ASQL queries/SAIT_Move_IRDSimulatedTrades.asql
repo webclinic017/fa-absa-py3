@@ -1,0 +1,14 @@
+select
+ael_i(p,'ASQL_log','SAIT_Move_IRDSimulatedTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Move_IRDSimulatedTrades' and p.type = 'SQL Query'
+
+select
+
+    ael_s(i,'SAIT_Move_IRDSimulatedTrades.MoveTradePortfolio',@Status{Simulated},@NewPortfolio{IRD_SIMULATED},@Filter{IRP_All_Trades_ALL_STATUS})
+    
+from
+    instrument  i
+    
+where i.insid = 'ZAR/ALSI'

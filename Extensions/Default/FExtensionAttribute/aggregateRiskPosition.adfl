@@ -1,0 +1,5 @@
+[Default]FCashFlowInstrument:aggregateRiskPosition = double(riskPositionBase * normalizedNominalValue) * timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);
+[Default]FInstrument:aggregateRiskPosition = double(riskPositionBase * normalizeRiskPositionBaseFactor) * timeApportionmentFactor(timeDistributionDate, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);
+[Default]FInstrumentAndTrades:aggregateRiskPosition = nil;
+[Default]FMultiInstrumentAndTrades:aggregateRiskPosition = sumOf(instruments :* "aggregateRiskPosition" [positionObject, displayCurrency, filterUnit]);
+[Default]FSingleInstrumentAndTrades:aggregateRiskPosition = instrument :* "aggregateRiskPosition" [positionObject, displayCurrency, filterUnit];

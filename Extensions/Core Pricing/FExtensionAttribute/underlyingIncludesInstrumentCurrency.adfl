@@ -1,0 +1,6 @@
+[Core Pricing]FDerivative:underlyingIncludesInstrumentCurrency = select(underlying, 
+  nil->false, 
+  default->select(underlying:isFxRate, 
+    false->false, 
+    default->underlying.CurrencyPair.IncludesCurrency(currency)));
+[Core Pricing]FInstrument:underlyingIncludesInstrumentCurrency = false;

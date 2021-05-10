@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FCashFlowInstrument:interestDaily = object.interest( , profitAndLossEndDate);
+[ABSA Specific 4.3]FInstrumentAndTrades:interestDaily = 
+# In general FInstrumentAndTrades could have multiple trades, calling `object.Trades.At(0)` should not be used! Review this extension attribute.
+switch(object.Trades.At(0).ValueDay > profitAndLossEndDate, 
+  true->0, 
+  false->(interest - (object :* "absaInterestEnd - absaInterestStart" [profitAndLossEndDate = (profitAndLossEndDate - 1)])));

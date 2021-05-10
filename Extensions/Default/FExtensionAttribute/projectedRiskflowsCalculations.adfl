@@ -1,0 +1,8 @@
+[Default]FInstrument:projectedRiskflowsCalculations = select(projectedRiskflowsCalculationMethod, 
+  "None"->denominatedvalue(0, currency, , ), 
+  "Dynamic"->shunt[positionObject, currenciesForVectorColumn](isOpenPosition, 
+    true->projectedRiskflowsDynamic, 
+    false->denominatedvalue(0, currency, , )) + profitAndLossValuesActualCashApportionedInBasket, 
+  default->shunt[positionObject](isOpenPosition, 
+    true->projectedRiskflowsApportionedInBasket, 
+    false->denominatedvalue(0, currency, , )) + profitAndLossValuesActualCashApportionedInBasket);

@@ -1,0 +1,19 @@
+[Default]FInstrumentAndTrades:underlyingForwardPriceInTheoreticalPrice = select(underlyingForUnderlyingForwardPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(isInterestRateOption, 
+    true->snoop01(theoreticalPrice, underlyingForwardRateTargets, alwaysMatchedFilter, lotIndex), 
+    false->select(providerIsTarget, 
+      true->collapse(forwardValueProviderTargetInTheoreticalPrice), 
+      false->select(snoop01(theoreticalPrice, "interestModelProviderCurveComponentTarget", alwaysMatchedFilter, lotIndex), 
+        default->snoop01(theoreticalPrice, "interestModelProviderCurveComponentTarget", alwaysMatchedFilter, lotIndex), 
+        nil->snoop01(theoreticalPrice, "underlyingForwardPrice", instrument, lotIndex)))));
+[Default]FMultiInstrumentAndTrades:underlyingForwardPriceInTheoreticalPrice = nil;
+[Default]FPriceAggregate:underlyingForwardPriceInTheoreticalPrice = select(underlyingForUnderlyingForwardPriceInTheoreticalPrice, 
+  nil->nil, 
+  default->select(isInterestRateOption, 
+    true->snoop01(theoreticalPrice, underlyingForwardRateTargets, alwaysMatchedFilter, lotIndex), 
+    false->select(underlyingForUnderlyingForwardPriceInTheoreticalPrice:usesFutureForwardModel, 
+      true->snoop01(theoreticalPrice, "startValueForForwardCalculationConvertedToCalc", underlyingForUnderlyingForwardPriceInTheoreticalPrice, lotIndex), 
+      false->select(snoop01(theoreticalPrice, "interestModelProviderCurveComponentTarget", alwaysMatchedFilter, lotIndex), 
+        default->snoop01(theoreticalPrice, "interestModelProviderCurveComponentTarget", alwaysMatchedFilter, lotIndex), 
+        nil->snoop01(theoreticalPrice, "underlyingForwardPrice", instrument, lotIndex)))));

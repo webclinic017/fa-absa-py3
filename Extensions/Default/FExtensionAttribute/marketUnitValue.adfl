@@ -1,0 +1,6 @@
+[Default]FFuture:marketUnitValue = select(isIMMFRA, 
+  true->marketSpotValueForForward, 
+  default->select(payType, 
+    "Future"->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = marketPrice, priceSource, quoteConversionWrapperDoRounding = doRoundingForMarketUnitValue, doSplitAll], 
+    default->marketSpotValueForForward));
+[Default]FInstrument:marketUnitValue = object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation, quoteConversionWrapperFromQuote = marketPrice, priceSource, quoteConversionWrapperDoRounding = doRoundingForMarketUnitValue, doSplitAll];

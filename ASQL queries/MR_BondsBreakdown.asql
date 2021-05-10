@@ -1,0 +1,39 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MR_BondsBreakdown') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MR_BondsBreakdown' and p.type = 'SQL Query' 
+ 
+  /* Bonds*/
+
+
+select
+
+    display_id(t,'prfnbr')      'Portf',
+    i.insid     'InsId',
+    sum((Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0.01)  )
+    -Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1)))  ) )*(nominal_amount(t)/100))   'pv01'
+
+into temp
+    
+from 
+
+    trade t,
+    instrument i
+
+where
+	i.insaddr = t.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+
+group by 1,2
+
+select
+    t.Portf,
+    t.InsId,
+    t.pv01
+from
+    temp t
+where
+    abs(t.pv01) > 1

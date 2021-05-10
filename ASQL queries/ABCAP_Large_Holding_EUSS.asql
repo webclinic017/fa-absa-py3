@@ -1,0 +1,117 @@
+/*
+Purpose                       : Large holdings for decomposition of ETF's underlying Index and Basket products project through 
+                                which Large Holdings would be able to receive the constituents of Index and Basket products and 
+                                to gain business approval.
+Department and Desk           : Complaints IT (London) 
+Requester                     : Danial Tony
+Developer                     : Sanele Macanda
+CR Number                     : CHNG0001835273
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+    ael_i(p,'ASQL_log','ABCAP_Large_Holding_EUSS') 'Name' 
+into  
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where 
+    p.name = 'ABCAP_Large_Holding_EUSS' and p.type = 'SQL Query' 
+    
+/* For each instrument type we get all children of the underlying instrument and calculating the position of each underlying stock*/
+Select
+    i.insid                             'Parent',
+    i.insaddr                           'Parent_insaddr',
+    i.issuer_ptynbr,
+    i.instype                           'Parent_Sec_Type',
+    display_id(i,'Curr')                'Parent_CCY',
+    i.contr_size                        'CtrSz',
+    i.isin                              'ISIN',
+    add_info(i,'SEDOL')                 'Sedol',
+    un.insid                            'Child',
+    un.insaddr                          'Child_insaddr',
+    un.instype                          'Child_Sec_Type',
+    un.index_factor,
+    display_id(un,'Curr')               'Child_CCY',
+    member.insid                        'Member',
+    member.insaddr                      'Member_insaddr',
+    member.instype                      'Member_Sec_type',
+    display_id(member,'Curr')           'Member_CCY',
+    c.weight,
+    mtm_price(member)                   'Member_Price',
+    mtm_price(member) * (c.weight/un.index_factor) 'price_weight'
+    
+INTO Temp_ETF    
+
+    
+From
+    Instrument          i,
+    Instrument          un,
+    Instrument          member,
+    CombinationLink     c
+
+Where
+    un.insaddr = i.und_insaddr
+    and c.owner_insaddr = un.insaddr
+    and c.member_insaddr = member.insaddr
+    
+    and un.instype = 'EquityIndex'
+    and i.instype in ('ETF','Option','VarianceSwap','Future/Forward','TotalReturnSwap')
+    
+/*Getting the sum of the (weight*price)*/
+Select
+    i.insid,
+    i.insaddr,
+    sum(tp.price_weight) 'sum'
+    
+INTO sum_price
+From
+    Instrument i,
+    Instrument un,
+    Temp_ETF tp
+    
+Where
+    i.insaddr = tp.Parent_insaddr
+    and un.insaddr = tp.Member_insaddr
+    
+    Group by 1
+
+
+/*Selecting all columns that should be in the report*/
+Select
+    tp.Parent,
+    add_info(p, 'BarCap_SMS_LE_SDSID')              'Legal_Entity_SDSID', 
+    tp.Parent_Sec_Type,
+    tp.Parent_CCY,
+    tp.CtrSz,
+    tp.ISIN,
+    tp.Sedol,
+    sum(etf_t.quantity)                             'Pos',
+    tp.Child,
+    tp.Child_Sec_Type,
+    tp.Child_CCY,
+    tp.Member,
+    tp.index_factor,
+    tp.Member_Sec_type,
+    tp.Member_CCY,
+    tp.price_weight                                 'Parent_Quantity',
+    tp.price_weight/sp.sum                          'Weight',
+    tp.price_weight/sp.sum * sum(etf_t.quantity)    'Pos'
+    
+
+From
+    Temp_ETF    tp,
+    Party       p,
+    Trade       etf_t,
+    sum_price   sp
+    
+
+Where
+    etf_t.insaddr = tp.Parent_insaddr
+    and p.ptynbr =* tp.issuer_ptynbr
+    and sp.insaddr = tp.Parent_insaddr
+    
+    and etf_t.status not in ('Simulated','Void')
+    and sum(etf_t.quantity) > 0
+    
+    Group by tp.Parent, tp.Child, tp.Member

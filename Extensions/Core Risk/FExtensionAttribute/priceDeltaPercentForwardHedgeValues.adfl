@@ -1,0 +1,12 @@
+[Core Risk]FCombInstrMapAndTrades:priceDeltaPercentForwardHedgeValues = shunt(isOpenPosition, 
+  true->combinationInstrumentMapFactorForPriceGreeks * instrument :* "priceDeltaPercentForwardHedgeValues" [isSplitAllGrouped, priceSource, positionTradeQuantities, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, groupingSpotDiscountDate], 
+  false->spotHandlingZero);
+[Core Risk]FDerivative:priceDeltaPercentForwardHedgeValues = select(underlying:isFxRate, 
+  true->priceDeltaPercentValues * (currencyPairForeignCurrency:fxDiscountCurve).Discount(carryEndDate, carryStartDate), 
+  false->priceDeltaPercentValues);
+[Core Risk]FInstrument:priceDeltaPercentForwardHedgeValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->denominatedValueOrBasket(priceDeltaPercentValuesInstrument * priceDeltaForwardHedgeRiskPosition));
+[Core Risk]FInstrumentAndTrades:priceDeltaPercentForwardHedgeValues = openInstrument :* "collapse(priceDeltaPercentForwardHedgeValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, groupingSpotDiscountDate];
+[Core Risk]FMultiInstrumentAndTrades:priceDeltaPercentForwardHedgeValues = sumOf(openInstruments :* "collapse(priceDeltaPercentForwardHedgeValues)" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, groupingSpotDiscountDate]);
+[Core Risk]FTradeRow:priceDeltaPercentForwardHedgeValues = openInstrument :* "priceDeltaPercentForwardHedgeValues" [isSplitAllGrouped, priceSource, singleTradePosition, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceGreekOnSpot, includeAllTrades, groupingSpotDiscountDate];

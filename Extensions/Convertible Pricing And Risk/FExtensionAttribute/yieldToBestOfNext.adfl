@@ -1,0 +1,9 @@
+[Convertible Pricing And Risk]FInstrument:yieldToBestOfNext = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->maxOf(flattenAndRemoveNil([marketYieldToNextPut, marketYieldToMaturity]))), 
+  false->nil);
+[Convertible Pricing And Risk]FInstrumentAndTrades:yieldToBestOfNext = instrument :* "yieldToBestOfNext";
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:yieldToBestOfNext = nil;
+[Convertible Pricing And Risk]FOrderBook:yieldToBestOfNext = instrument :* "yieldToBestOfNext";
+[Convertible Pricing And Risk]FPriceFeed:yieldToBestOfNext = instrument :* "yieldToBestOfNext";

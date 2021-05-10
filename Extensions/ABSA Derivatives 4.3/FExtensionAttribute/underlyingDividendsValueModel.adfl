@@ -1,0 +1,9 @@
+[ABSA Derivatives 4.3]FOption:underlyingDividendsValueModel = select(object.ValuationGrpChlItem.Name == "EQ_Option_Theo_Future", 
+  false->select(dividendForecast, 
+    nil->denominatedvalue(0, underlying :* "currency", nil, instrumentSpotDate), 
+    default->select(doGermanCorrection, 
+      true->underlyingDividendsDiscountedAndGermanGAAdjusted, 
+      default->select(useUnderlyingAdjustmentFactor, 
+        true->underlyingAdjustmentFactor * underlyingDividendsDiscounted, 
+        false->underlyingDividendsDiscounted))), 
+  true->0.0);

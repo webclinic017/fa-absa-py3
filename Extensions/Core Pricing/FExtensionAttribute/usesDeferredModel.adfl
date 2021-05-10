@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:usesDeferredModel = select(isGeneric, 
+  true->select(priceBase, 
+    "Market"->false, 
+    default->select(settlementPayType, 
+      "Forward"->false, 
+      "Future"->true, 
+      default->false)), 
+  false->false);

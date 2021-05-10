@@ -1,0 +1,6 @@
+[StructuredProductsDealPackage]FExoticEvent:spTrfExpiryFixedToday = select(object.Date == valuationDate, 
+  true->switch(object.EventValue > 0.0, 
+    true->1, 
+    false->0), 
+  false->0);
+[StructuredProductsDealPackage]FInstrument:spTrfExpiryFixedToday = sumOf(spTrfExpiryEvents :* "spTrfExpiryFixedToday");

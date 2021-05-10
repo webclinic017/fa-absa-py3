@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Average_Balances') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Average_Balances_OvrPeriod' and p.type = 'SQL Query' 
+
+/*
+Date        CR Number   Who             Issue#      What
+2010-05-25  333324      Rohan vd Walt               Based on Call_Average_Balances report, uses python code to calculate average rate and average balance over period
+
+Description
+    Calculate the average balance and the average rate on call accounts over custom period
+*/
+
+select
+    @3_StartDate{Today}  'StartDate',
+    @4_EndDate{Today}  'EndDate'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    display_id(t,'prfnbr')  'Portfolio',
+    t.status    'Status',
+    add_info(t,'Funding Instype')   'Funding_Instype',
+    ael_f(,'Call_Average_Balances_OvrPeriod.AvgBalance',i.insid,m.StartDate,m.EndDate)  'AvgBalanceOverPeriod',
+    ael_f(,'Call_Average_Balances_OvrPeriod.AvgInterestRate',i.insid,m.StartDate,m.EndDate)  'AvgIROverPeriod',
+    m.StartDate 'StartDate',
+    m.EndDate 'EndDate'
+from
+    trade t,
+    instrument i,
+    macro m
+where
+        t.insaddr = i.insaddr
+    and match_filter(t, @1_Filter{marilize_Call_3304_7744;tradefilter.fltid}, @2_TrdNos{})
+    and i.exp_day >= m.StartDate

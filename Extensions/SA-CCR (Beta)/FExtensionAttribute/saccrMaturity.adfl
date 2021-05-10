@@ -1,0 +1,6 @@
+[SA-CCR (Beta)]FCashFlow:saccrMaturity = object.SACCRMaturity;
+[SA-CCR (Beta)]FFxRate:saccrMaturity = saccrNotionalAmountsFXData["maturities"];
+[SA-CCR (Beta)]FInstrument:saccrMaturity = object.SACCRMaturity;
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrMaturity = select(isOpenPosition and saccrAssetClassDefined, 
+  true->round(saccrInstrumentComponents :* "saccrMaturity" [tradesInPosition], saccrDecimalsDefault), 
+  false->nil);

@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:combinationAmount = combinationInstrumentMap :* "marketLegComponentSpotValueDV * fxLegToInstrument" [priceSource];
+[Default]FCombination:combinationAmount = theoreticalSpotValueFromComponentMarketValue;
+[Default]FInstrument:combinationAmount = nil;
+[Default]FInstrumentAndTrades:combinationAmount = instrument:combinationAmount;
+[Default]FMultiInstrumentAndTrades:combinationAmount = nil;
+[Default]FPriceAggregate:combinationAmount = select(parentPriceFeed, 
+  nil->theoreticalSpotValueFromComponentMarketValue, 
+  default->instrumentMap :* "marketLegComponentSpotValueDV * fxLegToInstrument" [priceSource]);

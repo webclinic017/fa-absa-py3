@@ -1,0 +1,7 @@
+[Default]FInstrument:asianArithmeticAveragePriceSoFar = select(useAveragePriceDates, 
+  true->select(isOptionValuedAsPureSingle, 
+    true->asianAverage(asianHistoricalAveragePriceEvents, asianPriceWeight, unit(storedStrike), datetime(storedStrike), true), 
+    false->select(asianBasketAsSingleHasPriceEventsDefinedOnComponents, 
+      true->asianBasketArithmeticAveragePriceSoFar, 
+      false->asianAverage(asianHistoricalAveragePriceEvents, asianPriceWeight, unit(storedStrike), datetime(storedStrike), true))), 
+  default->0.0);

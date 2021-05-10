@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FMoneyFlow:slPLPeriodFeeFactor = shunt((profitAndLossStartDate > endDate) or (profitAndLossEndDate < startDate), 
+  true->0.0, 
+  default->shunt(startDate == endDate, 
+    true->0.0, 
+    default->(min(endDate, profitAndLossEndDate) - max(startDate, profitAndLossStartDate)) / (endDate - startDate)));

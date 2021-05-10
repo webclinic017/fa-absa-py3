@@ -1,0 +1,34 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Break events in next week') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Break events in next week' and p.type = 'SQL Query' 
+
+
+/*
+coded by Anil Parbhoo
+requester : Wentzel, Declercq: Absa Capital
+description : ASQL will be used to link to a trade filter. 
+The trade filter will be used to view risk on trades where a mandatory break is defined within 1 week
+change request : CHNG0002356029
+*/
+
+
+select t.trdnbr
+
+
+from instrument i, trade t, ExerciseEvent ee, instrument c
+ 
+
+where 
+t.insaddr = i.insaddr
+and i.curr = c.insaddr
+and ee.insaddr = i.insaddr
+and i.instype = 'Swap'
+and i.exp_day > Today
+and ee.day>=Today
+and t.status not in ('Simulated', 'Void', 'Terminated')
+and (ee.day) - (Today) <= 7
+and ee.type = 'MandatoryBreak'
+

@@ -1,0 +1,13 @@
+[Markit Securities Finance]FInstrument:secLendOverrideBidVolume = nil;
+[Markit Securities Finance]FInstrumentAndTrades:secLendOverrideBidVolume = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->instrument:secLendOverrideBidVolume);
+[Markit Securities Finance]FMultiInstrumentAndTrades:secLendOverrideBidVolume = select(secLendGetMasterLoan, 
+  nil->nil, 
+  default->secLendGetMasterLoan:secLendOverrideBidVolume);
+[Markit Securities Finance]FPortfolioInstrumentAndTrades:secLendOverrideBidVolume = nil;
+[Markit Securities Finance]FSecurityLoan:secLendOverrideBidVolume = select(secLendMarkitMarket, 
+  nil->nil, 
+  default->select(secLendLoanIsMaster, 
+    default->nil, 
+    true->secLendGetMasterLoan:marketPriceLow [orderBookMarketSearchOrder = [secLendRateOverrideMarket], priceFindingMarketSet = true, priceFindingIsCorrectDay = true]));

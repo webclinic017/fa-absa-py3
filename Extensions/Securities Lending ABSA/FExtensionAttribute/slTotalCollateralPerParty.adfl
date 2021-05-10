@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FInstrumentAndTrades:slTotalCollateralPerParty = sumOf(slCollateralTrades :* "slTotalCollateralPerParty" [includeAllTrades = false, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FTrade:slTotalCollateralPerParty = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition, includeAllTrades], 
+  true->0.0, 
+  default->double(instrument :* "slMarketValue" [singleTradePosition, profitAndLossEndFXRates]));
+[Securities Lending ABSA]FTradeRow:slTotalCollateralPerParty = trade :* "slTotalCollateralPerParty" [includeAllTrades = true, profitAndLossEndFXRates];

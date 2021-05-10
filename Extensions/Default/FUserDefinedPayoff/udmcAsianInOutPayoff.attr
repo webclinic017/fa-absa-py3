@@ -1,0 +1,59 @@
+[Default]FObject:udmcAsianInOutPayoff
+#----------------------------------------
+# PAYOFF EXPRESSION
+# Average In and Out Asian Payoff
+#
+# INTERPRETATION
+# An ordinary Asian (average) option where the strike price is calculated as an average.
+# Call:         max(S - K, 0)
+# Put:          max(K - S, 0)   
+#       
+# DEFINITION
+# S: Average price; arithmetic average of the underlying price on 'Average price' dates;
+# K: Average strike; arithmetic average of the underlying price on 'Average strike' dates;
+# 'Average price', 'Average strike' exotic events should be specified.
+#----------------------------------------
+
+# PARAMETERS
+param matrix(double) isPrice;
+param matrix(double) isStrike;
+param int isCall;
+param int isQuanto;
+param double fixFXRate;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double s = 0.0;
+double k = 0.0;
+double nPrice = sum(isPrice);
+double nStrike = sum(isStrike);
+double callOrPut = 2.0 * isCall - 1.0;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+# MAIN LOOP
+s = sum(S .* isPrice)/nPrice; #average calculation
+k = sum(S .* isStrike)/nStrike;
+
+# CASHFLOWS
+cashFlow(0, fx * max(0.0, callOrPut * (s - k)));
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isPrice: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Average price' fixing;
+# isStrike: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding element  in S represents a 'Average strike' fixing;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# nPrice: Number of 'Average price' fixings;
+# nStrike: Number of 'Average strike' fixings;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# s: Arithmetic average of the underlying price on 'Average price' dates;
+# k: Arithmetic average of the underlying price on 'Average strike' dates;
+#
+# ------------------------------------------
+
+...

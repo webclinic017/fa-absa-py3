@@ -1,0 +1,6 @@
+[Default]FConvertible:deltaNukePrice = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = collapse(deltaNukeSpotValueForPrice), priceSource, doSplitAll, quoteConversionWrapperToQuotation = quotation]);
+[Default]FInstrument:deltaNukePrice = nil;
+[Default]FInstrumentAndTrades:deltaNukePrice = instrument:deltaNukePrice [priceSource, isSplitAllGrouped, filterCurrency];
+[Default]FMultiInstrumentAndTrades:deltaNukePrice = nil;

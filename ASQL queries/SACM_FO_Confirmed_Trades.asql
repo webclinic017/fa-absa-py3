@@ -1,0 +1,55 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_FO_Confirmed_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_FO_Confirmed_Trades' and p.type = 'SQL Query' 
+/*
+
+2005-05-31 anil include trades that do have a trade area
+2005-08-16 anil excluded portfolios that are not part of treasury
+
+
+
+*/
+
+
+SELECT
+ T.TRDNBR 'Trade No',
+time_to_day(t.creat_time)'trade_time',
+ PT.PRFID 'Portfolio',
+t.status,
+ I.CONTR_SIZE * T.QUANTITY 'Nominal',
+ I.INSTYPE 'INSTR-TYPE',
+ I.INSID 'Instrument',
+ P.PTYID 'Counterparty',
+ T.PRICE 'Price',
+ T.PREMIUM 'Premium',
+ T.VALUE_DAY 'ValueDay',
+
+cl.entry'Trade Area',
+
+ T.TIME 'Time',
+ U.USERID 'Trader'
+FROM
+ TRADE T,
+ INSTRUMENT I,
+ PARTY P,
+ PORTFOLIO PT,
+ USER U,
+choicelist cl
+
+WHERE
+ TIME_TO_DAY(T.creat_time) >= @Start_date{2004-04-01;}
+ AND I.INSTYPE IN ('Bond','FRN','Repo/Reverse','BuySellback','IndexLinkedBond')
+and t.optkey1_chlnbr*=cl.seqnbr
+ AND T.INSADDR = I.INSADDR
+ AND T.COUNTERPARTY_PTYNBR = P.PTYNBR
+ AND PT.PRFNBR = T.PRFNBR
+ AND T.STATUS in ('FO Confirmed','Simulated')
+ AND T.CREAT_USRNBR = U.USRNBR
+
+and pt.prfid not in ('ALCH 2500','SPV1','SPV2','SPV3')
+
+ORDER BY PT.PRFID,  I.INSID
+

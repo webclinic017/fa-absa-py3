@@ -1,0 +1,9 @@
+[Profit and Loss]FInstrumentAndTrades:bookTPLCalculation = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->collapse(bookAssetTPL));
+[Profit and Loss]FMultiInstrumentAndTrades:bookTPLCalculation = select(isCashGrouping, 
+  true->collapse(cashTPL), 
+  default->select(isAssetGrouping, 
+    true->collapse(bookAssetTPL), 
+    default->collapse(bookCashAssetTPL)));
+[Profit and Loss]FPortfolioInstrumentAndTrades:bookTPLCalculation = collapse(bookCashAssetTPL);

@@ -1,0 +1,6 @@
+[Default]FTimeBucket:weightFunction = select(parametricWeightType, 
+  "TimeWeight"->select(timeBucketIsInceptionToEndBucket and (not object.IsRest), 
+    true->0.0, 
+    default->0.01 / (1 + (timeBucketShiftPeakDate - valuationDate) / 365)), 
+  default->0.01);
+[Default]FTimeBucketAndObject:weightFunction = timeBucket:weightFunction;

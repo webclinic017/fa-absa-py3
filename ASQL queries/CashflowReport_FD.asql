@@ -1,0 +1,121 @@
+/*------------------------------------------------------------------
+                     Trade and Instrument data  
+------------------------------------------------------------------*/
+SELECT
+    @1_SumAll{No;'Yes','No'}	'sum'
+INTO
+	Input
+FROM 
+    serverdata s
+WHERE
+    s.srdnbr > 0
+
+SELECT 
+    t.trdnbr                                'trdnbr',
+    display_id(t,'acquirer_ptynbr')         'acquirer',    
+    cp.ptyid                                'counterparty',
+    i.insid                                 'insid',
+    i.insaddr                               'insaddr'
+INTO
+    TradeInstr
+FROM
+    Instrument i,
+    Trade t,
+    Party cp
+WHERE
+        i.insaddr = t.insaddr
+    AND cp.ptynbr = t.counterparty_ptynbr
+    AND match_filter(t,@2_Filter{CashflowReport_FD;tradefilter.fltid*})
+    AND cp.free3_chlnbr not in ('2861') /* not MMA */
+
+/*------------------------------------------------------------------
+                     CashFlow and Leg data  
+------------------------------------------------------------------*/
+SELECT
+    l.insaddr                               'insaddr',
+    cf.cfwnbr                               'cfwnbr',
+    cf.pay_day                              'pay_day',
+    projected_cf(cf)                        'amount'
+INTO
+    CashFlowLeg
+FROM
+    TradeInstr ti,
+    Leg l,
+    CashFlow cf
+WHERE
+        ti.insaddr = l.insaddr
+    AND l.legnbr = cf.legnbr
+    AND cf.pay_day = today
+    AND l.type in ('Call Fixed',
+                   'Call Fixed Adjustable',
+                   'Call Float')
+    AND cf.type = 'Call Fixed Rate Adjustable'
+    AND not (projected_cf(cf) between -0.009 and 0.009)
+    AND l.reinvest = 'No'
+
+/*------------------------------------------------------------------
+						 Settlement data  
+------------------------------------------------------------------*/
+SELECT
+    s.cfwnbr                                'cfwnbr',
+    s.seqnbr                                'seqnbr',
+    s.value_day                             'value_day',
+    s.status                                'status',
+    s.amount                                'amount'
+INTO
+    Settle
+FROM
+    CashFlowLeg cfl,
+    Settlement s
+WHERE    
+        cfl.cfwnbr = s.cfwnbr
+    AND s.parent_seqnbr = 0
+
+/*------------------------------------------------------------------
+						 Final report  
+------------------------------------------------------------------*/
+SELECT 
+    ti.trdnbr                               'Trade',
+    ti.acquirer                             'Acquirer',    
+    ti.counterparty                         'Counterparty',
+    ti.insid                                'Insid',
+    cfl.pay_day                             'Cf pay date',
+    cfl.amount                              'Cf amount',
+    stl.seqnbr                              'Settlement id',
+    stl.value_day                           'Settlement pay date',
+    stl.status                              'Settlement status',
+    stl.amount                              'Settlement amount'
+FROM
+    TradeInstr ti,
+    CashFlowLeg cfl,
+    Settle stl,
+    Input i
+WHERE
+        ti.insaddr = cfl.insaddr
+    AND cfl.cfwnbr *= stl.cfwnbr
+    AND i.sum ~= 'Yes'
+
+UNION
+
+SELECT 
+    ti.trdnbr                               'Trade',
+    ti.acquirer                             'Acquirer',    
+    ti.counterparty                         'Counterparty',
+    ti.insid                                'Insid',
+    cfl.pay_day                             'Cf pay date',
+    sum(cfl.amount)                         'Cf amount',
+    stl.seqnbr                              'Settlement id',
+    stl.value_day                           'Settlement pay date',
+    stl.status                              'Settlement status',
+    stl.amount                              'Settlement amount'
+
+FROM
+    TradeInstr ti,
+    CashFlowLeg cfl,
+    Settle stl,
+    Input i
+WHERE
+        ti.insaddr = cfl.insaddr
+    AND cfl.cfwnbr *= stl.cfwnbr
+    AND i.sum = 'Yes'
+group by 5

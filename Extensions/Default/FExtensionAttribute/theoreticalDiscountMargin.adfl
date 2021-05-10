@@ -1,0 +1,5 @@
+[Default]FInstrument:theoreticalDiscountMargin = select(isDiscountMarginSensitive, 
+  true->imply(snoop(theoreticalInstrumentSpotValueFromDiscountMargin, "discountMargin"), theoreticalInstrumentSpotValueFromDiscountMargin, theoreticalInstrumentSpotValueForPrice, discountMarginAccuracy, -1.0, 1.0, 100), 
+  false->nil);
+[Default]FInstrumentAndTrades:theoreticalDiscountMargin = instrument:theoreticalDiscountMargin [priceSource];
+[Default]FMultiInstrumentAndTrades:theoreticalDiscountMargin = nil;

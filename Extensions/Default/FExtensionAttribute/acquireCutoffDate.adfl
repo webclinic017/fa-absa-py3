@@ -1,0 +1,6 @@
+[Default]FCombInstrMapAndTrades:acquireCutoffDate = instrument:acquireCutoffDate;
+[Default]FDeliverableLinkAndTrades:acquireCutoffDate = instrument:acquireCutoffDate;
+[Default]FInstrument:acquireCutoffDate = select(settlementPayType, 
+  "Spot"->collapse(currentExCouponDate), 
+  default->object.PriceDateToValueDate(valuationDate));
+[Default]FTradeRow:acquireCutoffDate = instrument:acquireCutoffDate;

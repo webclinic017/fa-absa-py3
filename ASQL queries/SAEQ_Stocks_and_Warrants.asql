@@ -1,0 +1,91 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Stocks_and_Warrants') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Stocks_and_Warrants' and p.type = 'SQL Query' 
+
+/*
+When                Who                     What
+2007-04-05          Heinrich Cronje         Created
+
+Description:
+Retrieves the Instrument, number of contracts and portfolio to do a recon
+with a JSE file in the ael called: Stock_Recon
+*/
+
+/*Stock*/
+select 
+	display_id(t,'insaddr')		'Instrument',
+    sum(t.quantity)			'Number_of_Contracts',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+	'Stock' 'File',
+	date_add_banking_day(@Date{YESTERDAY},'ZAR',0)	'DATA_DATE'
+into
+    temp
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+        t.insaddr = i.insaddr
+	and match_filter(t, @1_Filter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk','FMAINTENANCE','Equity Deriv','Equity_OTC') 
+	and display_id(pr,'owner_prfnbr') not in ('9923' , 'Eq expired trades')
+	and display_id(pr,'owner_prfnbr') ~= 'Warrants'
+	and i.instype = 'Stock'
+	and i.instype ~= 'Option'
+	and t.prfnbr = pr.member_prfnbr
+	and time_to_day(t.time) <= @Date
+
+group by 3, 1
+order by 3, 1
+
+/*Warrant*/
+
+select 
+	display_id(t,'insaddr')		'Instrument',
+	sum(t.quantity)			'Number_of_Contracts',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+    'Warrant' 'File',
+	date_add_banking_day(@Date{YESTERDAY},'ZAR',0)	'DATA_DATE'
+into
+    temp
+from 
+	instrument i,
+	trade t,
+	party p,
+	portfoliolink pr
+where 
+        t.insaddr = i.insaddr
+	and match_filter(t, @1_Filter{;tradefilter.fltid})
+	and t.status not in ('Reserved', 'Simulated', 'Void', 'Confirmed Void')
+	and t.acquirer_ptynbr = p.ptynbr
+	and p.ptyid in ('Safex Desk','EQ Derivatives Desk','Eq Derivative Desk', 'FMAINTENANCE', 'Equity Deriv','Equity_OTC') 
+	and display_id(pr,'owner_prfnbr') not in ('9923' , 'Eq expired trades')
+	and display_id(pr,'owner_prfnbr') = 'Warrants'
+	and i.instype = 'Stock'
+	and i.instype ~= 'Option'
+	and t.prfnbr = pr.member_prfnbr
+	and time_to_day(t.time) <= @Date
+	
+group by 3, 1
+order by 3, 1
+
+
+select 
+    te.Instrument,
+    sum(te.Number_of_Contracts),
+    te.SubPortFolio,
+    te.File,
+    te.DATA_DATE
+from
+    temp te
+where
+    abs(te.Number_of_Contracts) > 0
+    
+group by 3,1
+order by 3,1

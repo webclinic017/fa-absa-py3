@@ -1,0 +1,9 @@
+[Automated Trading]QuoteAndHedge:hedgePriceFromLastFillPrice = hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, hedgePerQuotePriceRatio * (quoteOrder.LastFillPrice) / fxRateFromHedgeToQuote);
+[Automated Trading]QuoteAndHedgePriceSpread:hedgePriceFromLastFillPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, (hedgePerQuotePriceRatio * quoteOrder.LastFillPrice / fxRateFromHedgeToQuote) - quoteAndHedgePriceSpread), 
+  default->hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, hedgePerQuotePriceRatio * (quoteOrder.LastFillPrice - quoteAndHedgePriceSpread) / fxRateFromHedgeToQuote));
+[Automated Trading]QuoteAndHedgeRightIssue:hedgePriceFromLastFillPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, (hedgePerQuotePriceRatio * quoteOrder.LastFillPrice / fxRateFromHedgeToQuote) - quoteAndHedgePriceSpread), 
+  default->hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, hedgePerQuotePriceRatio * (quoteOrder.LastFillPrice - quoteAndHedgePriceSpread) / fxRateFromHedgeToQuote));
+[Automated Trading]QuoteAndHedgeTotalPrice:hedgePriceFromLastFillPrice = hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, hedgePerQuotePriceRatio * (quoteAndHedgeTotalPrice - quoteOrder.LastFillPrice) / fxRateFromHedgeToQuote);
+[Automated Trading]QuoteAndHedgeYieldSpread:hedgePriceFromLastFillPrice = hedgeLegUsedOrderBook.PriceFeed.RoundTickUpDown(hedgeLegIsSell, (hedgePriceFromLastQuoteOrderFillPriceYTMConverted));

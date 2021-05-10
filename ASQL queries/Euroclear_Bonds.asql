@@ -1,0 +1,64 @@
+/* update_method=0 */
+/*
+Purpose: identify Euroclear Trades
+coded by Anil Parbhoo
+Requested by Trader : Kakanyo Masike 
+Initial Deployment - CHG1001301536
+CHG0131540 - 13 October 2020 -Include trades against counterparties that have valid hostid
+*/
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Euroclear_Bonds') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Euroclear_Bonds' AND p.type = 'SQL Query' 
+
+SELECT
+
+t.trdnbr,
+i.insid,
+i.instype, 
+i.und_insaddr = 0 ? i.insid : ui.insid'Bond',
+i.instype in ('Bond','FRN','IndexLinkedBond') ? t.quantity * 1000000 : 0 'SPOT Nominal',
+i.instype in ('Bond','FRN','IndexLinkedBond') ? t.value_day : '' 'SPOT Settlement',
+i.instype in ('BuySellback') ? i.start_day : ( i.instype in ('Repo/Reverse') ? l.start_day : '') 'Date1 of BsB or Repo',
+i.instype in ('BuySellback') ? i.exp_day : ( i.instype in ('Repo/Reverse') ? l.end_day : '') 'Date2 of BsB or Repo',
+t.status,
+t.value_day, 
+display_id(t, 'prfnbr')'portfolio',
+display_id(t, 'trader_usrnbr')'trader',
+pa.ptyid'CP',
+pa.hostid'CP_hostid',  
+cl.entry'TradeSettleCategory'
+
+
+
+
+
+FROM
+
+trade t, 
+instrument i,
+instrument ui, 
+leg l, 
+choicelist cl fill, 
+instrument c, 
+party pa
+
+
+
+WHERE
+
+i.insaddr = t.insaddr
+AND i.instype in ('Bond','FRN','IndexLinkedBond', 'BuySellback','Repo/Reverse')
+AND i.insaddr *= l.insaddr
+AND i.und_insaddr *= ui.insaddr
+AND match_filter(t, 'Euroclear CPs')
+AND t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+AND t.settle_category_chlnbr = cl.seqnbr
+AND t.settle_category_chlnbr in (5570, 0)
+AND i.curr = c.insaddr
+AND c.insid = 'ZAR'
+AND t.counterparty_ptynbr = pa.ptynbr

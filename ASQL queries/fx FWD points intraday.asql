@@ -1,0 +1,88 @@
+/*
+
+coded by Anil Parbhoo
+to monitor fx fwd points for fOX and Reuters pricing intra day
+
+*/
+
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','fx fwd points intraday') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'fx fwd points intraday' and p.type = 'SQL Query' 
+
+
+
+select
+pld.defnbr,
+i.insid'Ins',
+i.mtm_from_feed,
+i.spot_banking_days_offset,
+to_string(l.start_period.count, l.start_period.unit)'fwd_start_period',
+to_string(l.end_period.count, l.end_period.unit)'fwd_end_period',
+i.generic,
+cl.entry'Price Finding Group',
+pldcurr.insid'pld curr',
+legcurr.insid'non USD curr',
+lp.day,
+
+sp.ptyid'source party',
+p.ptyid'price party',
+lp.bid,
+lp.ask,
+lp.ask-lp.bid'spread',
+lp.last,
+lp.settle,
+((lp.bid + lp.ask)/2)- lp.settle'settle price check',
+lp.updat_time,
+display_id(lp, 'updat_usrnbr')'update user',
+
+
+pld.idp_code,
+pd.disid,
+pld.Start_time,
+pld.stop_time
+
+
+from
+
+instrument i,
+leg l,
+instrument legcurr,
+lastprice lp,
+party p,
+PriceLinkDefinition pld,
+PriceDistributor pd,
+party sp,
+instrument pldcurr,
+choicelist cl
+
+
+where
+
+i.instype = 'FxSwap'
+and i.insaddr = lp.insaddr
+
+
+and pld.insaddr = i.insaddr
+and pld.curr = pldcurr.insaddr
+and pld.source_ptynbr = sp.ptynbr
+and sp.ptyid = 'SPOT'
+and i.insaddr = l.insaddr
+and l.curr = legcurr.insaddr
+and l.curr ~= 1
+and lp.ptynbr = p.ptynbr
+and p.ptyid = 'SPOT'
+and i.price_finding_chlnbr *= cl.seqnbr
+
+and lp.curr = pld.curr
+and pd.disnbr = pld.disnbr
+
+and pd.disid ~= 'REUTERS_FOX_BACKUP'
+
+order by i.insid, pldcurr.insid
+
+

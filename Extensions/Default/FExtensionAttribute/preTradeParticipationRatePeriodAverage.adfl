@@ -1,0 +1,10 @@
+[Default]FGroupingOrder:preTradeParticipationRatePeriodAverage = preTradeInitValue / preTradeAveragePeriodValue;
+[Default]FOrderProgram:preTradeParticipationRatePeriodAverage = switch(preTradeAnalysisHasPeriod, 
+  true->switch(customerCurrency, 
+    nil->preTradeInitValue / preTradeAveragePeriodValue, 
+    default->preTradeInitValueCustomerCurrency / preTradeAveragePeriodValueCustomerCurrency), 
+  default->0.0);
+[Default]FPrePostTradeAnalysis:preTradeParticipationRatePeriodAverage = switch(preTradeAnalysisHasPeriod, 
+  true->(preTradeInitValue / preTradeAveragePeriodValue), 
+  default->0.0);
+[Default]FSalesOrder:preTradeParticipationRatePeriodAverage = prePostTradeAnalysis:preTradeParticipationRatePeriodAverage;

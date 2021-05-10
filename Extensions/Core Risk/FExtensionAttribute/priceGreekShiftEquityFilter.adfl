@@ -1,0 +1,8 @@
+[Core Risk]FInstrument:priceGreekShiftEquityFilter = simpleAndQuery("FInstrument", ["IsBasedOnEquity"], , [true]);
+[Core Risk]FInstrumentAndTrades:priceGreekShiftEquityFilter = select(nil == priceGreekShiftFilterSetExternally, 
+  true->select(instrumentGroupingReference, 
+    nil->nilObject:isEquityFilter, 
+    default->instrumentGroupingReference:priceGreekShiftEquityFilterForGrupingReference), 
+  false->select(priceGreekShiftFilterSetExternally.IsBasedOnEquity, 
+    true->priceGreekShiftFilterSetExternally, 
+    false->nil));

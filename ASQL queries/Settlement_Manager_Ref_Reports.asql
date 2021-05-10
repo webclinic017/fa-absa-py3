@@ -1,0 +1,39 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Settlement_Manager_Ref_Reports') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Settlement_Manager_Ref_Reports' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr 'Trade Number',
+    p.prfid 'Portfolio',
+    i.instype 'Instrument Type',
+    i.insid 'InstrumentID',
+    time_to_day(t.time) 'Trade Date',
+    t.value_day 'Trade Value Day',
+    s.value_day 'Settlement Day',
+    cp.ptyid 'Counterparty',
+    ap.ptyid 'Acquirer',
+    s.status 'Settlement Status',
+    s.type 'Cashflow Type',
+    s.amount 'Amount',
+    s.seqnbr 'Settlement Ref'
+from
+    trade t,
+    instrument i,
+    party cp,
+    settlement s,
+    party ap,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and ap.ptynbr = t.acquirer_ptynbr
+and p.prfnbr = t.prfnbr
+and s.trdnbr = t.trdnbr
+and ap.ptyid = 'EQ Derivatives Desk'
+and i.otc = 'Yes'
+and t.status not in ('Simulated', 'Void')
+and s.value_day between @1_StartDate{TODAY} and @2_EndDate{TODAY}
+

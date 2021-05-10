@@ -1,0 +1,111 @@
+/*------------------------------------------------------------------
+    SAEQ_CFD_MTM_POSITION
+  
+    Date                : 2010-05-21
+    Purpose             : Rewrote old query to take portfolios as argument
+    Department and Desk : Prime Services Financing
+    Requester           : Francois Henrion
+    Developer           : Rohan van der Walt
+    CR Number           : 359406
+
+    History:
+    When: 		Who:		        What:
+ 
+
+ 
+ ------------------------------------------------------------------*/
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+    ael_i(p,'ASQL_log','SAEQ_CFD_MTM_POSITION') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAEQ_CFD_MTM_POSITION' and p.type = 'SQL Query' 
+
+select 
+    @REPORT_DATE{today} 'repdate',
+    days_between(date_add_banking_day(@REPORT_DATE{today},,-1),@REPORT_DATE{today}, 'Act/365') 'days'
+into date
+from serverdata s
+where srdnbr = 1 
+
+select 
+    mtm_price(r, d.repdate, 'ZAR',0,0) 'rate'
+into rate    
+from instrument r,
+        date d
+where r.insid = 'ZAR-JIBAR-ON-ROD'
+
+select
+    i.insid 'ins',
+    p.prfid 'port',
+    d.days,
+    sum(t.quantity) 'position',
+    sum(t.quantity*mtm_price(u,d.repdate)/100) 'market_value',
+    sum(t.fee) 'fees'
+into temp    
+from
+    trade t,
+    portfolio p,
+    instrument i,
+    instrument u,
+    date d
+where
+     t.prfnbr = p.prfnbr
+and	p.prfid in (@PORTFOLIO{47332_CFD_ZERO,47274_CFD_ZERO,48009_CFD_ZERO;portfolio.prfid *})
+and t.insaddr = i.insaddr
+and t.status not in ('Void','Simulated','Terminated')
+and i.und_insaddr = u.insaddr
+and time_to_day(t.time) <= d.repdate
+and i.insid ~= 'ZAR/MARGINCFD'
+group by 1,2
+order by 2
+
+select 
+    'TOTAL' 'Type',
+    sum(t.position) 'Position',
+    sum(t.market_value) 'market_val',
+    r.rate 'ROD_rate',
+    sum(t.market_value) < 0? 0.45:  -0.1 'Spread',
+    sum(t.market_value) < 0? -sum(t.market_value)*(r.rate/100 + 0.45/100)* d.days/365 : -sum(t.market_value)*(r.rate/100 - 0.1/100)* d.days/365 'Funding_Charge',
+    t.port 'Portfolio',
+    d.days 'funding_days'
+
+into final 
+from temp t,
+    rate r,
+    date d
+group by 1
+  
+select 
+    t.port 'Type',
+    sum(t.position) 'Position',
+    sum(t.market_value) 'market_val',
+    f.ROD_rate 'ROD_rate',
+    f.Spread 'Spread',
+    -sum(t.market_value)*(f.ROD_rate/100 + f.Spread/100)* d.days/365  'Funding_Charge',
+    t.port 'Portfolio',
+    d.days 'funding_days'
+into final1 
+from temp t,
+    date d,
+    final f
+where t.port in (@PORTFOLIO{47332_CFD_ZERO,47274_CFD_ZERO,48009_CFD_ZERO;portfolio.prfid})
+group by 1
+
+    select t.ins,
+            t.position,
+            t.market_value,
+            0.00'ROD_rate',
+            0.00'Spread',
+            0.00'Funding_Charge',
+            t.port'Portfolio',
+            d.days 'funding_days'
+    from temp t,
+        date d
+    where t.position ~= 0
+    and t.port in (@PORTFOLIO{47332_CFD_ZERO,47274_CFD_ZERO,48009_CFD_ZERO;portfolio.prfid})
+    order by 7
+union 
+    select * from final1
+union
+    select * from final

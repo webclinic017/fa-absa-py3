@@ -1,0 +1,5 @@
+[FRTB Components]FInstrument:grossJTDMtMValues = select(instrumentIsJTDCashSensitive, 
+  true->switch(isDefaultSensitiveToCriteria, 
+    true->positionValuesTrade - theoreticalValuesUndiscounted, 
+    false->currencyZero), 
+  false->scenarioaxisarray(theoreticalValuesUndiscounted, <priceGreekRiskFactorNames, ^instrumentInclusionCriteria, "*", frtbDRCRecoveryRate>, <dividendForecastRiskFactorNames, ^instrumentInclusionCriteria, "shiftDividends", [-100]>) - theoreticalValuesUndiscounted);

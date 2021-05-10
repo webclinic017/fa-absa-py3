@@ -1,0 +1,11 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeAFSReserve = denominatedvalue(0, displayCurrencySymbol, , );
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeAFSReserve = sumOf(children :* "hedgeAFSReserve_singleCurr");
+[HedgeAccountingMod]FTradeRow:hedgeAFSReserve = switch(usedInHedge, 
+  default->denominatedvalue(0, displayCurrencySymbol, , ), 
+  true->switch(hedgeRelationshipCategory, 
+    default->denominatedvalue(0, displayCurrencySymbol, , ), 
+    "Fair Value AFS"->switch(tradeHedgeType, 
+      "Hypo"->convertToCurrency(bondChildVal - bondChildAI - hypoUnrealisedDeprec - bondChildNom - hypoVal + hypoAI + hypoUnrealisedDeprec + hypoNom - zeroUnrealisedDeprec, profitAndLossEndFXRates, displayCurrencySymbol), 
+      "Hypo Close"->convertToCurrency(bondChildCloseVal - bondChildCloseAI - hypoCloseUnrealisedDeprec - bondChildCloseNom - hypoCloseVal + hypoCloseAI + hypoCloseUnrealisedDeprec + hypoCloseNom - zeroCloseUnrealisedDeprec, profitAndLossEndFXRates, displayCurrencySymbol), 
+      "Close Zero"->convertToCurrency(-1 * deprecRemainingRPLColumn, profitAndLossEndFXRates, displayCurrencySymbol), 
+      default->denominatedvalue(0, displayCurrencySymbol, , ))));

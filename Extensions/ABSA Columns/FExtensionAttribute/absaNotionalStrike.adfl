@@ -1,0 +1,6 @@
+[ABSA Columns]FInstrument:absaNotionalStrike = nil;
+[ABSA Columns]FMultiInstrumentAndTrades:absaNotionalStrike = nil;
+[ABSA Columns]FOption:absaNotionalStrike = select(underlying, 
+  nil->nil, 
+  default->(profitAndLossPositionEnd * absoluteStrikePriceInUnderlyingQuotation) / underlying:eqQuoteFactor);
+[ABSA Columns]FSingleInstrumentAndTrades:absaNotionalStrike = instrument :* "absaNotionalStrike" [positionObject, profitAndLossStartDate, profitAndLossEndDate, displayCurrency, pLPeriodFX];

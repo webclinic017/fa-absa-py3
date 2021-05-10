@@ -1,0 +1,23 @@
+[ACL]FCertificate:faclAttrEquity = underlying:object.Oid;
+[ACL]FCommodity:faclAttrEquity = getObject("FInstrument", object.Name).Oid;
+[ACL]FCommodityIndex:faclAttrEquity = getObject("FInstrument", object.Name).Oid;
+[ACL]FCommodityVariant:faclAttrEquity = underlying:object.Oid;
+[ACL]FDepositaryReceipt:faclAttrEquity = underlying:object.Oid;
+[ACL]FEquityIndex:faclAttrEquity = getObject("FInstrument", object.Name).Oid;
+[ACL]FFuture:faclAttrEquity = select(underlying.InsType, 
+  "Fx Rate"->nil, 
+  default->getObject("FInstrument", underlying.Name).Oid);
+[ACL]FFxRate:faclAttrEquity = nil;
+[ACL]FInstrument:faclAttrEquity = nil;
+[ACL]FOption:faclAttrEquity = select(isOptionOnFuture, 
+  true->(faclUnderlying:faclUnderlying).Oid, 
+  false->select(faclUnderlying, 
+    nil->nil, 
+    default->faclUnderlying.Oid));
+[ACL]FStock:faclAttrEquity = select(getObject("FInstrument", object.Name), 
+  nil->0, 
+  default->getObject("FInstrument", object.Name).Oid);
+[ACL]FTotalReturnSwap:faclAttrEquity = select(faclEquityObject, 
+  nil->nil, 
+  default->faclEquityObject.Oid);
+[ACL]FTradeRow:faclAttrEquity = instrument:faclAttrEquity;

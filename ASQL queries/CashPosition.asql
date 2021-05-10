@@ -1,0 +1,180 @@
+/*------------------------------------------------------------------
+    CashPosition
+    
+    Details:
+    This report gives the cash position per trade per currency for trades of all instrument types.
+    All simulated trades are excluded from the report.
+    
+    Created from:
+    ABSA.PLReport_FINAL_SHORT
+    
+    Date		    Who		        What
+    2009-08-17      Herman Hoon     Created
+------------------------------------------------------------------*/
+
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+	to_date(@3_ReportDate{yesterday})							'RepDay',
+	@4_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur'	
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+    mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay'
+into
+	fxrates
+from
+	instrument	hc,
+	instrument	curr,
+	macros		m
+where
+    hc.insid = m.hcur
+and curr.instype = 'Curr'
+		
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data
+----------------------------------------------------------------------------*/
+select
+	t.trdnbr            'TrdNbr',
+	m.RepDay			'RepDay',
+    i.exp_day			'ExpDay',
+    t.status			'Status',
+	t.updat_time        'UpdateTime',
+    i.insid             'InsID',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	t.acquirer_ptynbr                   'DeskNbr',
+	display_id(t, 'prfnbr')			    'Portfolio',
+	t.prfnbr                            'PortfolioNbr',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.counterparty_ptynbr               'CptyNbr',
+	ael_s(t,'InstrType.InstrumentType')	'InsType',
+        add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype') 
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype') 
+            : add_info(t, 'Instype'))     'MM_Instype',                                   
+    display_id(i,'issuer_ptynbr')       'Issuer',
+    i.und_instype                       'Und_Instype',
+    i.paytype		                    'Paytype',
+    curr.insid							'Curr',
+    accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')                'Cash_RepDate',
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')/fx.fxRepDay    'HCurr_Cash_RepDate'
+	
+from
+	trade		t,
+	trade		t2,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Simulated')
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+and fx.curr = curr.insid
+and i.instype ~= 'Curr'
+
+
+
+union 
+
+select
+	t.trdnbr            'TrdNbr',
+	m.RepDay			'RepDay',
+    t.value_day			'ExpDay',
+    t.status			'Status',
+	t.updat_time        'UpdateTime',
+    i.insid             'InsID',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	t.acquirer_ptynbr                   'DeskNbr',
+	display_id(t, 'prfnbr')			    'Portfolio',
+	t.prfnbr                            'PortfolioNbr',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.counterparty_ptynbr               'CptyNbr',
+	ael_s(t,'InstrType.InstrumentType')	'InsType',
+        add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype') 
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype') 
+            : add_info(t, 'Instype'))     'MM_Instype',                                   
+    display_id(i,'issuer_ptynbr')       'Issuer',
+    i.und_instype                       'Und_Instype',
+    i.paytype		                    'Paytype',
+    curr.insid							'Curr',
+    accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')                'Cash_RepDate',
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')/fx.fxRepDay    'HCurr_Cash_RepDate'
+from
+	trade		t,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Simulated')
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+and fx.curr = curr.insid
+and i.instype = 'Curr'
+and t.trade_process in (4096,8192)
+
+
+union 
+
+select
+	t.trdnbr            'TrdNbr',
+	m.RepDay			'RepDay',
+    t2.value_day 		'ExpDay',
+    t.status			'Status',
+	t.updat_time        'UpdateTime',
+    i.insid             'InsID',
+	display_id(t, 'acquirer_ptynbr')	'Desk',
+	t.acquirer_ptynbr                   'DeskNbr',
+	display_id(t, 'prfnbr')			    'Portfolio',
+	t.prfnbr                            'PortfolioNbr',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.counterparty_ptynbr               'CptyNbr',
+	ael_s(t,'InstrType.InstrumentType')	'InsType',
+        add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype') 
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype') 
+            : add_info(t, 'Instype'))     'MM_Instype',                                   
+    display_id(i,'issuer_ptynbr')       'Issuer',
+    i.und_instype                       'Und_Instype',
+    i.paytype		                    'Paytype',
+    curr.insid							'Curr',
+    accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None') + accumulated_cash(t2, m.RepDay, curr.insid, 2, 0, , 1, 'None')               'Cash_RepDate',
+    (accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None') + accumulated_cash(t2, m.RepDay, curr.insid, 2, 0, , 1, 'None')) /fx.fxRepDay    'HCurr_Cash_RepDate'
+from
+	trade		t,
+	trade       t2,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Simulated')
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+and fx.curr = curr.insid
+and i.instype = 'Curr'
+and t.trade_process = 16384
+and t2.trade_process = 32768
+and t.trdnbr ~= t2.trdnbr
+and t.trdnbr = t2.connected_trdnbr

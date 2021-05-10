@@ -1,0 +1,6 @@
+[Default]FInstrument:valueAtCostMarkToMarketInstrumentPositionValuesAdjustment = select(isValuedAtCost, 
+  true->object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = -markToMarketInstrumentPositionValues], 
+  false->baseDateZero);
+[Default]FInstrumentAndTrades:valueAtCostMarkToMarketInstrumentPositionValuesAdjustment = openInstrument :* "collapse(valueAtCostMarkToMarketInstrumentPositionValuesAdjustment)" [positionObject, priceSource, valuesOnSpotOverride, useFallbackToTheoreticalValues, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:valueAtCostMarkToMarketInstrumentPositionValuesAdjustment = sumOf(openInstruments :* "collapse(valueAtCostMarkToMarketInstrumentPositionValuesAdjustment)" [positionObject, priceSource, valuesOnSpotOverride, useFallbackToTheoreticalValues, filterUnit, groupingSpotDiscountDate]);
+[Default]FTradeRow:valueAtCostMarkToMarketInstrumentPositionValuesAdjustment = instrument :* "valueAtCostMarkToMarketInstrumentPositionValuesAdjustment" [singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, priceSource, valuesOnSpotOverride, useFallbackToTheoreticalValues, filterUnit, groupingSpotDiscountDate];

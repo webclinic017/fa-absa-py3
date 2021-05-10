@@ -1,0 +1,5 @@
+[Adaptiv FVA]FCreditBalance:theoreticalModelCallFVAWithIncrementalTrades = scenarioaxis(theoreticalModelCallFVA, <["incrementalTrdsList"], , , incTrds>);
+[Adaptiv FVA]FTrade:theoreticalModelCallFVAWithIncrementalTrades = switch(nil == matchingCreditBalanceInstrument, 
+  true->throwError("No matching Credit Balance instrument found."), 
+  false->matchingCreditBalanceInstrument:theoreticalModelCallFVAWithIncrementalTrades [incTrds := incrementalTrdsList]);
+[Adaptiv FVA]FTradeRow:theoreticalModelCallFVAWithIncrementalTrades = trade:theoreticalModelCallFVAWithIncrementalTrades;

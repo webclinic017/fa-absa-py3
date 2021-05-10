@@ -1,0 +1,7 @@
+[Profit and Loss]FCombInstrMapAndTrades:cashInventoryTheoreticalValues = combinationInstrumentMapFactor * openInstrument :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionTradeQuantities, includeInceptionCash];
+[Profit and Loss]FCurrency:cashInventoryTheoreticalValues = positionValues;
+[Profit and Loss]FFxRate:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues + positionValues;
+[Profit and Loss]FInstrument:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues * timeDistributionFactor + positionValues;
+[Profit and Loss]FInstrumentAndTrades:cashInventoryTheoreticalValues = openInstrument :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, includeInceptionCash];
+[Profit and Loss]FMultiInstrumentAndTrades:cashInventoryTheoreticalValues = sumOf(openInstruments :* "collapse(cashInventoryTheoreticalValues)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, includeInceptionCash]);
+[Profit and Loss]FPreciousMetalRate:cashInventoryTheoreticalValues = cashInventoryTheoreticalInstrumentPositionValues + positionValues;

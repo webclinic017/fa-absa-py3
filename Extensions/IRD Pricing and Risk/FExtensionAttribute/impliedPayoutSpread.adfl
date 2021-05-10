@@ -1,0 +1,15 @@
+[IRD Pricing and Risk]FCashFlowInstrument:impliedPayoutSpread = shunt(implyValid, 
+  true->select(numberOfFloatRangeAccrualLegs, 
+    1->floatRangeAccrualLegs :* "impliedPayoutSpread" [priceSource], 
+    default->nil), 
+  false->nil);
+[IRD Pricing and Risk]FFra:impliedPayoutSpread = nil;
+[IRD Pricing and Risk]FInstrument:impliedPayoutSpread = nil;
+[IRD Pricing and Risk]FInstrumentAndTrades:impliedPayoutSpread = instrument :* "impliedPayoutSpread" [priceSource];
+[IRD Pricing and Risk]FLeg:impliedPayoutSpread = shunt[priceSource](isFloatRangeAccrual and implyValid, 
+  true->imply(shiftedPayoutSpread, theoreticalPriceShiftPayoutSpread, marketPrice, implyPrecision, impliedPayoutSpreadMinValue, impliedPayoutSpreadMaxValue, 100), 
+  false->nil);
+[IRD Pricing and Risk]FLegAndTrades:impliedPayoutSpread = select(instrument:isGenericSpreadQuoted, 
+  false->leg :* "impliedPayoutSpread" [priceSource], 
+  true->nil);
+[IRD Pricing and Risk]FMultiInstrumentAndTrades:impliedPayoutSpread = nil;

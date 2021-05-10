@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FDerivative:isExpired = select(isMultiExercise, 
+  true->not exerciseEventsExist, 
+  false->switch(valuationParameters.ValuationClockInterval, 
+    "Full Day"->isExpiredFullDay, 
+    "Intraday"->object.IsExpiredAt(valuationDateTime, expiryDateTime)));
+[ABSA Specific 4.3]FTrade:isExpired = instrument :* "isExpired";
+[ABSA Specific 4.3]FTradeRow:isExpired = trade :* "isExpired";

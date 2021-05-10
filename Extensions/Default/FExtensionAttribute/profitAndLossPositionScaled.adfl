@@ -1,0 +1,9 @@
+[Default]FAverageForward:profitAndLossPositionScaled = profitAndLossPosition * positionDisplayScaleFactor;
+[Default]FCashFlowInstrument:profitAndLossPositionScaled = profitAndLossPosition * object:nominalFactor [forwardValueDate = cashValueBreakDate, legs];
+[Default]FInstrument:profitAndLossPositionScaled = profitAndLossPosition * positionDisplayScaleFactor;
+[Default]FLegAndTrades:profitAndLossPositionScaled = select(legType, 
+  "Position Total Return"->profitAndLossPosition * securityInstrumentAndTrades :* "profitAndLossPositionScaled" [displayCurrency, filterUnit, valuationBaseDateTimeInput, includeAllTrades], 
+  default->instrument:profitAndLossPositionScaled [positionObject, singleTradePosition, valuationBaseDateTimeInput, includeAllTrades, legs]);
+[Default]FSingleInstrumentAndTrades:profitAndLossPositionScaled = instrument:profitAndLossPositionScaled [positionObject, valuationBaseDateTimeInput];
+[Default]FTotalReturnSwap:profitAndLossPositionScaled = profitAndLossPosition * positionDisplayScaleFactor;
+[Default]FTradeRow:profitAndLossPositionScaled = instrument:profitAndLossPositionScaled [singleTradePosition, valuationBaseDateTimeInput, taxLotPositionObject, taxLotValuation := taxLotPnL];

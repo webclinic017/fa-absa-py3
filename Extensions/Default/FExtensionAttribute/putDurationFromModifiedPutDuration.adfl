@@ -1,0 +1,5 @@
+[Default]FInstrument:putDurationFromModifiedPutDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(theoreticalYieldToNextPut)) * bondFloorToNextPutModifiedDuration, 
+    default->(1 + double(theoreticalYieldToNextPut) / fixLeg:rollingFrequency) * bondFloorToNextPutModifiedDuration));

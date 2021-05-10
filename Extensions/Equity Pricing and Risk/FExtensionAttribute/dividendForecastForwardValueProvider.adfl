@@ -1,0 +1,25 @@
+[Equity Pricing and Risk]FBuySellBack:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCashFlowDerivativeInstrument:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlyingOrSelf :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCfd:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Equity Pricing and Risk]FCombInstrMap:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = instrument :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy];
+[Equity Pricing and Risk]FCombination:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->select(generateMapDividends, 
+    false->forwardValueProvider, 
+    true->nil), 
+  default->nil);
+[Equity Pricing and Risk]FConvertible:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource];
+[Equity Pricing and Risk]FCreditIndex:dividendForecastForwardValueProvider = nil;
+[Equity Pricing and Risk]FDepositaryReceipt:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Equity Pricing and Risk]FDerivative:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate] = underlying :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy = true];
+[Equity Pricing and Risk]FETF:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, useSpotProxy] = forwardValueProvider;
+[Equity Pricing and Risk]FEquityIndex:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = shunt[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy](object.DividendsRetreivedFromCombination(doSplitAll, instrumentHasDividends, splitCombination), 
+  true->select(generateMapDividends, 
+    false->forwardValueProvider, 
+    true->nil), 
+  default->nil);
+[Equity Pricing and Risk]FFxRate:dividendForecastForwardValueProvider = nil;
+[Equity Pricing and Risk]FInstrument:dividendForecastForwardValueProvider = nil;
+[Equity Pricing and Risk]FLeg:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource] = select(useDividendForecast, 
+  true->creditReference :* "dividendForecastForwardValueProvider" [doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource], 
+  false->nil);
+[Equity Pricing and Risk]FStock:dividendForecastForwardValueProvider[doSplitAll, includeFutureDividends, includeHistoricalDividends, calculationCurrency, priceSource, underlyingFutureObservationDate, useSpotProxy] = forwardValueProvider;

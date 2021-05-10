@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FDerivative:inventoryPositionAtValuationDate = 0.0;
+[Fixed Income Pricing and Risk]FInstrument:inventoryPositionAtValuationDate = inventoryPosition(tradesInPosition, inventoryPositionReference, valuationDate, tradeStatusInclusionMaskDefault);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:inventoryPositionAtValuationDate = inventoryPositionOpenInstrument :* "collapse(inventoryPositionAtValuationDate)" [positionObject, instrumentGroupingReference];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:inventoryPositionAtValuationDate = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->sumOf(inventoryPositionOpenInstruments :* "collapse(InventoryPositionAtValuationDate)" [positionObject, instrumentGroupingReference]));

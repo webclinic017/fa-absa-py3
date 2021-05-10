@@ -1,0 +1,321 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Bond_Deal_Stats') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Bond_Deal_Stats' and p.type = 'SQL Query' 
+select
+	@1_FromDate{}				'd0',
+	@2_ToDate{}				'd1',
+	@3_ShowDetails{No;'Yes','No'}		'det'
+
+into
+	input
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+/***Purchases***/
+select
+	i.insid						'Stock',
+	t.trdnbr,
+	i.instype					'Instype',
+	1						'Number',
+	t.quantity * i.contr_size			'Nominal',
+	t.premium					'Consideration',
+	'P'						'Indicator',
+	l.fixed_rate					'Rate'
+
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Leg l,
+	Input d
+
+where
+	t.insaddr = i.insaddr
+and	l.insaddr =* i.insaddr
+/*and	i.instype in ('Bill', 'Bond', 'BuySellback', 'FRN', 'FRA', 'Repo/Reverse')*/
+and	time_to_day(t.time) >= d.d0
+and	time_to_day(t.time) <= d.d1
+and	t.quantity * i.contr_size >= 0
+
+and	(i.instype = 'Bond' or i.und_instype = 'Bond')
+and	i.instype ~= 'Option'
+
+and	t.status NOT IN ('Void', 'Simulated', 'Terminated')
+and	display_id(t, 'counterparty_ptynbr') ~= 'DRA TRANSAKSIES'
+
+/*and	('All' in (@Instype{All;})
+	or i.instype in (@Instype{;Instrument.instype*}))
+
+and	('All' IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}) 
+or 	display_id(t, 'counterparty_ptynbr') IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}))
+
+and	('All' IN (@1_Instrument{All;Instrument.insid* where instype = 'Bond'}) 
+or 	i.insid IN (@1_Instrument{All;Instrument.insid* where instype = 'Bond'})) 
+
+*/
+
+
+/***Sales***/
+select
+	i.insid						'Stock',
+	t.trdnbr,
+	i.instype					'Instype',
+	1						'Number',
+	t.quantity * i.contr_size			'Nominal',
+	t.premium					'Consideration',
+	'S'						'Indicator',
+	l.fixed_rate					'Rate'
+
+into
+	temp
+
+from
+	Trade t,
+	Instrument i,
+	Leg l,
+	Input d
+
+where
+	t.insaddr = i.insaddr
+and	l.insaddr =* i.insaddr
+/*and	i.instype in ('Bill', 'Bond', 'BuySellback', 'FRN', 'Repo/Reverse')*/
+and	time_to_day(t.time) >= d.d0
+and	time_to_day(t.time) <= d.d1
+and	t.quantity * i.contr_size < 0
+
+and	(i.instype = 'Bond' or i.und_instype = 'Bond')
+and	i.instype ~= 'Option'
+
+and	t.status NOT IN ('Void', 'Simulated', 'Terminated')
+and	display_id(t, 'counterparty_ptynbr') ~= 'DRA TRANSAKSIES'
+
+/*and	('All' in (@Instype{All;})
+	or i.instype in (@Instype{;Instrument.instype*}))
+
+and	('All' IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}) 
+or 	display_id(t, 'counterparty_ptynbr') IN (@2_Party{All;Party.ptyid* where type = 'Counterparty'}))
+
+and	('All' IN (@1_Instrument{All;Instrument.insid* where instype = 'Bond'}) 
+or 	i.insid IN (@1_Instrument{All;Instrument.insid* where instype = 'Bond'})) 
+*/
+
+
+
+select
+	t.Stock,
+/*	t.trdnbr,*/
+	t.Instype,
+	sum(t.Number)					'No_Deals',
+	t.Indicator,
+	sum(t.Nominal)					'Nominal',
+	sum(t.Consideration)				'Consideration',
+	sum(t.Rate)/sum(t.Number)			'Ave_Rate'
+into
+	Final
+
+from
+	Temp t
+
+group by t.Stock, t.Indicator
+
+order by t.Stock, t.Indicator
+
+
+
+
+select
+	t.Stock,
+	t.Instype,
+	sum(t.Number)					'No_Deals',
+	'Total Net'					'Indicator',
+	sum(t.Nominal)					'Nominal',
+	sum(t.Consideration)				'Consideration',
+	sum(t.Rate)/sum(t.Number)			'Ave_Rate'
+into
+	Final
+
+from
+	Temp t
+
+group by t.Stock
+order by t.Stock
+
+
+/***main select***/
+select
+	'Details',
+	t.Stock,
+/*	t.trdnbr,*/
+	t.Instype,
+	t.No_Deals,
+	t.Indicator,
+	t.Nominal,
+	t.Nominal >= 0 ? t.Nominal : t.Nominal * -1	'Abs_Nom',
+	t.Consideration,
+	t.Ave_Rate
+from
+	Final t,
+	Input d
+where
+	d.det in ('Yes','YES','yes','Y','y')
+order by t.Stock
+
+
+union
+
+
+
+select
+	'No_of_Deals',
+	t.Stock,
+/*	t.trdnbr,*/
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	sum(t.Nominal),
+	sum(t.Nominal >= 0 ? t.Nominal : t.Nominal * -1)	'Abs_Nom',
+	sum(t.Consideration),
+/*	sum(t.Rate)/sum(t.Number)*/
+	sum(t.Ave_Rate)
+from
+	Final t
+where
+	t.Indicator ~= 'Total Net'
+
+group by 1
+
+
+
+union
+
+
+
+select
+	'Purchase Consideration',
+	t.Stock,
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	0.0		'Nominal',
+	0.0		'Abs_Nom',
+	sum(t.Consideration),
+/*	sum(t.Rate)/sum(t.Number)*/
+	0.0		'Ave_Rate'
+from
+	Final t
+where
+	t.Indicator = 'P'
+
+group by 1
+
+
+
+union
+
+
+
+
+select
+	'Sale Consideration',
+	t.Stock,
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	0.0		'Nominal',
+	0.0		'Abs_Nom',
+	sum(t.Consideration),
+/*	sum(t.Rate)/sum(t.Number)*/
+	0.0		'Ave_Rate'
+from
+	Final t
+where
+	t.Indicator = 'S'
+
+group by 1
+
+
+union
+
+
+
+select
+	'Purchase Nominal',
+	t.Stock,
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	sum(t.Nominal)	'Nominal',
+	sum(t.Nominal >= 0 ? t.Nominal : t.Nominal * -1)	'Abs_Nom',
+	0.0		'Consideration',
+/*	sum(t.Rate)/sum(t.Number)*/
+	0.0		'Ave_Rate'
+from
+	Final t
+where
+	t.Indicator = 'P'
+
+group by 1
+
+
+
+union
+
+
+
+
+select
+	'Sale Nominal',
+	t.Stock,
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	sum(t.Nominal),
+	sum(t.Nominal >= 0 ? t.Nominal : t.Nominal * -1)	'Abs_Nom',
+	0.0		'Consideration',
+/*	sum(t.Rate)/sum(t.Number)*/
+	0.0		'Ave_Rate'
+from
+	Final t
+where
+	t.Indicator = 'S'
+
+group by 1
+
+
+
+
+union
+
+
+
+
+select
+	'Total Net Nominal',
+	t.Stock,
+	t.Instype,
+	sum(t.No_Deals),
+	t.Indicator,
+	sum(t.Nominal),
+	sum(t.Nominal >= 0 ? t.Nominal : t.Nominal * -1)	'Abs_Nom',
+	0.0		'Consideration',
+/*	sum(t.Rate)/sum(t.Number)*/
+	0.0		'Ave_Rate'
+from
+	Final t
+where
+	t.Indicator = 'Total Net'
+
+group by 1
+
+
+
+

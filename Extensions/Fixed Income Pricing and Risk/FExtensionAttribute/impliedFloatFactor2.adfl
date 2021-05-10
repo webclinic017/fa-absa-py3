@@ -1,0 +1,11 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedFloatFactor2 = select(numberOfFloatOrCapFloorLegs, 
+  1->firstNonFixedLeg :* "impliedFloatFactor2" [priceSource], 
+  default->nil);
+[Fixed Income Pricing and Risk]FFra:impliedFloatFactor2 = nil;
+[Fixed Income Pricing and Risk]FInstrument:impliedFloatFactor2 = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedFloatFactor2 = instrument :* "impliedFloatFactor2" [priceSource];
+[Fixed Income Pricing and Risk]FLeg:impliedFloatFactor2 = shunt[priceSource](staticLegInformation.IsSpread and isFloatOrCapFloorLeg and implyValid, 
+  true->imply(shiftedFloatFactor, theoreticalPriceShiftFloatFactor2, marketPrice, instrument:implyPrecision, instrument:impliedFloatFactorMinValue, instrument:impliedFloatFactorMaxValue, 100), 
+  false->nil);
+[Fixed Income Pricing and Risk]FLegAndTrades:impliedFloatFactor2 = leg :* "impliedFloatFactor2" [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedFloatFactor2 = nil;

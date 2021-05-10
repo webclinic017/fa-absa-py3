@@ -1,0 +1,15 @@
+[CFDLimits]FInstrumentAndTrades:limitstatus = switch(limit, 
+  nil->"NullLimit", 
+  default->switch(usage < 0.75, 
+    true->"Within", 
+    false->switch(usage < 1, 
+      true->"Warning", 
+      default->"Breached")));
+[CFDLimits]FPortfolioInstrumentAndTrades:limitstatus = nil;
+[CFDLimits]FSingleInstrumentAndTrades:limitstatus = switch(limit, 
+  nil->"NullLimit", 
+  default->switch(usage < 0.75, 
+    true->"Within", 
+    false->switch(usage < 1, 
+      true->"Warning", 
+      default->"Breached")));

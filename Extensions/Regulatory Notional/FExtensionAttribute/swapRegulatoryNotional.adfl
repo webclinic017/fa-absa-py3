@@ -1,0 +1,6 @@
+[Regulatory Notional]FCashFlow:swapRegulatoryNotional = shunt((object.PayDate > valuationDate) and (object.CashFlowType <> "Return"), 
+  true->stripDateTimePart(object:nominalPositionForRegNotional [trade = singleTradePosition]) * stripDateTimePart(currency:immediateOrSpotFxRate [fxToCurrency = accountingCurrency]), 
+  default->nil);
+[Regulatory Notional]FCashFlowInstrument:swapRegulatoryNotional = maxOf(legs :* "swapRegulatoryNotional" [accountingCurrency, singleTradePosition]);
+[Regulatory Notional]FLeg:swapRegulatoryNotional = abs(averageOf(removeNil(cashFlows :* "swapRegulatoryNotional" [accountingCurrency, singleTradePosition]))) + denominatedvalue(0, symbol(accountingCurrency), , );
+[Regulatory Notional]FVarianceSwap:swapRegulatoryNotional = denominatedvalue(2 * singleTradePosition.Quantity * singleTradePosition.VolatilityStrike, symbol(currency), , );

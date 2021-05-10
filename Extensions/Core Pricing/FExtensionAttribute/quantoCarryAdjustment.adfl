@@ -1,0 +1,6 @@
+[Core Pricing]FCertificate:quantoCarryAdjustment = select(isQuanto, 
+  true->multiUnderlying :* "multiUnderlyingComponentQuantoCarryAdjustment" [optionParent, correlationMatrix, priceSource, carryStartDate, carryEndDate, expiryDate, multiUnderlyingPayCurrency := (underlying:currency)], 
+  false->1.0);
+[Core Pricing]FDerivative:quantoCarryAdjustment = select(isQuanto, 
+  true->discount(timeToCarry, underlyingFXCorrelation * volatilityForQuantoAdjustedCarryCost * fxVolatilityForQuantoAdjustedCarryCost), 
+  false->1.0);

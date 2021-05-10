@@ -1,0 +1,55 @@
+[UDMCUtilMod]FObject:udmcProductCliquetPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Multiplicative Cliquet Payoff
+#
+# INTERPRETATION
+# A call or a put on the product of the capped and floored cliquet returns.
+#
+# DEFINITION
+# returns: the return on the underlying price on 'Cliquet date' fixings;
+# cap: Relative cap value, 'Local Cap'  field in the Cliquet Exotics tab;
+# floor: Relative floor value, 'Local Floor' field in the Cliquet Exotics tab;
+# 'Cliquet date' exotic events should be specified.
+#--------------------------------------------
+
+# PARAMETERS
+param matrix(double) isCliquetDate;
+param int isCall;
+param double K;
+param double cap;
+param double floor;
+param int isQuanto;
+param double fixFXRate;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double s = 1.0;
+double k = K;
+double callOrPut = 2.0 * isCall - 1.0;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+# MAIN LOOP
+s = prod( max( floor, min(S[1:length(S)]./S[0:length(S)-1],cap))); # when subtracting 1 from the performance matrix it defines the cliquet returns for each observation date  
+
+# CASHFLOW
+cashFlow(0, fx * max(0.0,callOrPut * (s - k)));
+
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isCliquetDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Cliquet date' fixing;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# s: Product of the capped and floored returns;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# prod(matrix(double)) function gives the product of all matrix values.
+#
+# ------------------------------------------
+
+...

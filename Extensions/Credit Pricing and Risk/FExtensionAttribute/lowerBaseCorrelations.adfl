@@ -1,0 +1,5 @@
+[Credit Pricing and Risk]FInstrument:lowerBaseCorrelations = select(baseCorrelationMatrix, 
+  nil->nil, 
+  default->select(isMonteCarloCreditBasket, 
+    true->flatCorrelationMatrix(lowerBaseCorrelationCouple.At(1), count(creditIssuer)), 
+    default->lowerBaseCorrelationCouple.At(1)));

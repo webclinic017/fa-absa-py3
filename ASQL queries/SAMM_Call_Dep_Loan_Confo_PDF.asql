@@ -1,0 +1,24 @@
+/* X_SAMM_Call_Dep_Loan_Confo_P: last updated on Fri Aug 21 17:23:43 2009. Extracted by Stowaway on 04/09/2009.*/
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','SAMM_Call_Deposit_Loan') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'SAMM_Call_Deposit_Loan' and p.type = 'SQL Query'
+
+/* 
+    Name      : Call_Deposit_Loan
+    Purpose   : Build confirmations for Call Depos via AEL and the output is generated in PDF format
+    Developer : Tshepo Mabena
+    Date      : 26-06-2008
+*/
+
+
+select
+	ael_s(,'SAMM_Call_Dep_Loan_Confo_PDF.ASQL')	  'OpenFile' /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

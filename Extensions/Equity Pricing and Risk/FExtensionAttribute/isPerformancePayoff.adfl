@@ -1,0 +1,11 @@
+[Equity Pricing and Risk]FInstrument:isPerformancePayoff = false;
+[Equity Pricing and Risk]FOption:isPerformancePayoff = select(isExotic, 
+  false->false, 
+  true->select(isCliquet, 
+    true->select(cliquetType, 
+      "None"->false, 
+      "Pay Go"->(exoticInsSeriesType == "Forward Start Perf"), 
+      "Pay End"->(exoticInsSeriesType == "Forward Start Perf"), 
+      "Custom"->(exoticInsSeriesType == "Forward Start Perf"), 
+      default->true), 
+    false->forwardStartType == "Forward Start Perf"));

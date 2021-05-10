@@ -1,0 +1,7 @@
+[Default]FInstrument:positionBookValuesForCash = select(tradePremiumPartOfInstrument, 
+  true->positionValues, 
+  false->denominatedbasket([]));
+[Default]FMultiInstrumentAndTrades:positionBookValuesForCash = sumOf(openInstruments :* "collapse(positionBookValuesForCash)" [positionObject, valuesOnSpotOverride, valuationBaseDateTimeInput]);
+[Default]FSingleInstrumentAndTrades:positionBookValuesForCash = openInstrument :* "collapse(positionBookValuesForCash)" [positionObject, valuesOnSpotOverride, valuationBaseDateTimeInput];
+[Default]FTrade:positionBookValuesForCash = instrument:positionBookValuesForCash [singleTradePosition, includeAllTrades, valuationBaseDateTimeInput];
+[Default]FTradeRow:positionBookValuesForCash = openInstrumentOrTaxLotInstrument :* "collapse(positionBookValuesForCash)" [singleTradePosition, includeAllTrades, valuationBaseDateTimeInput, taxLotPositionObject, taxLotValuation := taxLotPnL];

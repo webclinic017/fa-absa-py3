@@ -1,0 +1,21 @@
+[Prime Services]FBond:corporateActionFactor = object.CouponRate;
+[Prime Services]FCfd:corporateActionFactor = switch(primeDividends <> nil, 
+  true->switch(primeDividends.IsKindOf("FDividend"), 
+    true->primeDividends.Amount, 
+    default->(primeDividends :* "object.Amount")), 
+  default->nil);
+[Prime Services]FETF:corporateActionFactor = switch(primeDividends <> nil, 
+  true->switch(primeDividends.IsKindOf("FDividend"), 
+    true->primeDividends.Amount, 
+    default->(primeDividends :* "object.Amount")), 
+  default->nil);
+[Prime Services]FFrn:corporateActionFactor = object.CouponRate;
+[Prime Services]FIndexLinkedBond:corporateActionFactor = object.CouponRate;
+[Prime Services]FSingleInstrumentAndTrades:corporateActionFactor = switch(isCorporateActionDay, 
+  true->instrument :* "corporateActionFactor", 
+  false->nil);
+[Prime Services]FStock:corporateActionFactor = switch(primeDividends <> nil, 
+  true->switch(primeDividends.IsKindOf("FDividend"), 
+    true->primeDividends.Amount, 
+    default->(primeDividends :* "object.Amount")), 
+  default->nil);

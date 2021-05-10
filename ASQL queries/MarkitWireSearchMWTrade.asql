@@ -1,0 +1,32 @@
+
+/*
+**************Developments******************
+
+Purpose               : TCU/PCG require a report that gives them the ability to easily search trades in Arena based on the Markit Wire Id
+Department and Desk   : TCU/PCG
+Requester             : Kalin Ramsumner
+Developer             : Arthur Grace
+CR Number             : CHNG0003021105
+
+********************************************
+*/
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MarkitWireSearchMWTrade') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MarkitWireSearchMWTrade' and p.type = 'SQL Query' 
+
+select t.trdnbr,i.instype,ais.field_name,ai.value,t.optional_key,t.status, 
+          t.time,nominal_amount(t),t.quantity,port.prfid,l.start_day,l.end_day,l.payleg,l.fixed_rate,l.float_rate,l.type,t.quantity*1000000 
+          from trade t,instrument i,AdditionalInfo ai,AdditionalInfoSpec ais,portfolio port,leg l 
+          where t.insaddr = i.insaddr 
+          and ai.recaddr = t.trdnbr and ai.addinf_specnbr = ais.specnbr 
+          and ((ais.field_name = 'CCPmiddleware_id' and ai.value ~= '' ) or (ais.field_name = 'prior_middleware' and ai.value~=''))
+          and i.instype in ('FRA','Swap','CurrSwap') 
+          and l.insaddr = i.insaddr 
+          and t.status in ('FO Confirmed','BO-BO Confirmed','BO Confirmed','Terminated','Simulated','Void') 
+          and t.prfnbr = port.prfnbr 
+          and (ai.value like @MWTradeId{} or t.optional_key like @MWTradeId)
+          order by 1

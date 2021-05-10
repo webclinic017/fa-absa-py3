@@ -1,0 +1,11 @@
+[Core Pricing]FInstrument:hasUniqueVolatility = select(referenceInstrumentForVolatility, 
+  nil->false, 
+  default->select(snoop01(theoreticalPrice, "volatilityStructureValueBase", referenceInstrumentForVolatility), 
+    default->true, 
+    nil->select(referenceInstrumentForVolatility:isForwardStarting, 
+      true->false, 
+      false->select(snoop01(theoreticalPrice, "referenceATMVol", referenceInstrumentForVolatility), 
+        default->true, 
+        nil->select(snoop01(theoreticalPrice, "volatilityShiftedForDigitals"), 
+          nil->false, 
+          default->true)))));

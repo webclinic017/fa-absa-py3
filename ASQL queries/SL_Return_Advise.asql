@@ -1,0 +1,213 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_Return_Advise') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_Return_Advise' and p.type = 'SQL Query' 
+
+
+
+/* Get all the instruments in the SL_Total_Position (or other) filter */
+select distinct
+    i.insaddr
+into
+    slins
+from
+    instrument i,
+    trade t
+where
+    match_filter(t,@ScriptFilter{SL_Total_Position;Tradefilter.fltid})
+and t.insaddr = i.insaddr
+and i.instype = 'Stock'
+
+/* Get the positions of the instruments in the SL_Total_Position (or other) filter */
+select
+    i.insid,
+    i.insaddr,
+    position(i,tf.fltid,,,date_add_banking_day(@Date{TODAY},'ZAR',-1))
+into 
+    slpositions
+from
+    instrument i,
+    tradefilter tf,
+    slins il
+where
+    tf.fltid = @ScriptFilter{SL_Total_Position;Tradefilter.fltid}
+and il.insaddr = i.insaddr
+
+/* Get all the instruments in the portfolios in the IncludePrf list */
+select distinct
+    t.insaddr
+into
+    Sinslist
+from
+     trade t,
+     instrument i,
+     portfolio p
+where
+    p.prfid in (@IncludePrf{;Portfolio.prfid*})
+and i.insaddr = t.insaddr
+and p.prfnbr = t.prfnbr
+and i.instype = 'Stock'
+and t.status not in ('Simulated', 'Void')
+
+/* Get positions for instruments in the IncludePrf */
+select
+    i.insid,
+    p.prfid,
+    i.insaddr,
+    sum(t.quantity) 'pos'
+into
+    Sins_pos
+from
+    trade t,
+    instrument i,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and p.prfnbr = t.prfnbr
+and p.prfid in (@IncludePrf{;Portfolio.prfid*})
+and t.value_day <= @Date{TODAY}
+and i.instype = 'Stock'
+and t.status not in ('Simulated', 'Void', 'Terminated')
+group by 1, 2
+
+
+select
+    s.insaddr,
+    i.insid,
+    p.prfid
+into
+    ins_port
+from
+    Sinslist s,
+    instrument i,
+    portfolio p
+where
+    i.insaddr = s.insaddr
+and p.prfid in (@IncludePrf{;Portfolio.prfid*})
+
+select
+    ip.insid,
+    sp.prfid not in (@ExludePrf{;Portfolio.prfid*}) ? sum(sp.pos) : (sum(sp.pos) < 0 ? sum(sp.pos) : 0) 'Position', 
+    ip.prfid,
+    ip.insaddr
+into
+    port_pos
+from
+    ins_port ip,
+    Sins_pos sp 
+where
+    ip.insaddr *= sp.insaddr
+and ip.prfid *= sp.prfid
+group by 1, 3
+
+select
+    pp.insid,
+    to_double(pp.Position) 'Position',
+    pp.prfid,
+    pp.insaddr
+into
+    FinStock
+from
+    port_pos pp
+
+select
+    f.insid,
+    f.position  'StockPos',
+    sl.position 'ScriptPosition',
+    f.position > 0 ? sl.position : f.position + sl.position        'Diff',
+    @Date{}     'Date',
+    f.prfid
+into
+    result
+from
+    FinStock f,
+    slpositions sl
+where
+    f.insaddr = sl.insaddr
+    
+and (f.position > 0
+or f.position  < 0)
+
+/* Define querys to get all non-zero script positions with a zero stock position.  Temporary tables are used
+   to implement a set difference (minus operator) */
+select distinct
+    insid,
+    position
+into
+    nonzero_script
+from
+    slpositions
+where
+    position ~= 0
+
+select distinct
+    insid,
+    Date
+into
+    nonzero_stock
+from
+    result
+
+select
+    sl.insid,
+    to_string(s.Date) 'isNull',
+    sl.position
+into
+    script_setdiff
+from
+    nonzero_stock s,
+    nonzero_script sl
+where
+    sl.insid *= s.insid
+
+select
+    insid,
+    position
+into
+    script_result
+from
+    script_setdiff
+where
+    isNull = ''
+
+/* Final output */
+
+select 
+    'Stock Detail',
+    insid,
+    StockPos,
+    ScriptPosition,
+    Diff,
+    Date,
+    prfid
+from
+    result
+    
+union
+
+select
+    'Script Total',
+    insid,
+    0.0,
+    position,
+    position,
+    @Date,
+    ''
+from
+    script_result
+    
+union
+
+select 
+    'Stock Total',
+    insid,
+    sum(StockPos),
+    ScriptPosition,
+    sum(StockPos) > 0 ? ScriptPosition : sum(StockPos) + ScriptPosition,
+    Date,
+    ''
+from
+    result
+group by 2

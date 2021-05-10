@@ -1,0 +1,4 @@
+[Margin Trading]FCompoundPortfolio:positionPartLongShort = sumOf(allPhysicalPortfolios :* "positionPartLongShort" [instrument, positionObject, tradeStatusInclusionMaskDefault, positionPartShort]);
+[Margin Trading]FPhysicalPortfolio:positionPartLongShort = select(positionPartShort, 
+  true->min(instrument:positionCARTradeQuantity [tradesInPosition, tradeStatusInclusionMaskDefault], 0), 
+  false->max(instrument:positionCARTradeQuantity [tradesInPosition, tradeStatusInclusionMaskDefault], 0));

@@ -1,0 +1,15 @@
+select
+ael_i(p,'ASQL_log','FX_Swap') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p 
+where p.name = 'FX_Swap' and p.type = 'SQL Query' 
+
+select
+    i.insid 'Instrument Name',
+    t.trdnbr 'Trade Number'
+from
+    trade t,
+    instrument i
+where
+    t.insaddr = i.insaddr
+and t.hedge_trdnbr = @OldTrade_Number{}

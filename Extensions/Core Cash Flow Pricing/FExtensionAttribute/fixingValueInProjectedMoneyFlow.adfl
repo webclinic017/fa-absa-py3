@@ -1,0 +1,8 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:fixingValueInProjectedMoneyFlow = shunt[](needsLegInformationForProjected, 
+  false->select(cashFlowInformation, 
+    nil->nil, 
+    default->cashFlowInformation:fixedFixingValue), 
+  true->snoop(projectedMoneyFlow, "fixingValue"));
+[Core Cash Flow Pricing]FMoneyFlow:fixingValueInProjectedMoneyFlow = nil;
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:fixingValueInProjectedMoneyFlow = moneyFlow:fixingValueInProjectedMoneyFlow;
+[Core Cash Flow Pricing]FResetMoneyFlow:fixingValueInProjectedMoneyFlow = dividedByHundred(fixingValue);

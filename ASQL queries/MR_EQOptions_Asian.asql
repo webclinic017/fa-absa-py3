@@ -1,0 +1,51 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :275268
+
+-- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003487839   Ashley Canter      Chris Human        http://abcap-jira/browse/MINT-433
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_EQOptions_Asian.OpenFile', @1_path{'f:\'},@2_FileName{'MR_EQOptions_Asian.csv'},@3_PositionName{'MR_EQOptions_Asian_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+	
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_EQOptions_Asian.Write', @1_path{'f:\'},@2_FileName{'MR_EQOptions_Asian.csv'},@3_PositionName{'MR_EQOptions_Asian_Position.csv'})	'BuildConfirmation'
+Into
+    macro
+From
+    instrument i,
+    exotic e
+where
+        i.insaddr = e.insaddr
+    and (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Option')
+    and i.und_instype in ('Stock','EquityIndex')
+    
+    /* Special filtering conditions */    
+    and e.average_method_type not in ('None')
+	
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+	
+Select * From Macro
+Where Process In ('Create File','Close File')

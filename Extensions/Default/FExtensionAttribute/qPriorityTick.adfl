@@ -1,0 +1,9 @@
+#grouping: default/market making
+
+[Default]FQuoteController:qPriorityTick = switch(priceSource, 
+  "ADS"->0.01, 
+  default->select(useUnderlyingPriceQuoting, 
+    false->0.01, 
+    true->select(qUnderlyingPriceFeed, 
+      nil->0.01, 
+      default->qUnderlyingPriceFeed :* "tickSize" [tickSizePrice = underlyingPriceNodeInTheoreticalPrice])));

@@ -1,0 +1,7 @@
+[IRD Pricing and Risk]FDerivative:quotePeriod = quotePeriod(staticLegInformations, underlyingType, contractSize, roundingInformation);
+[IRD Pricing and Risk]FFuture:quotePeriod = select(underlyingType, 
+  "Swap"->couponToValueFactor, 
+  default->select(isDIFuture, 
+    true->firstStaticLegInformation.LastNonFixedAmountCashFlowInfo.Period(valuationDate, expiryDate), 
+    false->quotePeriod(staticLegInformations, underlyingType, contractSize, roundingInformation)));
+[IRD Pricing and Risk]FInstrument:quotePeriod = 1.0;

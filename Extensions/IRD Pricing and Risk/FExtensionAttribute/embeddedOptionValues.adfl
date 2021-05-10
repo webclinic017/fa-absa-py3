@@ -1,0 +1,11 @@
+[IRD Pricing and Risk]FCashFlowInstrument:embeddedOptionValues = select(isCallable or isPutable, 
+  true->object:discountAndConvertToBase [filterUnit, discountAndConvertToBaseDate, discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = embeddedOptionSpotValues], 
+  false->baseDateZero);
+[IRD Pricing and Risk]FCombInstrMapAndTrades:embeddedOptionValues = switch(isSettled, 
+  true->baseDateZero, 
+  false->combination:discountAndConvertToBase [filterUnit, combination:discountAndConvertToBaseDate [groupingSpotDiscountDate, valuesOnSpotOverride], discountAndConvertToBaseDiscountingUnits, discountAndConvertToBaseValues = combinationEmbeddedOptionInstrumentPositionValue] / (combination:underlyingOrSelf).Factor);
+[IRD Pricing and Risk]FInstrument:embeddedOptionValues = baseDateZero;
+[IRD Pricing and Risk]FInstrumentAndTrades:embeddedOptionValues = shunt(isOpenPosition, 
+  true->instrument :* "embeddedOptionValues" [priceSource, isSplitAllGrouped, positionObject, singleTradePosition, valuesOnSpotOverride, filterUnit, groupingSpotDiscountDate], 
+  false->baseDateZero, 
+  default->nil);

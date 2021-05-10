@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Mr_Rec_Rate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Mr_Rec_Rate' and p.type = 'SQL Query' 
+
+select
+
+     @01_YieldCurve{CDIssuerCurve_HR; YieldCurve.yield_curve_name *}      'YieldCurve',
+     @02_Filter{CredDer_All;tradefilter.fltid}                            'Filter',
+     @03_Recovery_Shift_Size%{1}                                          'RecRate',
+     @04_Date{today}                                                      'date'                                       
+                                
+into
+    macros                                                                              
+from
+   serverdata s
+where
+   s.srdnbr > 0
+
+select
+     TODAY                                                                'ReportDate',
+     m.Filter                                                             'Filter',
+     m.YieldCurve                                                         'yc2',
+     display_id(attrib, 'issuer_ptynbr')                                  'Party',
+     ael_f(yc,'Mr_RecoveryRate.Recovery_Shift_Size',to_double(m.RecRate),m.Filter,m.YieldCurve,display_id(attrib, 'issuer_ptynbr'),p.date_period.count,p.date_period.unit)       'RecDelta'
+from
+    YieldCurvePoint  p,
+    YCAttribute      attrib,
+    YieldCurve       yc,
+    YCSpread         s,
+    macros           m 
+where
+
+        yc.yield_curve_name in (m.YieldCurve)
+    and yc.seqnbr = attrib.yield_curve_seqnbr   
+    and attrib.seqnbr = s.attribute_seqnbr
+    and yc.seqnbr = p.yield_curve_seqnbr
+    and point_seqnbr = p.seqnbr
+
+    group by 4
+
+;

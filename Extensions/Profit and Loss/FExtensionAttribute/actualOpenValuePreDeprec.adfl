@@ -1,0 +1,11 @@
+[Profit and Loss]FCombInstrMapAndTrades:actualOpenValuePreDeprec = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:actualOpenValuePreDeprec = nil;
+[Profit and Loss]FInstrumentAndTrades:actualOpenValuePreDeprec = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->actualOpenValuePreDeprecLive, 
+  "Inception to Historical"->actualOpenValuePreDeprecEnd, 
+  "Historical to Present"->actualOpenValuePreDeprecLive - actualOpenValuePreDeprecStart, 
+  "Historical to Historical"->actualOpenValuePreDeprecEnd - actualOpenValuePreDeprecStart);
+[Profit and Loss]FLegAndTrades:actualOpenValuePreDeprec = nil;
+[Profit and Loss]FPriceAggregate:actualOpenValuePreDeprec = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "actualOpenValuePreDeprec");

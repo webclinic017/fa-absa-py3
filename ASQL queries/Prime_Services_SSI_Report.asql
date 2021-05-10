@@ -1,0 +1,58 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       Prime_Services_SSI_Report
+PURPOSE                 :       This ASQL will provide a file to be uploaded into the PRIME_SoftBroker Db.
+DEPARTMENT AND DESK     :       Prime Services
+REQUESTER               :       Bojan Najdov
+DEVELOPER               :       Nico Louw
+CR NUMBER               :       CHNG0003282865
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no           Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2015-11-23      CHNG0003282865      Nico Louw                       Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL selects SSI Account details specific to PRIME SERVICES.
+*/
+
+
+/* Usage code for this ASQL */
+select
+    ael_i(p,'ASQL_log','Prime_Services_SSI_Report') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'Prime_Services_SSI_Report' 
+and p.type = 'SQL Query' 
+
+/* Report Query */
+
+select distinct
+    pa.alias        'Alias',
+    a.name          'Account_Name', 
+    a.account       'Account_Number', 
+    ba.alias        'CP_Code'
+from
+    party p, 
+    settleInstruction ssi,
+    settleInstructionRule ssir,
+    account a, 
+    partyAlias pa,
+    instrAliasType iat,
+    partyAlias ba
+where
+    p.ptynbr = pa.ptynbr
+and p.ptynbr = ssi.ptynbr
+and ssi.seqnbr = ssir.settle_seqnbr
+and ssir.accnbr = a.accnbr
+and a.ptynbr = p.ptynbr 
+and pa.type = iat.oid
+and iat.alias_type_name = 'SoftBroker'
+and a.bic_seqnbr = ba.seqnbr

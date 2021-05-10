@@ -1,0 +1,18 @@
+[Core Pricing]FCashFlowInstrument:impliedStrike = select(exerciseEventsExist, 
+  true->shunt[priceSource]((nil <> storedStrike) and not isExpiredFullDay, 
+    true->imply(snoop(theoreticalPriceForImpliedStrike, "storedStrike"), theoreticalPriceForImpliedStrike, marketPriceOrGoalValue, implyPrecision, lowerBoundForImpliedStrike, upperBoundForImpliedStrike, implyMaxIterations), 
+    default->nil), 
+  default->select(numberOfCapFloorLegs, 
+    1->(floatLeg) :* "impliedStrike" [priceSource], 
+    default->nil));
+[Core Pricing]FInstrument:impliedStrike = nil;
+[Core Pricing]FInstrumentAndTrades:impliedStrike = instrument :* "impliedStrike" [priceSource];
+[Core Pricing]FLeg:impliedStrike = shunt[priceSource](object.IsCapFloorLeg and implyValid, 
+  false->nil, 
+  true->imply(uniqueStrikeInTheoreticalPrice, instrument:theoreticalPrice, marketPrice, implyPrecision, lowerBoundForImpliedStrike, upperBoundForImpliedStrike, implyMaxIterations));
+[Core Pricing]FLegAndTrades:impliedStrike = leg :* "impliedStrike" [priceSource];
+[Core Pricing]FMultiInstrumentAndTrades:impliedStrike = nil;
+[Core Pricing]FOption:impliedStrike = shunt[priceSource]((nil <> storedStrike) and implyValid, 
+  false->nil, 
+  true->imply(storedStrike, theoreticalPriceForImpliedStrike, marketPrice, implyPrecision, lowerBoundForImpliedStrike, upperBoundForImpliedStrike, implyMaxIterations, useMlZbrak), 
+  default->nil);

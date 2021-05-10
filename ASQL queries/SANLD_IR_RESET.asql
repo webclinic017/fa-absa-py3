@@ -1,0 +1,283 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_IR_RESET') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_IR_RESET' and p.type = 'SQL Query' 
+
+
+/* this ASQL calculates the PV01 of the cashflows of fras and swaps,
+   for caps,floors and swaptions we compute the probability of realising the underlying and 
+   use it to determine if the PV01 will be realised */
+
+select  distinct
+  t.trdnbr 'TradeNumber',
+  i.insid   'Instrument',
+  i.instype 'Instype',
+  i.und_instype 'Underlying',
+  r.day 'Expiry',
+  r.day     'ResetStartDate',
+  r.end_day  'ResetEndDate',
+  l.end_day 'LastCashFlowDay',
+  fr.insid  'RateIndex',
+  used_price(fr)+@JibarShift[]	'FwdRate',
+  t.status  'Status',
+  ael_f(t,'NLDUtil.GetNominal',t.quantity,c.nominal_factor)'Nominal',
+  l.strike	    'Strike',
+  display_id(t,'prfnbr') 'Portfolio',
+  display_id(t,'counterparty_ptynbr')                   'Counterparty',
+  convert('ResetType',r.type)    'ResetType',
+  ael_f(i,'NLDUtil.Blck_Delta',r.day,r.end_day,r.day ,l.strike,used_price(fr),@JibarShift[]) 'ResetImpact',
+  ael_f(i,'NLDUtil.Ex_DeltaCF',r.day,r.end_day,r.day ,l.strike,used_price(fr),@JibarShift[]) 'ExpectedImpact'
+
+into
+    final
+  
+from
+  reset r,
+  cashflow c,
+  leg l,
+  instrument i,
+  instrument fr,
+  trade t,
+  portfolio p
+where
+ 
+
+
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.prfnbr=p.prfnbr
+/*and (r.day >= @StartDate{} and r.day<=@StopDate{})*/
+and ('None' in (@InsId{None;instrument.insid* where instype='Rateindex'})
+        or fr.insid in (@InsId{}))
+and r.cfwnbr = c.cfwnbr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and l.float_rate =* fr.insaddr
+and i.insaddr = t.insaddr
+and t.status not in ('Terminated','Void','Simulated')
+and r.day >= @ResetStart{} and r.day <= @ResetStop{}
+and i.instype in ('Cap','Floor')
+
+
+/* Bermudans*/
+select
+	t.trdnbr	'TradeNumber',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Underlying',
+	e.day 	'Expiry',
+	r.start_day     'ResetStartDate',
+	r.end_day       'ResetEndDate',
+	l.end_day     'LastCashFlowDay',
+	u.insid   'RateIndex',
+	ael_f(i,'NLDUtil.TheFwdRate',e.day,l.end_day,@JibarShift[])*100 'FwdRate',
+	t.status  'Status',
+	(t.nominal_amount)/1000000 'Nominal',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	convert('ExerciseType',i.exercise_type)  'ResetType',   
+	ael_f(i,'NLDUtil.Bermudan',e.day,r.start_day,r.end_day,l.end_day,i.strike_price,l.payleg,@JibarShift[])*t.nominal_amount/1000000 'ResetImpact',
+	ael_f(i,'NLDUtil.ExpBermudan',e.day,r.start_day,r.end_day,l.end_day,i.strike_price,l.payleg,@JibarShift[])*t.nominal_amount/1000000 'ExpectedImpact'
+
+into
+    final
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l,
+	reset r,
+	exerciseevent e
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and   i.insaddr = t.insaddr
+and  i.insaddr = e.insaddr
+and u.insaddr = i.und_insaddr
+and u.insaddr = l.insaddr
+and l.legnbr=r.legnbr
+and	i.instype = 'Option'
+and	i.und_instype = 'Swap'
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.day >= @ResetStart{}
+and e.day <= @ResetStop{} 
+and r.start_day = e.day
+and e.day < ael_d(i,'NLDUtil.get_res') + to_int(convert('double', days_between(r.start_day,r.end_day, 'Act/365')))
+
+
+/* swaptions without Bermudans*/
+select
+	t.trdnbr	'TradeNumber',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Underlying',
+	i.exp_day	'Expiry',
+	r.start_day     'ResetStartDate',
+	r.end_day       'ResetEndDate',
+	l.end_day       'LastCashFlowDay', 
+	u.insid   'RateIndex',
+	ael_f(i,'NLDUtil.TheFwdRate',l.start_day,l.end_day,@JibarShift[])*100 'FwdRate',
+	t.status	'Status',
+	(t.nominal_amount)/1000000   'Nominal',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',	
+	convert('ResetType',r.type)    'ResetType',
+	ael_f(i,'NLDUtil.Bermudan',i.exp_day,r.start_day,r.end_day,l.end_day,i.strike_price,l.payleg,@JibarShift[])*(t.nominal_amount)/1000000 'ResetImpact',
+	ael_f(i,'NLDUtil.ExpBermudan',i.exp_day,r.start_day,r.end_day,l.end_day,i.strike_price,l.payleg,@JibarShift[])*(t.nominal_amount)/1000000 'ExpectedImpact'
+
+into
+    final
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l,
+	reset r
+	
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and   i.insaddr = t.insaddr
+and u.insaddr = i.und_insaddr
+and u.insaddr = l.insaddr
+and l.legnbr=r.legnbr
+and	i.instype = 'Option'
+and	i.und_instype = 'Swap'
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= @ResetStart{}
+and	r.start_day <= @ResetStop{}
+and t.nominal_amount ~= 0
+and i.exercise_type ~= 'Bermudan'
+and r.start_day >= TODAY
+and i.exp_day = r.start_day
+
+/* Swaps & Fras*/
+
+select  distinct
+  t.trdnbr 'TradeNumber',
+  i.insid   'Instrument',
+  i.instype 'InsType', 
+  i.und_instype 'Underlying',
+  r.start_day 'Expiry',
+  r.start_day     'ResetStartDate',
+  r.end_day     'ResetEndDate',
+  l.end_day   'LastCashFlowDay',
+  fr.insid  'RateIndex',
+  used_price(fr)+@JibarShift[]	'FwdRate',
+  t.status   'Status',
+  t.quantity	'Nominal',
+  i.rate	'Strike',
+  display_id(t,'prfnbr') 'Portfolio',
+  display_id(t,'counterparty_ptynbr')                   'Counterparty',
+  convert('ResetType',r.type)    'ResetType',
+  ael_f(i,'NLDUtil.FraDelta',r.start_day,r.end_day,used_price(fr),l.payleg,@JibarShift[])*t.quantity 'ResetImpact',
+  ael_f(i,'NLDUtil.FraDelta',r.start_day,r.end_day,used_price(fr),l.payleg,@JibarShift[])*t.quantity  'ExpectedImpact'
+
+into
+    final
+
+from
+  reset r,
+  cashflow c,
+  leg l,
+  instrument i,
+  instrument fr,
+  trade t,
+  portfolio p
+where
+t.prfnbr=p.prfnbr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+and     ('None' in (@InsId{None;instrument.insid* where instype='Rateindex'})
+        or fr.insid in (@InsId{}))
+and r.cfwnbr = c.cfwnbr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and l.float_rate =* fr.insaddr
+and i.insaddr = t.insaddr
+and t.status not in ('Terminated','Void','Simulated')
+and	r.start_day >= @ResetStart{}
+and	r.start_day <= @ResetStop{}
+and i.instype in ('Swap','Fra')
+
+
+/* Options on FRAs*/
+select
+	t.trdnbr	'TradeNumber',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Underlying',
+	i.exp_day	'Expiry',
+	r.start_day     'ResetStartDate',
+	r.end_day       'ResetEndDate',
+	l.end_day       'LastCashFlowDay', 
+	u.insid   'RateIndex',
+	ael_f(i,'NLDUtil.TheFwdRate',l.start_day,l.end_day,@JibarShift[])*100 'FwdRate',
+	t.status	'Status',
+	(t.nominal_amount)/1000000   'Nominal',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',	
+	convert('ResetType',r.type)    'ResetType',
+	ael_f(i,'NLDUtil.Swaption_Delta',i.exp_day,r.start_day,r.end_day,l.end_day,i.strike_price,i.call_option,@JibarShift[])*(t.nominal_amount)/1000000 'ResetImpact',
+	ael_f(i,'NLDUtil.ExpDelta',i.exp_day,r.start_day,r.end_day,l.end_day,i.strike_price,i.call_option,@JibarShift[])*(t.nominal_amount)/1000000 'ExpectedImpact'
+
+into
+    final
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l,
+	reset r
+	
+where
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and   i.insaddr = t.insaddr
+and u.insaddr = i.und_insaddr
+and u.insaddr = l.insaddr
+and l.legnbr=r.legnbr
+and	i.instype = 'Option'
+and	i.und_instype = 'FRA'
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= @ResetStart{}
+and	r.start_day <= @ResetStop{}
+and t.nominal_amount ~= 0
+and i.exercise_type ~= 'Bermudan'
+
+
+/* Main extraction of Trades*/
+select distinct
+    f.TradeNumber,
+    f.Instype,
+    f.Underlying   'Underlying InstrType',
+    f.Expiry,
+    f.ResetStartDate,
+    f.ResetEndDate,
+    f.LastCashflowDay,
+    f.RateIndex,
+    f.FwdRate 'Forward Rate',
+    f.Status,
+    f.Nominal 'Quantity',
+    f.Strike,
+    f.Portfolio,
+    f.Counterparty,
+    f.ResetType,
+    f.Instype in ('Cap','Floor') ? (f.ResetImpact)*(f.Nominal): f.ResetImpact 'ResetRisk',
+    f.Instype in ('Cap','Floor') ? (f.ExpectedImpact)*(f.Nominal): (f.ExpectedImpact)'ExpectedRisk'
+
+
+from
+    final f 
+    
+order by  f.ResetStartDate  
+    
+
+
+

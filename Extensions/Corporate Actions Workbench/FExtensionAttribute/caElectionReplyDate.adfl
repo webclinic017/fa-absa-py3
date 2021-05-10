@@ -1,0 +1,6 @@
+[Corporate Actions Workbench]FCorporateActionElection:caElectionReplyDate = switch(object.ReplyDate, 
+  0->"", 
+  default->acm.Time.LocalToUtc(object.ReplyDate));
+[Corporate Actions Workbench]FCorporateActionElectionMultiItem:caElectionReplyDate = select(children.Size > 0, 
+  false->nil, 
+  true->maxOf(children :* "caElectionReplyDate"));

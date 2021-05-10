@@ -1,0 +1,5 @@
+[ABSA Market Risk]FInstrumentAndTrades:presentValueFixingShiftDeltaShift = select(fixingShiftValueValid, 
+  true->select(isNominalScalingFixingRisk, 
+    true->shift(presentValue, snoop(presentValue, "staticLegInformation", fixingRiskGroupingReference), shiftFixingNominalValue fixingValueShiftParametersForPVDelta), 
+    default->shift(presentValue, snoop(presentValue, "staticLegInformation", fixingRiskGroupingReference), shiftFixingValue fixingValueShiftParametersForPVDelta)), 
+  false->presentValue);

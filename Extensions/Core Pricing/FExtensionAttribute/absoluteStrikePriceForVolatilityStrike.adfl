@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:absoluteStrikePriceForVolatilityStrike = absoluteStrikePrice;
+[Core Pricing]FOption:absoluteStrikePriceForVolatilityStrike = select(isDigitalBarrierOption, 
+  true->absoluteBarrierInUnderlyingQuotation, 
+  false->select(isFloatingStrike, 
+    true->absoluteLookbackExtremeValueInUnderlyingQuotation, 
+    false->select(isSpreadOption, 
+      true->absoluteStrikePriceInUnderlyingQuotation, 
+      false->select(isReciprocal, 
+        true->1 / absoluteStrikePriceInUnderlyingQuotationForVolatilityStrike, 
+        false->absoluteStrikePriceInUnderlyingQuotationForVolatilityStrike))));

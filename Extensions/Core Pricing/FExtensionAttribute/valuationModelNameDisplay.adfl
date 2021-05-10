@@ -1,0 +1,12 @@
+[Core Pricing]FCashFlowInstrument:valuationModelNameDisplay = select(valuationModelName == "Cash Flow", 
+  true->select(count(valuationModelNameLegsDisplay) == 1, 
+    true->valuationModelNameLegsDisplay[0], 
+    false->valuationModelNameLegsDisplay), 
+  false->valuationModelName);
+[Core Pricing]FCombination:valuationModelNameDisplay = "";
+[Core Pricing]FInstrument:valuationModelNameDisplay = select(valuationModelName == "None", 
+  true->"", 
+  false->valuationModelName);
+[Core Pricing]FInstrumentAndTrades:valuationModelNameDisplay = instrument:valuationModelNameDisplay;
+[Core Pricing]FMultiInstrumentAndTrades:valuationModelNameDisplay = nil;
+[Core Pricing]FPriceAggregate:valuationModelNameDisplay = instrument:valuationModelNameDisplay;

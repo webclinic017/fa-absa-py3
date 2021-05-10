@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:vegaWeighted = convertToCurrency(vegaValuesWeighted, theoreticalValueFxRates, displayCurrencySymbol);
+[Default]FPriceAggregate:vegaWeighted = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "vegaWeighted" [priceSource]);
+[Default]FTimeBucketAndObject:vegaWeighted = scenarioaxisarray(rowInstrumentAndTrades:vegaWeighted [displayCurrency, volatilityGreekGroupingSensitive], timeDistributionPerimeterNames, <["timeDistributionDateRule"], , , "ExpiryDate">, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

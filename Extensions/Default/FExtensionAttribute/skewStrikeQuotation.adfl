@@ -1,0 +1,9 @@
+[Default]FMalzParametricVolatilityInformation:skewStrikeQuotation[] = bottomSurfaceStrikeQuotation;
+[Default]FParametricVolatilityInformation:skewStrikeQuotation[] = select(object.StickyDelta, 
+  true->collapse(logMoneynessQuotation), 
+  false->select(referenceInstrument, 
+    nil->collapse(perUnitQuotation), 
+    default->acm.QuoteConversion.CreateQuotationFromPersistent(referenceInstrument:quotation)));
+[Default]FPointVolatilityInformation:skewStrikeQuotation[] = select(referenceInstrument, 
+  nil->collapse(perUnitQuotation), 
+  default->acm.QuoteConversion.CreateQuotationFromPersistent(referenceInstrument:quotation));

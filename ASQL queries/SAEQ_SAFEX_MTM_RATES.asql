@@ -1,0 +1,51 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_SAFEX_MTM_RATES') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_SAFEX_MTM_RATES' and p.type = 'SQL Query' 
+
+/* SAEQ_SAFEX_MTM_RATES
+   Created By   :   Aaeda Waja, Heinrich Cronje
+   Date         :   2003/12/05, 2010-08-06
+   Purpose      :   Daily extract of MtM rates from SAFEX for daily VAR, Exclude instruments by Hardcoding their insids.
+   Dept and Desk:   Market Risk Equity and Commdities, Market Risk
+   Requester    :   Rishaan Ramanrain
+   CR Number    :   " ", 395285
+   
+*/
+
+select
+	i.insid 			                                            'Instrument Name',
+	i.instype 			                                            'Instrument Type',
+	i.exp_day 			                                            'Expiry Day',
+
+    i.instype = 'Commodity' and used_price(i,,display_id(i,'curr')) = 0 ? ael_f(,'AS_MTM_Rates.Safex_MTM_Rates',i) 	
+            : i.instype = 'EquityIndex' ? i.quote_type in ('Per 100 Units') ? ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,display_id(i,'curr'),,,'internal') : used_price(i,,display_id(i,'curr'))) / 100
+                    : ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,display_id(i,'curr'),,,'internal') : used_price(i,,display_id(i,'curr')))
+                        : ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,display_id(i,'curr'),,,'internal'): used_price(i,,display_id(i,'curr')))        'Closing Price',                    
+ 	
+
+	i.instype in ('EquityIndex', 'Commodity') ? 0 : used_vol(u)	    'Market Volitility',
+	u.insid 			                                            'Underlying Instrument',
+	u.instype 			                                            'Underlying Instrument Type',
+	TODAY 				                                            'Date',
+	add_info(i, 'DividendYield') 	                                'Dividend Yield'
+
+from
+	instrument i,
+	instrument u,
+	ChoiceList cl
+
+where
+	i.und_insaddr *= u.insaddr
+and	(i.exp_day = '0000-01-01' or i.exp_day >= today)
+
+	
+and (i.instype IN ('EquityIndex','Future/Forward')
+    or (i.instype = 'Commodity' and cl.entry in ('AgriesSAFEX_WMAZ','AgriesSAFEX_YMAZ','AgriesSAFEX_WHEAT','AgriesSAFEX_SUNS','AgriesSAFEX_SOYA','LGCoal_Forward')))
+and i.product_chlnbr = cl.seqnbr
+and	cl.list = 'ValGroup'
+and i.insid not in ('ZAR/ALBI_TEST','ZAR/ALBI_TEST_Next','ZAR/ALBI_TEST_Previous','ZAR/DONOTUSE_eRAFI','ZAR/GOVI_TEST','ZAR/GOVI_TEST_Next','ZAR/GOVI_TEST_Previous','ZAR/PROJ_GOLD')
+
+order by 1

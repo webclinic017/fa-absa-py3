@@ -1,0 +1,13 @@
+[Securities Lending ABSA]FSecurityLoan:recalledNumDaysToOneYearExpiry = select(isOpenEnd, 
+  true->select(isLoanRecalled, 
+    true->dateDifference(dateAddDelta(object.AdditionalInfo.SL_RecallDate, 1, 0, 0), profitAndLossEndDate), 
+    false->nil), 
+  false->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:recalledNumDaysToOneYearExpiry = select(sl_instype, 
+  "SecurityLoan"->instrument:recalledNumDaysToOneYearExpiry, 
+  default->nil);
+[Securities Lending ABSA]FTrade:recalledNumDaysToOneYearExpiry = select(instrument:isOpenEnd, 
+  true->select(instrument:isLoanRecalled, 
+    true->dateDifference(dateAddDelta(object.Contract.Instrument.AdditionalInfo.SL_RecallDate, 1, 0, 0), profitAndLossEndDate), 
+    false->nil, 
+    false->nil));

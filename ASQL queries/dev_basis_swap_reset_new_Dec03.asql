@@ -1,0 +1,677 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_basis_swap_reset_new_Dec03') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_basis_swap_reset_new_Dec03' and p.type = 'SQL Query' 
+/* Reset Advices for CurrSwap
+
+This query has been written to accomodate INTEREST RATE resets 
+on CurrencySwaps ONLY.
+
+The user must enter the reset date for both of the CCY's, 
+Both resets for the same pay day (corresponding to the reset date given)
+will be returned.
+
+The query has 2 unions
+Union 1 - Pay Leg
+Union 2 - Received Leg
+
+*/
+
+/*-----------------------------------------------------------
+		RESET DATES
+-----------------------------------------------------------*/
+
+select
+t.trdnbr,
+c.pay_day,
+r.day,
+r.start_day,
+r.end_day
+
+into resetdates
+
+from
+instrument i,
+trade t,
+leg l,
+cashflow c,
+reset r
+
+where
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Single'
+and	(r.day = @CCY1ResetDate{today;} or r.day = @CCY2ResetDate{today;})
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+
+
+
+/*-----------------------------------------------------------
+		FXRESETS for NOMINAL SCALING CURRSWAPS
+-----------------------------------------------------------*/
+Select distinct
+t.trdnbr,
+nominal_amount(c)  'Nominal'
+
+into FXNominal
+
+from
+instrument i,
+trade t,
+leg l,
+cashflow c,
+reset r
+
+where
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and	l.nominal_scaling ~= 'FX'
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+
+
+
+Select distinct
+t.trdnbr,
+c.pay_day,
+r.day,
+r.start_day,
+r.end_day,
+r.value,
+fx.nominal
+
+
+into FXReset
+
+from
+instrument i,
+trade t,
+leg l,
+cashflow c,
+FXNominal  fx,
+reset r,
+resetdates rt
+
+where
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Nominal Scaling'
+and	l.nominal_scaling='FX'
+/*and	(r.day = @CCY1ResetDate{today;} or r.day = @CCY2ResetDate{today;})
+*/
+and 	rt.pay_day = c.pay_day
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	fx.trdnbr = t.trdnbr
+
+
+
+/*-----------------------------------------------------------
+		FINAL DISPLAY
+-----------------------------------------------------------*/
+
+
+select distinct
+'u1 - PayLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+r.type,
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+r.value ~=0 ? r.value+c.spread	: 0	'frwrate',
+
+
+nominal_amount(c)*l.nominal_factor*c.nominal_factor  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+
+into final1
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party				pa,
+reset				r,
+resetdates			rt,
+fxreset				fx
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Single'
+and	p.ptynbr =* t.counterparty_ptynbr
+and	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0	
+and	rt.pay_day = c.pay_day
+and	rt.trdnbr = t.trdnbr
+and	l.nominal_scaling ~= 'FX' 
+
+
+/*FixedRate Leg*/
+
+select distinct
+'u1 - PayLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+l.reset_type 'type',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > 0.00) ? 'yourselves' : 'ourselves'	'usyou',
+l.fixed_rate			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+l.fixed_rate	'frwrate',
+
+
+nominal_amount(c)*l.nominal_factor*c.nominal_factor  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+into final1
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party 				pa
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='currswap'
+and 	l.reset_type = 'None'
+and	p.ptynbr =* t.counterparty_ptynbr
+and 	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0	
+and	(c.pay_day = @CCY1ResetDate{today;} or c.pay_day  = @CCY2ResetDate{today;})
+and	l.nominal_scaling ~= 'FX' 
+
+
+/*FX Nominal Scaling Leg*/
+
+select distinct
+'u1 - PayLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+r.type,
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+r.value ~=0 ? r.value+c.spread	: 0	'frwrate',
+
+
+l.nominal_scaling = 'FX' ? fx.value*fx.Nominal : nominal_amount(c)*l.nominal_factor*c.nominal_factor  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+into final1
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party				pa,
+reset				r,
+resetdates			rt,
+fxreset				fx
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Single'
+and	p.ptynbr =* t.counterparty_ptynbr
+and	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0	
+and	rt.pay_day = c.pay_day
+and	rt.trdnbr = t.trdnbr
+and	l.nominal_scaling = 'FX' 
+and	fx.day = r.day 
+
+
+
+select distinct
+'u2 - ReceiveLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+r.type,
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+r.value ~=0 ? r.value+c.spread	: 0	'frwrate',
+
+
+nominal_amount(c)  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+into final2
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party				pa,
+reset				r,
+resetdates			rt,
+fxreset				fx
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Single'
+and	p.ptynbr =* t.counterparty_ptynbr
+and	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0	
+and	rt.pay_day = c.pay_day
+and	rt.trdnbr = t.trdnbr
+and	l.nominal_scaling ~= 'FX'
+
+
+/*FIxed Rate Leg*/
+
+select distinct
+'u2 - ReceiveLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+l.reset_type 'type',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > 0.00) ? 'yourselves' : 'ourselves'	'usyou',
+l.fixed_rate			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+l.fixed_rate	'frwrate',
+
+
+nominal_amount(c)  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+into final2
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party 				pa
+
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and 	i.instype='currswap'
+and 	l.reset_type = 'None'
+and	p.ptynbr =* t.counterparty_ptynbr
+and	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0	
+and	(c.pay_day = @CCY1ResetDate{today;} or c.pay_day  = @CCY2ResetDate{today;})
+and	l.nominal_scaling ~= 'FX' 
+
+
+
+
+
+/*FX Nominal Scaling*/
+
+select distinct
+'u2 - ReceiveLeg'  'Section',
+l.nominal_scaling,
+t.optional_key  'DevNbr',
+r.type,
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0  ?  p.fullname : 'ABSA BANK LIMITED' 'payer',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0   ?  p.fullname : 'ABSA BANK LIMITED' 'Payer2',
+(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size <=0 ? 'Yes' : 'No'  'Payleg',
+i.pay_offset_method		'Method',
+nominal_amount(c)		'CalcAmt',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'tradeday',
+c.start_day			'Start',
+c.end_day			'EndPeriod',
+l.end_day			'End',
+p.fullname			'fullname',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zip',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+l.float_rate = 0 ? 'Fixed Rate' : display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+c.end_day-c.start_day		'days',
+(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',
+r.value	+ l.spread			'float',
+display_id(l, 'curr')		'curr',
+l.daycount_method in ('Act/360','30E/360','30/360') ? 360 : 365 'daysinyear',
+r.value ~=0 ? r.value+c.spread	: 0	'frwrate',
+
+
+l.nominal_scaling = 'FX' ? fx.value*fx.Nominal : nominal_amount(c)  'Nominal',
+
+abs(projected_cf(c)*t.quantity) 'interest',
+pa.fullname			'Acquirer'
+
+into final2
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+party				pa,
+reset				r,
+resetdates			rt,
+fxreset				fx
+
+where
+
+	i.insaddr=t.insaddr
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+and 	i.instype='currswap'
+and 	r.type = 'Single'
+and	p.ptynbr =* t.counterparty_ptynbr
+and	pa.ptynbr =* t.acquirer_ptynbr
+and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))
+and	(l.payleg='Yes' ? -1 : 1)*t.quantity*l.nominal_factor*i.contr_size > 0	
+and	rt.pay_day = c.pay_day
+and	rt.trdnbr = t.trdnbr
+and	l.nominal_scaling = 'FX' 
+and 	fx.day = r.day 
+
+
+
+select distinct
+t.Section,
+t.nominal_scaling,
+t.DevNbr,
+t.type,
+t.payer,
+t.Payer2,
+t.Payleg,
+t.Method,
+t.CalcAmt,
+t.Trdnbr,
+t.BOTrdnbr,
+t.tradeday,
+t.Start,
+t.EndPeriod,
+t.End,
+t.fullname,
+t.Attention,
+t.Address,
+t.Address2,
+t.Zip,
+t.City,
+t.Fax,
+t.Pay_Dates,
+t.Rate,
+t.Float_Rate,
+t.Spread,
+t.Daycount,
+t.Business_Days,
+t.CP_Country,
+t.Status,
+t.cashflow,
+t.days,
+t.usyou,
+t.float,
+t.curr,
+t.daysinyear,
+t.frwrate,
+t.Nominal,
+t.interest,
+'ABSA BANK LIMITED'  'Acquirer'
+
+from final1 t
+
+union
+
+select distinct
+t.Section,
+t.nominal_scaling,
+t.DevNbr,
+t.type,
+t.payer,
+t.Payer2,
+t.Payleg,
+t.Method,
+t.CalcAmt,
+t.Trdnbr,
+t.BOTrdnbr,
+t.tradeday,
+t.Start,
+t.EndPeriod,
+t.End,
+t.fullname,
+t.Attention,
+t.Address,
+t.Address2,
+t.Zip,
+t.City,
+t.Fax,
+t.Pay_Dates,
+t.Rate,
+t.Float_Rate,
+t.Spread,
+t.Daycount,
+t.Business_Days,
+t.CP_Country,
+t.Status,
+t.cashflow,
+t.days,
+t.usyou,
+t.float,
+t.curr,
+t.daysinyear,
+t.frwrate,
+t.Nominal,
+t.interest,
+'ABSA BANK LIMITED'  'Acquirer'
+
+from final2 t
+

@@ -1,0 +1,217 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       Trade_CashFlow_Backdate_Report
+PURPOSE                 :       This ASQL will report all backdated trades and backdated Call Account cashflows.
+DEPARTMENT AND DESK     :       Middle Office
+REQUASTER               :       Kiribakka Tendo
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       852564
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2011-12-01      852564          Heinrich Cronje                 Initial Implementation
+2012-01-13      XXXXXX          Heinrich Cronje                 Expanded report to report all backdated CashFlows.
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL has three secons:
+        1.  All trades that were created on a specified date with a trade time less than this specified date
+            based on a specified trade filter.
+        2.  All Call Account cashflows that were created on a specified date with a pay date less than this
+            specified date based on a specified trade filter.
+        3.  All cashflows that were created on a specified date with a pay date less than this
+            specified date based on a specified trade filter.
+*/
+
+/*----------------------------------------------------------------------------------------------------------
+                                                    LOGGING
+----------------------------------------------------------------------------------------------------------*/
+select
+ael_i(p,'ASQL_log','Trade_CashFlow_Backdate_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Trade_CashFlow_Backdate_Report' and p.type = 'SQL Query' 
+
+/*----------------------------------------------------------------------------------------------------------
+                                                    Temp Table
+----------------------------------------------------------------------------------------------------------*/
+select
+    @4_Backdated_CF{All;'All','Call Account'} 'BackDate_CF'
+into
+    temp
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+/*----------------------------------------------------------------------------------------------------------
+                                            Trade selection from Trade Filter
+----------------------------------------------------------------------------------------------------------*/
+select
+    t.trdnbr    'Trdnbr',
+    t.insaddr,
+    t.creat_time    'TradeCreateTime',
+    t.time  'Time',
+    t.status    'Status',
+    display_id(t,'curr')    'TradeCurr',
+    display_id(t,'counterparty_ptynbr') 'Party',
+    display_id(t,'prfnbr') 'Portfolio',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    display_id(t,'creat_usrnbr') 'TradeCreateUser',
+    t.execution_time    'ExecutionTime',
+    display_id(t,'trader_usrnbr')   'Dealer',
+    nominal_amount(t,t.value_day)   'nominal',
+    t.quantity,
+    i.insid 'Insid',
+    i.instype   'InsType',
+    i.open_end,
+    display_id(i,'curr')    'InstrCurr',
+    to_date(@3_Date{Today}) 'RepDate'
+into
+    trades
+from
+    trade t,
+    instrument i
+where
+        match_filter(t, @1_Filter{PS_Call_Backdates;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Backdated Trade Section
+----------------------------------------------------------------------------------------------------------*/
+select
+    'Backdated Trades'  'Section',
+    t.RepDate,
+    t.Trdnbr,
+    t.Insid,
+    t.InsType,
+    t.Status,
+    t.nominal   'BackdatedAmount',
+    t.TradeCurr,
+    t.InstrCurr,
+    t.Party,
+    t.Portfolio,
+    t.Acquirer,
+    t.Time,
+    t.TradeCreateTime,
+    t.TradeCreateUser,
+    t.ExecutionTime,
+    t.Dealer,
+    ''  'Cfwnbr',
+    ''  'CfCreateTime',
+    ''  'CfCreateUser',
+    ''  'CfPayDay',
+    ''  'CfType',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash Start')) 'CashStart',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash End')) 'CashEnd',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Accumulated Cash Daily')) 'CashDaily'
+into
+    final
+from
+    trades t
+where
+        to_date(t.TradeCreateTime) = t.RepDate
+    and to_date(t.time) < t.RepDate
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Backdated Call Account CashFlow Section
+----------------------------------------------------------------------------------------------------------*/
+select
+    'Backdated CashFlows'  'Section',
+    t.RepDate,
+    t.Trdnbr,
+    t.Insid,
+    t.InsType,
+    t.Status,
+    t.quantity * projected_cf(c)    'BackdatedAmount',
+    t.TradeCurr,
+    t.InstrCurr,
+    t.Party,
+    t.Portfolio,
+    t.Acquirer,
+    t.Time,
+    t.TradeCreateTime,
+    t.TradeCreateUser,
+    t.ExecutionTime,
+    t.Dealer,
+    to_string(c.cfwnbr) 'Cfwnbr',
+    to_string(c.creat_time)  'CfCreateTime',
+    display_id(c,'creat_usrnbr')  'CfCreateUser',
+    to_string(c.pay_day)   'CfPayDay',
+    to_string(c.type)   'CfType',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash Start')) 'CashStart',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash End')) 'CashEnd',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Accumulated Cash Daily')) 'CashDaily'
+into
+    final
+from
+    trades t,
+    leg l,
+    cashflow c,
+    temp tmp
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and t.instype = 'Deposit'
+    and t.open_end = 'Open End'
+    and to_date(c.updat_time) = t.RepDate
+    and to_date(c.pay_day) < t.RepDate
+    and tmp.BackDate_CF = 'Call Account'
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Backdated CashFlow Section
+----------------------------------------------------------------------------------------------------------*/
+select
+    'Backdated CashFlows'  'Section',
+    t.RepDate,
+    t.Trdnbr,
+    t.Insid,
+    t.InsType,
+    t.Status,
+    t.quantity * projected_cf(c)    'BackdatedAmount',
+    t.TradeCurr,
+    t.InstrCurr,
+    t.Party,
+    t.Portfolio,
+    t.Acquirer,
+    t.Time,
+    t.TradeCreateTime,
+    t.TradeCreateUser,
+    t.ExecutionTime,
+    t.Dealer,
+    to_string(c.cfwnbr) 'Cfwnbr',
+    to_string(c.creat_time)  'CfCreateTime',
+    display_id(c,'creat_usrnbr')  'CfCreateUser',
+    to_string(c.pay_day)   'CfPayDay',
+    to_string(c.type)   'CfType',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash Start')) 'CashStart',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Cash End')) 'CashEnd',
+    to_string(ael_f(,'SAGEN_IT_TM_Columns.get_TradeSheet_Column', t.Trdnbr, date_add_banking_day(t.RepDate,'ZAR',-1), , , 'Portfolio Accumulated Cash Daily')) 'CashDaily'
+into
+    final
+from
+    trades t,
+    leg l,
+    cashflow c,
+    temp tmp
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and to_date(c.updat_time) = t.RepDate
+    and to_date(c.pay_day) < t.RepDate
+    and tmp.BackDate_CF = 'All'
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Final Selection
+----------------------------------------------------------------------------------------------------------*/
+select
+    f.*
+from
+    final f
+where
+    abs(round(f.BackdatedAmount,2)) > 0.00

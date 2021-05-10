@@ -1,0 +1,11 @@
+[Core Pricing]FInstrument:benchmarkPrice = benchmarkPriceFeed :* "benchmarkPrice" [priceSource, benchmarkPriceSearchOrderFromInstrument];
+[Core Pricing]FInstrumentSpread:benchmarkPrice = select(benchmark, 
+  nil->0.0, 
+  default->shunt[](object.PriceType, 
+    "Theor"->scenariodropaxis(benchmark:theoreticalPrice, <["discountYieldCurveHierarchy", "fxDiscountYieldCurveHierarchy", "moneyMarketYieldCurveHierarchy", "repoYieldCurveHierarchy"], , "shiftHideRiskFactorNames", [[true]]>, <["timeDistributionBucket"], , , value(timeDistributionBucket)>), 
+    default->select(isBidAsk, 
+      true->benchmark:benchmarkPriceBid, 
+      false->benchmark:benchmarkPrice)));
+[Core Pricing]FOrderBook:benchmarkPrice = priceFeed:benchmarkPrice;
+[Core Pricing]FPriceFeed:benchmarkPrice = object.SelectedPrice(benchmarkPriceSearchOrderFromInstrument).Get;
+[Core Pricing]FRateIndex:benchmarkPrice = benchmarkPriceBid;

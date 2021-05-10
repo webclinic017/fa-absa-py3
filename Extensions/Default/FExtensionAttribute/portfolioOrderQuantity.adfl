@@ -1,0 +1,5 @@
+[Default]FSingleInstrumentAndTrades:portfolioOrderQuantity = select(instrument:portfolioInstrumentHasOrderBooks, 
+  true->switch(instrument:portfolioOrderAutoUpdate, 
+    true->floor(double(portfolioOrderTargetQuantity)) - portfolioOrderQuantitySent, 
+    default->0), 
+  default->nil);

@@ -1,0 +1,8 @@
+[Equity Market Making]FQuoteController:qUndQuoteVolumeBidSetting = switch(qPriceSourceSetting, 
+  nil->0.0, 
+  default->switch(qUnderlyingBaseQtyType, 
+    "Underlying Qty"->qPriceSourceSetting.UnderlyingQuantity, 
+    "Underlying Qty Bid/Ask"->switch(qUnderlyingPriceType, 
+      "Ask"->qPriceSourceSetting.UnderlyingQuantityAsk, 
+      default->qPriceSourceSetting.UnderlyingQuantityBid), 
+    default->0.0));

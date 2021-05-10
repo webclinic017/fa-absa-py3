@@ -1,0 +1,6 @@
+[Default]FInstrumentAndTrades:commodityGroupingReference = parentCommodityGroupingReference;
+[Default]FMultiInstrumentAndTrades:commodityGroupingReference = select(groupingReference, 
+  nil->parentCommodityGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCommodityRiskInformation"), 
+    true->groupingReference, 
+    false->parentCommodityGroupingReference));

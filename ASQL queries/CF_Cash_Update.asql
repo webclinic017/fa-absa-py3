@@ -1,0 +1,474 @@
+/*------------------------------------------------------------------
+    CF_Cash_Update
+    
+    This query supplies all cashflows, dividends and payments that will pay on the ReportDate, or historical cashflows 
+    that have been updated during the ReportDate. Only  cashflows for trades in 'FO Confirmed','BO Confirmed','BO-BO Confirmed' status will be generated
+    
+    This query is used as a feed into the Cash Warehouse.
+
+    History:
+    When: 		Who:		    What:
+    2009-09-16	Herman Hoon	    Created
+    
+    Date                : 2010-02-18
+    Purpose             : Add the SeqNo, AccName, AccNum and Swift fields
+    Department and Desk : PCG Accounting
+    Requester           : Keelan Conlon
+    Developer           : Herman Hoon
+    CR Number           : 229619
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','CF_Cash_Update') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'CF_Cash_Update' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_ReportDate{Yesterday}                                        'RepDate'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+
+select
+    curr.insaddr,
+    bankday_adjust(@1_ReportDate{Yesterday},curr.insid,'Following')      'BDAdjust'
+into
+    businessDay
+from
+    instrument curr
+where
+    curr.instype = 'Curr'
+
+
+/*------------------------------------------------------------------
+	Cashflows
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    display_id(l,'curr')	        'Curr',
+	projected_cf(cf) * t.quantity	'Amount'
+into
+	cfTrade
+from
+	trade t,
+	instrument i,
+	leg l,
+	cashflow cf,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and i.instype not in ('Stock','Option','CFD','Future/Forward','Combination','Curr')
+and i.insid not like 'fd_%'
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and t.insaddr = i.insaddr
+and i.insaddr = l.insaddr
+and	l.legnbr  = cf.legnbr
+and cf.pay_day >= t.value_day
+and ((to_date(cf.updat_time) = m.RepDate and cf.pay_day < m.RepDate)
+    or cf.pay_day = m.RepDate)
+
+/*------------------------------------------------------------------
+	Cashflows for Combination trades
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    display_id(l,'curr')	        'Curr',
+	projected_cf(cf)*(t.quantity/i.index_factor)*cl.weight	'Amount'
+into
+	cfTrade
+from
+    trade           t,
+    instrument      i,
+    leg             l,
+    combinationlink cl,
+    instrument  memins,
+    cashflow        cf,
+    macros          m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and t.insaddr = i.insaddr
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and i.instype = 'Combination'
+and i.insaddr = cl.owner_insaddr 
+and cl.member_insaddr = memins.InsAddr 
+and cl.member_insaddr *= l.insaddr
+and l.legnbr          *= cf.legnbr 
+and cf.pay_day >= t.value_day
+and ((to_date(cf.updat_time) = m.RepDate and cf.pay_day < m.RepDate)
+    or cf.pay_day = m.RepDate)
+
+/*------------------------------------------------------------------
+    Select the Cashflow Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.cfwnbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias
+into
+    cfSettle
+from
+    settlement s,
+    cfTrade cft,
+    account a,
+    partyalias pa
+where
+    s.trdnbr = cft.trdnbr
+and s.cfwnbr = cft.cfwnbr
+and s.status in ('Acknowledged','Pending Closure','Closed','Authorised')
+and s.party_accname = a.name
+and a.bic_seqnbr = pa.seqnbr
+
+/*------------------------------------------------------------------
+    Join the Casflow Settlements back to all the cashflows
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift'
+into
+    FinalCF
+from
+    cfSettle cfs,
+    cfTrade  cft
+where
+    cft.trdnbr *= cfs.trdnbr
+and cft.cfwnbr *= cfs.cfwnbr
+
+
+/*------------------------------------------------------------------
+    Premiums
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    0                      'cfwnbr',
+    t.trdnbr,
+    'Premium'	            'CFType',
+    to_date(t.updat_time)   'UpdateDate',
+	t.value_day	            'PayDate',
+    display_id(t,'curr')	'Curr',
+	t.premium	            'Amount'
+into
+	premTrade
+from
+	trade t,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and	t.premium ~= 0.0
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and ((to_date(t.updat_time) = m.RepDate and t.value_day	 < m.RepDate)
+    or t.value_day = m.RepDate)
+
+/*------------------------------------------------------------------
+    Select the Premium Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias
+into
+    premSettle
+from
+    settlement s,
+    premTrade cft,
+    account a,
+    partyalias pa
+where
+    s.trdnbr = cft.trdnbr
+and s.status in ('Acknowledged','Pending Closure','Closed','Authorised')
+and s.party_accname = a.name
+and a.bic_seqnbr = pa.seqnbr
+and s.type = 'Premium'
+
+/*------------------------------------------------------------------
+    Join the Premiums Settlements back to all the Premiums
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift'
+into
+    FinalCF
+from
+    premSettle cfs,
+    premTrade  cft
+where
+    cft.trdnbr *= cfs.trdnbr
+
+
+/*------------------------------------------------------------------
+    Additional Payments
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    a.paynbr                'cfwnbr',
+    t.trdnbr,
+    'Additional Payment'	'CFType',
+    to_date(a.updat_time)   'UpdateDate',
+	a.payday	            'PayDate',
+    display_id(a,'curr')	'Curr',
+	a.amount	            'Amount'
+into 
+	payTrade
+from
+	payment a,
+	trade t,
+	instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and a.trdnbr = t.trdnbr
+and i.insaddr = t.insaddr
+and i.instype not in ('Future/Forward') /*Additional payments is already included in the cash balance for futures and forwards*/
+and ((to_date(a.updat_time) = m.RepDate and a.payday < m.RepDate)
+    or a.payday = m.RepDate)
+
+/*------------------------------------------------------------------
+    Select the Additional Payments Settlements
+------------------------------------------------------------------*/
+select distinct
+    s.trdnbr,
+    s.paynbr,
+    s.seqnbr,
+    s.party_accname,
+    s.party_account,
+    pa.alias
+into
+    paySettle
+from
+    settlement s,
+    payTrade cft,
+    account a,
+    partyalias pa
+where
+    s.trdnbr = cft.trdnbr
+and s.paynbr = cft.cfwnbr
+and s.status in ('Acknowledged','Pending Closure','Closed','Authorised')
+and s.party_accname = a.name
+and a.bic_seqnbr = pa.seqnbr
+
+/*------------------------------------------------------------------
+    Join the Additional Payments Settlements back to all the Additional Payments
+------------------------------------------------------------------*/
+select
+    cft,
+    cfs.seqnbr          'SeqNo',
+    cfs.party_accname   'AccName',
+    cfs.party_account   'AccNum',
+    cfs.alias           'Swift'                    
+into
+    FinalCF
+from
+    paySettle cfs,
+    payTrade  cft
+where
+    cft.trdnbr *= cfs.trdnbr
+and cft.cfwnbr *= cfs.paynbr
+
+
+/*------------------------------------------------------------------
+    Dividend Payments
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    d.seqnbr                'cfwnbr',
+    t.trdnbr,
+    'Dividend'		        'CFType',
+    to_date(d.updat_time)   'UpdateDate',
+	to_date(d.day)			'PayDate',
+    display_id(d,'curr')	'Curr',
+	t.quantity * d.dividend	'Amount',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift'
+into
+	FinalCF
+from	
+	dividend d,
+	trade t,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and	d.insaddr = t.insaddr
+and d.day <= m.RepDate
+and ((to_date(d.updat_time) = m.RepDate and d.day < m.RepDate)
+    or d.day = m.RepDate)
+
+
+/*------------------------------------------------------------------
+	Cashflows for Currency trades - FX Swap and FX Cash
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    0                               'cfwnbr',
+    t.trdnbr,
+    'Fixed Amount'	                'CFType',
+    to_date(t.updat_time)           'UpdateDate',
+	t.value_day	                    'PayDate',
+    display_id(t,'insaddr')	        'Curr',
+	t.quantity	                    'Amount',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift'
+into
+	FinalCF
+from
+	trade t,
+	instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and i.instype = 'Curr'
+and t.insaddr = i.insaddr
+and ((to_date(t.updat_time) = m.RepDate and t.value_day	 < m.RepDate)
+    or t.value_day = m.RepDate)  
+
+
+/*------------------------------------------------------------------
+    End premiums for BuySellBack 
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    0                                                       'cfwnbr',
+    t.trdnbr,
+    'End Premium'	                                        'CFType',
+    t.updat_time > i.updat_time ?  to_date(t.updat_time) : to_date(i.updat_time)  'UpdateDate',
+	i.exp_day	                                            'PayDate',
+	display_id(t,'curr')	                                'Curr',
+    t.quantity * i.ref_value                                'Amount',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift'
+into
+	FinalCF
+from
+	trade t,
+	instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and	i.insaddr = t.insaddr
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and	i.instype = 'BuySellback'
+and (((to_date(i.updat_time) = m.RepDate or to_date(t.updat_time) = m.RepDate) and i.exp_day < m.RepDate)
+    or i.exp_day = m.RepDate)
+
+
+/*------------------------------------------------------------------
+    Forward Payout on Expiry
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    0                                                                               'cfwnbr',
+    t.trdnbr,
+	'Forward Payout'	                                                            'CFType',
+	t.updat_time > i.updat_time ?  to_date(t.updat_time) : to_date(i.updat_time)    'UpdateDate',
+	i.exp_day	                                                                    'PayDate',
+	display_id(t,'curr')	                                                        'Curr',
+    accumulated_cash(t,i.exp_day, display_id(t,'curr'), 2, 0, , 1, 'None')          'Amount',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift'
+into
+	FinalCF
+from
+	trade t,
+	instrument i,
+	macros m
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and	i.insaddr = t.insaddr
+and	i.instype in ('Future/Forward')
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and i.paytype = 'Forward'
+and (((to_date(i.updat_time) = m.RepDate or to_date(t.updat_time) = m.RepDate) and i.exp_day < m.RepDate)
+    or i.exp_day = m.RepDate)
+
+
+/*------------------------------------------------------------------
+    Generate Daily Future Cash Settlemets
+    on business days
+------------------------------------------------------------------*/
+select
+    m.RepDate,
+    0                               'cfwnbr',
+    t.trdnbr,
+	'Future Cash Settlement'	    'CFType',
+	to_date(t.updat_time)           'UpdateDate',
+	to_date(m.RepDate)	            'PayDate',
+	curr.insid	                    'Curr',
+    accumulated_cash(t,m.RepDate, curr.insid, 2, 0, , 1, 'None') - accumulated_cash(t,date_add_banking_day(m.RepDate,curr.insid,-1), curr.insid, 2, 0, , 1, 'None') 'Amount',
+    0                       'SeqNo',
+    ''                      'AccName',
+    ''                      'AccNum',
+    ''                      'Swift'
+into
+	FinalCF
+from
+	trade t,
+	instrument i,
+	instrument curr,
+	macros m,
+	businessDay b
+where
+    match_filter(t, @2_Filter{;tradefilter.fltid}, @3_TrdNbrs{})
+and	i.insaddr = t.insaddr
+and curr.insaddr = t.curr
+and	i.instype in ('Future/Forward')
+and i.paytype = 'Future'
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and b.BDAdjust = m.RepDate
+and b.insaddr  = t.curr
+and to_date(t.time) <= m.RepDate
+and i.exp_day       >= m.RepDate
+
+
+/*------------------------------------------------------------------
+    Select all the Cashflow data
+------------------------------------------------------------------*/
+select
+    *
+from
+    FinalCF
+
+

@@ -1,0 +1,135 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Option_Expiry') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Option_Expiry' and p.type = 'SQL Query' 
+
+
+/*
+
+Purpose   : List of unexpired bond, fra & swap options and their corresponding greeks
+Department : Trading
+Desk : Trading, Fixed income options
+Requestor : Boshoff, Alexandra Anne
+Developer : Anil Parbhoo
+CR Number : 201993
+
+*/
+
+
+/* options on bonds and swaptions*/
+
+select
+	t.trdnbr	'Trade_Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und_Instype',	
+	i.exp_day	'Expiry',
+	l.start_day     'Und_Start_Date',
+	l.end_day       'Und_End_Date',
+	i.exercise_type,
+	t.nominal_amount >= 0.01 ? 'Buy' : 'Sell' 'B_S',
+	i.call_option = 'Yes' ? (i.und_instype='Swap' ? 'Payer' : (i.und_instype='Fra' ? 'Borrower' : 'Call')) : (i.und_instype='Swap' ? 'Receiver' : (i.und_instype='Fra' ? 'Lender' : 'Put')) 'C_P',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	delta_implicit(t)'delta',
+	vega(t)'vega'
+
+into temp
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l
+where
+	i.insaddr = t.insaddr
+and 	u.insaddr = i.und_insaddr
+and 	u.insaddr = l.insaddr
+and	i.instype = 'Option'
+and	i.und_instype in ('Swap','Bond')
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and 	t.nominal_amount ~= 0
+and l.type = 'Fixed'
+
+
+
+
+
+/* options on fra*/
+
+
+select
+	t.trdnbr	'Trade_Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und_Instype',	
+	i.exp_day	'Expiry',
+	l.start_day     'Und_Start_Date',
+	l.end_day       'Und_End_Date',
+	i.exercise_type,
+	t.nominal_amount >= 0.01 ? 'Buy' : 'Sell' 'B_S',
+	i.call_option = 'Yes' ? (i.und_instype='Swap' ? 'Payer' : (i.und_instype='Fra' ? 'Borrower' : 'Call')) : (i.und_instype='Swap' ? 'Receiver' : (i.und_instype='Fra' ? 'Lender' : 'Put')) 'C_P',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	delta_implicit(t)'delta',
+	vega(t)'vega'
+	
+into temp	
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l
+where
+	i.insaddr = t.insaddr
+and 	u.insaddr = i.und_insaddr
+and 	u.insaddr = l.insaddr
+and	i.instype = 'Option'
+and	i.und_instype in ('FRA')
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and 	t.nominal_amount ~= 0
+and l.type = 'Float'
+
+
+
+
+
+/*select from temp*/
+
+
+
+select
+	tt.Trade_Number,
+	tt.Instrument,
+	tt.Instype,
+	tt.Und_Instype,	
+	tt.Expiry,
+	tt.Und_Start_Date,
+	tt.Und_End_Date,
+	tt.exercise_type,
+	tt.B_S,
+	tt.C_P,
+	tt.Strike,
+	tt.Portfolio,
+	tt.Status,
+	tt.nominal_amount,
+	tt.Counterparty,
+	tt.delta,
+	tt.vega
+	
+from temp tt	
+	
+order by tt.Expiry
+
+

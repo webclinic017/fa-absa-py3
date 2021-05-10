@@ -1,0 +1,10 @@
+[ABSA Specific 4.3]FFrn:valuationErrorExThetaAdjust = shunt((mappedDiscountLink.Link.YieldCurveComponent.RecordType == "InstrumentSpread") and (mappedDiscountLink.Link.YieldCurveComponent.SpreadType == "Disc Marg") and (nonFixedLegCurrentCashFlow <> nil), 
+  true->shunt((((nonFixedLegCurrentCashFlow.ExCouponDate - daysUntilNextBankingDay) <= valuationDate) and (nonFixedLegCurrentCashFlow.ExCouponDate > valuationDate)), 
+    true->-1 * nonFixedLegCurrentCashFlow:projectedCashFlow, 
+    default->shunt(((nonFixedLegCurrentCashFlow.EndDate <= nextBankingDate) and (nonFixedLegCurrentCashFlow.EndDate > valuationDate)), 
+      true->nonFixedLegCurrentCashFlow:projectedCashFlow, 
+      default->displayCurrencyZero)), 
+  default->displayCurrencyZero);
+[ABSA Specific 4.3]FInstrument:valuationErrorExThetaAdjust = displayCurrencyZero;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:valuationErrorExThetaAdjust = discountAndConvertToCurrency(sumOf(openInstruments :* "valuationErrorExThetaAdjust" [positionObject, displayCurrency, filterUnit]), theoreticalValueDiscountCurves, displayDate, theoreticalValueFxRates, displayCurrencySymbol, filterUnit);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:valuationErrorExThetaAdjust = instrument :* "valuationErrorExThetaAdjust" [positionObject, displayCurrency, filterUnit];

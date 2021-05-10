@@ -1,0 +1,3 @@
+[Default]FInstrumentAndTrades:singlePriceGreekRiskFactorValueInDisplayCurrency = shunt(count(units(singlePriceGreekRiskFactor)) == 1, 
+  true->convertToCurrency(singlePriceGreekRiskFactor, singlePriceGreekRiskFactorCurrency :* "fxSpotRate" [fxToCurrency = displayCurrency], displayCurrencySymbol, filterUnit) / priceGreekRiskFactorDenominator(compactAny(priceGreekRiskFactorNodes.First), displayQuotation), 
+  false->double(singlePriceGreekRiskFactor));

@@ -1,0 +1,73 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_irp_fra_reset_advice') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'dev_irp_fra_reset_advice' and p.type = 'SQL Query' 
+/*1999-09-22 13:08:27  INTAS (Intas System Account) - ADMIN  (ABSA_Confirm_FRA_Reset)*/
+select
+t.optional_key					'DevonNbr',
+display_id(t, 'counterparty_ptynbr')		'cp',
+display_id(i, 'curr')				'curr',
+p.fullname					'fullname',
+p.attention					'attention',
+p.address					'address',
+p.address2					'address2',
+p.zipcode					'zipcode',
+p.city						'city',
+p.country					'country',
+p.fax						'fax',
+t.trdnbr					'trdnbr',
+t.bo_trdnbr					'BOTrdnbr',
+nominal_amount(t)				'nominal',
+time_to_day(t.time)				'tradedate',
+l.start_day					'effectivedate',
+l.end_day					'enddate',
+l.fixed_rate					'fixedrate',
+nominal_amount(t) <0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'Absa Corporate and Merchant Bank Ltd' 'FloatPayer',
+l.start_day 					'fixingday',
+l.daycount_method				'daycount',
+display_id(l, 'pay_calnbr')			'calendar',
+display_id(l, 'float_rate')			'index',
+date_add_banking_day(l.start_day, display_id(i, 'curr'), reset_day_offset) 'resetday',
+r.value						'reset',
+abs(projected_cf(c)*t.quantity)			'cashflow',
+days_in_period(r)				'days',
+
+/*  Andries Brink - Due to field changed to key on CASHFLOW!  */
+(projected_cf(c)*t.quantity) > 0 ? 'to us' : 'to you' 'usyou',	
+
+/*((l.fixed_rate > r.value) and nominal_amount(t)>0) ? 'us' : 'you' 'usyou', */
+/*nominal_amount(t)>0 ? 'us' : 'You' 'usyou',*/
+
+
+projected_cf(c)*t.quantity < 0 ?
+        'by you' : 'to us'		'Payer',
+
+(nominal_amount(t) < 0) ? (r.value > l.fixed_rate ? 'due to us' : 'due to you') :
+(r.value > l.fixed_rate ? 'due to you' : 'due to us')
+
+
+
+from
+
+instrument		i,
+trade			t,
+party			p,
+leg			l,
+reset			r,
+cashflow		c
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.insaddr=i.insaddr
+and	c.legnbr=l.legnbr
+and	r.cfwnbr = c.cfwnbr
+and	c.pay_day=@ResetDate{}
+and	p.ptynbr=t.counterparty_ptynbr
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and 	i.instype='FRA'
+and	t.status not in ('Simulated','Terminated','Void')

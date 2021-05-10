@@ -1,0 +1,124 @@
+
+/*
+Purpose                       :  Large holdings for complex exposures
+Department and Desk           :  PCG 
+Requester                     :  Guy Mcloughlin
+Developer                     :  Anwar Banoo
+CR Number                     :  281576
+
+Date        CR Number       Who                 What
+2012-05-09  186642          Heinrich Cronje     Excluded portfolio Omsfin CFD Short Only
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select 
+    ael_i(p,'ASQL_log','Large_Holdings_TRSHolding') 'Name' 
+into  
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where 
+    p.name = 'Large_Holdings_TRSHolding' and p.type = 'SQL Query' 
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'Large_Holdings_TRSHolding.OpenFile',@1_Path{'c:\'},@2_FileName{'Large_Holdings_TRSHolding'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+select
+    i.insid 'Instrument',
+    ui.insid    'Element',
+    i.instype   'Parent'
+into
+    temp
+from
+    instrument i,
+    instrument ui,
+    leg l
+where    
+    i.insaddr = l.insaddr
+and i.exp_day >= @3_ToDate{Yesterday}
+and i.insid not like '%DIVSWAP%'
+and l.type = 'Total Return'
+and l.index_ref = ui.insaddr
+and ui.instype in ('Stock', 'EquityIndex')
+and ui.insid not in (
+'ZAR/GFI/CFD/SPECFIN',
+'ZAR/NHM/CFD/SPECFIN',
+'ZAR/Coronation/Brokerage',
+'ZAR/Barcap/Brokerage',
+'ZAR/OMIGSA/Brokerage',
+'ZAR/ACL/Brokerage',
+'ZAR/GLD/Brokerage',
+'ZAR/Oryx/Brokerage',
+'EUR/AUTOCALL2',
+'USD/AUTOCALL1',
+'USD/AUTOCALL4',
+'USD/AUTOCALL3',
+'ZAR/AUTOCALL1',
+'ZAR/AUTOCALL2',
+'ZAR/AUTOCALL4',
+'ZAR/AUTOCALL3',
+'ZAR/ISPERFORMER',
+'ZAR/ALPHALSI',
+'ZAR/EDCON_PE_ORD',
+'ZAR/EDCON_PE_PREF',
+'ZAR/Barcap_DMA/Brokerage',
+'ZAR/Absa_Life/Brokerage',
+'ZAR/ABG'
+)
+group by 
+    1
+
+select
+    i.insaddr,
+    display_id(t, 'prfnbr') 'portfolio',
+    sum(t.quantity) 'pos'
+into 
+    finalPositions
+from
+    trade t,
+    temp c,
+    instrument i,
+    portfolio p
+where
+    i.insid = c.Instrument
+and t.insaddr = i.insaddr
+and t.Status not in ('Simulated', 'Void', 'Terminated')
+and (match_portfolio(t, 'ABSA CAPITAL') or 
+    match_portfolio(t, 'ABSA CAPITAL SECURITIES'))
+and t.prfnbr = p.prfnbr
+and p.prfid ~= 'Omsfin CFD Short Only'
+and t.execution_time <= @3_ToDate{Yesterday}
+group by 1, 2
+
+   
+Select
+    'Write File' 'Process', 
+    ael_s(i,'Large_Holdings_TRSHolding.Write',p.portfolio,p.pos,@1_Path{'c:\'},@2_FileName{'Large_Holdings_TRSHolding'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	finalPositions p,
+	instrument i
+where
+    i.insaddr = p.insaddr
+and p.pos ~= 0
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

@@ -1,0 +1,141 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Dual_Listed_SharesT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Dual_Listed_SharesT' and p.type = 'SQL Query' 
+
+/*
+Date                Who                     What
+2007-04-17          Heinrich Cronje         Created
+
+Barcleys report for dual listed shares
+/*
+
+/*----------------------------------Short Position----------------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    t.quantity  'Number_Of_Natural_Shares_Traded',
+    'S' 'Transaction_Type',
+    t.price 'Natural_Deal_Price',
+    to_date(@2_ReportDate{Today})  'Deal_Date',
+    t.trdnbr    'Deal_Reference',
+    'Y' 'Investment_Discretion',
+    'N' 'Execution_Only_Flag',
+    display_id(i,'curr')  'Deal_Price_Currency_Code',
+    i.isin  'Natural_ISIN',
+    ''  'Fund_Name',
+    'E' 'Secuirity_Category',
+    'Z' 'Option_Action',
+    'Z' 'Option_Type',
+    0.00    'Option_Exercise_Price',
+    'Z' 'Product_Name',
+    'EA'   'Sub_Secuirity_Category',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    t.quantity  'Number_Of_Underlying_Shares_Traded',
+    'M' 'Trade_Type'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and t.quantity < 0
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr
+    and time_to_day(t.time) = @2_ReportDate{yesterday}
+    
+/*group by 9*/
+/*----------------------------------------------------------------------------*/
+
+/*-----------------------------------Long Position----------------------------*/
+select
+    add_info(i,'SEDOL') = ' ' ? 0 : add_info(i,'SEDOL') 'Natural_SEDOL',
+    ael_s(,'SAGEN_str_functions.Substring',display_id(i,'issuer_ptynbr'),0,18) 'Company_Name',
+    'Ordinary'   'Share_Type',
+    t.quantity  'Number_Of_Natural_Shares_Traded',
+    'P' 'Transaction_Type',
+    t.price 'Natural_Deal_Price',
+    to_date(@2_ReportDate{yesterday})  'Deal_Date',
+    t.trdnbr    'Deal_Reference',
+    'Y' 'Investment_Discretion',
+    'N' 'Execution_Only_Flag',
+    display_id(i,'curr')  'Deal_Price_Currency_Code',
+    i.isin  'Natural_ISIN',
+    ''  'Fund_Name',
+    'E' 'Secuirity_Category',
+    'Z' 'Option_Action',
+    'Z' 'Option_Type',
+    0.00    'Option_Exercise_Price',
+    'Z' 'Product_Name',
+    'EA'   'Sub_Secuirity_Category',
+    add_info(i,'SEDOL')   'Underlyimg_SEDOL',
+    i.isin  'Underlying_ISIN_Number',
+    t.quantity  'Number_Of_Underlying_Shares_Traded',
+    'M' 'Trade_Type'
+into
+    temp
+from
+    instrument i,
+    trade t,
+    party p,
+    portfoliolink pr
+where
+        match_filter(t, @1_Filter{Share Stakes;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and t.quantity > 0
+    and t.acquirer_ptynbr = p.ptynbr
+    and t.prfnbr = pr.member_prfnbr
+    and time_to_day(t.time) = @2_ReportDate{yesterday}
+    
+/*group by 9*/
+/*-----------------------------------------------------------------------------*/
+
+/*--------------------------------Final----------------------------------------*/
+select
+    t.Natural_SEDOL 'Natural SEDOL',
+    t.Company_Name 'Company Name',
+    t.Share_Type   'Share Type',
+    ' ' 'Opening Shareholding',
+    sum(t.Number_Of_Natural_Shares_Traded)  'Number Of Natural Shares Traded',
+    t.Transaction_Type  'Transaction Type',
+    t.Natural_Deal_Price    'Natural Deal Price',
+    t.Deal_Date  'Deal Date',
+    t.Deal_Reference    'Deal Reference',
+    ' ' 'Closing Shareholding',
+    t.Investment_Discretion 'Investment Discretion',
+    t.Execution_Only_Flag   'Execution Only Flag',
+    t.Deal_Price_Currency_Code  'Deal Price Currency Code',
+    ' ' 'Natural CUSIP',
+    '' 'Natural Japanese Quick Code',
+    t.Natural_ISIN  'Natural ISIN',
+    ' ' 'Fund Name',
+    t.Secuirity_Category 'Secuirity Category',
+    t.Option_Action 'Option Action',
+    t.Option_Type   'Option Type',
+    t.Option_Exercise_Price 'Option Exercise Price',
+    t.Product_Name  'Product Name',
+    t.Sub_Secuirity_Category   'Sub Secuirity Category',
+    t.Underlyimg_SEDOL 'Underlyimg SEDOL',
+    ' ' 'Underlying CUSIP',
+    '' 'Underlying Japanese Quick Code',
+    t.Underlying_ISIN_Number  'Underlying ISIN Number',
+    sum(t.Number_Of_Underlying_Shares_Traded)    'Number Of Underlying Shares Traded',
+    t.Trade_Type    'Trade Type',
+    ''  'Option Exercise Price Currency',
+    ''  'Option Expiry Date'
+from
+    temp t
+where
+    abs(t.Number_Of_Natural_Shares_Traded) > 0
+    
+/*order by 16 desc, 12*/
+group by t.Company_Name, t.Transaction_Type

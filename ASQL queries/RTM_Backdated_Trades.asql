@@ -1,0 +1,12 @@
+/* update_method=0 */
+select
+    t.trdnbr 
+from
+    trade t
+where
+t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and (time_to_day(t.creat_time) - time_to_day(t.time) > 1)
+and (match_portfolio(t,'ACS RTM - Syndicate')
+or  match_portfolio(t,'ACS RTM Equities')
+or  match_portfolio(t,'ACS RTM Prime Services')
+or  match_portfolio(t,'ACS RTM Structured Trading'))

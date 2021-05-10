@@ -1,0 +1,47 @@
+select
+    i.insid         'insid'
+into
+    tmpTable
+from
+    instrument i,
+    instrument ui,
+    combinationlink cl
+where
+    i.insaddr = cl.member_insaddr and
+    ui.insaddr = cl.owner_insaddr and
+    ui.instype = 'EquityIndex' and
+    i.instype = 'stock'
+
+select 
+    p.data[0]       'preRIC',
+    i.insid         'preInstrument'
+into tmpRICtoInsTable
+from
+    PriceDefinition p,
+    Instrument i,
+    tmpTable tmpT
+where
+    i.insaddr = p.insaddr and
+    i.insid = tmpT.insid
+
+select
+    ael_s(i, 'SAEQ_RICTOFRONTINS.ReformatRICString', tmpTable.preRIC) 'RIC',
+    ael_s(i, 'SAEQ_RICTOFRONTINS.IsInstrumentNeeded') 'InstrumentName'
+into tmpRICsProccessed
+from
+    tmpRICtoInsTable tmpTable,
+    Instrument i
+where
+    i.insid = tmpTable.preInstrument
+
+select
+    tmpTable.RIC        'RIC',
+    tmpTable.InstrumentName 'Instrument'
+from
+    tmpRICsProccessed tmpTable
+where
+    tmpTable.InstrumentName ~= '-1'
+group by
+    1
+order by
+    1

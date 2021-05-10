@@ -1,0 +1,5 @@
+[Default]FLeg:projectedVirtualCashFlows = select(object.LegType, 
+  "Payment"->switch(projectedVirtualPaymentsDictionary.HasKey(indexReference), 
+    true->payLegFactor * projectedVirtualPaymentsDictionary.At(indexReference), 
+    false->[]), 
+  default->projectedVirtualDividendCashFlows);

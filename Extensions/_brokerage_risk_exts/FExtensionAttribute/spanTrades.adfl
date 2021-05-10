@@ -1,0 +1,6 @@
+[_brokerage_risk_exts]FSingleInstrumentAndTrades:spanTrades = switch(spanInstruments.HasKey(instrument.Oid), 
+  true->switch(instrument:stdPosition [positionObject] >= 0, 
+    true->openInstrument :* "tradesInPosition" [positionObject], 
+    default->switch((instrument:stdPosition [positionObject] < 0) and (instrument:totalPosition [positionObject] >= 0), 
+      true->[], 
+      default->openInstrument :* "tradesInPortfolio" [positionObject])));

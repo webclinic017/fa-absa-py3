@@ -1,0 +1,11 @@
+[ABSA FX]FCurrency:fxSpotRateSpot = fxRateInstrument :* "fxSpotRateSpot";
+[ABSA FX]FFxRate:fxSpotRateSpot = 
+# fixedvariant(object, 1) is there in order for the diagonal element to have the correct cardinality when there are zilch objects present
+select(foreignEqualsDomestic, 
+  true->fixedvariant(object, 1), 
+  false->shunt[fxPriceFindingPriceType](useMarkToMarketPriceToday, 
+    0->fxSpotRateValueSpot, 
+    1->switch(hasMarkToMarketPriceToday, 
+      true->mtmFXSpotRateValue, 
+      false->fxSpotRateValueSpot), 
+    2->mtmFXSpotRateValue));

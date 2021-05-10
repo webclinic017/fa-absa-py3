@@ -1,0 +1,13 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:weightAdjustedStaticLegInformations = select(includeLegInformationsFromCustomValuedInstrument, 
+  true->collapse(weightAdjustedStaticLegInformationsAll), 
+  false->select(useCustomHistoricalCashFlowsForProfitAndLoss, 
+    true->nil, 
+    default->collapse(weightAdjustedStaticLegInformationsAll)));
+[Fixed Income Pricing and Risk]FCombination:weightAdjustedStaticLegInformations = instrumentMapsWithLegInformation :* "staticLegInformations" [weight, isUnderlying, includeLegInformationsFromCustomValuedInstrument];
+[Fixed Income Pricing and Risk]FDerivative:weightAdjustedStaticLegInformations = select(needsLegInformation, 
+  true->underlying:weightAdjustedStaticLegInformations [weight, forwardPriceDate = expiryDateForCouponToValue, isUnderlying = true], 
+  false->nil);
+[Fixed Income Pricing and Risk]FFuture:weightAdjustedStaticLegInformations = select(needsLegInformation, 
+  true->underlying:weightAdjustedStaticLegInformations [weight, forwardPriceDate := expiryDate, isUnderlying = true], 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:weightAdjustedStaticLegInformations = nil;

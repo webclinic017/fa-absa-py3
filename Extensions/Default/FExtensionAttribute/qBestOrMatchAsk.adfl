@@ -1,0 +1,6 @@
+[Default]FProposedQuoteLevelLink:qBestOrMatchAsk = select(qQuoteController:qIsPrivate, 
+  true->nil, 
+  default->switch(qProposedQuoteLevel, 
+    nil->nil, 
+    default->qProposedQuoteLevel.BestOrMatch("Ask", object.PriceFeed.AskPriceDepth)));
+[Default]FQuoteLevelRow:qBestOrMatchAsk = qProposedQuoteLevelLink:qBestOrMatchAsk;

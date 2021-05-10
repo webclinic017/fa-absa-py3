@@ -1,0 +1,18 @@
+[ABSA Specific 4.3]FInstrument:PVperCurr = select(object.Prices.IsEmpty, 
+  true->0, 
+  default->select(object.Prices.Last.Currency.Name, 
+    "ZAR"->0, 
+    default->select(object.InsType, 
+      "Stock"->select(object.Prices.Last.Market, 
+        SPOT->object.Prices.Last.Last, 
+        default->object.Prices.First.Last), 
+      default->0)));
+[ABSA Specific 4.3]FInstrumentAndTrades:PVperCurr = select(instrument.Prices.IsEmpty, 
+  true->0, 
+  default->select(instrument.Prices.Last.Currency.Name, 
+    "ZAR"->0, 
+    default->select(instrument.InsType, 
+      "Stock"->priceDelta * (instrument :* "PVperCurr"), 
+      default->0)));
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:PVperCurr = sumOf(children :* "PVperCurr");
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:PVperCurr = sumOf(children :* "PVperCurr");

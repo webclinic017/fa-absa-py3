@@ -1,0 +1,6 @@
+[Default]FOwnCombOrder:priceLimitOrApproximatedPrice = instrument.UnitValueToQuote(priceLimitOrApproximatedUnitValue, valuationDate, valuationDate, true, instrument:legInformations, instrument:staticLegInformations, priceFeed:quotation, instrument:couponToValueFactor, instrument:couponPriceAdjustment, , , roundingInformation, roundingInformationsPerLeg);
+[Default]FOwnOrder:priceLimitOrApproximatedPrice = switch(object.IsUnlimitedPriceOrder, 
+  true->switch(priceFeed.IsValidPrice(toFill), 
+    true->toFill, 
+    false->priceFeed:lastPrice), 
+  false->priceLimit);

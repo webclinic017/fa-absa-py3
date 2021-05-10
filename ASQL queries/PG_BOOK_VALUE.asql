@@ -1,0 +1,42 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PG_BOOK_VALUE') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PG_BOOK_VALUE' and p.type = 'SQL Query' 
+ 
+  select
+    '0-30Y',
+    display_id(t,'prfnbr'),
+    t.trdnbr,
+    i.insid,
+    present_value(t)
+from
+        trade   t,
+        instrument  i,
+        portfolio pf
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = pf.prfnbr
+and pf.prfid in (@Portfolio{SWAPS;*})
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed','Terminated')
+and @View_Detail{No;'Yes','No'} = 'Yes'
+union
+
+select
+    '0-30Y',
+    display_id(t,'prfnbr'),
+    count(t.trdnbr),
+    i.insid,
+    sum(present_value(t))
+from
+        trade   t,
+        instrument  i,
+        portfolio pf
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = pf.prfnbr
+and pf.prfid in (@Portfolio{SWAPS;*})
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed','Terminated')
+
+group by 1

@@ -1,0 +1,49 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_nonotc_deltas_prices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_nonotc_deltas_prices' and p.type = 'SQL Query' 
+ 
+  /*
+SELECT
+    to_date(@01_StartDate{YESTERDAY;})      't0',
+    to_date(@02_EndDate{TODAY;})      't1'
+INTO
+	parms
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+*/
+/* ====================================================================*/
+
+select
+    distinct ins.insaddr
+into
+    inslst
+from 
+    instrument ins,
+    trade trd
+where
+    ins.mtm_from_feed = 'Yes'    
+    and ins.instype in ('Bond', 'Future/Forward', 'IndexLinkedBond')
+    and (ins.exp_day >= TODAY or ins.generic = 'Yes')
+    and ins.insaddr = trd.insaddr
+    and trd.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed')
+
+
+select 
+    ins.instype,    
+    ins.insid,    
+    TODAY                                   'RepDate',
+    /*mtm_price(ins,date_add_banking_day(TODAY,,-1))      'price_prev',*/
+    used_price(ins)                        'price',
+    /*(used_price(ins) - mtm_price(ins,date_add_banking_day(TODAY,,-1))) * 100        'bp_move',*/
+    dirk_utils.nonotc_delta(ins)            'pv01'
+from
+    instrument ins,
+    inslst
+where
+    ins.insaddr = inslst.insaddr
+order by 1,2

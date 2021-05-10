@@ -1,0 +1,95 @@
+/*------------------------------------------------------------------
+    Date                : 03/05/2010
+    Purpose             : Outputs a summary report of all outstanding FO-confirmed trades
+    Department and Desk : Middle Office
+    Requester           : Front Office
+    Developer           : Dirk Strauss
+    CR Number           : 306264
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+                ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log', 'FO_Outstanding_Trades_Summary') 'Name'
+into 
+    ASQL_LOG_TEMP
+from TextObject p 
+where 
+    p.name = 'FO_Outstanding_Trades_Summary' and p.type = 'SQL Query'
+
+
+select
+    add_info(p, 'Parent_Portfolio')          'Area',    
+    t.trdnbr,
+    dirk_utils.get_biz_days(time_to_day(execution_time))      'days'
+    /*to_int(days_between(time_to_day(execution_time), today, 'Act/365'))     'days'*/
+into
+    trdlevel
+from 
+    trade t,
+    portfolio p
+where
+    (match_portfolio(t, 'SECONDARY MARKETS TRADING') or match_portfolio(t, 'SECONDARY MARKETS BANKING'))
+    and t.prfnbr *= p.prfnbr
+    and status = 'FO Confirmed'
+    
+select 
+    area,
+    trdnbr,
+    days,    
+    days = 0 ? 1 : 0            'i_0d',
+    days = 1 ? 1 : 0            'i_1d',
+    days = 2 ? 1 : 0            'i_2d',
+    days > 2 and days <= 5 ? 1 : 0            'i_5d',
+    days > 5 and days <= 10 ? 1 : 0            'i_10d',
+    days > 10 and days <= 30 ? 1 : 0            'i_30d',
+    days > 30 and days <= 60 ? 1 : 0            'i_60d',
+    days > 60 and days <= 90 ? 1 : 0            'i_90d',
+    days > 90 and days <= 180 ? 1 : 0            'i_180d',
+    days > 180 and days <= 365 ? 1 : 0            'i_365d',
+    days > 365 ? 1 : 0            'i_Rest'
+into
+    trdlevel2
+from 
+    trdlevel t
+
+select
+    area,
+    sum(i_0d)         '0d',
+    sum(i_1d)         '1d',
+    sum(i_2d)         '2d',
+    sum(i_5d)         '5d',
+    sum(i_10d)         '10d',
+    sum(i_30d)         '30d',
+    sum(i_60d)         '60d',
+    sum(i_90d)         '90d',
+    sum(i_180d)         '180d',
+    sum(i_365d)         '365d',
+    sum(i_Rest)         'Rest',
+    count(trdnbr)           'Total'
+from 
+    trdlevel2
+group by 
+    area
+
+union
+
+select
+    'TOTAL'     'area',
+    sum(i_0d)         '0d',
+    sum(i_1d)         '1d',
+    sum(i_2d)         '2d',
+    sum(i_5d)         '5d',
+    sum(i_10d)         '10d',
+    sum(i_30d)         '30d',
+    sum(i_60d)         '60d',
+    sum(i_90d)         '90d',
+    sum(i_180d)         '180d',
+    sum(i_365d)         '365d',
+    sum(i_Rest)         'Rest',
+    count(trdnbr)           'Total'
+from 
+    trdlevel2
+group by 
+    1

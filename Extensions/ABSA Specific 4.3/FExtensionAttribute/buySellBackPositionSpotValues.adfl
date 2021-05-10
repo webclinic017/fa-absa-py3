@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FBuySellBack:buySellBackPositionSpotValues = shunt(isExpired, 
+  true->adjustForSpotHandling(futurePositionPaymentsSpot, valuesOnSpot), 
+  false->spotHandlingZero);
+[ABSA Specific 4.3]FInstrument:buySellBackPositionSpotValues = spotHandlingZero;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:buySellBackPositionSpotValues = sumOf(unSettledInstruments :* "buySellBackPositionSpotValues" [positionObject, priceSource, valuesOnSpotOverride]);
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:buySellBackPositionSpotValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument :* "buySellBackPositionSpotValues" [positionObject, priceSource, valuesOnSpotOverride]);
+[ABSA Specific 4.3]FTradeRow:buySellBackPositionSpotValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->instrument :* "buySellBackPositionSpotValues" [positionObject, singleTradePosition, includeAllTrades, priceSource, valuesOnSpotOverride]);

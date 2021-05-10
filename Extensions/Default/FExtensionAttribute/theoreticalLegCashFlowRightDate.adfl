@@ -1,0 +1,7 @@
+[Default]FCashFlowInstrument:theoreticalLegCashFlowRightDate = select(hasRightToAllCashFlows, 
+  true->smallDate, 
+  false->select(accruedArrear, 
+    true->theoreticalLegCashFlowRightDate(valuationDate, staticLegInformations), 
+    false->valuationDateRightDate));
+[Default]FInstrument:theoreticalLegCashFlowRightDate = valuationDateRightDate;
+[Default]FLeg:theoreticalLegCashFlowRightDate = instrument:theoreticalLegCashFlowRightDate;

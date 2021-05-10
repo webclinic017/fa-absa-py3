@@ -1,0 +1,22 @@
+[Fixed Income Pricing and Risk]FBasketRepo:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Fixed Income Pricing and Risk]FBasketSecurityLoan:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Fixed Income Pricing and Risk]FCashFlowInstrument:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated));
+[Fixed Income Pricing and Risk]FInstrument:nonCouponValue = nil;
+[Fixed Income Pricing and Risk]FLeg:nonCouponValue = select(count(projectedNonCouponCashFlows), 
+  0->[], 
+  default->select(isCredit, 
+    true->select(isMultiCurrencyInstrument, 
+      true->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, riskFreeDiscountCurve, moneyMarketCurve, projectedNonCouponCashFlows, projectedNonCouponHazardFactors, fxRateToInstrument, instrumentCurrency), 
+      false->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, riskFreeDiscountCurve, repoCurve, projectedNonCouponCashFlows, projectedNonCouponHazardFactors, fxRateToInstrument, instrumentCurrency)), 
+    false->select(isMultiCurrencyInstrument, 
+      true->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, discountCurve, moneyMarketCurve, projectedNonCouponCashFlows, fxRateToInstrument, instrumentCurrency), 
+      false->staticLegInformation.NonCouponValue(parQuoteProjectedRightDate, forwardValueDiscountDate, forwardValueDate, discountCurve, repoCurve, projectedNonCouponCashFlows, fxRateToInstrument, instrumentCurrency))));
+[Fixed Income Pricing and Risk]FRepoInstrument:nonCouponValue = select(nonCouponValueFromModelCall, 
+  true->collapse(theoreticalModelNonCouponValue), 
+  false->collapse(nonCouponValueCalculated)) + moneyMarketCurve.DiscountValue(securityAmount, instrumentSpotDate);

@@ -1,0 +1,9 @@
+[Prime Services]FInstrument:profitAndLossValuesUplAdjustment = shunt(isCFDPSwap, 
+  true->sumOf(legs :* "profitAndLossValuesUplAdjustment" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]), 
+  default->profitAndLossValues.UplAdjustment + rtmCashAdjustment);
+[Prime Services]FLeg:profitAndLossValuesUplAdjustment = shunt(isCFDPSwap, 
+  true->object.getPSwapUplAdjustment(longTimeAgo, valuationDate, object.Oid), 
+  default->profitAndLossValues.UplAdjustment + rtmCashAdjustment);
+[Prime Services]FLegAndTrades:profitAndLossValuesUplAdjustment = leg :* "profitAndLossValuesUplAdjustment" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput, profitAndLossValues];
+[Prime Services]FMultiInstrumentAndTrades:profitAndLossValuesUplAdjustment = sumOf(instruments :* "profitAndLossValues.UplAdjustment" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]) + rtmCashAdjustment;
+[Prime Services]FSingleInstrumentAndTrades:profitAndLossValuesUplAdjustment = instrument :* "profitAndLossValuesUplAdjustment" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];

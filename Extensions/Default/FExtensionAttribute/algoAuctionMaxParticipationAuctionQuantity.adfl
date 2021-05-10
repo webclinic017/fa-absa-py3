@@ -1,0 +1,5 @@
+[Default]ExecutionAlgo:algoAuctionMaxParticipationAuctionQuantity = switch(algoAuctionCleanedSurplus < 0.0001, 
+  true->algoAuctionMaxParticipationAuctionQuantityRaw, 
+  false->switch(algoAuctionCleanedSurplus > algoAuctionMaxParticipationAuctionQuantityRaw, 
+    true->object.TradingInterface.PrevRoundLot(((algoAuctionMaxParticipationRate * algoAuctionCleanedEquilibriumQuantity) / (1 - algoAuctionMaxParticipationRate)) + 0.001), 
+    false->object.TradingInterface.PrevRoundLot(algoAuctionMaxParticipationAuctionQuantityRaw + (algoAuctionMaxParticipationRate * algoAuctionCleanedSurplus) + 0.001)));

@@ -1,0 +1,9 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:feesOpenValue = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:feesOpenValue = nil;
+[Profit and Loss]FInstrumentAndTrades:feesOpenValue = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->feesOpenValueLive, 
+  "Inception to Historical"->feesOpenValueEnd, 
+  "Historical to Present"->feesOpenValueLive - feesOpenValueStart, 
+  "Historical to Historical"->feesOpenValueEnd - feesOpenValueStart);

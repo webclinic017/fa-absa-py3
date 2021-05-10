@@ -1,0 +1,9 @@
+[_complianace_rules_exts]FAlert:alertThresholdLevel = switch(object.State, 
+  "Active"->select(object.Threshold.Type, 
+    "Violation"->2, 
+    "Warning"->1, 
+    default->0), 
+  default->0);
+[_complianace_rules_exts]FComplianceRule:alertThresholdLevel = switch(activeOrErrorAlerts.Size > 0, 
+  true->(activeOrErrorAlerts :* "alertThresholdLevel").Sort.Last, 
+  default->0);

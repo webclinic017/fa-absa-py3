@@ -1,0 +1,13 @@
+[Default]FBuySellBack:theoreticalPositionValues = theoreticalInstrumentPositionValues;
+[Default]FCashFlowInstrument:theoreticalPositionValues = shunt[priceSource, doSplitAll, contractSize, positionTradeQuantities, legs, valuesOnSpotOverride, useBidAskValuation](movePositionType, 
+  "None"->theoreticalInstrumentPositionValuesSimple, 
+  "Repo"->movePositionValueRepo(theoreticalOrMarketInstrumentValue, positionTradeQuantities, valuationDate, valuationOrSpotDate, repoCurve) * contractSize, 
+  "Full"->theoreticalInstrumentPositionValues);
+[Default]FCombination:theoreticalPositionValues = scale(theoreticalInstrumentPositionValues, timeDistributionFactor);
+[Default]FCurrency:theoreticalPositionValues = denominatedbasket([]);
+[Default]FDerivative:theoreticalPositionValues = select(payTypeForward, 
+  true->scale(theoreticalInstrumentPositionValues, timeDistributionFactor), 
+  false->theoreticalInstrumentPositionValuesSimple);
+[Default]FFxRate:theoreticalPositionValues = theoreticalInstrumentPositionValues;
+[Default]FInstrument:theoreticalPositionValues = scale(theoreticalInstrumentPositionValues, timeDistributionFactor);
+[Default]FPreciousMetalRate:theoreticalPositionValues = valuesApportionmentInPeriodAsBasket(theoreticalInstrumentPositionValues, timeApportionmentType, timeDistributionApportionmentStartDate, timeDistributionApportionmentPeakDate, timeDistributionApportionmentEndDate, timeDistributionDateStartsApportionment);

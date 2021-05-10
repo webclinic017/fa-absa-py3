@@ -1,0 +1,18 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_CPTY_REFERENCE') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_CPTY_REFERENCE' and p.type = 'SQL Query' 
+select
+	t.trdnbr	'TradeNo',
+	i.insid		'Instrument',
+	i.instype	'Type',
+	t.your_ref	'Counterparty Reference'
+from
+	trade	t,
+	instrument	i
+where
+	t.insaddr = i.insaddr
+and	t.your_ref like @CPTYReference{}
+and	i.instype in (@Instruments{;instrument.instype*})

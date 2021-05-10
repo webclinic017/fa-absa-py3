@@ -1,0 +1,9 @@
+[Securities Lending ABSA]FInstrument:slPartyMajor = (object.Trades.At(0)) :* "slPartyMajor";
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPartyMajor = select(groupingReference.IsKindOf("FParty"), 
+  true->(getObject("FParty", groupingReference)).FullName, 
+  default->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPartyMajor = instrument:slPartyMajor;
+[Securities Lending ABSA]FTrade:slPartyMajor = select(true_counterparty, 
+  nil->nil, 
+  default->true_counterparty.FullName);
+[Securities Lending ABSA]FTradeRow:slPartyMajor = trade:slPartyMajor;

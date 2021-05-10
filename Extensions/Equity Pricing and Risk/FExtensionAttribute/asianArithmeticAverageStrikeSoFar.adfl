@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FInstrument:asianArithmeticAverageStrikeSoFar = select(useAverageStrikeDates, 
+  true->select(isOptionValuedAsPureSingle, 
+    true->asianAverage(asianHistoricalAverageStrikeEvents, asianStrikeWeight, unit(storedStrike), datetime(storedStrike), true), 
+    false->select(asianBasketAsSingleHasStrikeEventsDefinedOnComponents, 
+      true->asianBasketArithmeticAverageStrikeSoFar, 
+      false->asianAverage(asianHistoricalAverageStrikeEvents, asianStrikeWeight, unit(storedStrike), datetime(storedStrike), true))), 
+  default->nil);

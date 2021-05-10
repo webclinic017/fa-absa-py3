@@ -1,0 +1,39 @@
+select 
+      ael_i(p,'ASQL_log','SAEQ_Safex_Recon') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_Safex_Recon' and p.type = 'SQL Query' 
+
+select
+    t.trdnbr,
+    i.insid                                 'Instr',
+    i.instype                               'InsType',
+    display_id(i, 'und_insaddr')            'UndInstr',
+    i.und_instype                           'UndInsType',
+    display_id(t, 'prfnbr')                 'Portfolio',
+    display_id(t, 'counterparty_ptynbr')    'CntrPty',
+    i.call_option = 'Yes' ? 'Call' : 'Put'  'Call/Put',
+    i.strike_price                          'StrikePrice',
+    i.exp_day                               'ExpDay',
+    t.quantity                              'Qty',
+    nominal_amount(t)                       'Nominal',
+    t.price                                 'Price',
+    t.creat_time                            'TrdCreatTime',
+    t.time                                  'TrdTime',
+    t.value_day                             'ValueDay',    
+    t.text1                                 'ExternalID',
+    i.spot_banking_days_offset              'SpotDays',
+    i.otc
+    
+from
+    trade   t,
+    instrument  i
+
+where 
+    t.insaddr = i.insaddr
+and time_to_day(t.execution_time) = @Date{Yesterday}
+and i.instype in (@InstrType{;Instrument.instype})
+and match_filter(t,@Filter{;tradefilter.fltid})
+/*and match_filter(t,@Filter{;'recon_yieldx_fr_001','recon_safex_cmd_fr_001','recon_safex_fr_001','recon_safex_PB'})*/
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+and i.otc = 'No'

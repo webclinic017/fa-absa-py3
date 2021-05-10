@@ -1,0 +1,32 @@
+select 
+    p.data[0]       'preRIC',
+    i.insid         'preInstrument'
+into tmpRICtoInsTable
+from
+    PriceDefinition p,
+    Instrument i
+where
+    i.insaddr = p.insaddr and
+    (i.instype = 'Stock' or i.instype = 'EquityIndex')
+
+select
+    ael_s(i, 'SAEQ_RICTOFRONTINS.ReformatRICString', tmpTable.preRIC) 'RIC',
+    ael_s(i, 'SAEQ_RICTOFRONTINS.IsInstrumentNeeded') 'InstrumentName'
+into tmpRICsProccessed
+from
+    tmpRICtoInsTable tmpTable,
+    Instrument i
+where
+    i.insid = tmpTable.preInstrument
+
+select
+    tmpTable.RIC        'RIC',
+    tmpTable.InstrumentName 'Instrument'
+from
+    tmpRICsProccessed tmpTable
+where
+    tmpTable.InstrumentName ~= '-1'
+group by
+    1
+order by
+    1

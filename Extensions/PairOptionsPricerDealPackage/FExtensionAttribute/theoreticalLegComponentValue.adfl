@@ -1,0 +1,7 @@
+[PairOptionsPricerDealPackage]FCombInstrMap:theoreticalLegComponentValue = switch(instrument:isSettled, 
+  true->combinationSpotZero, 
+  false->denominatedbasket(shunt[priceSource, doSplitAll](combinationLegsUnadjusted, 
+    true->setDateTimePart(valuationInstrument :* "theoreticalOrMarketInstrumentValue" [priceSource, doSplitAll], (combination:instrumentSpotDate)), 
+    false->select(weight < 0, 
+      true->flipBidAskPrices(arrayAny(collapse(theoreticalLegComponentValueAdjusted)), isBidAskPriced or isBidAskVola), 
+      false->collapse(theoreticalLegComponentValueAdjusted))) * timeDistributionFactor * weight * contractSize));

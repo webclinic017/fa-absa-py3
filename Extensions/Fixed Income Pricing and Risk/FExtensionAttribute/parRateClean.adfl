@@ -1,0 +1,30 @@
+[Fixed Income Pricing and Risk]FCap:parRateClean = select(isInflationOptionalityInstrument, 
+  true->nil, 
+  false->switch(expiryDate <= valuationDate, 
+    true->nan, 
+    false->object.UnitValueToUnitQuote((nonCouponValueCleanCapFloor) / couponFactorCleanCapFloor, valuationDate, unitQuoteScaling)));
+[Fixed Income Pricing and Risk]FCashFlowInstrument:parRateClean = select(isGenericCouponQuoted, 
+  true->parRate, 
+  false->select((nil == uniqueCouponInTheoreticalPriceClean) or hasInvalidLegsForImply, 
+    false->select(implyForParRateClean, 
+      true->collapse(impliedParRateClean), 
+      false->object.UnitValueToUnitQuote((denominatedvalue(0.01 * unitGoalValueForParAdjusted, unitGoalValueUnit, , instrumentSpotDate) - nonCouponValueClean) / couponFactorClean, valuationDate, unitQuoteScaling)), 
+    true->nil));
+[Fixed Income Pricing and Risk]FFloor:parRateClean = select(isInflationOptionalityInstrument, 
+  true->nil, 
+  default->switch(expiryDate <= valuationDate, 
+    true->nan, 
+    false->object.UnitValueToUnitQuote((nonCouponValueCleanCapFloor) / couponFactorCleanCapFloor, valuationDate, unitQuoteScaling)));
+[Fixed Income Pricing and Risk]FFra:parRateClean = parRate;
+[Fixed Income Pricing and Risk]FInstrument:parRateClean = 0.0;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:parRateClean = instrument :* "parRateClean" [priceSource];
+[Fixed Income Pricing and Risk]FLeg:parRateClean = select(instrument:isFixedFixedSwap, 
+  false->nil, 
+  true->select(uniqueCouponInTheoreticalPrice, 
+    nil->nil, 
+    default->instrument:impliedParRateClean [priceSource, uniqueCouponInTheoreticalPrice, uniqueCouponOrSpreadInTheoreticalPriceFilter = object]));
+[Fixed Income Pricing and Risk]FLegAndTrades:parRateClean = select(instrument:isFixedFixedSwap, 
+  true->leg :* "parRateClean" [priceSource], 
+  false->nil);
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:parRateClean = nil;
+[Fixed Income Pricing and Risk]FPriceAggregate:parRateClean = instrument:parRateClean;

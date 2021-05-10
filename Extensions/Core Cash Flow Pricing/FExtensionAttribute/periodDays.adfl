@@ -1,0 +1,10 @@
+[Core Cash Flow Pricing]FCashFlowInformation:periodDays = select(isAmountCashFlow, 
+  true->nil, 
+  false->select(staticLegInformation:daycountMethod, 
+    "1/1"->nil, 
+    default->object.CalendarDays));
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:periodDays = select(cashFlowInformation, 
+  nil->nil, 
+  default->cashFlowInformation:periodDays);
+[Core Cash Flow Pricing]FMoneyFlow:periodDays = nil;
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:periodDays = moneyFlow:periodDays;

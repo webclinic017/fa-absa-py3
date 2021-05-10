@@ -1,0 +1,10 @@
+[Adaptiv XVA]FCreditBalance:maxPotentialFutureExposuresOnMultiplePencentiles = select(creditBalanceInstruments :* "cvaDeals", 
+  nil->[], 
+  default->shunt[positionObject, includeAllTrades](creditBalanceIsEmpty, 
+    true->[], 
+    false->ParseMaxPFEResultWithMultiplePercentiles(adaptivPFEMultiPercentiles, potentialFutureExposureCalculationCurrency, valuationDate)["PFE"]));
+[Adaptiv XVA]FInstrumentAndTrades:maxPotentialFutureExposuresOnMultiplePencentiles = select(creditBalanceInstruments :* "cvaDeals", 
+  nil->[], 
+  default->shunt[positionObject, includeAllTrades](creditBalanceIsEmpty, 
+    true->[], 
+    false->ParseMaxPFEResultWithMultiplePercentiles(adaptivPFEMultiPercentiles, potentialFutureExposureCalculationCurrency, valuationDate)["PFE"]));

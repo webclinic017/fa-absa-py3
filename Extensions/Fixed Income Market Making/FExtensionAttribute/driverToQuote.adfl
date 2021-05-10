@@ -1,0 +1,12 @@
+[Fixed Income Market Making]FQuoteController:driverToQuote = shunt(driver, 
+  "YTM"->instrument:theoreticalPriceFromSpread [yieldValue = (driverValue + bmYTM), discountMargin = (driverValue + bmDM), grossBasisSpread = (driverValue), ctdPrice = bmYTMPrice, underlying = spreadBenchmarkYTM, quotation], 
+  "AswSpread"->instrument:theoreticalPriceFromAssetSwapSpreadAndCurve [assetSwapSpread = denominatedvalue(driverValue, , , instrumentSpotDate), assetSwapIrCurveInformation, quotation], 
+  "DM"->instrument:theoreticalPriceFromDiscountMarginAndCurve [discountMargin = driverValue, assetSwapIrCurveInformation, quotation], 
+  "Z-Spread"->instrument:theoreticalPriceFromZSpreadAndCurve [zSpread = driverValue, zSpreadIrCurveInformation, quotation], 
+  "Price"->denominatedvalue(double(driverValue) + bmPrice, currency, , valuationDate), 
+  "Quote"->denominatedvalue(driverValue, currency, , valuationDate), 
+  "YTMValue"->instrument:theoreticalPriceFromSpread [yieldValue = (driverValue), discountMargin = (driverValue), grossBasisSpread = (driverValue), ctdPrice = bmPrice, underlying = spreadBenchmarkYTM, quotation], 
+  "Spread Bid Price"->denominatedvalue(double(proposedQuoteOtherSide) + (driverSpreadSign * double(driverValue)), currency, nil, valuationDate), 
+  "Gross Basis"->denominatedvalue((double(driverValue) + bmGrossBasis * grossBasisBenchmarkConversionFactor), currency, nil, valuationDate), 
+  "I-Spread"->instrument:theoreticalPriceFromSpread [yieldValue = (driverValue + iSpreadBenchmarkRate), quotation], 
+  default->nil);

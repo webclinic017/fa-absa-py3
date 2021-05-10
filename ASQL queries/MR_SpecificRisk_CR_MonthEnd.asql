@@ -1,0 +1,127 @@
+/*
+
+Purpose                 :Market Risk feed files - Month End Specific Risk (Standardised Approach)
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger
+CR Number               :C000000342851
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_SpecificRisk_CR_MonthEnd') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_SpecificRisk_CR_MonthEnd' and p.type = 'SQL Query' 
+
+
+/* ****************************** FX Rates ****************************** */
+SELECT
+	hc.insid						                                        'hcurr',
+	curr.insid						                                        'curr',
+	@Date{today}=today ? used_price(hc, @Date{}, curr.insid) 
+                    : mtm_price(hc, @Date{}, curr.insid)		            'fxRepDay'
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr
+WHERE
+	hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+
+
+/* *********** TotalReturnSwap * CreditDefaultSwap * FreeDefCF *********** */
+select
+    t.trdnbr                        'TradeID',
+    i.insid                         'Instrument',
+    i.instype                       'Instype',
+    i.exp_day                       'Expiry',
+    display_id(t, 'prfnbr')         'Portfolio',
+    display_id(t,'curr')            'Currency',
+    sum(i.contr_size*t.quantity*1/fx.fxRepDay)    'Position',
+    display_id(cr,'issuer_ptynbr')   'Issuer'
+    
+from     
+    trade t,
+    instrument i,
+    instrument c,
+    instrument cr,
+    leg l,
+    portfolio p,
+    party py,
+    fxrates fx
+
+where 
+    t.insaddr = i.insaddr    
+and i.curr = c.insaddr
+and i.insaddr = l.insaddr
+and l.credit_ref = cr.insaddr
+and l.payleg = 'Yes'
+and t.prfnbr = p.prfnbr
+and fx.curr =* c.insid
+and t.status not in ('Reserved','Simulated','Terminated','Void')
+and i.exp_day > today
+and i.instype in ('CreditDefaultSwap', 'FreeDefCF')
+and i.instype ~= 'IndexLinkedSwap'
+and t.acquirer_ptynbr = py.ptynbr
+and (py.ptyid = 'Credit Derivs'
+/*or  p.prfid in ('CD_EXTINGUISHER CCS','CD_FIREFLY','CD_ALHAMBRA','CD_SAVCIO_BTB_TRS','CD_QUANTO','CREDIT DERIV 4557', 'Complex CDS','GOLD','49114 EQ_SA_StockVol', 'EQ_SA_Credit',
+'CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_CORPBONDS','CD_CDS', 'EQ_OFP','CP_CDS','CD_CONSOL_001','CD_CONSOL_002','CD_CONSOL_003','CD_CONSOL_004','CD_CONSOL_005','CD_CONSOL_006','CD_CONSOL_007','CD_COLLATERAL_CDS','CD_AFRICA','AFRICA_CDS'))*/
+or match_portfolio (t,'SECONDARY MARKETS TRADING'))
+and p.prfid not in ('CDS_HTM',' CDS_INT_B', 'CD_HYBRID')
+and display_id(cr,'issuer_ptynbr')~= 'ABSA BANK LTD'
+
+group by 2, 4, 5
+
+
+UNION
+
+
+/* *********************** Combination Instruments *********************** */
+select
+    t.trdnbr                        		'TradeID',
+    und_ins.insid                           'Instrument',
+    und_ins.instype                         'Instype',
+    und_ins.exp_day                         'Underlying Expiry',
+    display_id(t,'prfnbr')          		'Portfolio',
+    display_id(und_ins,'curr')      		'Currency',
+    sum(i.contr_size*t.quantity*1/fx.fxRepDay)   'Position',
+    display_id(cr,'issuer_ptynbr')  		'Issuer'
+ 
+from     
+    instrument      i,
+    trade           t,
+    leg             l,
+    party           p,
+    party           cp,
+    instrument      cr,
+    instrument      cur,
+    portfolio       port,
+    CombinationLink cl,
+    Instrument      und_ins,
+    ChoiceList      clist,
+    fxrates fx
+
+where
+    i.insaddr    = t.insaddr
+and clist.seqnbr = und_ins.product_chlnbr
+and l.payleg = 'Yes'
+and i.insaddr    = cl.owner_insaddr
+and cl.member_insaddr = und_ins.insaddr
+and und_ins.insaddr   = l.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.prfnbr = port.prfnbr
+and i.curr = cur.insaddr
+and fx.curr =* cur.insid
+and t.counterparty_ptynbr = cp.ptynbr
+and l.credit_ref *= cr.insaddr
+and i.instype = 'Combination'
+and und_ins.instype ~= 'IndexLinkedSwap'
+/*and port.prfid in ('CD_EXTINGUISHER CCS','CD_FIREFLY','CD_ALHAMBRA','CD_SAVCIO_BTB_TRS','CD_QUANTO','JOB10','CD_STRUCTURED','CD_DCRM','CD_CLN_SECONDARY','CD_PROP','CD_COLLATERAL','CD_CORPBONDS','CD_CDS','CP_CDS','CD_CONSOL_001','CD_CONSOL_002','CD_CONSOL_003','CD_CONSOL_004','CD_CONSOL_005','CD_CONSOL_006','CD_CONSOL_007','CD_COLLATERAL_CDS','CD_AFRICA','AFRICA_CDS')*/
+and match_portfolio (t,'SECONDARY MARKETS TRADING')
+and display_id(cr,'issuer_ptynbr') ~= 'ABSA BANK LTD'
+and t.status not in ('Reserved', 'Simulated','Terminated', 'Void')
+and port.prfid not in ('CDS_HTM',' CDS_INT_B', 'CD_HYBRID')
+
+group by 2, 4, 5

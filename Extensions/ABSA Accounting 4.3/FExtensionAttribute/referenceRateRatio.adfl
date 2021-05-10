@@ -1,0 +1,4 @@
+[ABSA Accounting 4.3]FCashFlow:referenceRateRatio = select(leg.LegType, 
+  "Float"->sumOf((resets) :* "referenceRateRatioForFloat" [periodFromDate, periodToDate]), 
+  "Fixed"->(object :* "periodDaysRatio" [periodFromDate, periodToDate]) * (object.FixedRate / 100.0), 
+  default->0);

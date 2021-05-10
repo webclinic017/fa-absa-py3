@@ -1,0 +1,12 @@
+#grouping: aef base/price retrieval
+#grouping: risk factors/market price
+#grouping: risk factors/market price all
+#grouping: risk factors/market price all ex vol movements
+#grouping: risk factors/market price ex vol movements
+
+[Default]FInstrument:marketSpotValue = select(usesFutureForwardModel, 
+  true->ref(setDateTimePart(ProviderValue(marketSpotValueProvider, payDate, currency), date(actualMarketSpotValue)), object), 
+  false->ref(ProviderValue(marketSpotValueProvider, date(actualMarketSpotValue), currency), object));
+[Default]FInstrumentAndTrades:marketSpotValue = instrument :* "marketSpotValue" [isSplitAllGrouped, priceSource];
+[Default]FOrderBook:marketSpotValue = instrument:marketSpotValue;
+[Default]FPriceAggregate:marketSpotValue = instrument:marketSpotValue;

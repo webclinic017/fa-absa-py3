@@ -1,0 +1,41 @@
+ 
+  select
+   /* 'User'                                  'Section',*/
+    u.userid                                'User ID',
+    u.name                                  'User Name',
+    org.orgid                               'Organisation',
+    g.grpid                                 'Group',
+    g.description                           'Group Description',
+    p.profid                                'Profile',
+    p.description                           'Profile Description'
+    /*c.type                                  'ComponentType',
+    c.compname                              'ComponentName'*/
+    /*profc.allow_write,
+    profc.allow_create,*/
+
+    
+from
+    User u,
+    front.Group g,
+    Organisation org,
+    GroupProfileLink gpl,
+    UserProfile p/*,
+    ProfileComponent profc,
+    Component c*/
+
+where
+    /*u.userid = @User{ABAW339;User.userid}
+and */u.grpnbr = g.grpnbr
+and g.orgnbr = org.orgnbr
+and g.grpnbr = gpl.grpnbr
+and gpl.profnbr = p.profnbr
+/*and u.usrnbr =* upl.usrnbr*/
+/*and p.profnbr = upl.profnbr*/
+/*and p.profnbr = profc.profnbr
+and profc.compnbr = c.compnbr*/
+
+and g.grpid like 'FO %'
+/*and g.grpid like 'OPS%'*/
+/*and g.grpid like 'PCG Mkt%'*/
+
+

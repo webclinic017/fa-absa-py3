@@ -1,0 +1,8 @@
+[Core Pricing]FCashFlowInstrument:doSplitCandidate = ("Market" == priceBase);
+[Core Pricing]FCombination:doSplitCandidate = (numberOfLegs > 0);
+[Core Pricing]FInstrument:doSplitCandidate = select("Market" == priceBase, 
+  true->true, 
+  false->select((nil == underlying) or (object == underlying), 
+    true->false, 
+    false->underlying:doSplitCandidate));
+[Core Pricing]FTotalReturnSwap:doSplitCandidate = true;

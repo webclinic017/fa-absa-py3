@@ -1,0 +1,501 @@
+/*
+
+History
+
+Previous CR Numbers            :  713273, 558759, 552006 , 2319 ( 259308 )
+
+Anil Parbhoo  CR 803759  Changed the repoprt to point to a trade filter that will be maintained by Group Treasury
+Anil Parbhoo  CR 713273  Changed the report to incorporate 2 new portfolio names
+Anil Parbhoo  CR 558759  ASQL based on 'CAP MARKET Liq Asset Valuation'where calculation is only for Today 
+Anil Parbhoo  CHNG0002402491  included spot besa rates and values, value bonds at T+3 using the settle price
+Anil Parbhoo  CHNG0002457242  used the SARB20 rate for Debentures
+Anil Parbhoo  CHNG0002818757  included BsB on FRNs
+Anil Parbhoo  CHNG0002818757  included BsB on FRNs
+Anil Parbhoo  CHNG0003355622  included instype SecurityLoan on a bond
+
+
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Cap_Mkt_Previous_Detail') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Cap_Mkt_Previous_Detail' and p.type = 'SQL Query' 
+ 
+  
+/*positions*/
+
+select
+    t.trdnbr ,
+    Today	'Calc_Day',
+    port.prfnbr 'Portfolio',
+    i.insaddr,
+    i.instype,
+    i.insid,
+    add_info(t,'MM_Instype') 'BillType',
+    ui.insid 'undinsid',
+        i.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and ui.instype in('Bond','IndexLinkedBond','FRN') ? ui.insid : i.instype in ('Bond','IndexLinkedBond','FRN') ? i.insid :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) <= 7 ? 'ZAR/DB/0_7day' :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) <=14 ? 'ZAR/DB/8_14day' :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) <=28 ? 'ZAR/DB/15_28day' :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) >29 ? 'ZAR/DB/29_56day' :
+    
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) < 92 ? 'ZAR/TB/0_91day' : 
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) <183 ? 'ZAR/TB/92_182day' :
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) <274 ? 'ZAR/TB/183_273day' : 'ZAR/TB/274_364day'  'Security',
+    
+
+    (i.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and ui.instype in('Bond','IndexLinkedBond')) or i.instype in ('Bond','IndexLinkedBond','FRN') ? 0 :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and  days_between(Today,i.exp_day ,'Act/365' ) <= 7 ? 7 :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) <=14 ? 14:
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) <=28 ? 28 :
+    add_info(t,'MM_Instype')= 'SARB Debenture' and days_between(Today,i.exp_day ,'Act/365' ) >29 ? 56 :
+                                                      
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) < 92 ? 91 : 
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) <183 ? 182 :
+    add_info(t,'MM_Instype') in ('TB','LBB') and days_between(Today,i.exp_day ,'Act/365' ) <274 ? 273 :  364	'BillTermBucket',  
+
+    (i.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and ui.instype in('Bond','IndexLinkedBond','FRN')) or i.instype in ('Bond','IndexLinkedBond','FRN') ? 0 :
+    i.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and ui.instype = 'Bill' ? 
+    days_between(Today,ui.exp_day ,'Act/365' ):
+    days_between(Today,i.exp_day ,'Act/365' ) 'RemainingBillTerm',
+    sum(position(t,,,,Today,))          'Position',
+    ui.instype 'und_insType'
+    
+into
+
+    temp
+  
+from 
+    instrument i,
+    instrument ui,
+    trade t,
+    portfolio port
+where
+    t.insaddr = i.insaddr 
+and ui.insaddr =* i.und_insaddr 
+and	(i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','FRN','Future/Forward','SecurityLoan') or (i.instype  = 'Bill' and add_info(t,'MM_Instype') in ('TB','LBB','SARB Debenture')) )  
+and time_to_day(t.time) <= Today 
+and i.exp_day > Today 
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and port.prfnbr = t.prfnbr
+
+and match_filter(t,'GT_Liquid Assets')
+
+
+
+
+
+
+/*Select Latest prices for Today*/
+
+
+select
+    temp.trdnbr,
+    temp.Calc_day,
+    temp.Portfolio,
+    temp.insid,
+    temp.BillType ,
+    'Yes'?temp.instype:'' 'Instype',
+    temp.security,
+    temp.BillTermBucket,
+    temp.RemainingBillTerm,
+    temp.Position,
+    temp.BillType ~= 'SARB Debenture' ? price.settle : ((365/temp.BillTermBucket)*((1/(1-(price.settle*temp.BillTermBucket/36500)))-1))*100  'SARB20Yield',
+    temp.BillType ~= 'SARB Debenture' ? besa_price.settle : ((365/temp.BillTermBucket)*((1/(1-(price.settle*temp.BillTermBucket/36500)))-1))*100  'BESAYield',
+
+    i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','Future/Forward','SecurityLoan')   ? (price.settle = 0.0 ? 0.00 : Dirty_from_yield(i, (date_add_banking_day(Today, 'ZAR', 3)) ,,, price.settle )) : i.instype ='FRN' ? 0.00 : 0.00 'BondAIP',
+     i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','Future/Forward','SecurityLoan')   ? (besa_price.settle = 0.0 ? 0.00 : Dirty_from_yield(i, (date_add_banking_day(Today, 'ZAR', 3)) ,,, besa_price.settle )) : i.instype ='FRN' ? besa_price.settle : 0.00 'BESABondAIP',
+
+    temp.instype = 'Bill' ? (temp.Position *   price.settle/100)*(temp.remainingBillTerm/365) : 0'BillDiscount',
+                
+    i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','Future/Forward','SecurityLoan') and i.und_instype ~= 'Bill'  ?           
+    temp.Position * (price.settle = 0.0 ? 0.0 : Dirty_from_yield(i, (date_add_banking_day(Today, 'ZAR', 3)) ,,, price.settle )) / 100 : 
+    temp.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and temp.und_insType = 'Bill' ? 
+    temp.Position - ((temp.Position * price.settle/100)*(temp.remainingBillTerm/365)) :
+    i.instype ='FRN' ? 
+    0.00 : 
+    temp.instype = 'Bill' ?  temp.Position - ((temp.Position * price.settle/100)*(temp.remainingBillTerm/365)) : 0  'Value',
+    
+    
+    
+         i.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','Future/Forward','SecurityLoan') and i.und_instype ~= 'Bill'  ?           
+    temp.Position * (besa_price.settle = 0.0 ? 0.0 : Dirty_from_yield(i, (date_add_banking_day(Today, 'ZAR', 3)) ,,, besa_price.settle )) / 100 : 
+    temp.instype in ('Repo/Reverse','BuySellback','SecurityLoan') and temp.und_insType = 'Bill' ? 
+    temp.Position - ((temp.Position * price.settle/100)*(temp.remainingBillTerm/365)) :
+    i.instype ='FRN' ? 
+    (besa_price.settle/100) * temp.Position  : 
+    temp.instype = 'Bill' ?  temp.Position - ((temp.Position * price.settle/100)*(temp.remainingBillTerm/365)) : 0   'BESAValue',
+    
+    
+    temp.und_insType 'und_insType'
+
+into 
+
+    temp2
+
+from 
+    temp temp,
+    instrument i,
+    lastprice price,/* based only only on last price table*/
+    party par,
+    lastprice besa_price,
+    party besa_par
+
+where
+    temp.security = i.insid 
+and i.insaddr *= price.insaddr 
+and price.ptynbr =* par.ptynbr
+and par.ptyid = 'SARB20'
+
+and i.insaddr *= besa_price.insaddr 
+and besa_price.ptynbr =* besa_par.ptynbr
+and besa_par.ptyid = 'SPOT_BESA'
+
+
+
+
+
+
+
+/* Resultant query*/
+
+/*Bonds per instrument*/
+select 
+    temp.trdnbr 'TradeNumber', 
+    temp.Calc_day,
+    temp.Portfolio,
+    'Bonds' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'JSE Yield',
+
+    avg(temp.BondAIP) 'SARB20 Bond AIP',
+    avg(temp.BESABondAIP)'JSE Bond AIP',
+    
+    0.00 'Bill Discount',
+    sum(temp.Value) 'SARB20 Value',
+    sum(temp.BESAValue)'JSE Value'
+
+from 
+
+    temp2 temp
+
+where
+
+    temp.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','FRN','Future/Forward','SecurityLoan') 
+and temp.und_insType ~= 'Bill'
+    
+/*group by 7*/
+
+order by 7
+
+union
+/*Bonds total*/
+select 
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'Bonds Total' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    0.00 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+    temp2 temp
+
+where
+
+    temp.instype in ('Bond','IndexLinkedBond','BuySellback','Repo/Reverse','FRN','Future/Forward','SecurityLoan') and temp.und_insType ~= 'Bill'
+    
+group by 2
+
+
+union
+
+/*TBill and debentures per instrument*/
+
+select
+    temp.trdnbr 'TradeNumber', 
+    temp.Calc_day,
+    temp.Portfolio,
+    'Tbills Debentures' 'Instrument',
+    temp.BillType 'BillType',
+    '' 'InsType',
+    temp.security,
+    temp.BillTermBucket 'BillTermBucket',
+    temp.RemainingBillTerm 'RemainingBillTerm',
+    temp.Position 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    temp.Value 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+    temp2 temp
+
+where
+
+    temp.instype in ('Bill')
+and temp.BillType ~= 'LBB'
+
+/*group by 1*/
+
+order by 5, 9 /* order by bill type and remaing term */ 
+
+union
+
+/*Tbills Debentures total*/
+
+select 
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'Tbills Debentures Total' 'Instrument',
+    temp.BillType 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in  ('Bill')
+and temp.BillType ~= 'LBB'
+
+group by 5 /* Bill Type*/
+
+union
+
+/*Repo Buysellback bill per instrument*/
+select
+    temp.trdnbr 'TradeNumber', 
+    temp.Calc_day,
+    temp.Portfolio,
+    'Repo and Buysellback Bills' 'Instrument',
+    temp.BillType 'BillType',
+    '' 'InsType',
+    temp.security,
+    temp.BillTermBucket 'BillTermBucket',
+    temp.RemainingBillTerm 'RemainingBillTerm',
+    temp.Position 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    temp.Value 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in ('BuySellback','Repo/Reverse','SecurityLoan') and temp.und_insType = 'Bill'
+/*and temp.BillType = 'FRA'*/
+
+/*group by 1*/
+
+order by 5, 9 /* order by bill type and remaing term */ 
+
+union
+/*Repo Buysellback bill total*/
+select distinct
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'Repo and Buysellback Bills Total' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in ('BuySellback','Repo/Reverse','SecurityLoan') and temp.und_insType = 'Bill'
+
+
+group by 2
+
+union
+
+/*Repo Buysellback bill and TBill total*/
+select 
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'Repo and Buysellback and TBills Total' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+   0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in ('BuySellback','Repo/Reverse','SecurityLoan') and temp.und_insType = 'Bill'
+or  temp.instype in ('Bill')
+and temp.BillType ~= 'LBB'
+/*and temp.BillType = 'FRA'*/
+
+group by 2
+
+union
+
+/*Landbank bill per instrument*/
+select
+    temp.trdnbr 'TradeNumber', 
+    temp.Calc_day,
+    temp.Portfolio,
+    'LandBank Bills' 'Instrument',
+    temp.BillType 'BillType',
+    '' 'InsType',
+    temp.security,
+    temp.BillTermBucket 'BillTermBucket',
+    temp.RemainingBillTerm 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    temp.Value 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in ('Bill')
+and temp.BillType = 'LBB'
+
+/*group by 1*/
+
+order by 5, 9 /* order by bill type and remaing term */ 
+
+union
+/*Landbank billtotal*/
+select 
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'LandBank Bills Total' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    
+    avg(temp.BondAIP) 'Bond AIP',
+     avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+where
+
+    temp.instype in  ('Bill')
+and temp.BillType = 'LBB'
+
+group by 2
+
+union
+
+
+/*Grand Total*/
+select 
+    0 'TradeNumber',
+    temp.Calc_day,
+    temp.Portfolio,
+    'Grand Total' 'Instrument',
+    '' 'BillType',
+    '' 'InsType',
+    temp.security,
+    0 'BillTermBucket',
+    0.0 'RemainingBillTerm',
+    sum(temp.Position) 'Position',
+    avg(temp.SARB20Yield) 'SARB20 Yield',
+    avg(temp.BESAYield)'BESA Yield',
+    avg(temp.BondAIP) 'Bond AIP',
+    avg(temp.BESABondAIP)'BESA Bond AIP',
+    sum(temp.BillDiscount) 'Bill Discount',
+    sum(temp.Value) 'Value',
+    sum(temp.BESAValue)'BESA Value'
+
+from 
+
+temp2 temp
+
+
+
+group by 2

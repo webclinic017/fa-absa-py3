@@ -1,0 +1,6 @@
+[Cross Asset Risk]FInstrument:spanPriceShiftArray = select(underlyingIsRateIndex, 
+  true->-spanPriceRange / contractSize / quotePeriod * spanPriceScaling, 
+  false->spanPriceRange / contractSize * spanPriceScaling);
+[Cross Asset Risk]FOption:spanPriceShiftArray = select(isOptionOnInterestRateFuture, 
+  true->-spanPriceRange / actualUnderlying:contractSize / actualUnderlying:quotePeriod * spanPriceScaling, 
+  false->spanPriceRange / actualUnderlying:contractSize * spanPriceScaling);

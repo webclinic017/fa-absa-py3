@@ -1,0 +1,37 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','front_non_DVaR_filters') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'front_non_DVaR_filters' and p.type = 'SQL Query' 
+ 
+
+
+/*****************************
+*CREATED BY: OUPA GADINABOKAO*
+*DATE      : 2009-06-17      *
+******************************/
+
+
+/***************** Usage code for this ASQL************************/
+select 
+    t.trdnbr                                                    'TRADE_ID', 
+    i.insid                                                     'INSTRUMENT_ID', 
+    p.prfid                                                     'PORTFOLIO', 
+    nominal_amount(t)                                           'NOMINAL', 
+    i.instype = 'Bond' ? 'Bond' : i.instype                     'INSTRUMENT_TYPE', 
+    t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status       'TRADE_STATUS', 
+    t.value_day                                                 'TRADE_VALUE_DATE',
+    i.exp_day                                                   'EXPIRY_DATE',
+    today                                                       'BUSINESS_DATE',
+    @Filter{;Tradefilter.fltid}                                 'FILTER_NAME' /*Returning the name of the filter*/
+
+from 
+    trade t, 
+	instrument i, 
+	portfolio  p 
+
+where
+	t.insaddr = i.insaddr 
+and t.prfnbr = p.prfnbr 
+and match_filter(t,@Filter{;Tradefilter.fltid})

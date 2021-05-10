@@ -1,0 +1,3 @@
+[Default]FInstrument:underlyingPriceForVolatilityStrikeInVolatilityQuotation = select(volatilityStrikeQuotationEqualUnderlyingQuotation or isSwaption or isSpreadOption, 
+  true->collapse(underlyingPriceForVolatilityStrike), 
+  false->optionOnInterestRateFutureFactor * underlying:quoteConversionWrapperQuoteToQuote [quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperFromQuote = underlyingPriceForVolatilityStrike, quoteConversionWrapperToQuotation = volatilityStructure:strikeQuotation, priceSource, doSplitAll]);

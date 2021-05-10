@@ -1,0 +1,8 @@
+[Default]FCombination:theoreticalInstrumentValueAtSpotInCalculationCurrency = select(calculationCurrency == currency, 
+  true->collapse(theoreticalInstrumentValueAtSpotInInstrumentCurrency), 
+  false->theoreticalInstrumentValueAtSpotInInstrumentCurrency * fxInstrumentToCalculation);
+[Default]FInstrument:theoreticalInstrumentValueAtSpotInCalculationCurrency = select(isMultiCurrencyInstrument, 
+  true->convertToCurrencyValidateDates(theoreticalInstrumentValueAtSpot, instrumentCurrencies :* "fxForwardRate" [fxForwardDate = instrumentSpotDate, fxToCurrency := currency, priceSource], currencySymbol), 
+  false->select(calculationCurrency == currency, 
+    true->collapse(theoreticalInstrumentValueAtSpot), 
+    false->theoreticalInstrumentValueAtSpot * fxInstrumentToCalculation));

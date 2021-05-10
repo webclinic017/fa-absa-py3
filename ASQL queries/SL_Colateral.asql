@@ -1,0 +1,72 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SL_Colateral') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SL_Colateral' and p.type = 'SQL Query' 
+ 
+  select
+    t.trdnbr,
+    i.insid,
+    time_to_day(t.time) <= date_add_banking_day(@Date{},'ZAR',-1) ? nominal_amount(t) : 0         'PositionT',
+    cp.ptyid                                                    'Counterparty',
+    i.instype = 'Stock' ? mtm_price(i,date_add_banking_day(@Date{},'ZAR',-1)) : dirty_from_yield(i,,,,8.42)         'ClosingPrice',
+    date_add_banking_day(@Date{},'ZAR',-1)                      'ClosingPriceDate'
+    
+into
+    temp
+from
+    trade t,
+    instrument i,
+    party cp,
+    portfolio p
+where
+    i.instype IN ('Stock','Bond')
+and i.insaddr = t.insaddr
+and p.prfid = @Portfolio{;Portfolio.prfid}
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = cp.ptynbr
+and cp.ptyid in (@Counterparty{;Party.ptyid;*})
+and time_to_day(t.time) <= @Date{}
+and t.status not in ('Void')
+
+
+select
+    trdnbr,
+    insid,
+    PositionT,
+    Counterparty,
+    ClosingPrice,
+    (PositionT * ClosingPrice) / 100    'MTMValue',
+    ClosingPriceDate
+    
+from
+    temp
+union
+
+select
+    trdnbr,
+    insid,
+    sum(PositionT),
+    Counterparty,
+    ClosingPrice,
+    abs(sum((positionT * ClosingPrice/100))),
+    ClosingPriceDate
+from
+    temp
+group by 
+    4
+union
+
+select
+    trdnbr,
+    insid,
+    sum(PositionT),
+    Counterparty,
+    ClosingPrice,
+    abs(sum((positionT * ClosingPrice/100))),
+    ClosingPriceDate
+from
+    temp
+group by 
+    2,4

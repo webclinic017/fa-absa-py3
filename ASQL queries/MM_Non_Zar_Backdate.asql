@@ -1,0 +1,182 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       Trade_CashFlow_Backdate_Report
+PURPOSE                 :       This ASQL will report all backdated trades and backdated Call Account cashflows.
+DEPARTMENT AND DESK     :       Middle Office
+REQUASTER               :       Kiribakka Tendo
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       852564
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2011-12-01      852564          Heinrich Cronje                 Initial Implementation
+2012-01-13      XXXXXX          Heinrich Cronje                 Expanded report to report all backdated CashFlows.
+2012-02-16	    891984		    Jaysen Naicker				    Report all backdated for a certain date range
+2012-04-19	CHNG0000144756	    Jaysen Naicker				    Correct signage issue for nominal
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL has three secons:
+        1.  All trades that were created on a specified date with a trade time less than this specified date
+            based on a specified trade filter.
+        2.  All Call Account cashflows that were created on a specified date with a pay date less than this
+            specified date based on a specified trade filter.
+        3.  All cashflows that were created on a specified date with a pay date less than this
+            specified date based on a specified trade filter.
+*/
+
+/*----------------------------------------------------------------------------------------------------------
+                                                    LOGGING
+----------------------------------------------------------------------------------------------------------*/
+select
+ael_i(p,'ASQL_log','MM_Non_Zar_Backdate') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MM_Non_Zar_Backdate' and p.type = 'SQL Query' 
+
+
+
+	
+
+
+	
+/*----------------------------------------------------------------------------------------------------------
+                                            Trade selection from Trade Filter
+----------------------------------------------------------------------------------------------------------*/
+select
+    t.trdnbr    'Trdnbr',
+    t.insaddr,
+    t.creat_time    'TradeCreateTime',
+    t.time  'Time',
+    t.status    'Status',
+    display_id(t,'curr')    'TradeCurr',
+    display_id(t,'counterparty_ptynbr') 'Party',
+    display_id(t,'prfnbr') 'Portfolio',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    display_id(t,'creat_usrnbr') 'TradeCreateUser',
+    t.execution_time    'ExecutionTime',
+    display_id(t,'trader_usrnbr')   'Dealer',
+    t.premium   'nominal',
+    t.quantity,
+    i.insid 'Insid',
+    i.instype   'InsType',
+    i.open_end,
+    display_id(i,'curr')    'InstrCurr',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype'
+                                    
+into
+    trades
+from
+    trade t,
+    instrument i
+where
+        match_filter(t, @1_Filter{PS_Call_Backdates;tradefilter.fltid}, @2_TrdNos{})
+    and t.insaddr = i.insaddr
+
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Backdated Trade Section
+----------------------------------------------------------------------------------------------------------*/
+select
+    'Backdated Trades'  'Section',
+    to_date(t.time) 'ChangeToDate',
+    t.Trdnbr,
+    t.Insid,
+    t.InsType,
+    t.MM_Instype,
+    t.Status,
+    t.nominal   'BackdatedAmount',
+    t.nominal/used_price(hc, to_date(t.TradeCreateTime), t.TradeCurr) 'ZARBackdatedAmount',
+    t.TradeCurr,
+    t.InstrCurr,
+    t.Party,
+    t.Portfolio,
+    t.Acquirer,
+    t.Time,
+    t.TradeCreateTime,
+    t.TradeCreateUser,
+    t.ExecutionTime,
+    t.Dealer,
+    ''  'Cfwnbr',
+    ''  'CfCreateTime',
+    ''  'CfCreateUser',
+    ''  'CfPayDay',
+    ''  'CfType'
+    
+    
+into
+    final
+from
+    trades t,
+    instrument hc
+    
+where
+    to_date(t.TradeCreateTime) >= @3_From_Date{Today}
+    and to_date(t.TradeCreateTime) <= @4_To_Date{Today}
+    and to_date(t.time) < to_date(t.TradeCreateTime)
+    and hc.insid = 'ZAR'
+
+
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Backdated CashFlow Section
+----------------------------------------------------------------------------------------------------------*/
+select
+    'Backdated CashFlows'  'Section',
+    to_date(c.pay_day) 'ChangeToDate',
+    t.Trdnbr,
+    t.Insid,
+    t.InsType,
+    t.MM_Instype,
+    t.Status,
+    t.quantity * projected_cf(c)    'BackdatedAmount',
+    t.quantity * projected_cf(c) /used_price(hc, to_date(c.updat_time), display_id(l,'curr')) 'ZARBackdatedAmount',
+    t.TradeCurr,
+    t.InstrCurr,
+    t.Party,
+    t.Portfolio,
+    t.Acquirer,
+    t.Time,
+    t.TradeCreateTime,
+    t.TradeCreateUser,
+    t.ExecutionTime,
+    t.Dealer,
+    to_string(c.cfwnbr) 'Cfwnbr',
+    to_string(c.creat_time)  'CfCreateTime',
+    display_id(c,'creat_usrnbr')  'CfCreateUser',
+    to_string(c.pay_day)   'CfPayDay',
+    to_string(c.type)   'CfType'
+    
+    
+into
+    final
+from
+    trades t,
+    leg l,
+    cashflow c,
+
+    instrument hc
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = c.legnbr
+    and to_date(c.pay_day) < to_date(c.updat_time) 
+    and to_date(c.updat_time) >= @3_From_Date{Today}
+    and to_date(c.updat_time) <= @4_To_Date{Today}
+    and hc.insid = 'ZAR'
+
+
+/*----------------------------------------------------------------------------------------------------------
+                                            Final Selection
+----------------------------------------------------------------------------------------------------------*/
+select
+    f.*
+from
+    final f
+where
+    abs(round(f.BackdatedAmount,2)) > 0.00

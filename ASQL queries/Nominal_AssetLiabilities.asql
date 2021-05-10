@@ -1,0 +1,29 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','Nominal_AssetLiabilities') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Nominal_AssetLiabilities' and p.type = 'SQL Query' 
+ 
+  select
+    
+    t.trdnbr                'Trade ID',
+    p.prfid                 'Portfolio',
+    i.exp_day               'Exp_Date',
+    t.quantity*i.contr_size >= 0 
+        ?t.quantity*i.contr_size 
+        : 0                 'Asset',
+    t.quantity*i.contr_size < 0 
+        ?t.quantity*i.contr_size    
+        : 0                 'Liability'
+from
+    trade t,
+    portfolio p,
+    instrument i
+
+where
+    match_filter(t,@TradeFilter{;tradefilter.fltid})
+and t.prfnbr = p.prfnbr
+and t.insaddr = i.insaddr
+and p.prfid in ('STRAT FUND 9831','LIABILITIES 2474','GROUP FUND 2476','ABCAP FUND 2475','MONY 9802')
+and i.exp_day > @Date{yesterday}

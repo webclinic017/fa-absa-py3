@@ -1,0 +1,35 @@
+[UDMC Templates]FObject:udmcBasketPerformanceReplacePayoff
+# ----------------------------------------
+# PAYOFF EXPRESSION
+# ----------------------------------------
+
+# PARAMETERS
+param matrix(double) weights;
+param double cap;
+param double perfReplace;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+
+double optionValue = 0.0; double perfBasket = 0.0;
+matrix(double) return = S; matrix(double) perfStock = S;
+
+# MAIN LOOP
+
+perfStock = S[:,-1]./S[:,0];
+return = (perfStock>=cap)*perfReplace + (perfStock<cap).*perfStock;
+perfBasket = sum(return.*transpose(weights));
+optionValue = max(1.0, perfBasket);
+
+# CASHFLOW
+cashFlow(0, optionValue);
+
+#------------------------------------------
+#PEL IMPLEMENTATION
+#
+
+# ------------------------------------------
+
+...

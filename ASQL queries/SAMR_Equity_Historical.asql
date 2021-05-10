@@ -1,0 +1,93 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMR_Equity_Historical') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMR_Equity_Historical' and p.type = 'SQL Query' 
+
+
+
+
+
+/*  Extracts Equity prices from Price Entry */
+/*Shreelin Naicker*/
+/* 2009-08-03 bs modified for 4.4 */
+
+select 
+	distinct
+	l.type='Float' ? display_id(l,'float_rate') : display_id(l,'index_ref') 'CurveIndex'
+into TempTable
+
+from
+	Trade t,
+	Instrument i,
+	leg l,
+	cashflow c,
+	Instrument ccy,
+    Instrument index
+where
+	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	l.type in ('Float','Total Return')
+and	l.nominal_scaling ~= 'FX'
+and i.instype='TotalReturnSwap'
+and l.initial_index_value ~= 0
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and index.instype in ('Stock', 'EquityIndex','Commodity') 
+and	i.exp_day > Today
+and l.index_ref = index.insaddr
+and	l.legnbr = c.legnbr
+and	c.pay_day > TODAY
+and i.curr = ccy.insaddr
+
+group by 1
+
+
+select distinct
+    p.day 'Price_Day',
+    i.insid 'HistoricalCurve',    
+    i.quote_type = 'Per 100 units'? p.settle / 100 : p.settle 'Price',
+    (to_date(today) - p.day)  'Counter',
+    today 'DATA_DATE'
+
+into
+    temp
+    
+from
+    instrument i,
+    price p,
+    party pty,
+    TempTable t
+    
+where
+    i.insaddr = p.insaddr
+    and i.insid =* t.CurveIndex
+    and p.ptynbr = pty.ptynbr
+    and pty.ptyid in ('internal', 'SPOT')
+   
+
+
+
+select distinct
+    t.HistoricalCurve = 'ZAR/TKG2' ? 'ZAR/TKG' : t.HistoricalCurve 'HistoricalCurve',    
+    t.Price_Day,
+    t.HistoricalCurve = 'ZAR/TKG2' ? t.Price*100 : t.Price 'Price', /*Because TKG2 shows incorrect price for quote of 100 units*/
+    '_HISTORICAL_CURVE' 'AdditionalStr',
+    t.Counter,
+    t.DATA_DATE  
+ 
+into temp33
+from
+    temp t
+    
+select distinct
+    ael_s(,'SAGEN_str_functions.concat' , t.HistoricalCurve, t.AdditionalStr, '')  'HistoricalCurve',
+    t.Price_Day,
+    t.Price  'Price', 
+    t.Counter,
+    t.DATA_DATE    
+from
+    temp33 t
+
+/*group by 1,2*/ 
+order by 1,2

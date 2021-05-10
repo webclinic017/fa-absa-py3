@@ -1,0 +1,3 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:assetWeightedAvg = instrument :* "assetRate" [positionObject, priceSource, valuesOnSpotOverride];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:assetWeightedAvg = switch(assetBalance.Number < 0, 
+  true->sumOf(instruments :* "assetBalance * assetRate" [positionObject, priceSource, valuesOnSpotOverride]) / assetBalance);

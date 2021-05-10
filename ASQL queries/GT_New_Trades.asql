@@ -1,0 +1,130 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_New_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_New_Trades' and p.type = 'SQL Query' 
+/*
+
+NEW TRADES FOR macro defined trade filter
+
+*/
+
+
+
+select
+
+'Yes' ? i.instype : '' 'instype',
+display_id(t,'prfnbr')'portfolio',
+t.quantity*i.contr_size'nom',
+t.premium,
+t.value_day,
+i.exp_day,
+t.trdnbr,
+'' 'Instructions to Trade',
+time_to_day(t.time) 'Trade Time',
+t.status,
+'' '         Confirmation Signed          ',
+t.price,
+i.insid, 
+
+/*
+cu.name'created by',
+uu.name'updated by',
+*/
+
+display_id(t,'counterparty_ptynbr')'counterparty',
+present_value(t,@end_date{Today;}),
+delta_implicit(t,@end_date{Today;}),
+pay.amount'payment',
+pay.payday
+
+from
+trade t,
+instrument i,
+user cu,
+user uu,
+portfolio p,
+payment pay
+
+where
+
+i.insaddr=t.insaddr
+
+and t.trdnbr*=pay.trdnbr
+and match_filter(t,@Filter{IRP_All_Trades;tradefilter.fltid})
+and t.status ~='Void'
+and ((time_to_day(t.time) >= @start_date{Today;}
+and time_to_day(t.time)<= @end_date{Today;})
+
+or (time_to_day(t.creat_time) >= @start_date{Today;}
+and time_to_day(t.creat_time)<= @end_date{Today;}))
+
+
+and t.creat_usrnbr=cu.usrnbr
+and t.updat_usrnbr=uu.usrnbr
+and t.prfnbr=p.prfnbr
+
+
+
+ order by 1/*i.instype*/,2/*portfolio*/,t.value_day
+ 
+union
+
+
+select
+'Portfolio Sub-Total'/*i.instype*/,
+display_id(t,'prfnbr')'portfolio',
+sum(t.quantity*i.contr_size)'nom',
+t.premium,
+t.value_day,
+i.exp_day,
+t.trdnbr,
+'' 'Instructions to Trade',
+time_to_day(t.time) 'Trade Time',
+t.status,
+'' '         Confirmation Signed          ',
+t.price,
+i.insid, 
+ 
+
+/*
+cu.name'created by',
+uu.name'updated by',
+*/
+
+display_id(t,'counterparty_ptynbr')'counterparty',
+sum(present_value(t,@end_date{Today;})),
+sum(delta_implicit(t,@end_date{Today;})),
+sum(pay.amount)'payment',
+pay.payday
+
+from
+trade t,
+instrument i,
+user cu,
+user uu,
+portfolio p,
+payment pay
+
+where
+
+i.insaddr=t.insaddr
+
+and t.trdnbr*=pay.trdnbr
+and match_filter(t,@Filter{IRP_All_Trades;tradefilter.fltid})
+and t.status ~='Void'
+and ((time_to_day(t.time) >= @start_date{Today;}
+and time_to_day(t.time)<= @end_date{Today;})
+
+or (time_to_day(t.creat_time) >= @start_date{Today;}
+and time_to_day(t.creat_time)<= @end_date{Today;}))
+
+
+and t.creat_usrnbr=cu.usrnbr
+and t.updat_usrnbr=uu.usrnbr
+and t.prfnbr=p.prfnbr
+
+group by 2 /*portfolio*/
+
+order by 2

@@ -1,0 +1,33 @@
+/*********************************************************************************
+Date                	: 20100614, 20110413
+Purpose             	: Provide a list of credit curve details
+Department and Desk 	: IT pricing and Risk
+Requester           	: Matthew Berry 
+Developer           	: Matthew Stephanou
+CR Number           	: 337938, 628573
+
+**********************************************************************************/
+
+select    
+    yc.yield_curve_name                     'Curve',
+    display_id(yca,'issuer_ptynbr')         'Issuer',
+    yca.recovery_rate                       'Recovery Rate',
+    TODAY		                    'Curve Date',
+    yc.storage_daycount                     'Daycount fraction',
+    yc.pay_day_method                       'Business Day Convention',
+    yc.storage_rate_type                    'Frequency',
+    add_info(issr, 'BarCap_Eagle_SDSID')    'SDSID',
+    icurr.insid                             'Curr',
+    display_id(yca,'seniority_chlnbr')      'Seniority',
+    yca.restructuring_type                  'Restructuring'
+from
+    yieldcurve yc,
+    YCAttribute yca,
+    Instrument icurr,
+    Party issr
+where
+    yc.yield_curve_name IN ('CDIssuerCurve_HR','CDIssuerCurve_HR_EUR','CDIssuerCurve_HR_USD')
+    and yca.yield_curve_seqnbr = yc.seqnbr
+    and icurr.insaddr = yc.curr
+    and issr.ptynbr = yca.issuer_ptynbr
+    and yca.seniority_chlnbr > 0

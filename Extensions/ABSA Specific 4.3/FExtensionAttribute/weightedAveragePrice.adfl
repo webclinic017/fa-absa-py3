@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrument:weightedAveragePrice = sumOf(tradesInPosition :* "weightedAveragePrice");
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:weightedAveragePrice = shunt(isZeroRiskPosition, 
+  true->nil, 
+  false->denominatedvalue(instrument :* "weightedAveragePrice" [positionObject] / riskPosition, symbol(instrument:currency), , valuationDate));
+[ABSA Specific 4.3]FTrade:weightedAveragePrice = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades = false], 
+  true->0, 
+  default->object.Price * object.Quantity);

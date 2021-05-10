@@ -1,0 +1,6 @@
+[Prime Services]FInstrument:terminationFee = sumOf(tradesInPosition :* "terminationFee");
+[Prime Services]FInstrumentAndTrades:terminationFee = sumOf(instrument :* "terminationFee" [positionObject]);
+[Prime Services]FMultiInstrumentAndTrades:terminationFee = sumOf(instruments :* "terminationFee" [positionObject]);
+[Prime Services]FTrade:terminationFee = switch(withinDateRange and isGeneralPortfolio, 
+  true->py("PaymentFees", context).ReturnTerminationFee(object), 
+  false->0);

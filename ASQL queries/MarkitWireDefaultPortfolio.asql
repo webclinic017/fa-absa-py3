@@ -1,0 +1,8 @@
+select t.trdnbr,p.prfid,t.quantity,u.userid,t.status,t.optional_key
+ from trade t,portfolio p,user u 
+   where t.optional_key like 'MW%'
+    and t.time >= @1_StartDay{Yesterday;}
+     and p.prfnbr = t.prfnbr 
+      and p.prfid like '%MktWire_Allocate%'
+       and u.usrnbr = t.owner_usrnbr
+        

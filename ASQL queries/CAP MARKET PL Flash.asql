@@ -1,0 +1,143 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET PL Flash') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET PL Flash' and p.type = 'SQL Query' 
+ 
+  
+   
+
+select
+t.trdnbr,
+@1_PL_Day{today}	'Calc_Day',
+pp.prfid 'cost_centre',
+port.prfid	'Portfolio',
+time_to_day(t.time)	'Deal_Date',
+'YES' ? i.extern_id1 : '' 'Bond',
+nominal_amount(t) 'Nominal',
+time_to_day(t.time)=@1_PL_Day{today}? 'New Trade': 'Overnight Positions' 'Traded',
+time_to_day(t.time)=@1_PL_Day{today}? t.price : 0.0 'Yield_Trade',
+mtm_price(i,@1_PL_Day{today})    'Yieldt',
+mtm_price(i, date_add_banking_day(  @1_PL_Day{today}  ,,-1)) 'YieldTmin1',
+
+((Dirty_from_yield(i, date_add_banking_day(  @1_PL_Day{today}  ,,3) ,,, (mtm_price(i, @1_PL_Day{today}))+0.01  ) - 
+  Dirty_from_yield(i, date_add_banking_day(  @1_PL_Day{today}  ,,3) ,,, (mtm_price(i, @1_PL_Day{today}))-0.01 ) ) / (0.01+0.01))    'delta'
+
+
+
+into temp
+from
+instrument i,
+trade t,
+portfolio port,
+leg l,
+portfolio pp,
+portfolioLink pl
+where
+l.insaddr = i.insaddr
+and i.insaddr=t.insaddr
+and t.prfnbr=port.prfnbr
+and port.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+and i.instype in ('Bond','IndexLinkedBond')
+and time_to_day(t.time) <= @1_PL_Day{today}
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and pp.prfid in ('3179','9804','9807','4533','9802','2869')
+
+
+
+select t.* ,
+t.Traded = 'New Trade' ? (t.Yieldt - t.Yield_Trade) : t.Traded = 'Overnight Positions' ? (t.Yieldt - t.YieldTmin1) : 0.0 'Ydiff',
+
+t.Traded = 'New Trade' ? (t.Nominal*t.delta* (t.Yieldt - t.Yield_Trade) /100 ) :   (t.Nominal*t.delta* (t.Yieldt - t.YieldTmin1) /100 )'PL'
+
+
+into temp2
+from temp t
+
+
+
+
+select *
+from temp2 t
+where
+round(t.nominal,0) ~= 0.0
+and t.portfolio = @2_Portfolio{JOB11;'JOBX1','JOB1','JOB4','JOB5','JOB8','JOB10','JOB11','DERV','DERV2','DERV3','DERV4','DERV5','MAN_Bond','MAN_Bond_2','CDS_HFT','MONY 9802','MM Rates Trading','FOREX FWD BONDS','FOREX SPOT BONDS','FX_RND_Bond_Trading'}
+and @3_ShowDetailPerTrade{No;'Yes','No'} in ('Yes','YES','yes','Y','y')
+
+union
+
+select 
+0 'trdnbr',
+t.Calc_Day,
+t.cost_centre,
+t.Portfolio,
+t.Deal_Date,
+t.Bond,
+sum(t.Nominal)'Nominal',
+t.Traded,
+avg(t.Yield_Trade) 'Yield_Trade',
+avg(t.Yieldt) 'Yieldt',
+avg(YieldTmin1)'YieldTmin1',
+avg(t.delta) 'Delta',
+avg(t.Ydiff) 'Ydiff',
+sum(PL)
+
+
+from temp2 t
+where
+round(t.nominal,0) ~= 0.0
+and t.portfolio = @2_Portfolio{JOB11;'JOBX1','JOB1','JOB4','JOB5','JOB8','JOB10','JOB11','DERV','DERV2','DERV3','DERV4','DERV5','MAN_Bond','MAN_Bond_2','CDS_HFT','MONY 9802','MM Rates Trading','FOREX FWD BONDS','FOREX SPOT BONDS','FX_RND_Bond_Trading'}
+group by t.bond,t.traded
+order by t.bond,t.traded
+
+union
+
+select 
+t.Traded = 'New Trade' ? t.trdnbr : 0 'trdnbr',
+t.Calc_Day,
+t.cost_centre,
+t.Portfolio,
+t.Deal_Date,
+t.Bond,
+sum(t.Nominal)'Nominal',
+t.Traded,
+0.0 'Yield_Trade',
+0.0'Yieldt',
+0.0'YieldTmin1',
+0.0'Delta',
+0.0'Ydiff',
+sum(PL)
+
+
+from temp2 t
+where
+round(t.nominal,0) ~= 0.0
+and t.portfolio = @2_Portfolio{JOB11;'JOBX1','JOB1','JOB4','JOB5','JOB8','JOB10','JOB11','DERV','DERV2','DERV3','DERV4','DERV5','MAN_Bond','MAN_Bond_2','CDS_HFT','MONY 9802','MM Rates Trading','FOREX FWD BONDS','FOREX SPOT BONDS','FX_RND_Bond_Trading'}
+group by t.traded
+
+union 
+
+select 
+
+t.Traded = 'New Trade' ? t.trdnbr : 0 'trdnbr',
+t.Calc_Day,
+t.cost_centre,
+t.Portfolio,
+t.Deal_Date,
+t.Bond,
+sum(t.Nominal)'Nominal',
+t.Traded,
+0.0 'Yield_Trade',
+0.0'Yieldt',
+0.0'YieldTmin1',
+0.0'Delta',
+0.0'Ydiff',
+sum(PL)
+
+from temp2 t
+where
+round(t.nominal,0) ~= 0.0
+and t.portfolio = @2_Portfolio{JOB11;'JOBX1','JOB1','JOB4','JOB5','JOB8','JOB10','JOB11','DERV','DERV2','DERV3','DERV4','DERV5','MAN_Bond','MAN_Bond_2','CDS_HFT','MONY 9802','MM Rates Trading','FOREX FWD BONDS','FOREX SPOT BONDS','FX_RND_Bond_Trading'}
+group by

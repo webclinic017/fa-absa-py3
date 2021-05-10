@@ -1,0 +1,10 @@
+[Default]FCombInstrMapAndTrades:theoreticalValuesForProjection = baseDateZero;
+[Default]FDeliverableLinkAndTrades:theoreticalValuesForProjection = baseDateZero;
+[Default]FFxRate:theoreticalValuesForProjection = object:theoreticalValuesForProjectionDiscounted [priceSource, isSplitAllGrouped, positionObject, filterUnit, groupingSpotDiscountDate, forwardFXConversionCurrency, includeAllTrades, singleTradePosition, valuesOnSpotOverride := "P/L Until Spot OFF"];
+[Default]FInstrument:theoreticalValuesForProjection = shunt[priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, forwardFXConversionCurrency, taxLotPositionObject, taxLotValuation](isOpenPosition, 
+  true->collapse(theoreticalValuesForProjectionDiscounted), 
+  false->denominatedvalue(0, forwardFXConversionCurrency, nil, discountAndConvertToBaseDate));
+[Default]FInstrumentAndTrades:theoreticalValuesForProjection = instrument:theoreticalValuesForProjection [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, forwardFXConversionCurrency = displayCurrency];
+[Default]FLegAndTrades:theoreticalValuesForProjection = baseDateZero;
+[Default]FMultiInstrumentAndTrades:theoreticalValuesForProjection = sumOf(instruments :* "collapse(theoreticalValuesForProjection)" [priceSource, isSplitAllGrouped, valuesOnSpotOverride, positionObject, filterUnit, groupingSpotDiscountDate, forwardFXConversionCurrency = displayCurrency]);
+[Default]FTradeRow:theoreticalValuesForProjection = instrument:theoreticalValuesForProjection [priceSource, isSplitAllGrouped, valuesOnSpotOverride, singleTradePosition, includeAllTrades, filterUnit, groupingSpotDiscountDate, forwardFXConversionCurrency = displayCurrency, taxLotPositionObject, taxLotValuation := taxLotPnL, positionObject];

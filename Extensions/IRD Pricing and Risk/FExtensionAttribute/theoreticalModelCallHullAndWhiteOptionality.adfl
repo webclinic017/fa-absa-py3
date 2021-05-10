@@ -1,0 +1,11 @@
+[IRD Pricing and Risk]FInstrument:theoreticalModelCallHullAndWhiteOptionality = select("European" == exerciseType, 
+  true->theoreticalModelCallHullAndWhiteAnalytic, 
+  false->select(exerciseEventCount > 1, 
+    true->theoreticalModelCallHullAndWhitePde, 
+    false->select(exerciseEventCount > 0, 
+      true->select((exerciseEventArray[0]).Type, 
+        "CallPeriod"->theoreticalModelCallHullAndWhitePde, 
+        "PutPeriod"->theoreticalModelCallHullAndWhitePde, 
+        "ConversionPeriod"->theoreticalModelCallHullAndWhitePde, 
+        default->theoreticalModelCallHullAndWhiteAnalytic), 
+      default->theoreticalModelCallHullAndWhiteAnalytic)));

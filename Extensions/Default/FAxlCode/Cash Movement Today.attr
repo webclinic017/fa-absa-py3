@@ -1,0 +1,23 @@
+[Default]FObject:Cash Movement Today
+{
+}
+getAmountToday = If(And(&'settledCashExtAttr', Compare.IsEqual(&'value_day', DateTime.Today())), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Movement Today',
+    GroupLabel:'Cash',
+    Description:'Total settled cash with value day equal to today.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Modify(Aggregate.Sum(@getAmountToday()), AttributeDimensions = AttributeList(['curr']));
+
+...

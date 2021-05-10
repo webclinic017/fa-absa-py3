@@ -1,0 +1,73 @@
+[UDMCUtilMod]FObject:udmcLookbackPayoff
+#--------------------------------------
+# PAYOFF EXPRESSION
+# Lookback Payoff
+#
+# INTERPRETATION
+# Lookback option with single underlying. 
+# Call:          max(S_max - St, 0)
+# Put:           max( St - S_min, 0) 
+#
+# DEFINITION
+# St: The underlying price on the maturity date;
+# S_min: the minimum underlying price reached during the life of the option;
+# S_max: the maximum underlying price reached during the life of the option;
+# 'Lookback date' exotic events should be specified.
+#--------------------------------------
+
+# PARAMETERS
+param int isCall;
+param int isMax;
+param int isSpot;
+param int isQuanto;
+param double K;
+param double historicalExtremeValue;
+param double fixFXRate;
+
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double fx=isQuanto*(fixFXRate-1.0)+1.0;
+double s = 0.0;
+double k = 0.0;
+double extremeValue = 0.0;
+double callOrPut = 2.0 * isCall - 1.0;
+
+# MAIN LOOP
+if(isMax){
+    extremeValue = max(max(S), historicalExtremeValue);
+}
+else
+{
+    extremeValue = min(min(S), historicalExtremeValue);
+};
+if(isSpot){
+    s = extremeValue;
+    k = K;
+}
+else
+{
+    s = S[-1];
+    k = extremeValue;
+};
+
+# CASHFLOW
+cashFlow(0, fx * max(0.0, callOrPut * (s - k)));
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isMax - has 1 or 0 value, dependent on if the option is Call or Put; 
+# isSpot - has 1 or 0 value, dependent on if the Extreme value is a Spot; 
+# historicalExtremeValue - extreme value reached in the past;
+# fixFXRate - fixed FX Rate value;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# extremeValue - extreme value of the process S;
+# fx - FX rate value if the type of the option is Quanto, 1.0 otherwise. 
+# ------------------------------------------
+
+...

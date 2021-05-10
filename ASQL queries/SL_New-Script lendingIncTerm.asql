@@ -1,0 +1,510 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SL_New-Script lendingIncTerm') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SL_New-Script lendingIncTerm' and p.type = 'SQL Query' 
+
+
+
+/* portfolios and instruments */
+select distinct
+    p.prfid,
+    i.insid,
+    i.instype
+into
+    ins_ports
+from
+    portfolio p,
+    trade t,
+    instrument i
+where 
+    i.insaddr = t.insaddr
+and t.prfnbr = p.prfnbr
+and p.prfid in (@Portfolio{47001 STRADDLES;Portfolio.prfid*})
+and i.instype = 'Stock'
+and t.status not in ('Simulated', 'Void', 'Terminated')
+
+select
+    p.prfid,
+    i.insid,
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-3)) ? t.quantity : 0) 'p_m3',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-2)) ? t.quantity : 0) 'p_m2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-1)) ? t.quantity : 0) 'p_m1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',0)) ? t.quantity : 0) 'p_0',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',1)) ? t.quantity : 0) 'p_p1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',2)) ? t.quantity : 0) 'p_p2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',3)) ? t.quantity : 0) 'p_p3',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',4)) ? t.quantity : 0) 'p_p4'
+into
+    equity_trades
+from
+    instrument i,
+    instrument c,
+    trade t,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.curr = c.insaddr
+and i.instype = 'Stock'
+and c.insid = 'ZAR'
+and c.insaddr = i.curr
+and t.value_day <= date_add_banking_day(@Date{Today},'ZAR',3)
+and p.prfid in (@Portfolio)
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated', 'Terminated')
+group by 1, 2
+
+select
+    i.insid,
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-3)) ? t.quantity : 0) 'p_m3',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-2)) ? t.quantity : 0) 'p_m2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-1)) ? t.quantity : 0) 'p_m1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',0)) ? t.quantity : 0) 'p_0',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',1)) ? t.quantity : 0) 'p_p1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',2)) ? t.quantity : 0) 'p_p2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',3)) ? t.quantity : 0) 'p_p3'
+into
+    sl_trades
+from
+    instrument i,
+    instrument c,
+    trade t,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.curr = c.insaddr
+and i.instype = 'Stock'
+and c.insid = 'ZAR'
+and c.insaddr = i.curr
+and t.value_day <= date_add_banking_day(@Date{Today},'ZAR',3)
+and p.prfid in (@Portfolio2{;Portfolio.prfid*})
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated', 'Terminated')
+group by 1
+
+select
+    i.insid,
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-3)) ? t.quantity : 0) 'p_m3',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-2)) ? t.quantity : 0) 'p_m2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',-1)) ? t.quantity : 0) 'p_m1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',0)) ? t.quantity : 0) 'p_0',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',1)) ? t.quantity : 0) 'p_p1',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',2)) ? t.quantity : 0) 'p_p2',
+    sum((t.value_day<=date_add_banking_day(@Date{Today},'ZAR',3)) ? t.quantity : 0) 'p_p3'
+into
+    term_trades
+from
+    instrument i,
+    instrument c,
+    trade t,
+    portfolio p
+where
+    t.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+and i.curr = c.insaddr
+and i.instype = 'Stock'
+and c.insid = 'ZAR'
+and c.insaddr = i.curr
+and t.value_day <= date_add_banking_day(@Date{Today},'ZAR',3)
+and p.prfid in (@TermPortfolio{;Portfolio.prfid})
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated', 'Terminated')
+group by 1
+
+select
+    i.insid,
+    i.instype,
+    i.prfid,
+    et.p_m2 'Settled_T_2',
+    et.p_m1 'Lend_T_2a',
+    -1*st.p_m2 'Lend_T_2b',
+    -1*tt.p_m2 'Term_T_2',
+    date_add_banking_day(@Date{Today},'ZAR',-7) 'Posdate_2',
+    date_add_banking_day(@Date{Today},'ZAR',-2) 'Date_2',
+    et.p_m1 'Settled_T_1',
+    et.p_0 'Lend_T_1a',
+    -1*st.p_m1 'Lend_T_1b',
+    -1*tt.p_m1 'Term_T_1',
+    date_add_banking_day(@Date{Today},'ZAR',-6) 'Posdate_1',
+    date_add_banking_day(@Date{Today},'ZAR',-1) 'Date_1',
+    et.p_0 'Settled_T',
+    et.p_p1 'Lend_Ta',
+    -1*st.p_0 'Lend_Tb',
+    -1*tt.p_0 'TermTrades',
+    date_add_banking_day(@Date{Today},'ZAR',-5) 'Posdate',
+    @Date{} 'Date',
+    et.p_p1 'Settled_T_plus_1',
+    et.p_p2 'Lend_T_plus_1a',
+    -1*st.p_p1 'Lend_T_plus_1b',
+    -1*tt.p_p1 'Term_T_plus_1',
+    date_add_banking_day(@Date{Today},'ZAR',-4) 'Posdate_T_plus_1',
+    date_add_banking_day(@Date{Today},'ZAR',1) 'Date_T_plus_1',
+    et.p_p2 'Settled_T_plus_2',
+    et.p_p3 'Lend_T_plus_2a',
+    -1*st.p_p2 'Lend_T_plus_2b',
+    -1*tt.p_p2 'Term_T_plus_2',
+    date_add_banking_day(@Date{Today},'ZAR',-3) 'Posdate_T_plus_2',
+    date_add_banking_day(@Date{Today},'ZAR',2) 'Date_T_plus_2',
+    et.p_p3 'Settled_T_plus_3',
+    et.p_p4 'Lend_T_plus_3a',
+    -1*st.p_p3 'Lend_T_plus_3b',
+    -1*tt.p_p3 'Term_T_plus_3',
+    date_add_banking_day(@Date{Today},'ZAR',-2) 'Posdate_T_plus_3',
+    date_add_banking_day(@Date{Today},'ZAR',3) 'Date_T_plus_3'
+into
+    temp
+from
+    ins_ports i,
+    equity_trades et,
+    sl_trades st,
+    term_trades tt
+where
+    i.prfid *= et.prfid
+and i.insid *= et.insid
+and i.insid *= st.insid
+and i.insid *= tt.insid
+group by 1, 2, 3
+
+    
+/*------------------------------------------------------*/
+SELECT
+    i.insid 'Instrument',
+    pt.ptyid 'CounterParty',
+    t.value_day 'ValueDay',
+    t.price 'Price',
+    t.quantity 'Quantity',
+    t.quantity*used_price(i, YESTERDAY,, 'Close') 'Value',
+    ptr.prfid 'OriginalPortfolio'
+INTO
+    temp1
+FROM
+    Instrument i,
+    Trade t,
+    Portfolio p,
+    Party pt,
+    Trade tr,
+    Portfolio ptr
+WHERE
+    i.insaddr = t.insaddr
+and p.prfnbr = t.prfnbr
+and t.counterparty_ptynbr = pt.ptynbr
+and t.trx_trdnbr *= tr.trdnbr
+and tr.prfnbr *= ptr.prfnbr
+and t.category = 'Collateral'
+and p.prfid in (@Portfolio2) /*in (@Portfolio{Equity Script Lending ;Portfolio.prfid*})*/
+and i.instype = 'Stock'
+and t.status not in ('Void', 'Simulated')
+
+/* Collateral at time @Date */
+SELECT
+    t.Instrument,
+    t.OriginalPortfolio,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    tempd0
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= @Date
+GROUP BY 1, 2
+
+/* Collateral at time @Date + 1 */
+SELECT
+    t.Instrument,
+    t.OriginalPortfolio,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    tempdp1
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',1)
+GROUP BY 1, 2
+
+/* Collateral at time @Date + 2 */
+SELECT
+    t.Instrument,
+    t.OriginalPortfolio,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    tempdp2
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',2)
+GROUP BY 1, 2
+
+/* Collateral at time @Date - 1 */
+SELECT
+    t.Instrument,
+    t.OriginalPortfolio,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    tempdm1
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',-1)
+GROUP BY 1, 2
+
+/* Collateral at time @Date - 2 */
+SELECT
+    t.Instrument,
+    t.OriginalPortfolio,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    tempdm2
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',-2)
+GROUP BY 1, 2
+
+/* Total Collateral at time @Date */
+SELECT
+    t.Instrument,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    temptd0
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= @Date
+GROUP BY 1
+
+/* Total Collateral at time @Date + 1 */
+SELECT
+    t.Instrument,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    temptdp1
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',1)
+GROUP BY 1
+
+/* Total Collateral at time @Date + 2 */
+SELECT
+    t.Instrument,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    temptdp2
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',2)
+GROUP BY 1
+
+/* Total Collateral at time @Date - 1 */
+SELECT
+    t.Instrument,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    temptdm1
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',-1)
+GROUP BY 1
+
+/* Total Collateral at time @Date - 2 */
+SELECT
+    t.Instrument,
+    sum(t.Quantity) 'TotalQuant'
+INTO
+    temptdm2
+FROM
+    temp1 t
+WHERE
+    t.ValueDay <= date_add_banking_day(@Date,'ZAR',-2)
+GROUP BY 1
+
+
+/*------------------------------------------------------*/
+
+select
+    t.insid       'Insid',
+    t.instype     'Instype',
+    t.prfid       'Prfid',
+    dm2.TotalQuant 'Collateral T - 2',
+    dm1.TotalQuant 'Collateral T - 1',
+    d0.TotalQuant 'Collateral T',
+    dp1.TotalQuant 'Collateral T + 1',
+    dp2.TotalQuant 'Collateral T + 2',
+    t.Settled_T_2,
+    0.0           'Lend_T_2',
+    t.Lend_T_2a,
+    t.Lend_T_2b,
+    t.Term_T_2,
+    (sum(t.Lend_T_2a) - t.Lend_T_2b) - t.Term_T_2     'NetLendIncTermT_2',
+    t.Date_2,
+    t.Posdate_2,
+    t.Settled_T_1,
+    0.0           'Lend_T_1',
+    t.Lend_T_1a,
+    t.Lend_T_1b,
+    t.Term_T_1,
+    (sum(t.Lend_T_1a) - t.Lend_T_1b) - t.Term_T_1     'NetLendIncTermT_1',
+    t.Date_1,
+    t.Posdate_1,
+    t.Settled_T,
+    0.0           'Lend_T',
+    t.Lend_Ta,
+    t.Lend_Tb,
+    t.TermTrades,
+    (sum(t.Lend_Ta) - t.Lend_Tb) - t.TermTrades        'NetLendIncTerm',
+    t.Date,
+    t.Posdate,
+    t.Settled_T_plus_1,
+    0.0           'Lend_T_plus_1',
+    t.Lend_T_plus_1a,
+    t.Lend_T_plus_1b,
+    t.Term_T_plus_1,
+    (sum(t.Lend_T_plus_1a) - t.Lend_T_plus_1b) - t.Term_T_plus_1      'NetLendIncTermT_plus1',
+    t.Date_T_plus_1,
+    t.Posdate_T_plus_1,
+    t.Settled_T_plus_2,
+    0.0           'Lend_T_plus_2',
+    t.Lend_T_plus_2a,
+    t.Lend_T_plus_2b,
+    t.Term_T_plus_2,
+    (sum(t.Lend_T_plus_2a) - t.Lend_T_plus_2b) - t.Term_T_plus_2      'NetLendIncTermT_plus2',
+    t.Date_T_plus_2,
+    t.Posdate_T_plus_2,
+    t.Settled_T_plus_3,
+    0.0           'Lend_T_plus_3',
+    t.Lend_T_plus_3a,
+    t.Lend_T_plus_3b,
+    t.Term_T_plus_3,
+    (sum(t.Lend_T_plus_3a) - t.Lend_T_plus_3b) - t.Term_T_plus_3      'NetLendIncTermT_plus3',
+    t.Date_T_plus_3,
+    t.Posdate_T_plus_3
+    
+    
+    /*LendingBorrowing_6,
+    Datet_5,
+    Positiont_5,
+    LendingBorrowing_Today,
+    Positiont_5 + LendingBorrowing_Today 'Outstanding amount',
+    Datet_4,
+    Positiont_4,
+    LendingBorrowing_4,
+    Datet_3,
+    Positiont_3,
+    LendingBorrowing_3,
+    Datet_2,
+    Positiont_2,
+    LendingBorrowing_2,
+    Datet_1,
+    Positiont_1,
+    LendingBorrowing_1 */
+from 
+    temp t,
+    tempd0 d0,
+    tempdp1 dp1,
+    tempdp2 dp2,
+    tempdm1 dm1,
+    tempdm2 dm2
+where 
+    (t.Settled_T_plus_1 ~= 0
+or  t.Settled_T_plus_2 ~= 0
+or  t.Settled_T_1 ~= 0
+or  t.Settled_T_2 ~= 0
+or  t.Settled_T_plus_3 ~= 0)
+and 'Yes' = @DETAIL{Yes;'Yes','No'}
+and t.insid *= d0.Instrument
+and t.prfid *= d0.OriginalPortfolio
+and t.insid *= dp1.Instrument
+and t.prfid *= dp1.OriginalPortfolio
+and t.insid *= dp2.Instrument
+and t.prfid *= dp2.OriginalPortfolio
+and t.insid *= dm1.Instrument
+and t.prfid *= dm1.OriginalPortfolio
+and t.insid *= dm2.Instrument
+and t.prfid *= dm2.OriginalPortfolio
+order by 3
+
+union
+
+select
+    t.insid                                   'Insid',
+    t.instype                                 'Instype',
+    t.prfid                                   'Prfid',
+    dm2.TotalQuant 'Collateral T - 2',
+    dm1.TotalQuant 'Collateral T - 1',
+    d0.TotalQuant 'Collateral T',
+    dp1.TotalQuant 'Collateral T + 1',
+    dp2.TotalQuant 'Collateral T + 2',
+    sum(t.Settled_T_2)                        'Settled_T_2',
+    sum(t.Lend_T_2a) - t.Lend_T_2b              'Lend_T_2',
+    sum(t.Lend_T_2a),
+    t.Lend_T_2b,
+    t.Term_T_2,
+    (sum(t.Lend_T_2a) - t.Lend_T_2b) - t.Term_T_2        'NetLendIncTermT_2',   
+    t.Date_2,
+    t.Posdate_2,
+    sum(t.Settled_T_1)                        'Settled_T_1',
+    sum(t.Lend_T_1a) - t.Lend_T_1b              'Lend_T_1',
+    sum(t.Lend_T_1a),
+    t.Lend_T_1b,
+    t.Term_T_1,
+    (sum(t.Lend_T_1a) - t.Lend_T_1b) - t.Term_T_1        'NetLendIncTermT_1',   
+    t.Date_1,
+    t.Posdate_1,
+    sum(t.Settled_T)                          'Settled_T',
+    sum(t.Lend_Ta) - t.Lend_Tb                  'Lend_T',
+    sum(t.Lend_Ta),
+    t.Lend_Tb,
+    t.TermTrades,
+    (sum(t.Lend_Ta) - t.Lend_Tb) - t.TermTrades        'NetLendIncTerm',   
+    t.Date,
+    t.Posdate,
+    sum(t.Settled_T_plus_1)                   'Settled_T_plus_1',
+    sum(t.Lend_T_plus_1a) - t.Lend_T_plus_1b    'Lend_T_plus_1',
+    sum(t.Lend_T_plus_1a),
+    t.Lend_T_plus_1b,
+    t.Term_T_plus_1,
+    (sum(t.Lend_T_plus_1a) - t.Lend_T_plus_1b) - t.Term_T_plus_1        'NetLendIncTermT_plus1',   
+    t.Date_T_plus_1,
+    t.Posdate_T_plus_1,
+    sum(t.Settled_T_plus_2)                   'Settled_T_plus_2',
+    sum(t.Lend_T_plus_2a) - t.Lend_T_plus_2b    'Lend_T_plus_2',
+    sum(t.Lend_T_plus_2a),
+    t.Lend_T_plus_2b,
+    t.Term_T_plus_2,
+    (sum(t.Lend_T_plus_2a) - t.Lend_T_plus_2b) - t.Term_T_plus_2        'NetLendIncTermT_plus2',   
+    t.Date_T_plus_2,
+    t.Posdate_T_plus_2,
+    sum(t.Settled_T_plus_3)                   'Settled_T_plus_3',
+    sum(t.Lend_T_plus_3a) - t.Lend_T_plus_3b    'Lend_T_plus_3',
+    sum(t.Lend_T_plus_3a),
+    t.Lend_T_plus_3b,
+    t.Term_T_plus_3,
+    (sum(t.Lend_T_plus_3a) - t.Lend_T_plus_3b) - t.Term_T_plus_3        'NetLendIncTermT_plus3',   
+    t.Date_T_plus_3,
+    t.Posdate_T_plus_3
+from 
+    temp t,
+    temptd0 d0,
+    temptdp1 dp1,
+    temptdp2 dp2,
+    temptdm1 dm1,
+    temptdm2 dm2
+where 
+    (t.Settled_T_plus_1 ~= 0
+or  t.Settled_T_plus_2 ~= 0
+or  t.Settled_T_1 ~= 0
+or  t.Settled_T_2 ~= 0
+or  t.Settled_T_plus_3 ~= 0)
+and t.insid *= d0.Instrument
+and t.insid *= dp1.Instrument
+and t.insid *= dp2.Instrument
+and t.insid *= dm1.Instrument
+and t.insid *= dm2.Instrument
+
+group by 1

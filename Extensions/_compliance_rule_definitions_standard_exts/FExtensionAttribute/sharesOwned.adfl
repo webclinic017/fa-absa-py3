@@ -1,0 +1,11 @@
+[_compliance_rule_definitions_standard_exts]FConvertible:sharesOwned = nil;
+[_compliance_rule_definitions_standard_exts]FInstrument:sharesOwned = sharesOwned = select(underlyingOrSelf.InsType, 
+  "Stock"->riskPosition * priceDeltaInstrument, 
+  default->0);
+[_compliance_rule_definitions_standard_exts]FMultiInstrumentAndTrades:sharesOwned = select(instrumentGroupingReferenceRow, 
+  nil->nil, 
+  default->sumOf(openInstruments :* "double(sharesOwned)" [positionObject, displayCurrency, filterUnit]));
+[_compliance_rule_definitions_standard_exts]FSingleInstrumentAndTrades:sharesOwned = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->instrument :* "sharesOwned" [positionObject, displayCurrency, filterUnit]);
+[_compliance_rule_definitions_standard_exts]FStock:sharesOwned = riskPosition;

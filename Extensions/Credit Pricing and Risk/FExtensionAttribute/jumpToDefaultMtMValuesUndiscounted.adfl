@@ -1,0 +1,5 @@
+[Credit Pricing and Risk]FInstrument:jumpToDefaultMtMValuesUndiscounted = select(calcCreditBasketJTDValues, 
+  true->creditBasketJTDMtMValues, 
+  false->select(snoop(theoreticalSpotValueForPriceShift, priceGreekRiskFactorNames, visible^priceGreekShiftEquityFilter), 
+    nil->positionValuesTrade - theoreticalValuesUndiscounted, 
+    default->equityJTDMtMValues));

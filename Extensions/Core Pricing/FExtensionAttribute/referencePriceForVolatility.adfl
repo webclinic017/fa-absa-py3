@@ -1,0 +1,6 @@
+[Core Pricing]FDerivative:referencePriceForVolatility = nil;
+[Core Pricing]FFuture:referencePriceForVolatility = select(payType, 
+  "Future"->setDateTimePart(theoreticalPrice, referencePriceDateForVolatilityCalculated), 
+  default->nil);
+[Core Pricing]FInstrument:referencePriceForVolatility = collapse(forwardPrice);
+[Core Pricing]FInstrumentAndTrades:referencePriceForVolatility = instrument:referencePriceForVolatility [priceSource, forwardPriceDate = referencePriceDateForVolatilityCalculated, referencePriceDateForVolatilityCalculated];

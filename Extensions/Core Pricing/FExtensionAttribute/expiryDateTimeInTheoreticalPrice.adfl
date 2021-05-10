@@ -1,0 +1,9 @@
+[Core Pricing]FInstrumentAndTrades:expiryDateTimeInTheoreticalPrice = select(instrument:isMultiExercise, 
+  true->select(instrument:exerciseEventsExist, 
+    true->lastExerciseEvent:expiryDateTime, 
+    default->instrument:instrumentExpiryDateTime), 
+  false->instrument:expiryDateTime);
+[Core Pricing]FMultiInstrumentAndTrades:expiryDateTimeInTheoreticalPrice = nil;
+[Core Pricing]FOrderBook:expiryDateTimeInTheoreticalPrice = snoop01(theoreticalPrice, "expiryDateTime");
+[Core Pricing]FPriceAggregate:expiryDateTimeInTheoreticalPrice = priceFeed:expiryDateTimeInTheoreticalPrice;
+[Core Pricing]FPriceFeed:expiryDateTimeInTheoreticalPrice = snoop01(theoreticalPrice, "expiryDateTime");

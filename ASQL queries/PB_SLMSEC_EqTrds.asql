@@ -1,0 +1,26 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_CFD_SLMSEC_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+(
+i.instype in ('Stock')
+OR
+i.und_instype in ('Stock', 'EquityIndex')
+)
+AND
+t.status not in ('Simulated', 'Void')

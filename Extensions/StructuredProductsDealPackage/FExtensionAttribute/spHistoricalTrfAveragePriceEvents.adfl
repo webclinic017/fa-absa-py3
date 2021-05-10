@@ -1,0 +1,4 @@
+[StructuredProductsDealPackage]FExoticEvent:spHistoricalTrfAveragePriceEvents = select(object.Date < valuationDate, 
+  true->select(object.Date >= firstDayOfMonth(valuationDate), 
+    true->object));
+[StructuredProductsDealPackage]FInstrument:spHistoricalTrfAveragePriceEvents = flattenAndRemoveNil(spTrfAveragePriceEventsSorted :* "spHistoricalTrfAveragePriceEvents");

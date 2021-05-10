@@ -1,0 +1,17 @@
+/*
+This ASQL query selects all the trades on exchange traded futures
+and options for client COGITO.
+It is used by the similarly named trade filter
+which is then used by the Since Inception Trade Summary report.
+*/
+select t.trdnbr from trade t, instrument i, portfolio p
+where t.insaddr = i.insaddr
+and p.prfnbr = t.prfnbr
+and p.prfid in ('PB_MONEYMARKET_FF_COGITO_CR',
+    'PB_CASH_EQUITY_FF_COGITO_CR',
+    'PB_CASH_EQUITY_COGITO_CR',
+    'PB_SAFEX_COGITO_CR',
+    'PB_CFD_COGITO_CR',
+    'PB_OPTION_EQ_COGITO_CR')
+and i.otc = 'No'
+and (i.instype = 'Future/Forward' or i.instype = 'Option')

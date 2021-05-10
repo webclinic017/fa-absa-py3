@@ -1,0 +1,15 @@
+[Core Pricing]FCashFlow:discountCurve = leg:discountCurve;
+[Core Pricing]FCashFlowMoneyFlow:discountCurve = leg:discountCurve;
+[Core Pricing]FCombInstrMap:discountCurve = instrument:discountCurve;
+[Core Pricing]FInstrument:discountCurve = mappedDiscountLink :* "discountCurve";
+[Core Pricing]FInstrumentAndTrades:discountCurve = instrument:discountCurve;
+[Core Pricing]FIrCurveInformation:discountCurve = discountIrCurveInformation;
+[Core Pricing]FLeg:discountCurve = mappedDiscountLink :* "discountCurve";
+[Core Pricing]FLegAndTrades:discountCurve = leg:discountCurve;
+[Core Pricing]FMappingLink:discountCurve = discountCurveHierarchy;
+[Core Pricing]FMoneyFlow:discountCurve = currency:discountCurve;
+[Core Pricing]FOrderBook:discountCurve = instrument:discountCurve;
+[Core Pricing]FPayment:discountCurve = currency:discountCurve;
+[Core Pricing]FYieldCurveHierarchy:discountCurve = select(hideRiskFactorNames, 
+  false->delta(discountYieldCurveComponent :* "discountIrCurveInformation" [component = underlyingComponent], discountCurveShift), 
+  true->discountYieldCurveComponent :* "underlyingIrCurveInformation" [component = underlyingComponent]);

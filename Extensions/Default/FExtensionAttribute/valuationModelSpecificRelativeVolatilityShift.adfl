@@ -1,0 +1,8 @@
+[Default]FInstrument:valuationModelSpecificRelativeVolatilityShift = select(useVannaVolgaAddOnModel, 
+  true->fixedVolatilityShiftVannaVolga, 
+  default->select(valuationModelDescription, 
+    nil->fixedVolatilityShift, 
+    default->select(valuationModelDescription.Includes("relativeVolatilityShift"), 
+      true->valuationModelDescription["relativeVolatilityShift"], 
+      false->fixedVolatilityShift)));
+[Default]FLeg:valuationModelSpecificRelativeVolatilityShift = instrument:valuationModelSpecificRelativeVolatilityShift;

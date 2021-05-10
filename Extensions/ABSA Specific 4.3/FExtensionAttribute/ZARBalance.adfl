@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:ZARBalance = balance * double(instrument:currency :* "fxForwardRate" [fxToCurrency = currencyZAR]);
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:ZARBalance = select(double(sumOf(tradesInPosition :* "ZARBalance" [positionObject])) == [], 
+  true->0.0, 
+  default->double(sumOf(tradesInPosition :* "ZARBalance" [positionObject])));
+[ABSA Specific 4.3]FTrade:ZARBalance = double(balance * double(instrument:currency :* "fxForwardRate" [fxToCurrency = currencyZAR]));
+[ABSA Specific 4.3]FTradeRow:ZARBalance = double(balance * double(instrument:currency :* "fxForwardRate" [fxToCurrency = currencyZAR]));

@@ -1,0 +1,5 @@
+[Default]ExecutionAlgo:marketSpreadIsTooLarge = switch((joinPrice > 0) and (matchPrice > 0), 
+  true->select(algoIsBuy, 
+    true->(matchPrice / joinPrice) < (1 + limMaxSpread * 0.01), 
+    false->(joinPrice / matchPrice) < (1 + limMaxSpread * 0.01)), 
+  default->true);

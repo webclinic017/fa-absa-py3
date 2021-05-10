@@ -1,0 +1,21 @@
+Select
+t.trdnbr,
+p.prfid    'Portfolio',
+pp.prfid  'Cost_Centre'
+
+
+FROM
+
+trade t,
+portfolio p ,
+portfolio pp ,
+portfolioLink pl 
+
+where
+
+match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.prfnbr = p.prfnbr 
+and p.prfnbr = pl.member_prfnbr 
+and	pl.owner_prfnbr = pp.prfnbr
+
+group by 2

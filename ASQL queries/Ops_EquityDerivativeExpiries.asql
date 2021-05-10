@@ -1,0 +1,70 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+SELECT
+      AEL_I(p,'ASQL_log','Ops_EquityDerivativeExpiries') 'Name' 
+INTO  ASQL_LOG_TEMP 
+FROM TextObject p 
+WHERE p.name = 'Ops_EquityDerivativeExpiries' and p.type = 'SQL Query' 
+
+SELECT
+    t.trdnbr    'TradeNumber',
+    i.insid   'InstrumentID',
+    i.instype   'InstrumentType',
+    i.exp_day   'ExpiryDate',
+    display_id(t, 'counterparty_ptynbr')    'CounterParty',
+    display_id(t, 'prfnbr') 'Portfolio',
+    t.status    'Status',
+    nominal_amount(t)   'Nominal',
+    date_add_delta(i.exp_day, i.pay_day_offset,,)   'Settlement',
+    display_id(t, 'curr')   'Currency',
+    t.premium   'Amount',
+    'Premium'   'Type'
+
+INTO 
+    TempTable
+FROM
+    trade t,
+    instrument i
+WHERE     
+    match_filter(t,@Filter{Exp_OTC_NB;Tradefilter.fltid})
+/*AND i.exp_day >= to_date(@FromDate{Today - 2w})
+AND i.exp_day <= to_date(@ToDate{Today + 1m})*/
+AND t.insaddr = i.insaddr
+ORDER BY 4, 5
+
+SELECT 
+    TradeNumber,
+    InstrumentID,
+    InstrumentType,
+    ExpiryDate,
+    CounterParty,
+    Portfolio,
+    Status,
+    Nominal,
+    Settlement,
+    Currency,
+    Amount,
+    Type
+FROM
+    TempTable
+    
+UNION
+
+SELECT 
+    t.TradeNumber,
+    t.InstrumentID,
+    t.InstrumentType,
+    t.ExpiryDate,
+    t.CounterParty,
+    t.Portfolio,
+    t.Status,
+    t.Nominal,
+    t.Settlement,
+    t.Currency,
+    p.amount    'Amount',
+    'Additional'    'Type'
+    
+FROM
+    TempTable t,
+    Payment p
+WHERE
+    t.TradeNumber = p.trdnbr

@@ -1,0 +1,77 @@
+/* update_method=0 */
+SELECT 
+    ins.insaddr, ins.isin
+INTO 
+    Und
+FROM 
+    Instrument ins
+WHERE
+    ins.instype in ('Bond', 'FRN', 'IndexLinkedBond', 'Combination')
+    AND ins.isin ~= '' 
+    AND ins.isin IS NOT NULL
+
+SELECT 
+    trd.trdnbr
+  FROM 
+    Trade trd, Instrument ins
+ WHERE 
+    trd.insaddr = ins.insaddr
+   AND ins.instype in ('Bond', 'FRN', 'IndexLinkedBond', 'Combination')
+   AND (
+            match_portfolio(trd, 'ABSA BANK LTD')
+        OR  match_portfolio(trd, 'BAGL')
+        
+        )
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND ins.isin like 'ZAG%'
+   
+UNION 
+
+SELECT 
+    trd.trdnbr
+FROM 
+    Trade trd, Instrument ins, Und ui
+WHERE 
+    trd.insaddr = ins.insaddr
+    AND ins.und_insaddr=ui.insaddr
+    AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+    AND ins.instype in ( 'BuySellback', 'Repo/Reverse', 'SecurityLoan')
+    AND (
+            match_portfolio(trd, 'ABSA BANK LTD')
+        OR  match_portfolio(trd, 'BAGL')
+        
+        )
+    AND NOT match_portfolio(trd, 'GROUP TREASURY')
+    AND NOT match_portfolio(trd, 'SBL Agency')
+    AND NOT match_portfolio(trd, 'SBL_Accrued')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond')
+    AND NOT match_portfolio(trd, 'SBL_Agency_Bond_ETF')
+    AND ui.isin like 'ZAG%'
+    AND trd.acquire_day <= to_date('15d')
+    AND (
+            ins.exp_day >= to_date('-2m')
+            OR trd.re_acquire_day => to_date('-2m')
+            OR ins.open_end = 'Open End'
+    )
+
+UNION
+
+SELECT trd.trdnbr
+FROM Trade trd, Instrument ins, Instrument curr
+WHERE trd.insaddr = ins.insaddr
+AND trd.curr = curr.insaddr
+AND trd.status in ('BO Confirmed','BO-BO Confirmed','Confirmed Void','Exchange','FO Confirmed','FO Sales','Internal','Legally Confirmed','Reserved','Terminated')
+AND trd.acquire_day <= to_date('15d')
+AND ins.instype = 'BasketRepo/Reverse'
+AND curr.instype = 'Curr'
+AND curr.insId = 'ZAR'
+AND (
+        ins.exp_day >= to_date('-2m')
+        OR ins.open_end = 'Open End'
+)
+AND NOT match_portfolio(trd, 'GROUP TREASURY')

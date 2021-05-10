@@ -1,0 +1,619 @@
+/*------------------------------------------------------------------
+    This query supplies all cashflows, dividends and payments in Front Arena for a specific date as well as the reversals for voided trades.
+    
+Purpose                 :[Deployment]
+Department and Desk     :[PCG]
+Requester:              :[Nick Bance]
+Developer               :[Willie van der Bank]
+CR Number               :[ 04/11/2011]
+------------------------------------------------------------------*/
+
+select
+    ael_i(p,'ASQL_log','Liquidity_Cashflows') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'Liquidity_Cashflows' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_FromReportDate{yesterday}        'FromRepDate',
+    date_add_delta(@2_ToReportDate{yesterday}, , , to_int(@3_YearExtension{40}))      'ToRepDate',
+    @3_YearExtension{40}                'YearExtension'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.FromRepDate=today ? used_price(hc, m.FromRepDate, curr.insid) :
+		mtm_price(hc, m.FromRepDate, curr.insid)		'fxRepDay'
+		
+into
+	fxrates
+
+from
+	instrument	hc,
+	instrument	curr,
+	macros		m
+
+where
+    curr.instype = 'Curr'
+and hc.insid = 'ZAR'
+
+
+
+
+/*------------------------------------------------------------------
+	Trades
+------------------------------------------------------------------*/
+select
+    t.trdnbr,
+    t.insaddr,
+    t.status,
+    display_id(t,'prfnbr')              'Portfolio',
+    t.quantity,
+    t.value_day,
+    t.premium,
+    to_date(t.execution_time)           'execution_time',
+    t.your_ref,
+    t.trx_trdnbr,
+    to_date(t.updat_time)               'updat_time',
+    to_date(t.time)                     'TradeDate',
+    nominal_amount(t, t.value_day)      'Nominal',
+    nominal_amount(t, t.value_day) * 1/fx.fxRepDay      'ZAR_Nominal',
+    
+    i.insid                             'InstrumentName',
+    i.instype                           'Instype',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+            : add_info(t, 'Instype'))	'Product_Code',   
+    i.index_factor,
+    i.ref_value,
+    i.exp_day,
+    to_date(i.updat_time)               'InsUpdat_time',
+    
+    accumulated_cash(t, i.exp_day, t_curr.insid, 2, 0, , 1, 'None') 'ExpAccuCash',
+    accumulated_cash(t, m.ToRepDate, curr.insid, 2, 0, , 1, 'None') 'RepToAccuCash',
+    i.instype ~= 'Bond' ? to_date(t.value_day) : ael_s(,'Derivatives_Cashflow_Recon.ExDivDate', t.trdnbr) 'ExDiv',
+    
+    display_id(t,'acquirer_ptynbr')     'Acquirer',
+    curr.insid                          'InsCurr', 
+    t_curr.insid                        'TradeCurr',
+    pty.ptyid                           'Counterparty',
+    pty.type                            'CptyType',
+	i.paytype							'PayType',
+	i.exercise_type						'Option_Type',
+	i.settlement						'Option_Settle_Type',
+	i.call_option ? 'Call' : 'Put'		'IsCallOrPut',
+	date_add_banking_day(i.exp_day, , to_int(i.spot_banking_days_offset))	'Option_Delivery_Date'
+
+into 
+    trades
+from
+    trade t,
+    instrument i,
+    instrument curr,
+    instrument t_curr,
+    party pty,
+    macros m,
+    fxrates fx
+
+where
+    i.insaddr = t.insaddr
+and i.curr = curr.insaddr
+and t.curr = t_curr.insaddr
+and t_curr.insid = fx.curr
+and pty.ptynbr = t.counterparty_ptynbr
+and match_filter(t, @5_Filter{;tradefilter.fltid}, @4_TrdNbrs{})
+
+
+/*------------------------------------------------------------------
+	Cashflows
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    t.status,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    t.TradeCurr,
+    display_id(l,'curr')	        'CF_Curr',
+	projected_cf(cf) * t.quantity	'Amount',
+	present_value(cf) * quantity    'Amount_PV',
+	nominal_amount(cf) *t.quantity  'CF_Nominal',
+	to_string(l.type)               'LegType'
+into
+	FinalCF
+from
+	trades t,
+	leg l,
+	cashflow cf,
+	macros m
+where
+    t.instype not in ('Stock','Option','CFD','Future/Forward','Combination','Curr')
+and t.InstrumentName not like 'fd_%'
+and t.insaddr = l.insaddr
+and	l.legnbr  = cf.legnbr
+
+/*To exclude security lending payments on margin accounts*/
+/*and add_info(cf,'PSCashType') = ''*/
+
+/*For voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and cf.pay_day < m.FromRepDate
+/*and cf.pay_day > t.ExDiv)*/
+/*and cf.end_day > t.ExDiv)
+
+or (t.status ~= 'Void'*/
+and ((cf.pay_day <= m.ToRepDate
+and cf.pay_day >= m.FromRepDate)
+/*and cf.end_day > t.ExDiv)*/
+/*For back dated trades*/
+or (t.execution_time >= m.ToRepDate
+and t.execution_time <= m.FromRepDate
+and cf.pay_day < m.ToRepDate
+/*and cf.pay_day > t.ExDiv))))*/
+and cf.end_day > t.ExDiv))
+
+/*------------------------------------------------------------------
+	Cashflows for Combination trades
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    cf.cfwnbr,
+    t.trdnbr,
+    t.status,
+    to_string(cf.type)	            'CFType',
+    to_date(cf.updat_time)          'UpdateDate',
+	cf.pay_day	                    'PayDate',
+    t.TradeCurr,
+    display_id(l,'curr')	        'CF_Curr',
+	projected_cf(cf) * (t.quantity/t.index_factor)*cl.weight    'Amount',
+	present_value(cf) * (t.quantity/t.index_factor)*cl.weight   'Amount_PV',
+	nominal_amount(cf) * t.quantity 'CF_Nominal',
+    to_string(l.type)                                           'LegType'
+into
+	FinalCF
+from
+    trades          t,
+    leg             l,
+    combinationlink cl,
+    instrument  memins,
+    cashflow        cf,
+	macros m
+where
+    t.instype = 'Combination'
+and t.insaddr = cl.owner_insaddr 
+and cl.member_insaddr = memins.InsAddr 
+and cl.member_insaddr *= l.insaddr
+and l.legnbr *= cf.legnbr 
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and cf.pay_day < m.FromRepDate
+/*and cf.pay_day > t.ExDiv)*/
+/*and cf.end_day > t.ExDiv)
+
+or (t.status ~= 'Void'*/
+and ((cf.pay_day <= m.ToRepDate
+and cf.pay_day >= m.FromRepDate
+and cf.end_day > t.ExDiv)
+/*For back dated trades*/
+or (t.execution_time >= m.ToRepDate
+and t.execution_time <= m.FromRepDate
+and cf.pay_day < m.ToRepDate
+/*and cf.pay_day > t.ExDiv))))*/
+and cf.end_day > t.ExDiv))
+
+
+/*------------------------------------------------------------------
+	Cashflows for Currency trades - FX Swap and FX Cash
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                               'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Fixed Amount'	                'CFType',
+    t.updat_time                    'UpdateDate',
+	t.value_day	                    'PayDate',
+    t.TradeCurr,
+    t.InsCurr	                    'CF_Curr',    
+	t.quantity	                    'Amount',
+    t.quantity                      'Amount_PV',
+    0.00                            'CF_Nominal',
+	''                              'LegType'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+    t.instype = 'Curr'
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and t.value_day < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((t.value_day <= m.ToRepDate
+and t.value_day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and t.value_day < m.FromRepDate))
+
+
+
+/*------------------------------------------------------------------
+    Premiums
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                      'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Premium'	            'CFType',
+    t.updat_time            'UpdateDate',
+	t.value_day	            'PayDate',
+    t.TradeCurr,
+    t.TradeCurr             'CF_Curr',
+	t.premium	            'Amount',
+	t.premium               'Amount_PV',
+	0.00                    'CF_Nominal',
+	''                      'LegType'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+    t.premium ~= 0.0
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and t.value_day < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((t.value_day <= m.ToRepDate
+and t.value_day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time >= m.ToRepDate
+and t.execution_time <= m.FromRepDate
+and t.value_day < m.ToRepDate))
+
+
+
+/*------------------------------------------------------------------
+    Additional Payments
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    a.paynbr                'cfwnbr',
+    t.trdnbr,
+    t.status,
+    /*'Additional Payment'	'CFType',*/
+    a.type = 'Broker Fee' ? 'Broker Fee' : 'Additional Payment' 'CFType',
+    to_date(a.updat_time)   'UpdateDate',
+	a.payday	            'PayDate',
+    t.TradeCurr,
+    display_id(a,'curr')	'CF_Curr',
+	a.amount	            'Amount',
+    a.amount         	    'Amount_PV',
+    0.00                    'CF_Nominal',
+	''                      'LegType'
+into 
+	FinalCF
+from
+	payment a,
+	trades t,
+	macros m
+where
+    a.trdnbr = t.trdnbr
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and a.payday < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((a.payday <= m.ToRepDate
+and a.payday >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and a.payday < m.FromRepDate)
+/*Back dated Payments*/
+or (a.valid_from <= m.ToRepDate
+and a.valid_from >= m.FromRepDate
+and a.payday < m.FromRepDate))
+
+
+/*------------------------------------------------------------------
+    End premiums for BuySellBack 
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                           'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'End Premium'	            'CFType',
+    t.InsUpdat_time             'UpdateDate',
+	t.exp_day	                'PayDate',
+	t.TradeCurr,
+	t.TradeCurr	                'CF_Curr',
+    t.quantity * t.ref_value    'Amount',
+    t.quantity * t.ref_value    'Amount_PV',
+    0.00                        'CF_Nominal',
+	''                          'LegType'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+t.instype = 'BuySellback'
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and t.exp_day < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((t.exp_day <= m.ToRepDate
+and t.exp_day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and t.exp_day < m.FromRepDate))
+
+/*------------------------------------------------------------------
+    Forward Payout on Expiry
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                           'cfwnbr',
+    t.trdnbr,
+    t.status,
+	t.paytype = 'Forward'
+        ? 'Forward Payout' 
+        : 'Future Cash Balance' 'CFType',
+	t.updat_time                'UpdateDate',
+	t.exp_day	                'PayDate',
+	t.TradeCurr,
+	t.TradeCurr	                'CF_Curr',
+    t.ExpAccuCash               'Amount',
+    t.ExpAccuCash               'Amount_PV',
+    0.00                        'CF_Nominal',
+	''                          'LegType'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+    t.instype in ('Future/Forward')
+
+/*For Voids*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and t.exp_day < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((t.exp_day <= m.ToRepDate
+and t.exp_day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and t.exp_day < m.FromRepDate))
+
+/*------------------------------------------------------------------
+    Generate Future Cash Balance
+    for live Futures that has not expired yet
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    0                               'cfwnbr',
+    t.trdnbr,
+    t.status,
+	'Future Cash Balance'	        'CFType',
+	to_date(m.ToRepDate)            'ToPayDate',
+    to_date(m.FromRepDate)          'FromPayDate',
+	t.TradeCurr,
+	t.TradeCurr	                    'CF_Curr',
+    t.RepToAccuCash      	        'Amount',
+    t.RepToAccuCash      	        'Amount_PV',
+    0.00                            'CF_Nominal',    
+	''                              'LegType'
+into
+	FinalCF
+from
+	trades t,
+	macros m
+where
+    t.instype in ('Future/Forward')
+and t.paytype = 'Future'
+and t.status in ('FO Confirmed','BO Confirmed','BO-BO Confirmed')
+
+and ((t.exp_day <= m.ToRepDate
+and t.exp_day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and t.exp_day < m.FromRepDate))
+
+/*------------------------------------------------------------------
+    Dividend Payments
+------------------------------------------------------------------*/
+select
+    m.ToRepDate,
+    m.FromRepDate,
+    d.seqnbr                    'cfwnbr',
+    t.trdnbr,
+    t.status,
+    'Dividend'		            'CFType',
+    to_date(d.updat_time)       'UpdateDate',
+	d.day			            'PayDate',
+    t.TradeCurr,
+    display_id(d,'curr')        'CF_Curr',
+	t.quantity * d.dividend     'Amount',
+	t.quantity * d.dividend     'Amount_PV',
+	0.00                        'CF_Nominal',
+    ''                          'LegType'
+into
+	FinalCF
+from	
+	dividend d,
+	trades t,
+	macros m
+where
+    d.insaddr = t.insaddr
+and t.instype not in ('Future/Forward') /*Additional payments is already included in the cash balance for futures and forwards*/
+
+/*For Voids*/
+/*and ((t.status = 'Void' and to_date(t.updat_time) >= m.FromRepDate) or t.status ~= 'Void')*/
+/*and ((t.status = 'Void'
+and t.updat_time >= m.FromRepDate
+and t.updat_time <= m.ToRepDate
+and d.day < m.FromRepDate)
+
+or (t.status ~= 'Void'*/
+and ((d.day <= m.ToRepDate
+and d.day >= m.FromRepDate)
+/*For back dated trades*/
+or (t.execution_time <= m.ToRepDate
+and t.execution_time >= m.FromRepDate
+and d.day < m.FromRepDate))
+
+
+/*------------------------------------------------------------------
+    Select all the Cashflow data
+------------------------------------------------------------------*/
+
+Select
+    CFC.ToRepDate,
+    CFC.FromRepDate,
+    CFC.status              'TrdStatus',
+    CFC.trdnbr              'Trdnbr',
+    CFC.PayDate,
+    CFC.Amount              'Amount',
+    CFC.Amount_PV           'Amount_PV',
+    CFC.CF_Nominal,
+    CFC.Amount > 0 ? 'Buy' : 'Sell'  'BS',
+    CFC.CFType,
+    CFC.cfwnbr              'Cfwnbr',
+    t.exp_day               'InsExpiry',
+    t.Counterparty,
+    t.CptyType,
+    cfc.TradeCurr           'TrdCurrency',
+    cfc.CF_Curr             'CF_Currency',
+    t.InstrumentName,
+    t.Instype,
+    t.Product_Code,
+    t.Nominal,
+    t.ZAR_Nominal,
+    t.your_ref              'CptyRef',
+    t.Portfolio,
+    t.Acquirer,
+    t.trx_trdnbr            'TransRef',
+    t.updat_time            'TrdUpdateTime',
+    t.TradeDate,
+    CFC.Amount * 1/fx.fxRepDay                  'ZAR_Amount',
+    CFC.Amount_PV * 1/fx.fxRepDay               'ZAR_Amount_PV',
+    CFC.CF_Nominal * 1/fx.fxRepDay              'ZAR_CFNominal',
+    1/fx.fxRepDay 'fxx',
+	t.PayType,
+	t.Option_Type,
+	t.Option_Settle_Type,
+	t.IsCallOrPut,
+	t.Option_Delivery_Date
+
+into 
+    Final
+from
+    FinalCF CFC,
+    Trades t,
+    fxrates fx
+
+where
+    t.trdnbr = CFC.trdnbr
+and fx.curr = CFC.CF_Curr
+and (CFC.Amount > 0 or CFC.Amount < 0)
+    
+
+/*----------------------------------------
+    Final select
+-----------------------------------------*/
+select distinct
+    t.FromRepDate,
+    t.ToRepDate,
+    t.Trdnbr,
+    t.TransRef                                  'TrxTrade',
+    t.TrdStatus,
+    t.Counterparty,
+    t.InsExpiry,
+    t.CFType,
+    t.TradeDate,
+    t.PayDate, 
+    convert('double', sum(t.Amount), 2)         'Amount',
+    convert('double', sum(t.Amount_PV), 2)      'Amount_PV',
+    t.BS,
+    t.TrdCurrency,
+    t.CF_Currency,
+    t.InstrumentName,
+    t.Instype,
+    t.Product_Code,
+    convert('double', t.Nominal, 2)             'Nominal',
+    convert('double', t.CF_Nominal, 2)          'CF_Nominal',
+    t.Portfolio,
+    t.Acquirer,
+    t.CptyType,
+    t.Cfwnbr,
+    convert('double', t.ZAR_Amount, 2)          'ZAR_Amount',
+    convert('double', t.ZAR_Amount_PV, 2)       'ZAR_Amount_PV',
+    convert('double', t.ZAR_Nominal, 2)         'ZAR_Nominal',
+    convert('double', t.ZAR_CFNominal, 2)       'ZAR_CFNominal',
+	t.PayType,
+	t.Option_Type,
+	t.Option_Settle_Type,
+	t.IsCallOrPut,
+	t.Option_Delivery_Date
+    /*t.fxx*/
+    
+from
+    Final t

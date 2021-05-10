@@ -1,0 +1,8 @@
+[Core Pricing]FCombInstrMap:marketSpotValueSpreadAverage = (instrumentCurrency:discountCurve).DiscountValue(instrument :* "marketSpotValueSpreadAverage" [priceSource], combination:instrumentSpotDate);
+[Core Pricing]FCombination:marketSpotValueSpreadAverage = select(splitCombinationPrice, 
+  true->sumOf((instrumentMaps) :* "marketSpotValueSpreadAverage * object.Weight * instrument:contractSize * fxLegToInstrument" [priceSource, doSplitAll]) / combinationDivisionFactor, 
+  false->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceSpreadAverage, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll]);
+[Core Pricing]FCurrency:marketSpotValueSpreadAverage = marketSpotValue;
+[Core Pricing]FInstrument:marketSpotValueSpreadAverage = select(pricingCurrency == currency, 
+  true->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceSpreadAverage, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll], 
+  false->object:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = pricingQuotation, quoteConversionWrapperFromQuote = marketPriceSpreadAverage, quoteConversionWrapperDoRounding = true, priceSource, doSplitAll] * fxMarketToInstrument);

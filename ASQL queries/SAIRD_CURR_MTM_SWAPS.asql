@@ -1,0 +1,470 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_CURR_MTM_SWAPS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_CURR_MTM_SWAPS' and p.type = 'SQL Query' 
+/*Code to distinguish mtm BasisSwaps from Basis and Currency Swaps*/
+select distinct
+
+t.trdnbr,
+'Yes' 'Mtm'
+
+into tempBS
+
+from
+
+trade t, instrument i, leg l
+
+where i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and l.nominal_scaling = 'FX'
+and i.exp_day > TODAY
+
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+select distinct
+
+t.trdnbr,  bs.mtm
+
+into tempCC
+
+from
+
+trade t, instrument i, leg l, tempBS bs
+
+where i.insaddr = t.insaddr
+and l.insaddr = i.insaddr
+and i.instype = 'CurrSwap'
+and i.exp_day > TODAY
+
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+
+and t.trdnbr *= bs.trdnbr
+
+select trdnbr, mtm = 'Yes' ? 'Yes' : 'No' 'mtm' into tempAll from tempCC
+
+
+
+
+
+
+
+
+
+/*CREATE TEMPTABLE TO DETERMINE FX RATES*/
+/*--------------------------------------*/
+
+
+SELECT
+	hc.insid						'base',
+	curr.insid						'quote',
+	used_price(hc, today, curr.insid) 			'fxRate'
+	
+INTO
+	fxrates
+FROM
+	instrument	curr,
+	instrument	hc
+WHERE
+	curr.instype = 'Curr'
+and	hc.insid = 'ZAR'
+
+
+/*START OF OUTPUT SCRIPT*/
+/*---------------------*/
+
+
+
+
+select 
+	t.trdnbr										'TRNID',
+	ael_s(t,'InstrType.InstrumentType')							'CONTRACT',
+	l.payleg = 'Yes' ? (t.quantity*i.contr_size >= 0 ? 'PAY' : 'REC') 
+	: (t.quantity*i.contr_size >= 0 ? 'REC' : 'PAY')					'TYPE',
+	'VAR'			'INTTYPE',
+	 display_id(l,'float_rate') 								'INDEX',
+	time_to_day(t.time)									'TRADEDATE',
+	display_id(t, 'trader_usrnbr')								'TRADER',
+	display_id(t, 'optkey1_chlnbr')								'Portfolio',
+	display_id(t, 'prfnbr')									'ProfitCentre',
+	cf.cfwnbr										'Seq',
+	'INT/COM'										'CashflowType',
+	to_date(convert('date',r.day))								'FixingDate',
+	cf.start_day										'StartDate',
+	cf.end_day										'StopDate',
+	cf.pay_day										'PaymentDate',
+	days_between(cf.start_day,cf.end_day,l.daycount_method)					'Days',
+	l.daycount_method = 'Act/365' ? 365 : (l.daycount_method = 'Act/360' ? 360 : 365)	'DaysPerYear',
+	l.rolling_period.count = 3 ? '3M' : 
+	(l.rolling_period.count = 6 ? '6M' : 'none')						'IndexTenor',
+	r.value+cf.spread									'Rate',
+	cf.spread				'Spread',
+
+	a.mtm = 'Yes' ? nominal_amount(l,cf.start_day,,l.curr) : (nominal_amount(cf,cf.start_day,,l.curr) * (l.payleg = 'Yes'? -1 : 1))  'EffecNotionAmt',
+	projected_cf(cf)									'IntCashflow',
+	projected_cf(cf)									'ExchCashflow',
+	display_id(l,'curr')									'ExchCCY',
+	display_id(t,'counterparty_ptynbr')							'Account',
+	r.start_day										'RefIdxStart',
+	r.end_day										'RefIdxStop',
+	1.0 /*present_value(t)/fx1.fxRate*fx2.fxRate*/							'MtM_USD',
+	1.0 /*present_value(t)/fx1.fxRate*/								'MtM_ZAR',
+	t.quantity /*present_value(t)*/									'MtM_CCY', /*Brings the quantity of each trade through this column*/
+	display_id(i,'curr')									'CCY',
+	today											'DATE_LAST_UPDATED',
+	t.optional_key										'Devonnumber',
+	a.mtm 	'MtM_Swap',
+	display_id(l,'curr')									'CCY_of_Notional',
+	display_id(t,'counterparty_ptynbr')							'Counterparty',
+	t.counterparty_ptynbr									'Counterparty_No',
+	fx1.quote = 'USD' ? 1/fx1.fxRate : fx1.fxRate/fx2.fxRate				'ExchangeRate',
+	t.quantity*i.contr_size >= 0 ? 'BUY' : 'SELL'						'B_S',
+	i.exp_day										'MaturityDate',
+	pa.alias										'DartNumber',
+	l.payleg = 'Yes' ? 'PAY' : 'REC'							'PAY_REC',
+	l.type = 'Float' ? 'Float' : l.type							'Leg_typ',
+	cf.type	= 'Float Rate' ? 'Float Rate' : cf.type						'CASHFLOW_TYPE',
+	l.pay_day_method = 'Mod. Following' ? 'Mod. Following' : l.pay_day_method	'PayMethod',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status				'Status',
+	l.start_day	'InsStart',
+	l.nominal_scaling
+	
+
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	cashflow	cf,
+	reset	r,
+	fxrates		fx1,
+	fxrates		fx2,
+	party	p,
+	partyalias pa,
+	tempAll a
+	
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CurrSwap')
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and	i.exp_day > today
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	r.cfwnbr = cf.cfwnbr
+and	cf.pay_day > today
+and	l.type = 'Float'
+and	fx1.quote = display_id(i,'curr')
+and	fx1.base = 'ZAR'
+and	fx2.base = 'ZAR'
+and	fx2.quote = 'USD'
+and	p.ptynbr = t.counterparty_ptynbr
+and 	pa.ptynbr =* p.ptynbr
+and 	pa.type in (3,0)
+and 	cf.type not in ('Return')
+and 	r.type not in ('Return', 'Nominal Scaling')
+and 	a.trdnbr = t.trdnbr
+and	cf.start_day <= TODAY and cf.end_day >= TODAY
+and l.start_day <= TODAY
+
+union
+
+/*fixed side*/
+
+select	
+	t.trdnbr								'TRNID',
+	ael_s(t,'InstrType.InstrumentType')					'CONTRACT',
+
+	l.payleg = 'Yes' ? 
+	(t.quantity*i.contr_size >= 0 ? 'PAY' : 'REC')
+	: (t.quantity*i.contr_size >= 0 ? 'REC' : 'PAY')			'TYPE',
+
+	 'FXD'									'INTTYPE',
+	 'FXD'									'INDEX',
+	time_to_day(t.time)							'TRADEDATE',
+	display_id(t, 'trader_usrnbr')						'TRADER',
+	display_id(t, 'optkey1_chlnbr')						'Portfolio',
+	display_id(t, 'prfnbr')							'ProfitCentre',
+	cf.cfwnbr								'Seq',
+	 'PRINC' 								'CashflowType',
+	to_date('1900-01-02')							'FixingDate',
+	cf.start_day								'StartDate',
+	cf.pay_day 								'StopDate',
+	cf.pay_day								'PaymentDate',
+	days_between(cf.start_day,cf.end_day,l.daycount_method)			'Days',
+
+	l.daycount_method = 'Act/365' ? 365 : 
+	(l.daycount_method = 'Act/360' ? 360 : 365)				'Days_Year',
+
+	l.rolling_period.count = 3 ? '3M' : 
+	(l.rolling_period.count = 6 ? '6M' : 'none')				'IndexTenor',
+
+	cf.rate									'Rate',
+	cf.spread								'Spread',
+
+	 
+	
+    nominal_amount(cf,cf.start_day,,l.curr) * (l.payleg = 'Yes'? -1 : 1)  'EffecNotionAmt',
+	projected_cf(cf)							'IntCashflow',
+	projected_cf(cf)							'ExchCashflow',
+	display_id(l,'curr')							'ExchCCY',
+	display_id(t,'counterparty_ptynbr')					'Account',
+	cf.start_day								'RefIdxStart',
+	cf.end_day								'RefIdxStop',
+	1.0 /*present_value(t)/fx1.fxRate*fx2.fxRate*/		'MtM_USD',
+	1.0 /*present_value(t)/fx1.fxRate*/					'MtM_ZAR',
+	t.quantity /*present_value(t)*/									'MtM_CCY', /*Brings the quantity of each trade through this column*/
+	display_id(i,'curr')							'CCY',
+	today									'DATE_LAST_UPDATED',
+	t.optional_key								'Devonnumber',
+	'No'					'MtM_Swap',
+	display_id(l,'curr')							'CCY_of_Notional',
+	display_id(t,'counterparty_ptynbr')					'Counterparty',
+	t.counterparty_ptynbr							'Counterparty_No',
+	fx1.quote = 'USD' ? 1/fx1.fxRate : fx1.fxRate/fx2.fxRate		'ExchangeRate',
+
+	t.quantity*i.contr_size >= 0  ? 'BUY' : 'SELL'				'B_S',
+	
+	i.exp_day								'MaturityDate',
+	pa.alias								'DartNumber',
+	l.payleg = 'Yes' ? 'PAY' : 'REC'					'PAY_REC',
+	l.type = 'Fixed' ? 'Fixed' : l.type					'Leg_typ',
+	cf.type	= 'Fixed Rate' ? 'Fixed Rate' : cf.type				'CASHFLOW_TYPE',
+	l.pay_day_method = 'Mod. Following' ? 'Mod. Following' : l.pay_day_method  'PayMethod',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 			'Status',
+	l.start_day	'InsStart',
+	l.nominal_scaling
+	
+	
+	
+
+from
+	instrument i,
+	trade t,
+	leg l,
+	cashflow cf,
+	fxrates fx1,
+	fxrates fx2,
+	party p,
+	partyalias pa
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CurrSwap')
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and	l.type = 'Fixed'
+and	i.exp_day > today
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	cf.pay_day > today
+and	fx1.quote = display_id(i,'curr')
+and	fx1.base = 'ZAR'
+and	fx2.base = 'ZAR'
+and	fx2.quote = 'USD'
+and	p.ptynbr = t.counterparty_ptynbr
+and 	pa.ptynbr =* p.ptynbr
+and 	pa.type in (3,0)
+and 	cf.type not in ('Return')
+and	cf.start_day <= TODAY and cf.end_day >= TODAY
+and l.start_day <= TODAY
+
+union 
+/****************************************************************************/
+
+/*Fwd starting*/
+
+/****************************************************************************/
+
+select 
+	t.trdnbr										'TRNID',
+	ael_s(t,'InstrType.InstrumentType')							'CONTRACT',
+	l.payleg = 'Yes' ? (t.quantity*i.contr_size >= 0 ? 'PAY' : 'REC') 
+	: (t.quantity*i.contr_size >= 0 ? 'REC' : 'PAY')					'TYPE',
+	'VAR'			'INTTYPE',
+	 display_id(l,'float_rate') 								'INDEX',
+	time_to_day(t.time)									'TRADEDATE',
+	display_id(t, 'trader_usrnbr')								'TRADER',
+	display_id(t, 'optkey1_chlnbr')								'Portfolio',
+	display_id(t, 'prfnbr')									'ProfitCentre',
+	cf.cfwnbr										'Seq',
+	'INT/COM'										'CashflowType',
+	to_date(convert('date',r.day))								'FixingDate',
+	cf.start_day										'StartDate',
+	cf.end_day										'StopDate',
+	cf.pay_day										'PaymentDate',
+	days_between(cf.start_day,cf.end_day,l.daycount_method)					'Days',
+	l.daycount_method = 'Act/365' ? 365 : (l.daycount_method = 'Act/360' ? 360 : 365)	'DaysPerYear',
+	l.rolling_period.count = 3 ? '3M' : 
+	(l.rolling_period.count = 6 ? '6M' : 'none')						'IndexTenor',
+	r.value+cf.spread									'Rate',
+	cf.spread				'Spread',
+
+	a.mtm = 'Yes' ? nominal_amount(l,cf.start_day,,l.curr) : (nominal_amount(cf,cf.start_day,,l.curr) * (l.payleg = 'Yes'? -1 : 1))   'EffecNotionAmt',
+	projected_cf(cf)									'IntCashflow',
+	projected_cf(cf)									'ExchCashflow',
+	display_id(l,'curr')									'ExchCCY',
+	display_id(t,'counterparty_ptynbr')							'Account',
+	r.start_day										'RefIdxStart',
+	r.end_day										'RefIdxStop',
+	1.0 /*present_value(t)/fx1.fxRate*fx2.fxRate*/							'MtM_USD',
+	1.0 /*present_value(t)/fx1.fxRate*/								'MtM_ZAR',
+	t.quantity /*present_value(t)*/									'MtM_CCY', /*Brings the quantity of each trade through this column*/
+	display_id(i,'curr')									'CCY',
+	today											'DATE_LAST_UPDATED',
+	t.optional_key										'Devonnumber',
+	a.mtm 	'MtM_Swap',
+	display_id(l,'curr')									'CCY_of_Notional',
+	display_id(t,'counterparty_ptynbr')							'Counterparty',
+	t.counterparty_ptynbr									'Counterparty_No',
+	fx1.quote = 'USD' ? 1/fx1.fxRate : fx1.fxRate/fx2.fxRate				'ExchangeRate',
+	t.quantity*i.contr_size >= 0 ? 'BUY' : 'SELL'						'B_S',
+	i.exp_day										'MaturityDate',
+	pa.alias										'DartNumber',
+	l.payleg = 'Yes' ? 'PAY' : 'REC'							'PAY_REC',
+	l.type = 'Float' ? 'Float' : l.type							'Leg_typ',
+	cf.type	= 'Float Rate' ? 'Float Rate' : cf.type						'CASHFLOW_TYPE',
+	l.pay_day_method = 'Mod. Following' ? 'Mod. Following' : l.pay_day_method	'PayMethod',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status				'Status',
+	l.start_day	'InsStart',
+	l.nominal_scaling
+	
+
+from
+	instrument	i,
+	trade	t,
+	leg	l,
+	cashflow	cf,
+	reset	r,
+	fxrates		fx1,
+	fxrates		fx2,
+	party	p,
+	partyalias pa,
+	tempAll a
+	
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CurrSwap')
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and	i.exp_day > today
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	r.cfwnbr = cf.cfwnbr
+and	cf.pay_day > today
+and	l.type = 'Float'
+and	fx1.quote = display_id(i,'curr')
+and	fx1.base = 'ZAR'
+and	fx2.base = 'ZAR'
+and	fx2.quote = 'USD'
+and	p.ptynbr = t.counterparty_ptynbr
+and 	pa.ptynbr =* p.ptynbr
+and 	pa.type in (3,0)
+and 	cf.type not in ('Return')
+and 	r.type not in ('Return', 'Nominal Scaling')
+and 	a.trdnbr = t.trdnbr
+and	cf.start_day = l.start_day
+and l.start_day > TODAY
+
+union
+
+/*fixed side*/
+
+select	
+	t.trdnbr								'TRNID',
+	ael_s(t,'InstrType.InstrumentType')					'CONTRACT',
+
+	l.payleg = 'Yes' ? 
+	(t.quantity*i.contr_size >= 0 ? 'PAY' : 'REC')
+	: (t.quantity*i.contr_size >= 0 ? 'REC' : 'PAY')			'TYPE',
+
+	 'FXD'									'INTTYPE',
+	 'FXD'									'INDEX',
+	time_to_day(t.time)							'TRADEDATE',
+	display_id(t, 'trader_usrnbr')						'TRADER',
+	display_id(t, 'optkey1_chlnbr')						'Portfolio',
+	display_id(t, 'prfnbr')							'ProfitCentre',
+	cf.cfwnbr								'Seq',
+	 'PRINC' 								'CashflowType',
+	to_date('1900-01-02')							'FixingDate',
+	cf.start_day								'StartDate',
+	cf.pay_day 								'StopDate',
+	cf.pay_day								'PaymentDate',
+	days_between(cf.start_day,cf.end_day,l.daycount_method)			'Days',
+
+	l.daycount_method = 'Act/365' ? 365 : 
+	(l.daycount_method = 'Act/360' ? 360 : 365)				'Days_Year',
+
+	l.rolling_period.count = 3 ? '3M' : 
+	(l.rolling_period.count = 6 ? '6M' : 'none')				'IndexTenor',
+
+	cf.rate									'Rate',
+	cf.spread								'Spread',
+
+	 
+	
+    nominal_amount(cf,cf.start_day,,l.curr) * (l.payleg = 'Yes'? -1 : 1)   'EffecNotionAmt',
+	projected_cf(cf)							'IntCashflow',
+	projected_cf(cf)							'ExchCashflow',
+	display_id(l,'curr')							'ExchCCY',
+	display_id(t,'counterparty_ptynbr')					'Account',
+	cf.start_day								'RefIdxStart',
+	cf.end_day								'RefIdxStop',
+	1.0 /*present_value(t)/fx1.fxRate*fx2.fxRate*/					'MtM_USD',
+	1.0 /*present_value(t)/fx1.fxRate*/						'MtM_ZAR',
+	t.quantity /*present_value(t)*/									'MtM_CCY', /*Brings the quantity of each trade through this column*/
+	display_id(i,'curr')							'CCY',
+	today									'DATE_LAST_UPDATED',
+	t.optional_key								'Devonnumber',
+	'No'					'MtM_Swap',
+	display_id(l,'curr')							'CCY_of_Notional',
+	display_id(t,'counterparty_ptynbr')					'Counterparty',
+	t.counterparty_ptynbr							'Counterparty_No',
+	fx1.quote = 'USD' ? 1/fx1.fxRate : fx1.fxRate/fx2.fxRate		'ExchangeRate',
+
+	t.quantity*i.contr_size >= 0  ? 'BUY' : 'SELL'				'B_S',
+	
+	i.exp_day								'MaturityDate',
+	pa.alias								'DartNumber',
+	l.payleg = 'Yes' ? 'PAY' : 'REC'					'PAY_REC',
+	l.type = 'Fixed' ? 'Fixed' : l.type					'Leg_typ',
+	cf.type	= 'Fixed Rate' ? 'Fixed Rate' : cf.type				'CASHFLOW_TYPE',
+	l.pay_day_method = 'Mod. Following' ? 'Mod. Following' : l.pay_day_method  'PayMethod',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status 			'Status',
+	l.start_day	'InsStart',
+	l.nominal_scaling
+	
+	
+	
+
+from
+	instrument i,
+	trade t,
+	leg l,
+	cashflow cf,
+	fxrates fx1,
+	fxrates fx2,
+	party p,
+	partyalias pa
+where
+	t.insaddr = i.insaddr
+and	i.instype in ('CurrSwap')
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and	l.type = 'Fixed'
+and	i.exp_day > today
+and	l.insaddr = i.insaddr
+and	cf.legnbr = l.legnbr
+and	cf.pay_day > today
+and	fx1.quote = display_id(i,'curr')
+and	fx1.base = 'ZAR'
+and	fx2.base = 'ZAR'
+and	fx2.quote = 'USD'
+and	p.ptynbr = t.counterparty_ptynbr
+and 	pa.ptynbr =* p.ptynbr
+and 	pa.type in (3,0)
+and 	cf.type not in ('Return')
+and	cf.start_day = l.start_day
+and l.start_day > TODAY

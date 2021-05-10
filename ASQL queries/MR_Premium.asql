@@ -1,0 +1,54 @@
+/* update_method=0 */
+/* -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2016-01-20     CHNG0003450270   Ashley Kanter      Chris Human        http://abcap-jira/browse/MINT-413
+2016-03-22     CHNG0003450270   Ashley Kanter      Chris Human        http://abcap-jira/browse/MINT-528
+2020-09-11     CHG0128302	    Garth Saunders	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-776
+2020-10-23     CHG0134281	    Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+*/
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Premium.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Premium.csv'},@3_PositionName{'MR_Premium_Position.csv'})	'BuildConfirmation'
+into
+    macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+select
+    p.prfnbr,
+    p.prfid
+into
+    valid_portfolios
+from
+    portfolio p
+where
+    ael_i(,'MR_MainFunctions.isExcludedPortfolioFromPortfolio',p.prfnbr) = 0
+    
+Select
+    'Write File' 'Process', 
+    ael_s(t,'MR_Premium.Write',@1_path{'f:\'},@2_FileName{'MR_Premium.csv'},@3_PositionName{'MR_Premium_Position.csv'})	'BuildConfirmation'
+into
+    macro
+From 
+	Trade t, Instrument i, valid_portfolios vp
+Where i.insaddr = t.insaddr
+and i.instype in ('Option','FRN','Combination','ETF')
+and t.acquire_day > Today
+and t.prfnbr = vp.prfnbr
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

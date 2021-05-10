@@ -1,0 +1,114 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Call_Ceded_Accounts') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Call_Ceded_Accounts' and p.type = 'SQL Query'
+
+/*
+When           Who              What        CR Number
+2008-04-23     Heinrich Cronje  Created
+
+Description:
+
+This ASQL list all the ceded call accounts. The user have the choise to
+view only ceded call accounts, non ceded call accounts or all call
+accounts.
+
+*/
+
+select
+    @3_Selection{Ceded Only;'Ceded Only','Non Ceded','All'}   'Selection'
+into
+    macro
+from
+    serverdata s
+where
+    s.srdnbr > 0
+    
+/*----------------------All Call Accounts-----------------------*/
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    i.incomplete = 'Pledged' ? 'Cede' : i.incomplete    'Ceded',
+    i.face_value    'Ceded_Amount',
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    t.status    'Status'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    leg l
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+
+/*----------------------Ceded Call Accounts-------------------------*/
+select
+    t.Trdnbr,
+    t.Insid,
+    t.Counterparty,
+    t.Ceded,
+    t.Ceded_Amount,
+    t.Acquirer,
+    t.Status
+into
+    final
+from
+    temp t,
+    macro m
+where
+        t.Ceded = 'Cede'
+    and t.Ceded_Amount > 0
+    and m.Selection = 'Ceded Only'
+
+/*----------------------Non Ceded Accounts-------------------------*/
+select
+    t.Trdnbr,
+    t.Insid,
+    t.Counterparty,
+    t.Ceded,
+    t.Ceded_Amount,
+    t.Acquirer,
+    t.Status
+into
+    final
+from
+    temp t,
+    macro m
+where
+        t.Ceded ~= 'Cede'
+    and t.Ceded_Amount = 0
+    and m.Selection = 'Non Ceded'
+
+/*----------------------All Call Accounts-------------------------*/
+select
+    t.Trdnbr,
+    t.Insid,
+    t.Counterparty,
+    t.Ceded,
+    t.Ceded_Amount,
+    t.Acquirer,
+    t.Status
+into
+    final
+from
+    temp t,
+    macro m
+where
+    m.Selection = 'All'
+
+/*----------------------Output-------------------------*/
+select
+    f.Trdnbr,
+    f.Insid,
+    f.Counterparty,
+    f.Ceded,
+    f.Ceded_Amount,
+    f.Acquirer,
+    f.Status
+from
+    final f

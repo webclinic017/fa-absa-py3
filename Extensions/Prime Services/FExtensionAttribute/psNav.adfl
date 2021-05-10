@@ -1,0 +1,4 @@
+[Prime Services]FMultiInstrumentAndTrades:psNav = sumOf(children :* "psNav");
+[Prime Services]FSingleInstrumentAndTrades:psNav = switch(instrument.InsType, 
+  "Deposit"->py("PS_Functions", context).NAVDeposits(instrument, profitAndLossEndDate), 
+  default->(closingMarketValue + dailyExecutionFee + totalFunding));

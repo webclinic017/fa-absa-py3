@@ -1,0 +1,10 @@
+[Profit and Loss]FCombInstrMapAndTrades:tPLFxContribution = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:tPLFxContribution = nil;
+[Profit and Loss]FInstrumentAndTrades:tPLFxContribution = select(isCashGrouping, 
+  true->tPL, 
+  default->select(valuationParameters.HistoricalFXChoice, 
+    "None"->shunt(profitAndLossStartDate == longTimeAgo, 
+      true->0, 
+      false->tPL - object:tPL [displayCurrency, profitAndLossStartDate, profitAndLossEndDate, pLPeriodFX = "Start Date"]), 
+    default->tPL - object:tPL [displayCurrency, profitAndLossStartDate, profitAndLossEndDate, historicalFXChoice = "None"]));
+[Profit and Loss]FLegAndTrades:tPLFxContribution = nil;

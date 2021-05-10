@@ -1,0 +1,42 @@
+/*
+Purpose                       :  Settlement Report
+Department and Desk           :  ops
+Requester                     :  Julian Moodley 
+Developer                     :  Ickin Vural
+CR Number                     :  
+
+*/
+
+/* Usage code for this ASQL */
+
+select
+ael_i(p,'ASQL_log','SettlementReport') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SettlementReport' and p.type = 'SQL Query' 
+
+select
+    s.value_day,
+    s.acquirer_ptyid,
+    i.insid,
+    display_id(s,'curr'),
+    s.amount,
+    s.status,
+    t.trdnbr,
+    i.instype,
+    display_id(t,'counterparty_ptynbr') 'counter party',
+    t.status 'Trade Status'
+
+from
+    Settlement s,
+    Trade t,
+    Instrument i
+where
+    s.trdnbr = t.trdnbr
+and i.insaddr = t.insaddr
+and s.acquirer_ptyid in ('IRD DESK','NLD DESK','EQ Derivatives Desk','Money Market Desk','Funding Desk')    
+and s.status not in ('Void')
+and s.value_day >= @FromDate{Today;}
+and s.value_day <= @ToDate{Today;}
+
+order by 2

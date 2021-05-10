@@ -1,0 +1,67 @@
+/* update_method=1 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Call_Exception') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Call_Exception' and p.type = 'SQL Query' 
+
+
+select
+    t.trdnbr,
+    i.insid,
+    t.status,
+    ael_d(,'Call_Last_End_Day.lastCFEndDay',t.trdnbr)   'Last_End_Date',
+    cf.start_day,
+    cf.end_day,
+    cf.pay_day,
+    cf.cfwnbr,
+    t.quantity * projected_cf(cf)    'CF_Amount',
+    cf.type,
+    display_id(t,'prfnbr')  'Portfolio',
+    l.reinvest,
+    display_id(t,'acquirer_ptynbr') 'Acquirer',
+    display_id(t,'counterparty_ptynbr') 'Counterparty'
+into
+    temp
+from
+    trade t,
+    instrument i,
+    cashflow cf,
+    leg l
+where
+        t.insaddr = i.insaddr
+    and l.insaddr = i.insaddr
+    and l.legnbr = cf.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and cf.type in ('Call Fixed Rate Adjustable', 'Fixed Rate Adjustable')
+    and cf.pay_day >= @3_Date{Today}
+
+select
+    t.trdnbr,
+    t.insid,
+    t.status,
+    t.Last_End_Date,
+    s.seqnbr    'Settlement_Seqnbr',
+    s.status,
+    s.value_day,
+    t.start_day,
+    t.end_day,
+    t.pay_day,
+    t.CF_Amount,
+    s.amount,
+    t.cfwnbr,
+    t.type,
+    t.Portfolio,
+    s.status_explanation,
+    t.reinvest,
+    t.Acquirer,
+    t.Counterparty
+from
+    temp t,
+    settlement s
+where
+        t.trdnbr *= s.trdnbr
+    and t.cfwnbr *= s.cfwnbr
+
+order by t.reinvest, s.value_day desc , t.start_day

@@ -1,0 +1,8 @@
+[Default]FInstrument:theoreticalInstrumentValueDate = select(payTypeForward, 
+  true->object.PriceDateToValueDate(valuationDate), 
+  false->shunt[valuationBaseDateTimeInput, forwardPriceDate](isExpired, 
+    true->collapse(instrumentSpotDate), 
+    false->collapse(valuationStartSpotDate)));
+[Default]FOption:theoreticalInstrumentValueDate = switch(isExpired, 
+  true->minOf([theoreticalInstrumentValueDateHelper, object.DeliveryDate(expiryDateTime)]), 
+  default->theoreticalInstrumentValueDateHelper);

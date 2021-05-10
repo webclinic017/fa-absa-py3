@@ -1,0 +1,46 @@
+/*
+Purpose                       :  [updated. Added the update time to the where clause, such that trade amendments are also included],
+                                 [updated. Removed the update time from the where clause. Added Premium and used_price columns.],
+                                 [updated. Changed date format for IM purposes.],[updated. Added ETF instrument type.]
+Department and Desk           :  [PCG],[PCG],[IM],[OPs]
+Requester                     :  [Andrew Tagg],[Andrew Tagg],[Anesh Polly],[Lucas Varnavides]
+Developer                     :  [Anwar Banoo],[Willie van der Bank],[Willie van der Bank],[Bhavnisha Sarawan]
+CR Number                     :  [217694   Tracker Issue 2161],[243469 04/03/2010],[253953 15/03/2010],[C448770 30/09/10]
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_AllStockTrades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_AllStockTrades' and p.type = 'SQL Query' 
+ 
+/*List all stock trades done for a given day*/
+select
+        display_id(t,'prfnbr'),
+        t.trdnbr                 'Trade Number',           
+        i.insid                  'Inst',
+        t.quantity               'Qty',
+        t.price                  'Price',
+        convert('time',t.execution_time,'%d/%m/%Y')         'Execution Time',
+        convert('time',t.time,'%d/%m/%Y')                   'Trade Time',
+        convert('time',t.creat_time,'%d/%m/%Y')             'Create Time',
+        t.counterparty_ptynbr    'Counterparty',
+        t.optional_key           'JSE Ref',
+        convert('time',t.value_day,'%d/%m/%Y')              'Value Day',
+        i.spot_banking_days_offset 'Spot Offset',
+        add_info(t,'XtpJseRef')  'XtpJseRef',
+        convert('time',t.updat_time,'%d/%m/%Y')             'Update Time',
+        t.premium,
+        used_price(t,@Date{Yesterday})
+        
+from    instrument          i,
+        trade               t
+        
+where   
+        i.insaddr = t.insaddr
+and     i.instype in ('Stock','ETF')
+and     (time_to_day(t.creat_time) = @Date{Yesterday})
+and     match_filter(t,@Filter{;'EQ 9806 ALL','EQ Arbitrage baskets ALL','EQ Equity Hybrid Products ALL','EQ Forward Structures all','EQ Index ALL','EQ LinTrading ALL','EQ Single Stocks ALL','EQ Structures ALL','EQ Warrants ALL'})
+
+group by 1,2,5

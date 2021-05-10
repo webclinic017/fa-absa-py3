@@ -1,0 +1,87 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       SAPCG_CurrSwap_Notional
+PURPOSE                 :       This ASQL will highlight all CurrSwaps where the sum of the projected
+                                cashflows is not 0.
+DEPARTMENT AND DESK     :       Ops Risk
+REQUASTER               :       Jan Kotze
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       312551
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2012-07-03      312551		  Heinrich Cronje                 Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    All CurrSwap which have an update time on the Trade or Instrument euqal to the specified date
+    will be selected. The sum of the projected cashflows on leg type and leg currency level is
+    calculated and any not 0 results are returned as output.
+*/
+
+/*--------------------------------------------------------------------------------
+                                    Macros
+--------------------------------------------------------------------------------*/
+select
+    @1_Date{Today}  'Date'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+/*--------------------------------------------------------------------------------
+                                    Trade Selection
+--------------------------------------------------------------------------------*/
+select
+    t.trdnbr    'Trade',
+    t.status    'Status',
+    display_id(t,'prfnbr') 'Portfolio',
+    i.insid 'Instrument',
+    i.instype   'InsType',
+    l.type  'LegType',
+    display_id(l,'curr')    'Curr',
+    round(sum(projected_cf(cf,,,display_id(l,'curr')) * t.quantity),2)   'Curr_Cashflow',
+    m.Date
+into
+    temp
+from 
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    macros m
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cf.type in ('Fixed Amount','Return')
+    and i.instype = 'CurrSwap'
+    and t.status not in ('Simulated','Void')
+    and (to_date(t.updat_time) >= m.Date
+    or to_date(i.updat_time) >= m.Date)
+
+group by 1, 6, 7
+
+/*--------------------------------------------------------------------------------
+                                    Final Selection
+--------------------------------------------------------------------------------*/
+select
+    t.Trade,
+    t.Status,
+    t.Portfolio,
+    t.Instrument,
+    t.InsType,
+    t.LegType,
+    t.Curr,
+    t.Curr_Cashflow,
+    t.Date
+from
+    temp    t
+where
+    t.Curr_Cashflow ~= 0.00

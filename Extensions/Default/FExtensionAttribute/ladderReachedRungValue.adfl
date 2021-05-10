@@ -1,0 +1,4 @@
+[Default]FOption:ladderReachedRungValue = select(isForwardStarting and instrument:isRelativeStrike, 
+  true->nanDV, 
+  false->switch(ladderHasReachedRung, 
+    true->underlying:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuotation = strikeQuotation, quoteConversionWrapperFromQuote = ladderReachedRung]));

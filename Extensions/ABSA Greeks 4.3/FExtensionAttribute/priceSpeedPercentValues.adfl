@@ -1,0 +1,9 @@
+[ABSA Greeks 4.3]FInstrument:priceSpeedPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->adjustForSpotHandling(priceSpeedPercentValuesInstrument, valuesOnSpot));
+[ABSA Greeks 4.3]FInstrumentAndTrades:priceSpeedPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->instrument :* "priceSpeedPercentValues" [isSplitAllGrouped, priceSource, priceGreekExcludeVolatility, priceGreekDifferenceForm, priceGreekShiftFilter] * riskPosition));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:priceSpeedPercentValues = unSettledInstrumentsNonZero :* "priceSpeedPercentValues" [isSplitAllGrouped, priceSource, priceGreekExcludeVolatility, priceGreekDifferenceForm, priceGreekShiftFilter] * riskPositionsNonZero;

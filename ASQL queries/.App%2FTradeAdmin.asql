@@ -1,0 +1,54 @@
+/*================================================================================================= 
+.App/TradeAdmin
+DESCRIPTION:
+This application displays trades matching given portfolio, time
+and/or instrument. All arguments may be omitted. The instrument
+is given using LIKE syntax.
+
+Can we 
+
+=================================================================================================*/
+select
+    t.trdnbr                    'Trade No', 
+    t.bo_trdnbr                 'BO No', 
+    t.quantity                  'Quantity',
+    t.quantity * i.contr_size   'Nominal',
+    i.insid                     'Instrument',
+    i.instype                   'Type',
+    display_id(t, 'curr')       'Curr',
+    t.price                     'Price',
+    p.prfid                     'Portfolio',
+    t.status                    'Trade Status',
+    t.type                      'Trade Type',
+    cpy.ptyid                   'Counterparty',
+    t.your_ref                  'CP Ref',
+    display_id(t, 'curr')       'Prem Curr',
+    t.premium                   'Premium',
+    t.value_day                 'Value Day',
+    t.acquire_day               'Acquire Day',
+    t.time                      'Time',
+    acq.ptyid                   'Acquirer',
+    u.userid                    'Trader',
+    t.optional_key              'External ID',
+    t.aggregate_trdnbr          'Aggregate Trade',
+    t.archive_status            'Archived'
+from
+    trade t,
+    instrument i,
+    portfolio p,
+    party cpy,
+    party acq,
+    user u fill
+where
+    t.insaddr = i.insaddr 
+and t.prfnbr = p.prfnbr 
+and t.counterparty_ptynbr = cpy.ptynbr 
+and t.acquirer_ptynbr = acq.ptynbr 
+and t.time >= @TimeMin{2016-01-01} 
+and t.time <= @TimeMax{today} 
+and t.trader_usrnbr = u.usrnbr 
+and match_portfolio(t, @Portfolio{'MIDAS_RND';portfolio.prfid}) 
+and (@InstrumentSearch{} = '' or i.insid like @InstrumentSearch)
+and t.aggregate_trdnbr = @AggregateTrade
+
+

@@ -1,0 +1,66 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_BarrierExtract') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_BarrierExtract' and p.type = 'SQL Query' 
+
+/*
+    Name      : EQ_BarrierExtract
+    Purpose   : Extract Barrier trade data, PVs and greeks for Equities desk 
+    Developer : Ferdi Kruger
+    Date      : 15-01-2008
+    Modified  : Matthew Berry, 02-10-2009
+*/
+select
+    t.trdnbr,
+    t.value_day,
+    i.strike_price,
+    i.exp_day,
+    i.insid 'option_id',
+    nominal_amount(t),
+    e.barrier_option_type,
+    i.barrier,
+    i.call_option,
+    t.quantity,
+    t.premium,
+    i.rebate,
+    i.mtm_from_feed,
+    e.barrier_risk_management,
+    e.barrier_monitoring,
+    und.insid 'underlying_id',
+    ael_f(i, 'zak_funcs.get_undspot') 'und_spot',
+    used_price(und, @Date{Today}, 'ZAR') 'hist_spot',
+    e.barrier_rebate_on_expiry,
+    ael_f(t, 'getPVandgetDelta.getPV') 'PV',
+    ael_f(t, 'getPVandgetDelta.getDelta') 'Delta',
+    ael_f(i, 'EQ_BarrierExtract.get_deltaCash') 'DeltaCash',
+    ael_f(i, 'EQ_BarrierExtract.get_gammaCash') 'GammaCash',
+    ael_f(i, 'EQ_BarrierExtract.get_vega') 'Vega',
+    p.prfid 'Portfolio',
+    i.quote_type,
+    und.instype 'underlying_type',
+    und.quote_type 'underlying_quote_type'
+    
+from
+    trade t,
+    instrument i,
+    instrument und,
+    exotic e,
+    portfolio p
+where
+    i.insaddr = t.insaddr
+and i.und_insaddr = und.insaddr
+and e.insaddr = i.insaddr
+and t.prfnbr = p.prfnbr
+
+and i.instype = 'Option' 
+and e.barrier_option_type not in ('None')
+and und.instype in ('Stock', 'EquityIndex')
+
+and t.status not in ('Void', 'Simulated', 'Terminated')
+and i.exp_day >= today
+and e.barrier_crossed_status = 'None'
+
+order by
+    1

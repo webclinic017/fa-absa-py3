@@ -1,0 +1,63 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Call_Booked_Today') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Call_Booked_Today' and p.type = 'SQL Query' 
+
+/*
+Date            Who                         What
+12/11/2007      Albert Janse Van Vuuren     Created
+
+Description:
+
+Report all the cashflows  (transactions) done on call account per trader. 
+That is instype = Deposit and legtype = call fixed adjustable.
+
+*/
+
+/*---------------------------------------------------------------Macro--------------------------------------------------------------------------------*/
+select
+    to_date(@3_Start_Date{Today})  'Start_Date',
+    to_date(@4_End_Day{Today}) 'End_Date',
+    @5_Trader{;User.userid} 'Dealer'
+    /*'ABMH214','ABRN015','ABMS006','ABJS169','ABKR079','ABMR400','ABHT031','ABMP374','ABMB874','ABAV308','ABLK142','ABNR254','ABJP437','ABKL000','ABLJ225'*/
+into
+    macro
+from
+    serverdata s
+where
+    srdnbr > 0
+/*---------------------------------------------------------------------------------------------------------------------------------------------------*/    
+
+/*--------------------------------------------------------------Cash Trades--------------------------------------------------------------------------*/
+select
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    i.insid 'Insid',
+    display_id(t,'prfnbr')   'Portfolio',
+    display_id(cf,'creat_usrnbr')   'Dealer',
+    add_info(t,'Funding Instype')   'Funding_Instype',
+    t.trdnbr    'Trade_Nbr',
+    /*cf.cfwnbr   'Cashflow_Nbr',*/
+    to_double(t.quantity*cf.fixed_amount) 'Amount',
+    cf.start_day ~= 0 ? cf.start_day : cf.pay_day  'Value_Day',
+    to_date(cf.creat_time)  'Deal_Date',
+    cf.type 'CashType',
+    cf.creat_time 'Create_Time'
+from
+    instrument i,
+    cashflow cf,
+    leg l,
+    trade t,
+    macro m,
+    User u
+where
+        t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cf.creat_time >= m.Start_Date
+    and cf.creat_time <= m.End_Date
+    and cf.creat_usrnbr = u.usrnbr
+    and u.userid = m.Dealer
+    and cf.type = 'Fixed Amount'
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})

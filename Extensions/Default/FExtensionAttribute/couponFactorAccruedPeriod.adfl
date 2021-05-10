@@ -1,0 +1,4 @@
+[Default]FCashFlowInstrument:couponFactorAccruedPeriod = sumOf(legs :* "couponFactorAccruedPeriod");
+[Default]FLeg:couponFactorAccruedPeriod = select(isFinite(uniqueCoupon) and (not staticLegInformation:isAccruingInArrear), 
+  false->0, 
+  true->accruedPeriod);

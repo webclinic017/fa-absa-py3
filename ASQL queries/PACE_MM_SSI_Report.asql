@@ -1,0 +1,63 @@
+/*----------------------------------------------------------------------------------------------------------
+MODULE                  :       PACE_MM_SSI_Report
+PURPOSE                 :       This ASQL will provide a file to be uploaded into PACE MM for account detail.
+DEPARTMENT AND DESK     :       Money Market Desk
+REQUASTER               :       Linton Behari-Ram
+DEVELOPER               :       Heinrich Cronje
+CR NUMBER               :       603220
+-------------------------------------------------------------------------------------------------------------
+
+HISTORY
+=============================================================================================================
+Date            Change no       Developer                       Description
+-------------------------------------------------------------------------------------------------------------
+2012-09-14      603220          Heinrich Cronje                 Initial Implementation
+
+-------------------------------------------------------------------------------------------------------------
+
+DESCRIPTION OF ASQL:
+
+    This ASQL selects all the valid high level and valid low level Funding Desk SSIs, based on an AEL, on
+    PACE MM Clients.
+    The result is the account numbers linked to these valid SSIs, BIC codes and Default instructions that would
+    be needed in the PACE MM.
+*/
+
+select
+    p.ptyid,
+    add_info(p,'BarCap_SMS_CP_SDSID')   'BarCap_SMS_CP_SDSID',
+    ssi.settleid,
+    ssi.default_instruction,
+    ael_i(ssi,'PACE_MM_TAL_SSI_Identifier.isValidSSI')  'isValidSSI',
+    a.account   'Account',
+    pa.alias   'Correspondent_Bank_BIC',
+    display_id(a,'curr')    'Currency'
+into
+    temp
+from
+    party p,
+    settleInstruction ssi,
+    settleInstructionRule ssir,
+    account a,
+    partyAlias pa,
+    instrAliasType iat
+where
+        add_info(p,'PACE_MM_Client') = 'Yes'
+    and p.ptynbr = ssi.ptynbr
+    and ssi.seqnbr = ssir.settle_seqnbr
+    and ssir.accnbr = a.accnbr
+    and a.bic_seqnbr = pa.seqnbr
+    and pa.type = iat.oid
+    and iat.alias_type_name = 'SWIFT'
+
+select
+    t.ptyid,
+    t.BarCap_SMS_CP_SDSID,
+    t.Account,
+    convert('string', t.Correspondent_Bank_BIC, 4)  'Correspondent_Bank_BIC',
+    t.Currency,
+    t.default_instruction
+from
+    temp t
+where
+    t.isValidSSI = 1

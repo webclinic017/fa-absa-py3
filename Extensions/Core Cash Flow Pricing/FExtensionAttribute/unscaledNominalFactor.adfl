@@ -1,0 +1,5 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:unscaledNominalFactor = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(cashFlowInformation.Nominal(legInformation).Number == 0, 
+    true->0.0, 
+    default->cashFlowInformation.UnscaledNominal(legInformation) / cashFlowInformation.Nominal(legInformation)));

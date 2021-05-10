@@ -1,0 +1,62 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_FIFO_RealisedP&L') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_FIFO_RealisedP&L' and p.type = 'SQL Query' 
+/*FIFO based accounting report for Capital Markets*/
+/*Created by Charmain Alves on 15 March 2004*/
+
+select
+
+display_id(t,'prfnbr')		'Portfolio',
+i.insid				'Instrument',
+t.trdnbr			'TradeNbr',
+Nominal_amount(t)		'Nominal',
+''				'TradeDate',
+t.value_day			'SettlementDate',
+t.price				'TradeYTM',
+sum(t.premium)			'Realised',
+clean_from_yield(i,t.value_day,,,t.price)	'CleanPrice',
+abs(t.premium/nominal_amount(t)*100)-(clean_from_yield(i,t.value_day,,,t.price))	'Accrued',
+abs(t.premium/nominal_amount(t)*100)						'DirtyPrice',
+sum(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100)			'CleanPremium',
+sum(-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100))		'RealClean'
+
+from	
+trade		t,
+instrument	i
+
+where
+	i.insaddr=t.insaddr
+and	match_filter(t,@Portfolio{;tradefilter.fltid},@TradeNumber{})
+and	add_info(t,'FIFO_POS') = '0.0'
+
+group by 1,2
+
+union
+
+select
+
+display_id(t,'prfnbr')		'Portfolio',
+i.insid				'Instrument',
+t.trdnbr			'TradeNbr',
+Nominal_amount(t)		'Nominal',
+convert('date',time_to_day(t.time))		'TradeDate',
+t.value_day			'SettlementDate',
+t.price				'TradeYTM',
+t.premium			'Premium',
+clean_from_yield(i,t.value_day,,,t.price)	'CleanPrice',
+abs(t.premium/nominal_amount(t)*100)-(clean_from_yield(i,t.value_day,,,t.price))	'Accrued',
+abs(t.premium/nominal_amount(t)*100)						'DirtyPrice',
+clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100			'CleanPremium',
+-t.premium-(clean_from_yield(i,t.value_day,,,t.price)*nominal_amount(t)/100)		'RealClean'
+
+from	
+trade		t,
+instrument	i
+
+where
+	i.insaddr=t.insaddr
+and	match_filter(t,@Portfolio{;tradefilter.fltid},@TradeNumber{})
+and	add_info(t,'FIFO_POS') = '0.0'

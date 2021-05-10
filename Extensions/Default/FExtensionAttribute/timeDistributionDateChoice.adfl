@@ -1,0 +1,12 @@
+[Default]FExerciseEvent:timeDistributionDateChoice = switch(timeDistributionDateRule, 
+  ExpiryDate->expiryDateTime, 
+  default->settlementDate);
+[Default]FInstrument:timeDistributionDateChoice = select(expiryDateFromModelCall, 
+  false->switch(timeDistributionDateRule, 
+    "ExpiryDate"->expiryDateTime, 
+    "CashLadderDate"->cashLadderDate, 
+    "TheoreticalValueProjectionDate"->theoreticalValueProjectionDate, 
+    default->settlementDate), 
+  true->switch(timeDistributionDateRule, 
+    "ExpiryDate"->theoreticalModelExpiryDate, 
+    default->settlementDateFromModelExpiry));

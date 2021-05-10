@@ -1,0 +1,7 @@
+[Profit and Loss]FMultiInstrumentAndTrades:posIsInactive = select(nil <> currencyPair, 
+  true->almostZero(positionSizeCurrencyPair, 0.5), 
+  false->false);
+[Profit and Loss]FSingleInstrumentAndTrades:posIsInactive = almostZero(shunt(hideZeroPositionsChoice, 
+  0->instrument:profitAndLossPeriodPosition [positionObject], 
+  1->instrument:riskPositionForZeroCheck [positionObject], 
+  2->inventoryPositionAtValuationDate), 1e-05);

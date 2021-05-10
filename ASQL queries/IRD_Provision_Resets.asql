@@ -1,0 +1,124 @@
+/* *******Deployments************* 
+Purpose               : Calculate the required projected cashflows for each reset date in the future
+Department and Desk   : FO/MO
+Requester             : Martin van der Walt
+Developer             : Anwar Banoo
+CR Number             : 217673
+***********************************/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+/* Usage code for this ASQL */
+SELECT
+    ael_i(p,'ASQL_log','IRD_Provision_Resets') 'Name'
+INTO  
+    ASQL_LOG_TEMP
+FROM 
+    TextObject p 
+WHERE 
+    p.name = 'IRD_Provision_Resets' and p.type = 'SQL Query' 
+
+SELECT
+    t.trdnbr 'trdnbr'
+INTO
+    temp2
+FROM
+    trade t
+WHERE
+    match_filter(t, @1_Filter{IRD_SWAPS_ALL;tradefilter.fltid}, @2_TrdNbrs{}) 
+AND t.trdnbr = to_double(IRD_SHORT_END_PROV_FINAL.ExcludeBasisTrades(t.trdnbr))
+
+SELECT
+    t.trdnbr,
+    IRD_SHORT_END_PROV_FINAL.get_fx_rate(display_id(l,'curr'))                  'FX_Rate',
+    display_id(l,'curr')                                                        'Reset_Currency',
+    display_id(l, 'float_rate')                                                 'Float_Rate',                
+    r.day                                                                    	'ResetDay',
+    i.instype = 'FRA' ? to_double(nominal_amount(cf) * t.quantity) : 
+                        (to_double(projected_cf(cf)*t.quantity < 0 ? abs(nominal_amount(cf) * t.quantity)*(-1)  : 
+                        abs(nominal_amount(cf) * t.quantity) ))                 'Total_Nominal',        
+    yc_rate(yc, r.day, date_add_delta(r.day, 0 ,@5_Fwd_Rt_Maturity[3],0), 'Quarterly', @8_Daycount{Act/365;'Act/360','30E/360','Act/365'} ,'Forward Rate',,)*100 'fwd_rt',
+    @7_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name} = 'ZAR-SWAP' ? 
+            IRD_SHORT_END_PROV_FINAL.mkt_rate_ZAR(r.day, to_date(@3_RepDate{TODAY})) : 
+            IRD_SHORT_END_PROV_FINAL.mkt_rate_USD(r.day, to_date(@3_RepDate{TODAY}))  'mkt_rt',
+    years_between(r.start_day, r.end_day, @8_Daycount{Act/365;'Act/360','30E/360','Act/365'})    'reset_term'        
+
+INTO
+    temp
+
+FROM
+    trade t,
+    instrument i,
+    instrument c,
+    cashflow cf,
+    leg l,
+    reset r,
+    yieldcurve    yc,
+	temp2 tmp
+WHERE
+    t.trdnbr = tmp.trdnbr
+AND yc.yield_curve_name=@7_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name}
+AND t.insaddr = i.insaddr
+AND i.insaddr  = l.insaddr
+AND cf.legnbr = l.legnbr
+AND cf.cfwnbr = r.cfwnbr
+AND r.day >= to_date(@3_RepDate{TODAY})
+AND r.Day <= to_date(date_add_delta(@3_RepDate{TODAY},0,@4_Num_Months_to_adj{9},0))
+AND r.type in ('Single','Compound', 'Weighted')        
+AND l.type = 'Float'
+AND c.insid = @9_Curr{ZAR;instrument.insid WHERE instype = 'Curr'}
+AND l.curr = c.insaddr
+AND i.instype ~= 'CurrSwap'
+
+SELECT
+    temp.*,
+    (mkt_rt - fwd_rt) * 100                                                     'bp_adj',
+    to_double(Float_Rate like '%-1M' ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate : '0')   	'totaladj_1m_zar',
+    to_double(Float_Rate like '%-3M' ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate : '0') 	'totaladj_3m_zar',            
+    to_double(Float_Rate like '%-6M' ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate : '0') 	'totaladj_6m_zar',            
+    to_double(Float_Rate like '%-9M' ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate : '0') 	'totaladj_9m_zar',            
+    to_double(Float_Rate like '%-12M' ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate : '0')   'totaladj_12m_zar',
+    to_double(Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate)     		            'total_adj_zar'
+INTO 
+    final
+FROM 
+    temp     
+    
+SELECT
+    'Total'                     'Trade Number',
+    @3_RepDate{TODAY}           'Reset',
+    sum(to_double(f.Total_Nominal))'Reset Notional',               
+    f.Reset_Currency            'Reset Currency',
+    avg(fwd_rt)                 'Forward Rate',
+    avg(mkt_rt)                 'Market Rate',
+    avg(bp_adj)                 'Basis Point Diff',
+    sum(totaladj_1m_zar)        'Provision 1m ZAR',
+    sum(totaladj_3m_zar)        'Provision 3m ZAR',
+    sum(totaladj_6m_zar)        'Provision 6m ZAR',
+    sum(totaladj_9m_zar)        'Provision 9m ZAR',
+    sum(totaladj_12m_zar)       'Provision 12m ZAR',
+    sum(total_adj_zar)          'Provision Total ZAR' 
+FROM
+    final f            
+GROUP BY
+    1
+UNION
+SELECT
+    to_string(f.trdnbr)         'Trade Number',
+    f.ResetDay                  'Reset',
+    to_double(f.Total_Nominal)  'Reset Notional',               
+    f.Reset_Currency            'Reset Currency',
+    avg(fwd_rt)                 'Forward Rate',
+    avg(mkt_rt)                 'Market Rate',
+    avg(bp_adj)                 'Basis Point Diff',
+    sum(totaladj_1m_zar)        'Provision 1m ZAR',
+    sum(totaladj_3m_zar)        'Provision 3m ZAR',
+    sum(totaladj_6m_zar)        'Provision 6m ZAR',
+    sum(totaladj_9m_zar)        'Provision 9m ZAR',
+    sum(totaladj_12m_zar)       'Provision 12m ZAR',
+    sum(total_adj_zar)          'Provision Total ZAR' 
+FROM
+    final f            
+ORDER BY    
+    1, 2
+/*GROUP BY
+    f.ResetDay*/

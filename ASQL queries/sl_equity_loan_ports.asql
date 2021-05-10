@@ -1,0 +1,25 @@
+/*-----------------------------------------------------------------------------
+PURPOSE                 :  To be called from a trade filter and used in the SL Shortfall report
+DEPATMENT AND DESK      :  Securities Lending
+REQUESTER               :  Linda Breytenbach
+DEVELOPER               :  Paul Jacot-Guillarmod
+CR NUMBER               :  329740
+-----------------------------------------------------------------------------*/
+SELECT  Trade.trdnbr
+FROM    Trade,
+        Instrument,
+        Portfolio,
+        AdditionalInfoSpec TypeSpec,
+        AdditionalInfo TypeInfo
+WHERE   Trade.insaddr = Instrument.insaddr
+AND     Trade.prfnbr = Portfolio.prfnbr
+AND     Instrument.instype in ('Stock', 'SecurityLoan')
+AND     Portfolio.prfnbr = TypeInfo.recaddr
+AND     Trade.status NOT IN ('Simulated', 'Void', 'Confirmed Void')
+AND     TypeInfo.addinf_specnbr = TypeSpec.specnbr
+AND     TypeSpec.field_name = 'SL_Portfolio_Type'
+AND     TypeInfo.value in ('Equity', 'Loan')
+
+
+ 
+

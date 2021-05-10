@@ -1,0 +1,29 @@
+/*
+
+Purpose                 :Market Risk feed files - Daily Specific Risk (Standardised Approach)
+Department and Desk     :Market Risk Infrastructure
+Requester:              :Susan Kruger
+Developer               :Susan Kruger
+CR Number               :C000000739037
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','MR_SpecificRisk_Constituents') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'MR_SpecificRisk_Constituents' and p.type = 'SQL Query' 
+
+select
+    i.insid	'insid',
+    i.instype	'instype',
+    c.insid		'constituent_insid',	
+    c.instype 'constituent_instype'
+from
+    instrument i,
+    instrument c,
+    CombinationLink cl
+where
+    i.insid = 'ZAR/ALSI'
+and i.insaddr = cl.owner_insaddr
+and c.insaddr = cl.member_insaddr

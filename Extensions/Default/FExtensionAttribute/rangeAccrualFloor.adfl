@@ -1,0 +1,9 @@
+[Default]FInstrument:rangeAccrualFloor = nil;
+[Default]FInstrumentAndTrades:rangeAccrualFloor = instrument:rangeAccrualFloor;
+[Default]FMultiInstrumentAndTrades:rangeAccrualFloor = nil;
+[Default]FOption:rangeAccrualFloor = select(isRangeAccrual, 
+  true->select(storedStrikeType, 
+    Absolute->denominatedvalue(object.Exotic.RangeAccrualFloor, strikeCurrency, storedStrikeType, ), 
+    default->absoluteStrikePriceFromRelative(underlyingPriceForStrike, denominatedvalue(object.Exotic.RangeAccrualFloor, strikeCurrency, storedStrikeType, ))), 
+  default->nil);
+[Default]FPriceAggregate:rangeAccrualFloor = instrument:rangeAccrualFloor;

@@ -1,0 +1,79 @@
+[Default]FObject:QuoteAndHedgePriceSpread
+
+Properties =
+  Abstract=No
+  CreatePermission=User
+  DisplayName=Price Spread
+  EditPermission=User
+  InheritsFrom=QuoteAndHedge
+  TradingEnabled=Yes
+
+Transitions =
+
+Panel InputParams1 =
+  DisplayName=
+  Orientation=Vertical
+  Variables=quantityToQuote, quoteAndHedgePriceSpread
+
+Panel InputParams2 =
+  DisplayName=
+  Orientation=Vertical
+  Panels=QuoteQuantityParams, PriceSpreadParams
+
+Panel Performance =
+  DisplayName=Performance
+  Orientation=Vertical
+  Variables=quoteLegPosition, hedgeLegPosition, donePriceRatio, donePriceSpread, quoteLegAveragePrice, hedgeLegAveragePrice
+
+Panel PriceSpreadParams =
+  DisplayName=
+  Orientation=Horizontal
+  Variables=priceSpreadCurrency, priceSpreadUnit
+
+Panel QuoteQuantityParams =
+  DisplayName=
+  Orientation=Horizontal
+  Variables=quoteLegTotalQuantity
+
+Conditions =
+
+Actions =
+
+ActionLists =
+
+Variable donePriceRatio =
+  Description=The average price ratio (only applicable when price spread is 0).
+  DisplayName=Done Price Ratio
+  Domain=double
+  Type=ReadOnly
+  Value=quoteAndHedgeDonePriceRatio
+
+Variable donePriceSpread =
+  Description=The average spread of the filled quote and hedge orders
+  DisplayName=Done Price Spread
+  Domain=double
+  Type=ReadOnly
+  Value=quoteAndHedgeDonePriceSpread
+
+Variable priceSpreadCurrency =
+  Domain=FCurrency
+  Type=ReadOnly
+  Value=switch(priceSpreadUnit, \
+      "In Quote Leg"->quoteLegUsedOrderBook.Currency, \
+      "In Hedge Leg"->hedgeLegUsedOrderBook.Currency)
+
+Variable priceSpreadUnit =
+  Domain=EnumPriceSpreadUnit
+  Mandatory=No
+  Type=Input
+  Value="In Quote Leg"
+
+Variable quoteAndHedgePriceSpread =
+  Description=The price spread between the quote and hedge leg. Defined as quote price - hedge price.
+  DisplayName=Price Spread
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=0.0
+
+<end>

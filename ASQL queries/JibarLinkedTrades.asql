@@ -1,0 +1,24 @@
+/* update_method=0 */
+select
+    t.trdnbr
+from
+    trade t,
+    instrument i,
+    leg leg,
+    instrument float,
+    instrument curr,
+    reset r,
+    cashflow cf
+where
+    t.insaddr = i.insaddr
+and leg.insaddr = i.insaddr
+and leg.float_rate = float.insaddr
+and leg.curr = curr.insaddr
+and leg.legnbr = cf.legnbr
+and r.cfwnbr = cf.cfwnbr
+and curr.insid= 'ZAR'
+and float.insid in ('ZAR-JIBAR-3M', 'ZAR-JIBAR-6M')
+and i.exp_day >= today
+and r.day = today
+and t.status in ('BO Confirmed', 'BO-BO Confirmed', 'FO Confirmed', 'Terminated')
+

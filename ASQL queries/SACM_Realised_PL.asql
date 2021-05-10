@@ -1,0 +1,135 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_Realised_PL') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_Realised_PL' and p.type = 'SQL Query' 
+/* SACM_Realised_PL_H: last updated on Wed Jun 02 14:31:08 2004. Extracted by Stowaway on 2004-06-04.*/
+/*FIFO based accounting report for Capital Markets*/
+/*Created by Charmain Alves on 15 March 2004*/
+select
+	display_id(t,'prfnbr')		'Portfolio',
+	i.insid				'Instrument',
+	t.trdnbr			'FifodTradeNbr_A',
+	to_double(add_info(t,'FIFO_POS'))	'FifoPos_A',
+	t1.trdnbr			'FifoingTradeNbr_B',
+	to_double(add_info(t1,'FIFO_POS'))	'FifoPos_B',
+	Nominal_amount(t)		'Nom_of_FifodTrade_A',
+	nominal_amount(t1)		'Nom_of_FifoingTrade_B',
+	ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)	'B_Fifod_A_by',
+	convert('date',time_to_day(t.time))		'TradeDate_A',
+	convert('date',time_to_day(t1.time))		'TradeDate_B',
+	t.value_day			'SettleDate_A',
+	t1.value_day			'SettleDate_B',
+	t.price				'TradeYTM_A',
+	t1.price				'TradeYTM_B',
+	dirty_from_yield(i,t1.value_day,,,t.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100 * -1	'AllInPrice_A',
+	dirty_from_yield(i,t1.value_day,,,t1.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100 	'AllInPrice_B',
+	clean_from_yield(i,t1.value_day,,,t.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100 * -1	'CleanPrice_A',
+	clean_from_yield(i,t1.value_day,,,t1.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100	'CleanPrice_B',
+	((clean_from_yield(i,t1.value_day,,,t1.price) * -1) + clean_from_yield(i,t1.value_day,,,t.price)) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100 'P_L',
+	(dirty_from_yield(i,t1.value_day,,,t1.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100) - (clean_from_yield(i,t1.value_day,,,t1.price) * ael_f(t,'SACM_Fifo_Col.FIFOPricePosition',t1)/100)		'IntAcc'
+into 
+	temp
+	
+from	
+	trade		t,
+	trade 		t1,
+	instrument	i,
+	timeseries 	ts
+
+where
+	i.insaddr=t.insaddr
+/*and	i.insid = 'ZAR/R194'*/
+and	match_filter(t,@TradeFilter{;tradefilter.fltid},@TradeNumber{})
+and	to_double(add_info(t,'FIFO_POS')) ~= nominal_amount(t)
+and	t.trdnbr = ts.recaddr and t1.trdnbr = ts.value
+and 	display_id(ts,'ts_specnbr') = 'ClosingFIFOTrade'
+and	t1.value_day > @Date
+
+select 
+	'Detail',
+	Portfolio,
+	Instrument,
+	FifodTradeNbr_A,
+	FifoPos_A,
+	FifoingTradeNbr_B,
+	FifoPos_B,
+	Nom_of_FifodTrade_A,
+	Nom_of_FifoingTrade_B,
+	B_Fifod_A_by,
+	TradeDate_A,
+	TradeDate_B,
+	SettleDate_A,
+	SettleDate_B,
+	TradeYTM_A,
+	TradeYTM_B,
+	AllInPrice_A,
+	AllInPrice_B,
+	CleanPrice_A,
+	CleanPrice_B,
+	P_L,
+	IntAcc
+from 
+	temp
+
+union
+	
+select 
+	'InsPort',
+	Portfolio,
+	Instrument,
+	FifodTradeNbr_A,
+	FifoPos_A,
+	FifoingTradeNbr_B,
+	FifoPos_B,
+	sum(Nom_of_FifodTrade_A),
+	0.0,
+	sum(B_Fifod_A_by),
+	TradeDate_A,
+	TradeDate_B,
+	SettleDate_A,
+	SettleDate_B,
+	sum(B_Fifod_A_by * TradeYTM_A)/sum(B_Fifod_A_by),
+	sum(B_Fifod_A_by * TradeYTM_B)/sum(B_Fifod_A_by),
+	AllInPrice_A,
+	AllInPrice_B,
+	CleanPrice_A,
+	CleanPrice_B,
+	sum(P_L),
+	IntAcc
+from 
+	temp
+
+group by 2,3
+
+Union
+
+select 
+	'Total',
+	Portfolio,
+	Instrument,
+	FifodTradeNbr_A,
+	FifoPos_A,
+	FifoingTradeNbr_B,
+	FifoPos_B,
+	sum(Nom_of_FifodTrade_A),
+	0.0,
+	sum(B_Fifod_A_by),
+	TradeDate_A,
+	TradeDate_B,
+	SettleDate_A,
+	SettleDate_B,
+	sum(B_Fifod_A_by * TradeYTM_A)/sum(B_Fifod_A_by),
+	sum(B_Fifod_A_by * TradeYTM_B)/sum(B_Fifod_A_by),
+	AllInPrice_A,
+	AllInPrice_B,
+	CleanPrice_A,
+	CleanPrice_B,
+	sum(P_L),
+	IntAcc
+from 
+	temp
+group by 1	
+	
+

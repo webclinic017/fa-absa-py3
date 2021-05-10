@@ -1,0 +1,140 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Bond_Option_P_L_Summary') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Bond_Option_P_L_Summary' and p.type = 'SQL Query' 
+/*
+
+name = Bond_Option_P_L_Summary
+
+coded by Anil
+
+last updated = 2 jan 2006, change the opening MtM balance
+
+*/
+
+
+
+select
+s.srdnbr,
+date_add_banking_day(@BOY{2006-01-01; },,0)'BOY',
+date_add_banking_day(@BOM{Firstdayofmonth; },,-1)'BOM',
+(0.00)'BOYMtMJOB1',
+(-35829.45)'BOYMtMKUR8',
+(0.00)'BOYMtMKUR9'
+
+
+into
+temp
+
+from
+serverdata s
+
+
+
+
+
+select
+
+p.prfid,
+
+sum(t.creat_time>=tt.BOY ?  (time_to_day(t.creat_time)<=@To_Date{Today;} ? t.premium : 0) : 0) 'PremToday',
+sum(i.exp_day>@To_Date{Today;} ? mtm_value_bo(t,@To_Date{Today;},,,,) : 0)'MtMToday',
+sum(t.creat_time>=tt.BOY ?  (time_to_day(t.creat_time)<=@From_Date{Yesterday;} ? t.premium : 0) : 0) 'PremYest',
+sum(i.exp_day>@From_Date{Yesterday;} ? mtm_value_bo(t,@From_Date{Yesterday;},,,,) : 0 )'MtMYest',
+
+sum(((t.creat_time>tt.BOY ?  (time_to_day(t.creat_time)<=@To_Date{Today;} ? t.premium : 0) : 0))-((t.creat_time>tt.BOY ?  (time_to_day(t.creat_time)<=@From_Date{Yesterday;} ? t.premium : 0) : 0)))'DailyPremMove',
+
+
+sum((mtm_value_bo(t))-(mtm_value_bo(t,Yesterday)))'DailyMtMMove',
+
+
+sum(((t.value_day>=tt.BOY ? t.premium : 0)-(t.creat_time<Today ? (t.value_day>=tt.BOY ? t.premium : 0 ) : 0 ))+((mtm_value_bo(t))-(mtm_value_bo(t,Yesterday))))'DailyP/L',
+sum(t.creat_time<tt.BOM ? (t.premium) : 0) 'PremBOM',
+sum(mtm_value_bo(t,tt.BOM))'MtMBOM'
+
+into summary
+
+
+from
+trade t,
+instrument i,
+portfolio p,
+temp tt
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.instype='Option'
+and i.und_instype='Bond'
+
+and t.status not in ('Void','Reserved','Simulated')
+and (t.value_day>tt.BOY
+or  i.exp_day>tt.BOY)
+
+
+
+group by p.prfid
+
+
+
+
+/*------------------------------------------*/
+
+
+
+select
+today'Today',
+s.prfid,
+s.MtMToday,
+s.MtMYest,
+(s.MtMToday)-(s.MtMYest)'Daily_MtM_Move',
+s.PremToday,
+s.PremYest,
+(s.PremToday)-(s.PremYest)'Daily_Prem_Move',
+((s.PremToday)-(s.PremYest))+((s.MtMToday)-(s.MtMYest))'Daily_P/L',
+(s.PremToday-s.PremBOM)'MTD_Prem_Move',
+(s.MtMToday-s.MtMBOM)'MTD_MtM_Move',
+((s.PremToday-s.PremBOM))+((s.MtMToday-s.MtMBOM))'MTD_P/L',
+(s.PremToday-0)'YTD_Prem',
+s.MtMToday-(s.prfid='IRR' ? s.MtMToday : 0)-(s.prfid='KUR8' ? tt.BOYMtMKUR8 : (s.prfid='KUR9' ? tt.BOYMtMKUR9 : (s.prfid='JOB1' ? tt.BOYMtMJOB1 : 0)))'YTD_MtM',
+s.PremToday+(s.MtMToday-(s.prfid='IRR' ? s.MtMToday : 0)-(s.prfid='KUR8' ? tt.BOYMtMKUR8 : (s.prfid='KUR9' ? tt.BOYMtMKUR9 : (s.prfid='JOB1' ? tt.BOYMtMJOB1 : 0)))) 'YTD_P/L'
+
+
+
+From
+summary s,
+
+temp tt
+
+
+union
+
+select
+today,
+'Total'/*s.prfid*/,
+sum(s.MtMToday),
+sum(s.MtMYest),
+sum((s.MtMToday)-(s.MtMYest))'Daily_MtM_Move',
+sum(s.PremToday),
+sum(s.PremYest),
+sum((s.PremToday)-(s.PremYest))'Daily_Prem_Move',
+sum(((s.PremToday)-(s.PremYest))+((s.MtMToday)-(s.MtMYest)))'Daily_P/L',
+sum((s.PremToday-s.PremBOM))'MTD_Prem_Move',
+sum((s.MtMToday-s.MtMBOM))'MTD_MtM_Move',
+sum(((s.PremToday-s.PremBOM))+((s.MtMToday-s.MtMBOM)))'MTD_P/L',
+sum((s.PremToday-0))'YTD_Prem',
+sum(s.MtMToday-(s.prfid='IRR' ? s.MtMToday : 0)-(s.prfid='KUR8' ? tt.BOYMtMKUR8 : (s.prfid='KUR9' ? tt.BOYMtMKUR9 : (s.prfid='JOB1' ? tt.BOYMtMJOB1 : 0))))'YTD_MtM',
+sum(s.PremToday+(s.MtMToday-(s.prfid='IRR' ? s.MtMToday : 0)-(s.prfid='KUR8' ? tt.BOYMtMKUR8 : (s.prfid='KUR9' ? tt.BOYMtMKUR9 : (s.prfid='JOB1' ? tt.BOYMtMJOB1 : 0))))) 'YTD_P/L'
+
+
+
+From
+summary s,
+
+temp tt
+
+
+group by 2
+

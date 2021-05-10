@@ -1,0 +1,15 @@
+[Cash Analysis]FCashFlowMoneyFlow:quantityScaledProjectedMoneyFlowCustom = select(needsLegInformationForProjected or instrument:isOpenEnd, 
+  false->select(object.Type, 
+    "Coupon transfer"->denominatedvalue(projectedMoneyFlow / object.Trade.Quantity * object.Trade.FaceValue / object.Instrument.ContractSize, currency, moneyFlowType, object.PayDay), 
+    "Coupon"->denominatedvalue(projectedMoneyFlow / object.Trade.Quantity * object.Trade.FaceValue / object.Instrument.ContractSize, currency, moneyFlowType, object.PayDay), 
+    default->denominatedvalue(projectedMoneyFlow, currency, moneyFlowType, object.PayDay)), 
+  true->select(almostZero((object.Trade.FaceValue / object.Instrument.ContractSize), 1e-10), 
+    true->0, 
+    false->select(object.Type, 
+      "SecurityLoan"->(object.Trade.FaceValue / object.Instrument.ContractSize) * cashFlow:projectedCashFlow, 
+      "End Security"->(object.Trade.FaceValue / object.Instrument.ContractSize) * cashFlow:projectedCashFlow, 
+      "Coupon transfer"->denominatedvalue(projectedMoneyFlow / object.Trade.Quantity * object.Trade.FaceValue / object.Instrument.ContractSize, currency, moneyFlowType, object.PayDay), 
+      "Coupon"->denominatedvalue(projectedMoneyFlow / object.Trade.Quantity * object.Trade.FaceValue / object.Instrument.ContractSize, currency, moneyFlowType, object.PayDay), 
+      default->denominatedvalue((((tradeQuantities)[0]).Number * (cashFlow:projectedCashFlow).Number), currency, moneyFlowType, object.PayDay))));
+[Cash Analysis]FMoneyFlow:quantityScaledProjectedMoneyFlowCustom = projectedMoneyFlow;
+[Cash Analysis]FMoneyFlowAndTrades:quantityScaledProjectedMoneyFlowCustom = (object.MoneyFlow) :* "quantityScaledProjectedMoneyFlowCustom";

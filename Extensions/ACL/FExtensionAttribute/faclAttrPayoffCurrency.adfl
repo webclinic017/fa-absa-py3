@@ -1,0 +1,9 @@
+[ACL]FInstrument:faclAttrPayoffCurrency = nil;
+[ACL]FOption:faclAttrPayoffCurrency = select(object.SettlementType, 
+  "Physical Delivery"->select(actualUnderlying, 
+    nil->nil, 
+    default->actualUnderlying.Name), 
+  "Cash"->select(object.StrikeCurrency, 
+    nil->nil, 
+    default->object.StrikeCurrency.Name));
+[ACL]FTradeRow:faclAttrPayoffCurrency = instrument:faclAttrPayoffCurrency;

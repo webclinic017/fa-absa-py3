@@ -1,0 +1,137 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Swaptions_Intrinsic_Split') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Swaptions_Intrinsic_Split' and p.type = 'SQL Query' 
+/*
+
+coded by anil on 2005-04-28
+
+the report is as accurate as the accuracy of the curves, volatility
+and if the underlying swap was booked correctly and consistently with other underlying swaps
+
+
+report has been setup only for portfolio ERM NLD
+
+*/
+
+
+
+
+
+select
+Today'Today',
+t.trdnbr,
+t.status,
+i.insid,
+i.exp_day,
+t.quantity>0 ? 'Buyer' : 'Seller' 'Swaption',
+i.call_option='No' ? 'Receiver' : 'Payer' 'Fixed_Rate' ,
+i.exercise_type,
+t.quantity*1000000'Nominal',
+ui.insid'Und_insid',
+i.strike_type,
+i.strike_price'option_strike',
+
+forward_price(ui,Today)'forw',
+i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0) '1_ITM',
+present_value(t)'PV_Option',
+t.Quantity*present_value(ui)'PV_Und_Swap',
+(i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0))*(-1*t.Quantity*present_value(ui))'Intrinsic',
+
+(present_value(t))-((i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0))*(-1*t.Quantity*present_value(ui)))'Time_Value',
+p.prfid 'portfolio',
+avg(uil.fixed_rate)'swap_fixed_rate',
+uil.payleg'swap_fixed_pay'
+
+
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument ui,
+portfolio p,
+leg uil
+
+
+
+where
+i.insaddr=t.insaddr
+and i.instype='option'
+and i.und_insaddr=ui.insaddr
+and ui.instype='SWAP'
+and p.prfnbr=t.prfnbr
+
+and p.prfid='ERM NLD'
+
+and i.exp_day>Today
+and t.status not in ('void', 'Simulated')
+and uil.insaddr=ui.insaddr
+and uil.type='fixed'
+and i.exp_day>Today
+group by t.trdnbr
+order by i.exp_day, p.prfid
+
+union
+
+
+select
+Today'Today',
+t.trdnbr,
+t.status,
+'GRAND TOTALS'/*i.insid*/,
+i.exp_day,
+t.quantity>0 ? 'Buyer' : 'Seller' 'Swaption',
+i.call_option='No' ? 'Receiver' : 'Payer' 'Fixed_Rate' ,
+i.exercise_type,
+t.quantity*1000000'Nominal',
+ui.insid'Und_insid',
+i.strike_type,
+i.strike_price'option_strike',
+
+forward_price(ui,Today)'forw',
+i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0) '1_ITM',
+present_value(t)'PV_Option',
+sum(t.Quantity*present_value(ui))'PV_Und_Swap',
+sum((i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0))*(-1*t.Quantity*present_value(ui)))'Intrinsic',
+
+sum((present_value(t))-((i.call_option = 'No' ? (forward_price(ui,Today)<=i.strike_price ? 1 : 0) : (forward_price(ui,Today)>=i.strike_price ? 1 : 0))*(-1*t.Quantity*present_value(ui))))'Time_Value',
+p.prfid 'portfolio',
+(uil.fixed_rate)'swap_fixed_rate',
+uil.payleg'swap_fixed_pay'
+
+
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument ui,
+portfolio p,
+leg uil
+
+
+
+where
+i.insaddr=t.insaddr
+and i.instype='option'
+and i.und_insaddr=ui.insaddr
+and ui.instype='SWAP'
+and p.prfnbr=t.prfnbr
+
+and p.prfid='ERM NLD'
+
+and i.exp_day>Today
+and t.status not in ('void', 'Simulated')
+and uil.insaddr=ui.insaddr
+and uil.type='fixed'
+and i.exp_day>Today
+group by 1

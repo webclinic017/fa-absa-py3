@@ -1,0 +1,13 @@
+[Default]FCashFlow:valuationOrSpotDate = instrument:valuationOrSpotDate;
+[Default]FInstrument:valuationOrSpotDate = select(valuesOnSpot, 
+  true->instrumentSpotOrStartDate, 
+  false->valuationDate);
+[Default]FLeg:valuationOrSpotDate = instrument :* "valuationOrSpotDate" [valuesOnSpot];
+[Default]FLegAndTrades:valuationOrSpotDate = instrument :* "valuationOrSpotDate" [valuesOnSpot];
+[Default]FMoneyFlow:valuationOrSpotDate = select(valuesOnSpot, 
+  true->instrumentSpotOrStartDate, 
+  false->valuationDate);
+[Default]FMoneyFlowAndTrades:valuationOrSpotDate = select(valuesOnSpot, 
+  true->instrumentSpotOrStartDate, 
+  false->valuationDate);
+[Default]FPayment:valuationOrSpotDate = instrument:valuationOrSpotDate;

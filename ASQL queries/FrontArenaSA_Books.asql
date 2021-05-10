@@ -1,0 +1,46 @@
+/* Usage code for this ASQL */
+select ael_i(p,'ASQL_log','FrontArenaSA_Books') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FrontArenaSA_Books' and p.type = 'SQL Query' 
+
+
+
+/*  Portfolio Extracct
+
+    Send to Chorus daily to recon the Front Arena portfolios btn FA and Chorus
+    Nov 2014 - Added FX portfolio restrictions and FX Acquireres needed for FX onto Front project phase 1
+    March 2015 - Reverted fix implemented in Nov 2014. FA 2014 has built in solution
+
+
+*/
+
+
+
+select 
+    p.prfnbr                                                                'BookCode',
+    p.prfid                                                                 'BookName',
+    add_info(p, 'Portfolio Status') = 'Closed' ? 'Y' : 'N'                  'isArchived',
+    'ABCAP_FRONT_ARENA'                                                     'SystemInstance',
+    p.compound = 'No'
+        ? ael_i(p,'SAIT_Portfolios.get_trade_count', p.prfnbr) : 0          'TradeCount',
+    display_id(p, 'owner_ptynbr')                                           'PortfolioOwner',
+    'Tebogo Molefe'                                                         'Owner',
+    p.compound = 'No' ? 'Physical' : 'Compound'                             'Compound/Physical',
+    add_info(p,'Portfolio Status') = '' ? 'Pending' 
+        : add_info(p,'Portfolio Status') in ('Dormant', 'NonStandard')
+        ? 'Active' : add_info(p,'Portfolio Status')                         'PortfolioStatus',
+    add_info(p,'Portfolio Status') = 'Dormant' ? 'Yes' : 'No'               'Dormant',
+    add_info(p,'Portfolio Status') = 'NonStandard' ? 'Yes' : 'No'           'NonStandard',
+    ael_s(,'SAIT_Portfolios.get_root_chorus', p.prfid)                      'RootPortfolio'
+
+from 
+    Portfolio p,
+    PortfolioLink pl,
+    Portfolio pp
+
+where
+    p.compound = 'No'
+and p.prfnbr = pl.member_prfnbr 
+and pp.prfnbr = pl.owner_prfnbr
+and ael_s(,'SAIT_Portfolios.get_root_chorus', p.prfid) not in ('None')

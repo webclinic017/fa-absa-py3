@@ -1,0 +1,11 @@
+[_securities_lending_exts]FBond:secLendGetMasterLoan = py("FSecLendUtils", context).GetMasterSecurityLoan(object);
+[_securities_lending_exts]FInstrument:secLendGetMasterLoan = nil;
+[_securities_lending_exts]FInstrumentAndTrades:secLendGetMasterLoan = instrument:secLendGetMasterLoan;
+[_securities_lending_exts]FMultiInstrumentAndTrades:secLendGetMasterLoan = select(grouper == "Underlying", 
+  true->instrumentGroupingReferenceMasterSecurityLoan, 
+  default->nil);
+[_securities_lending_exts]FSecurityLoan:secLendGetMasterLoan = select(underlying, 
+  nil->nil, 
+  default->underlying:secLendGetMasterLoan);
+[_securities_lending_exts]FStock:secLendGetMasterLoan = py("FSecLendUtils", context).GetMasterSecurityLoan(object);
+[_securities_lending_exts]FUndefinedObject:secLendGetMasterLoan = nil;

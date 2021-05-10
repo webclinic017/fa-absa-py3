@@ -1,0 +1,42 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_CounterPartyExposure') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_CounterPartyExposure' and p.type = 'SQL Query' 
+select
+	t.trdnbr,
+	ael_s(t,'InstrType.InstrumentType')	'Instrument',
+	i.insid					'InstrumentID',
+	t.quantity*i.contr_size			'InitialNominal',
+	i.exp_day				'Expiry',
+	p.ptyid					'Counterparty',
+	display_id(t,'curr')			'CCY',
+	present_value(t)			'PV_CCY',
+	t.status				'Status',
+    
+    t.value_day,
+    t.time,
+	t.your_ref              'CP Ref',
+	t.quantity >= 0 ? 'B' : 'S'     'Buy/Sell'	
+	
+from
+	instrument	i,
+	trade	t,
+	party	p,
+	portfolio	port
+
+where
+	match_filter(t, @Tradefilter{;tradefilter.fltid})
+and	t.insaddr = i.insaddr
+and	t.counterparty_ptynbr = p.ptynbr
+and	t.prfnbr = port.prfnbr
+and	t.status not in ('Simulated','Void','Terminated')
+and	t.value_day < @Date{TODAY}
+and	i.exp_day > @Date{TODAY}
+and	('All' in (@Counterparty{All;party.ptyid where type = 'Counterparty'})
+or  p.ptyid in (@Counterparty{All;party.ptyid where type = 'Counterparty'}))
+/*and	i.exp_day >= today*/
+
+order by
+	i.exp_day

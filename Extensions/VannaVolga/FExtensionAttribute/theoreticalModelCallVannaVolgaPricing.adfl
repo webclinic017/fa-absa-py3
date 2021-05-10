@@ -1,0 +1,5 @@
+[VannaVolga]FOption:theoreticalModelCallVannaVolgaPricing = select(isBarrierOption and not isDigitalBarrierOption, 
+  true->select(isDigital, 
+    true->min(vannaVolgaAdjustmentOrRelLimit, vannaVolgaVanillaValueForReplication + vannaVolgaVanillaAdjustment - theoreticalValuationModelValue), 
+    false->min(vannaVolgaAdjustmentOrRelLimit, vannaVolgaVanillaValueForReplication + vannaVolgaVanillaAdjustment + rebateSpotValue - theoreticalValuationModelValue)), 
+  false->collapse(vannaVolgaAdjustmentOrRelLimit));

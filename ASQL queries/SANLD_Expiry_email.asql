@@ -1,0 +1,42 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Expiry_email') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Expiry_email' and p.type = 'SQL Query' 
+
+
+
+/*  SVDS Email sent to specific recipients indicating trade expiries according to specified trade filter July06  */
+
+
+
+select
+	@Date{today}				'Date',
+	tf.fltid				'tf'
+
+into
+	temp
+
+FROM
+	TradeFilter tf
+
+WHERE
+	tf.fltid = @TradeFilter{NLD_IROptions_Expiries;Tradefilter.fltid}
+
+
+select
+	t.Date,
+	ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User1{'emlind.assur@absa.co.za';})	'User1',
+	ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User2{'etiennes@absa.co.za';})	'User2',
+	ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User3{'herman.levin@absa.co.za';})	'User3',
+	ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User4{'Fulu.Mudau@absa.co.za';})	'User4',
+	ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User5{'lukhanyod@absa.co.za';})	'User5',
+    ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User6{'leanieo@absa.co.za';})	'User6',
+    ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User7{'salonette.abrie@absa.co.za';})	'User7',
+    ael_s(,'NLD Expiry email.CheckTrades', t.tf, @User8{'justinn@absa.co.za';})	'User8'
+	
+from
+	temp t
+

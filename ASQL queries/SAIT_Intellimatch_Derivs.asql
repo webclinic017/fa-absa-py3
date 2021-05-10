@@ -1,0 +1,423 @@
+
+select
+    ael_i(p,'ASQL_log','SAIT_Intellimatch_Derivs') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = 'SAIT_Intellimatch_Derivs' and p.type = 'SQL Query'
+
+
+/*---------------------------------------------------------------------------------
+                                    FX Rates
+  ---------------------------------------------------------------------------------*/
+select
+        @3_HomeCurrency{ZAR;instrument.insid where instype = 'Curr'}      'hcurr',
+        curr.insid						                                  'curr',
+        @1_StartDay{Today;}=today 
+        ? used_price(hc, @1_StartDay{Today;}, curr.insid)
+		: mtm_price(hc, @1_StartDay{Today;}, curr.insid)	              'fxRepDay'
+into
+        fxrates
+from
+        instrument	hc,
+        instrument	curr
+where
+        hc.insid = (@3_HomeCurrency{ZAR;instrument.insid where instype = 'Curr'})
+and     curr.instype = 'Curr'
+
+/*  List of trades - EXCLUDING Stocks  */
+
+select
+        t.trdnbr,
+        i.insid,
+        i.instype = 'Stock'? 'Stock': i.instype	            'itype',
+        p.ptyid                                             'cpid',
+        p.type                                              'Internal_External',
+        display_id(t, 'acquirer_ptynbr')	                'Desk',
+        port.prfid                                          'Portfolio',
+        pp.prfid                                            'Compound_Portfolio',
+        pi.ptyid                                            'issid',
+        display_id(t, 'optkey1_chlnbr')                     'DevonRef',
+        nominal_amount(t)	                                'Nominal',
+        t.status = 'Simulated'? 'Simulated': t.status       'status',
+        t.time,
+        t.your_ref		                                    'CPRef'
+	
+into
+    TRD
+from
+	trade 		    t,
+	instrument 	    i,
+	party		    p,
+	party		    pi,
+  	portfolio       port,
+	portfolio       pp,
+	portfolioLink   pl    
+
+where
+        match_filter(t, @Filter{;tradefilter.fltid})
+    and	i.insaddr = t.insaddr
+    and	t.counterparty_ptynbr = p.ptynbr
+    and	i.issuer_ptynbr *= pi.ptynbr
+    and t.prfnbr = port.prfnbr
+    and	port.prfnbr = pl.member_prfnbr
+    and	pl.owner_prfnbr = pp.prfnbr
+    and i.exp_day >= @1_StartDay{Today;}
+
+/* List of trades - Stocks*/
+
+select
+	t.trdnbr,
+	i.insid,
+	i.instype = 'Stock'? 'Stock': i.instype                 'itype',
+	p.ptyid                                                 'cpid',
+	p.type                                                  'Internal_External',
+	display_id(t, 'acquirer_ptynbr')	                    'Desk',
+	port.prfid                                              'Portfolio',
+	pp.prfid                                                'Compound_Portfolio',
+	pi.ptyid                                                'issid',
+	display_id(t, 'optkey1_chlnbr')                         'DevonRef',
+	nominal_amount(t)	                                    'Nominal',
+	t.status = 'Simulated'? 'Simulated': t.status            'status',
+	t.time,
+	t.your_ref		                                        'CPRef'
+	
+into
+    TRD
+from
+	trade 		    t,
+	instrument 	    i,
+	party		    p,
+	party		    pi,
+  	portfolio       port,
+	portfolio       pp,
+	portfolioLink   pl    
+
+where
+        i.insaddr = t.insaddr
+    and	t.counterparty_ptynbr = p.ptynbr
+    and	i.issuer_ptynbr *= pi.ptynbr
+    and t.prfnbr = port.prfnbr
+    and	port.prfnbr = pl.member_prfnbr
+    and	pl.owner_prfnbr = pp.prfnbr
+    and i.instype = 'Stock'
+    and i.insid = 'ZAR/GLD'
+
+/* Cashflows */
+
+select
+	c.pay_day	                                                                                'day',
+	projected_cf(c) * t.quantity	                                                            'amount',
+	display_id(l,'curr')	                                                                    'curr',
+	'Cashflow'                                                                                  'CFType',
+	t.quantity*i.contr_size*c.nominal_factor                                                    'Nominal',
+	/*i.instype='FXSwap' ? l.nominal_factor : c.nominal_factor                                    'NominalFactor',*/
+	c.nominal_factor                                    'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? 'Issuer' : 'CP'      'PartyType',
+	i.instype in ('Bond','FRN','Zero','PromisLoan','Bill','CD','Convertible') ? trd.issid : trd.cpid 'cpid',
+	trd.Internal_External,
+    ''                                                                                           'Party_Additional',	
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,	
+	trd.Desk,	
+	t.your_ref		                                                                             'CPRef'
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	leg         l,
+	cashflow    c,
+	TRD         trd,
+	instrument  j
+where
+        i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = c.legnbr
+    and	t.trdnbr = trd.trdnbr
+    and	c.pay_day >= t.acquire_day
+    and	l.curr = j.insaddr
+    and c.pay_day >= @1_StartDay{Today;}
+    and	c.pay_day <= @2_EndDay{Today;}
+
+/* Premium amounts */
+select
+	t.value_day	                'day',
+	t.premium	                'amount',
+	display_id(t,'curr')	    'curr',
+	t.trade_process not in (4096,8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+	t.trade_process not in (4096,8192, 16384,32768) ? trd.Nominal :  t.premium  'Nominal',
+	t.trade_process not in (4096,8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)  'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+    'CP'                        'PartyType',
+	trd.cpid,
+	trd.Internal_External,	
+    ''                          'Party_Additional',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,
+	trd.Desk,
+	t.your_ref		            'CPRef'
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+        t.trdnbr = trd.trdnbr
+    and	t.premium ~= 0.0    
+    and	t.insaddr = i.insaddr
+    and	t.curr = j.insaddr
+    and t.value_day >= @1_StartDay{Today;}
+    and	t.value_day <= @2_EndDay{Today;}
+
+
+
+
+/* Premium amounts 2*/
+select
+	t.value_day	                'day',
+	t.quantity	                'amount',
+	display_id(i,'curr')	    'curr',
+	t.trade_process not in (4096,8192, 16384,32768) ? 'Premium' : 'Cashflow'	'CFType',
+	t.trade_process not in (4096,8192, 16384,32768) ? trd.Nominal :  t.premium  'Nominal',
+	t.trade_process not in (4096,8192, 16384,32768) ? 1.00 : abs(t.quantity/t.premium)  'NominalFactor',
+	t.connected_trdnbr  'trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+    'CP'                        'PartyType',
+	trd.cpid,
+	trd.Internal_External,	
+    ''                          'Party_Additional',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,
+	trd.Desk,
+	t.your_ref		            'CPRef'
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+        t.trdnbr = trd.trdnbr
+    and	t.premium ~= 0.0    
+    and	t.insaddr = i.insaddr
+    and	i.curr = j.insaddr
+    and i.instype = 'Curr'
+    and t.value_day >= @1_StartDay{Today;}
+    and	t.value_day <= @2_EndDay{Today;}
+
+
+/* End premiums and sec loan fees */
+
+select
+	i.exp_day	                                                'day',
+	i.instype = 'BuySellback' ? t.quantity * i.ref_value :
+		t.quantity * projected_cf(i)	                        'amount',
+	display_id(t,'curr')	                                    'curr',
+    'End Premium/Sec Loan Fee'	                                'CFType',
+	trd.Nominal,
+	1.00                                                        'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+    'CP'                                                        'PartyType',
+	trd.cpid,
+	trd.Internal_External,	
+    ''                                                          'Party_Additional',	
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,	
+    trd.Desk,
+	t.your_ref		                                            'CPRef'
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+        t.trdnbr = trd.trdnbr
+    and	i.insaddr = t.insaddr
+    and	i.instype in ('BuySellback','SecurityLoan')
+    and	t.curr = j.insaddr
+    and i.exp_day >= @1_StartDay{Today;}
+    and	i.exp_day <= @2_EndDay{Today;}
+
+/* Commod Futures */
+
+select
+	i.exp_day	                        'day',
+	nominal_amount(t)*t.price*-1	    'amount',
+	display_id(t,'curr')	            'curr',
+    'Commodity Future'	                'CFType',
+	trd.Nominal,
+	1.00                                'NominalFactor',
+	t.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+	'CP'                                'PartyType',
+	trd.cpid,
+	trd.Internal_External,	
+    ''                                  'Party_Additional',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+    trd.Compound_Portfolio,
+	trd.Desk,    
+	t.your_ref		                    'CPRef'
+into
+	CF
+from
+	trade       t,
+	instrument  i,
+	TRD         trd,
+	instrument  j
+where
+        t.trdnbr = trd.trdnbr
+    and	i.insaddr = t.insaddr
+    and	i.instype in ('Future/Forward')
+    and	i.und_instype = 'Commodity'
+    and	t.curr = j.insaddr
+    and i.exp_day >= @1_StartDay{Today;}
+    and	i.exp_day <= @2_EndDay{Today;}
+
+/* Dividend payments */
+
+select
+
+	d.day			            'day',
+	d.dividend		            'amount',
+	display_id(i,'curr')	    'curr',
+    'Dividend'                  'CFType',
+	trd.Nominal,
+	1.00                        'NominalFactor',
+	t.trdnbr		            'Trdnbr',
+	trd.devonref,
+	trd.insid,
+	trd.itype		            'Itype',
+    'Issuer'                    'PartyType',
+	trd.issid                   'cpid',
+	trd.Internal_External,	
+    ''                          'Party_Additional',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,	
+	trd.Desk,	
+	t.your_ref		            'CPRef'
+
+into
+	CF
+from	
+    instrument	    i,
+	dividend	    d,
+	trade		    t,
+	TRD		        trd,
+	instrument	    j
+
+where
+        i.insaddr = d.insaddr
+    and	d.insaddr = t.insaddr
+    and	t.trdnbr  = trd.trdnbr
+    and	t.curr = j.insaddr
+    and d.day >= @1_StartDay{Today;}
+    and	d.day <= @2_EndDay{Today;}	
+
+/* Additional payments */
+
+select
+	a.payday	                'day',
+	a.amount	                'amount',
+	display_id(a,'curr')	    'curr',
+	'Additional Payment'	    'CFType',
+	trd.Nominal,
+	1.00                        'NominalFactor',
+	a.trdnbr,
+	trd.devonref,
+	trd.insid,
+	trd.itype,
+    'CP'                        'PartyType',
+	trd.cpid,
+	trd.Internal_External,	
+    display_id(a, 'ptynbr')     'Party_Additional',
+	trd.status,
+	trd.time,
+	trd.portfolio,
+	trd.Compound_Portfolio,	
+	trd.Desk,	
+	trd.CPRef
+
+into 
+	CF
+from
+	payment a,
+	TRD trd,
+	instrument j
+where
+        a.trdnbr = trd.trdnbr
+    and	a.curr = j.insaddr
+    and a.payday >= @1_StartDay{Today;}
+    and	a.payday <= @2_EndDay{Today;}
+
+/*-------------- FINAL SELECTION  -----------------------*/
+select
+	c.trdnbr	                    'TrdNbr',
+    c.itype                         'Type',
+    c.day 	                        'Day',
+    c.portfolio                     'Portfolio',
+	c.Compound_Portfolio,
+    c.cpid                          'Counterparty',
+	c.Party_Additional,
+    c.insid,    
+    c.status,
+    c.curr		                    'Curr',
+    sum(c.amount)	                'Amount',
+    c.CFType	                    'PayType',
+    c.Nominal,
+    c.CPRef,
+    c.PartyType,
+    @1_StartDay{Yesterday;}         'StartDay',
+    @2_EndDay{Today;}               'EndDay',
+    sum(c.amount) > 0 ? 'B' : 'S'   'Buy_Sell',
+    c.Internal_External,    
+    c.devonref,
+	c.time,
+	c.Desk    
+    
+into    
+    Final
+from
+	CF c,
+	fxrates fx
+where 	
+    c.curr in (@4_Currency{ZAR;instrument.insid* where instype = 'Curr'})
+    and	c.day >= @1_StartDay{Yesterday;}
+    and	c.day <= @2_EndDay{Today;}
+
+group by c.trdnbr, c.CFType, c.curr
+
+select
+        *
+from
+       Final

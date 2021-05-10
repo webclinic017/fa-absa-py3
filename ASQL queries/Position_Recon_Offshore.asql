@@ -1,0 +1,32 @@
+select 
+    trd.trdnbr
+from
+    Trade trd,
+    Portfolio p,
+    Instrument i fill,
+    Instrument und fill,
+    Party counterP,
+    Party issuer 
+where
+        trd.status not in ('Simulated','Void','Terminated')
+    and trd.value_day <= Yesterday
+    and i.exp_day >= Today
+    and i.instype in ('Bond','FRN','Bill','Zero','IndexLinkedBond','SecurityLoan','Repo/Reverse','BuySellback','BasketRepo/Reverse')    
+    and counterP.type not in ('Intern Dept')
+    and i.isin not like '%ZA%'
+    and und.isin not like '%ZA%'
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'ABSA BANK LTD') = 1 
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'GROUP TREASURY') = 0
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIMARY MARKETS BANKING') = 0
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'AFRICA TRADING') = 0
+    and ael_i(p, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PRIME SERVICES TRADING') = 0
+    and (i.insid not like '%PASSTHROUGH%' and  i.insid not like '%PASS-THROUGH%' and  i.insid not like '%PASSTH%' 
+        and i.insid not like'%LOAN%' and i.insid not like'%Loan%')
+    and (i.extern_id2 not like '%PASSTHROUGH%' and i.extern_id2 not like '%PASS-THROUGH%' and i.extern_id2 not like ' %PASSTH%' 
+        and i.extern_id2 not like '%LOAN%' and i.extern_id2 not like '%UNLISTED%')
+    and i.insaddr= trd.insaddr
+    and und.insaddr = i.und_insaddr
+    and p.prfnbr = trd.prfnbr
+    and counterP.ptynbr *= trd.counterparty_ptynbr
+    and i.issuer_ptynbr *=issuer.ptynbr
+    and i.issuer_ptynbr ~= 209 

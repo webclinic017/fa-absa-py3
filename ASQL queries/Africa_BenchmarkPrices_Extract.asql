@@ -1,0 +1,37 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','BenchmarkPrices') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'BenchmarkPrices' and p.type = 'SQL Query' 
+
+/*
+This query is used to extract benchmark prices to feed into 
+Africa Front Arena to keep the curves insync
+*/
+
+/* Benchmarks */
+select
+    distinct
+    i.insid,
+    i.instype,
+    i.exp_day,
+    i.insaddr,
+    l.day,
+    display_id(l, 'curr')           'curr',
+    convert('double', l.bid, 6)     'bid',
+    convert('double', l.ask, 6)     'ask',
+    convert('double', l.last, 6)    'last',
+    convert('double', l.settle, 6)  'settle'
+    
+from
+    Instrument i,
+    Benchmark B,
+    LastPrice l
+    
+where
+    i.insaddr = b.instrument
+and l.insaddr = i.insaddr
+and l.ptynbr = 10
+
+

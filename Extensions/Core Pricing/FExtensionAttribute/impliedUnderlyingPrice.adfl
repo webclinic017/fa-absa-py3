@@ -1,0 +1,11 @@
+[Core Pricing]FInstrumentAndTrades:impliedUnderlyingPrice = select(instrumentIsCliquet, 
+  true->nil, 
+  default->shunt(implyValid, 
+    false->nil, 
+    true->select((nil == underlyingPriceInTheoreticalPrice) or (nil == underlyingForUnderlyingPriceInTheoreticalPrice), 
+      true->nil, 
+      default->select(instrument:isReciprocal, 
+        true->inv(impliedUnderlyingPriceImpl), 
+        default->select(underlying, 
+          nil->impliedUnderlyingPriceImpl, 
+          default->underlying:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = impliedUnderlyingPriceImpl] * double(instrument:underlyingPriceInTheoreticalPriceFxUnderlyingToCalculation))))));

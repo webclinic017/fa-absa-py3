@@ -1,0 +1,7 @@
+[Profit and Loss]FCombInstrMap:customHistoricalCashFlowsForProfitAndLoss = instrument:customHistoricalCashFlowsForProfitAndLoss * weight * object.Weight;
+[Profit and Loss]FCombination:customHistoricalCashFlowsForProfitAndLoss = flattenAndRemoveNil(instrumentMapsWithLegInformation :* "customHistoricalCashFlowsForProfitAndLoss" [weight := invertedFactor]);
+[Profit and Loss]FInstrument:customHistoricalCashFlowsForProfitAndLoss = select(allowCustomHistoricalCashFlows, 
+  true->select(useCustomHistoricalCashFlowsForProfitAndLoss, 
+    true->object :* customHistoricalCashFlowsForProfitAndLossLookUp, 
+    false->nil), 
+  false->nil);

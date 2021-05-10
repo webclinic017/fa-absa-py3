@@ -1,0 +1,6 @@
+[Default]FInstrument:bookInstrumentForwardValue = select(insIsAccuredInArrear, 
+  true->profitAndLossValues.ForwardInterestSettled - profitAndLossValues.InstrumentAccrued, 
+  false->profitAndLossValues.ForwardInterestSettled);
+[Default]FInstrumentAndTrades:bookInstrumentForwardValue = instrument:bookInstrumentForwardValue [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput];
+[Default]FMultiInstrumentAndTrades:bookInstrumentForwardValue = sumOf(instruments :* "bookInstrumentForwardValue" [positionObject, profitAndLossParameters, plSpotGroupingReference, valuationBaseDateTimeInput]);
+[Default]FTradeRow:bookInstrumentForwardValue = instrument:bookInstrumentForwardValue [tradeSetUsedInProfitandLoss, profitAndLossParameters, plSpotGroupingReference, singleTradePosition, valuationBaseDateTimeInput, taxLotPositionObject];

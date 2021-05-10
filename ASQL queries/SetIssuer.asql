@@ -1,0 +1,65 @@
+/*
+Purpose: Adds Issuer to trades. Calls SetIssuer AEL.
+Department: PCG MONEY MARKET
+Requester: Gill Dailey
+Developer: Willie van der Bank
+CR Number: C2826 (16/03/2010)(C000000253926)
+*/
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SetIssuer') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SetIssuer' and p.type = 'SQL Query' 
+
+select
+    @3_Issuer{;party.ptyid}    'IssName',
+    @4_FundingInstype{NCC;} 'FInsType',
+    @5_Replace_if_issuer_exists{No;'Yes','No'}  'Replace',
+    s.srdnbr
+into macro
+from
+    serverdata s
+
+select
+    t.trdnbr,
+    t.insaddr,
+    add_info(t,'Funding Instype')   'FInsType'
+into trades
+from
+    trade t
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+select
+    t.trdnbr,
+    m.IssName   'Issuer',
+    ael_s(,'SetIssuer.Set',t.trdnbr,p.ptynbr)  'result'
+from
+    trades t,
+    macro m,
+    instrument i,
+    party p
+where
+        i.insaddr = t.insaddr
+    and p.ptyid = m.IssName
+    and (t.FInsType = m.FInsType or m.FInsType = '')
+    and m.Replace = 'Yes'
+    
+union
+
+select
+    t.trdnbr,
+    m.IssName   'Issuer',
+    ael_s(,'SetIssuer.Set',t.trdnbr,p.ptynbr)  'result'
+from
+    trades t,
+    macro m,
+    instrument i,
+    party p
+where
+        i.insaddr = t.insaddr
+    and p.ptyid = m.IssName
+    and (t.FInsType = m.FInsType or m.FInsType = '')
+    and m.Replace = 'No'
+    and (i.issuer_ptynbr = '' or i.issuer_ptynbr = 0)

@@ -1,0 +1,8 @@
+[ArenaFunction32To4]FCombination:theoreticalPrice = shunt(isCalculatedTheoretically, 
+  true->object.UnitValueToQuote(theoreticalInstrumentSpotValueForPrice, valuationDate, dateToday, true, legInformations, quotation, couponToValueFactor, couponPriceAdjustment), 
+  false->nil);
+[ArenaFunction32To4]FInstrument:theoreticalPrice = select(isCalculatedTheoretically, 
+  true->select(isCouponQuoted, 
+    true->timesHundred(parRate), 
+    false->object.UnitValueToQuote(theoreticalInstrumentSpotValueForPrice, valuationDate, dateToday, true, legInformations, quotation, couponToValueFactor, couponPriceAdjustment)), 
+  false->marketPrice);

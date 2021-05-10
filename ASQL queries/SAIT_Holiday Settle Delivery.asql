@@ -1,0 +1,64 @@
+/* Usage code for this ASQL */
+
+/*
+Purpose: To identify all trades that have settlement SAIT_Holiday Settle Delivery day for a specific currency and date where there are new public holidays
+        and these days needs to be changed by the trader and fx cash trades where value date = hliday that needs to be changed from tyhe soyurce system
+        
+Department: IT
+Requester:  Anil Parbhoo
+Developer:  Anil Parbhoo
+CR Number: CHNG000
+*/
+
+select ael_i(p,'ASQL_log','SAIT_Holiday Settle Delivery') 'Name' 
+into ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'SAIT_Holiday Settle Delivery' and p.type = 'SQL Query' 
+
+select
+    to_date(@2_Date{Today}) 'date',
+    i.insaddr
+into
+    macros
+from
+    instrument i
+where
+    i.insid = @1_Currency{ZAR;Instrument.insid where instype = 'curr'}
+
+
+select
+    'Value_Day' 'Section',
+    t.trdnbr,
+    t.status,
+    i.insid,
+    i.insaddr,
+    i.instype,
+    display_id(i, 'curr')'ins currency',
+    display_id(t, 'curr')'trade curr',
+    i.und_instype,
+    i.exp_day,
+    t.value_day,
+   
+    t.status,
+    display_id(t , 'counterparty_ptynbr')'counterparty',
+    display_id(t, 'prfnbr') 'portfolio',
+    display_id(t, 'acquirer_ptynbr') 'acquirer',
+    u.name
+from
+    trade t,
+    instrument i,
+    macros m,
+    user u
+where
+
+
+ i.insaddr = t.insaddr
+    and t.value_day = m.date
+    and (i.curr = m.insaddr
+    or t.curr = m.insaddr) 
+    and t.status not in ('Simulated','Terminated','Void')
+    and t.trader_usrnbr = u.usrnbr
+    and i.instype = 'Curr'
+
+order by t.value_day 
+    

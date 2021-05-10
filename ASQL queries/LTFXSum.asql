@@ -1,0 +1,131 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','LTFXSum') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+    where p.name = 'LTFXSum' and p.type = 'SQL Query' 
+
+ 
+select
+    t.trdnbr                        'Trd',
+    cf.pay_day                      'Payday',
+    maturity_date(t)                'Trdexpiry',
+    to_string(i.instype)                       'Type',
+    display_id(l,'curr')            'curr',
+    projected_cf(cf,,,display_id(l,'curr'))*t.quantity 'Currency_Cashflow',
+    p.fullname                      'Counterparty',
+    p.type                          'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',display_id(l,'curr')) 'FXRate'
+into temp
+from
+    trade t,
+    leg l,
+    cashflow cf,
+    instrument i,
+    party p
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and cf.pay_day > @StartDay{TODAY}
+    and i.instype~='Cap'
+    and i.insaddr = t.insaddr
+    and l.insaddr = i.insaddr
+    and cf.legnbr = l.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and display_id(l , 'curr') ~= 'ZAR'
+    and t.counterparty_ptynbr = p.ptynbr
+
+
+select
+    t.trdnbr                        'Trd',
+    t.value_day                      'Payday',
+    maturity_date(t)                'Trdexpiry',
+    'FxSwap'                       'Type',
+    display_id(c,'curr')            'curr',
+     c.insid = i.insid ? t.quantity : t.Premium                    'Currency_Cashflow',
+    p.fullname                      'Counterparty',
+    p.type                          'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',display_id(c,'curr')) 'FXRate'
+
+into temp
+from
+    trade t,
+    instrument c,
+    instrument i,
+    party p
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and t.value_day > @StartDay{TODAY}
+    and i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and display_id(c , 'curr') ~= 'ZAR'
+    and t.counterparty_ptynbr = p.ptynbr
+    and c.insaddr in (t.curr,i.insaddr)
+    and i.instype = 'Curr'
+    and c.instype = 'Curr'
+    and t.trade_process in (4096,8192)
+    
+
+
+select
+    t.trdnbr                        'Trd',
+    t.value_day                      'Payday',
+    maturity_date(t)                'Trdexpiry',
+    'FxSwap'                       'Type',
+    display_id(c,'curr')            'curr',
+   t.value_day > @StartDay{TODAY}  and t2.value_day <= @StartDay{TODAY} ? c.insid = i.insid ? t.quantity : t.Premium : 0      'Currency_Cashflow',
+    p.fullname                      'Counterparty',
+    p.type                          'CPTY_Type',
+    dirk_utils.get_fx_rate('USD',display_id(c,'curr')) 'FXRate'
+
+into temp
+from
+    trade t,
+    trade t2,
+    instrument c,
+    instrument i,
+    party p
+where
+    @StartDay{TODAY} <= maturity_date(t)
+    and t.value_day > @StartDay{TODAY}
+    and i.insaddr = t.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid})
+    and display_id(c , 'curr') ~= 'ZAR'
+    and t.counterparty_ptynbr = p.ptynbr
+    and c.insaddr in (t.curr,i.insaddr)
+    and i.instype = 'Curr'
+    and c.instype = 'Curr'
+    and t.trade_process = 32768
+    and t2.trade_process = 16384
+    and t.connected_trdnbr = t2.connected_trdnbr
+/*----------------------------------------------------------*/
+
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    to_double(Currency_Cashflow)'Cflow',
+    Counterparty,
+    CPTY_Type,
+    Fxrate,
+    Currency_Cashflow * Fxrate 'USDEqCF'
+into temp2
+
+from temp
+/*where Counterparty ~= 'FORWARDS DESK'*/
+
+/*---------------------------------------------------------*/
+select
+    Trd,
+    Trdexpiry,
+    Type,
+    curr,
+    sum(Cflow)'Sum',
+    Counterparty,
+    Counterparty = 'FORWARDS DESK' ? 'Intern Dept' : CPTY_Type ' Cpty Type',
+    avg(FXrate) 'FX Rate',
+    sum(USDEqCF) 'Sum USD'
+
+from temp2
+    
+Group by Trd,curr
+

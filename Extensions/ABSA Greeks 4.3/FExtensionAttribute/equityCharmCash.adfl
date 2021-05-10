@@ -1,0 +1,11 @@
+[ABSA Greeks 4.3]FInstrumentAndTrades:equityCharmCash = equityCharm * (select(underlying, 
+  nil->0.0, 
+  default->underlying:marketPrice / underlying:eqQuoteFactor));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:equityCharmCash = sumOf(children :* "equityCharmCash" [positionObject]);
+[ABSA Greeks 4.3]FSingleInstrumentAndTrades:equityCharmCash = shunt(equityCharm, 
+  nil->0.0, 
+  default->equityCharm.Number * select(underlying, 
+    nil->0.0, 
+    default->select(underlying.MtmFromFeed, 
+      true->underlying:marketPrice.Number / underlying:eqQuoteFactor, 
+      false->underlying:theoreticalInstrumentValueAtSpot.Number / underlying:eqQuoteFactor)));

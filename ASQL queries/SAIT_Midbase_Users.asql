@@ -1,0 +1,24 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Midbase_Users') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Midbase_Users' and p.type = 'SQL Query' 
+
+
+
+
+SELECT 
+    u.usrnbr,
+    u.owner_usrnbr,
+	u.four_eye_on,
+    u.authorizer_usrnbr= 0 ? 'NULL' : to_string(u.authorizer_usrnbr)  'authorizer_usrnbr',
+    u.userid  'CODE',
+    u.grpnbr,
+    u.name,
+    u.usertype = 0 ? 'NULL' : to_string(u.usertype)  'usertype',
+    u.profnbr= 0 ? 'NULL' : to_string(u.profnbr)  'profnbr'
+FROM 
+    user u
+
+

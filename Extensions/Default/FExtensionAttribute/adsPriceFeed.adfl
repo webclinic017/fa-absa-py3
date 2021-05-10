@@ -1,0 +1,9 @@
+[Default]FFxRate:adsPriceFeed = select(foreignEqualsDomestic, 
+  true->foreignCurrency:adsPriceFeed [adsPriceCurrency], 
+  false->foreignCurrency:adsPriceFeed [adsPriceCurrency := domesticCurrency]);
+[Default]FInstrument:adsPriceFeed = priceFeeds.PriceFeed(orderBookMarketSearchOrder, 0, priceFindingMarketSet, priceFindingIsCorrectDay, priceFindingMarketRule, priceFindingCurrencyRule, "ADS", adsPriceDate, valuationDate, adsPriceCurrency, true, priceFindingIsCorrectType);
+[Default]FInstrumentAndTrades:adsPriceFeed = instrument:adsPriceFeed;
+[Default]FMultiInstrumentAndTrades:adsPriceFeed = nil;
+[Default]FPreciousMetalRate:adsPriceFeed = commodityVariant:adsPriceFeed [adsPriceCurrency := pmCurrency];
+[Default]FPriceAggregate:adsPriceFeed = instrument:adsPriceFeed;
+[Default]FPriceFeed:adsPriceFeed = instrument:adsPriceFeed;

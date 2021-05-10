@@ -1,0 +1,5 @@
+[Fixed Income Market Making]FFrn:marketDiscountMarginFromCurve = select(isDiscountMarginSensitive, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->imply(snoop(theoreticalPriceFromDiscountMarginAndCurve, "discountMargin"), theoreticalPriceFromDiscountMarginAndCurve, marketPrice, discountMarginAccuracy, -1.0, 1.0, implyMaxIterations), 
+    false->nil));

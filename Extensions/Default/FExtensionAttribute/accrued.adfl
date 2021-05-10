@@ -1,0 +1,11 @@
+#grouping: aef base/profit and loss
+
+[Default]FDeliverableLinkAndTrades:accrued = nil;
+[Default]FInstrumentAndTrades:accrued = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->accruedLive, 
+  "Inception to Historical"->accruedEnd, 
+  "Historical to Present"->accruedLive - accruedStart, 
+  default->accruedEnd - accruedStart);
+[Default]FPriceAggregate:accrued = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "accrued");

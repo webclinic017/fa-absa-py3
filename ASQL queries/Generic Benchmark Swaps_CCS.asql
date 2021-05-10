@@ -1,0 +1,31 @@
+select
+
+count(i.insid)'benchmarks',
+i.insaddr,
+i.instype,
+i.generic,
+q.name,
+q.quotation_type,
+yc.yield_curve_name
+
+
+
+from
+instrument i,
+quotation q,
+Benchmark bm, YieldCurve yc
+
+
+where
+
+i.generic = 'Yes'
+and i.instype in ('Swap','CurrSwap')
+and i.quotation_seqnbr = q.seqnbr
+and quotation_type = 'Spread'
+/*
+and q.name like 'Spread%'
+*/
+and bm.instrument = i.insaddr
+and bm.yield_curve_seqnbr = yc.seqnbr
+
+group by 7

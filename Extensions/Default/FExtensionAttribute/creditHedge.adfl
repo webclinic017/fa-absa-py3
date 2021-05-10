@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:creditHedge = select(creditCurveSingleRow == nil, 
+  true->timeBucketsSetExternallyNilVector, 
+  false->shunt(isZeroRiskPosition, 
+    true->timeBucketsSetExternallyNilVector, 
+    false->select(timeBucketsSetExternally == nil, 
+      true->nil, 
+      false->creditHedge(arrayRaw(creditDelta), creditDeltaHedge))));
+[Default]FPortfolioInstrumentAndTrades:creditHedge = timeBucketsSetExternallyNilVector;

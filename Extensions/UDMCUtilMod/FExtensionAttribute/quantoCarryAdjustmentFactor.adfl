@@ -1,0 +1,6 @@
+[UDMCUtilMod]FCashFlowInstrument:quantoCarryAdjustmentFactor = 0.0;
+[UDMCUtilMod]FDerivative:quantoCarryAdjustmentFactor = select(monteCarloSimulationIsMultiUnderlying, 
+  false->select(isQuanto, 
+    true->underlyingFXCorrelation * volatilityForQuantoAdjustedCarryCost * fxVolatilityForQuantoAdjustedCarryCost, 
+    false->0.0), 
+  true->monteCarloSimulationObservables :* "multiUnderlyingComponentQuantoCarryAdjustmentRate" [optionParent, correlationMatrix, priceSource, carryStartDate, carryEndDate, expiryDate, multiUnderlyingPayCurrency := (underlying:currency), isQuanto]);

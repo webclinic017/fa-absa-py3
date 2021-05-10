@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:priceDeltaHedgeEquivalent = select(nil == priceDeltaHedgeAlternativeChosen, 
+  true->nil, 
+  false->switch(almostZero(priceDeltaPercentForHedge, 1e-10), 
+    true->priceDeltaPercentForHedge, 
+    false->priceDeltaPercent / priceDeltaPercentForHedge));

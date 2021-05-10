@@ -1,0 +1,12 @@
+[Securities Lending ABSA]FInstrument:sobMarketValue = sumOf(stripDateTimePart(removeNil((tradesInPosition) :* "sobMarketValue" [displayCurrency = accountingCurrency, profitAndLossEndFXRates])));
+[Securities Lending ABSA]FInstrumentAndTrades:sobMarketValue = stripDateTimePart(removeNil((tradesInPosition) :* "sobMarketValue" [displayCurrency = accountingCurrency, profitAndLossEndFXRates]));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:sobMarketValue = sumOf(children :* "sobMarketValue");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:sobMarketValue = stripDateTimePart(removeNil((tradesInPosition) :* "sobMarketValue" [displayCurrency = accountingCurrency, profitAndLossEndFXRates]));
+[Securities Lending ABSA]FTrade:sobMarketValue = select(instrument.InsType, 
+  "IndexLinkedBond"->abs(denominatedvalue(nominal * py("sl_all_in_price", context).sl_all_in_price(instrument, accountingCurrency.Calendar.AdjustBankingDays(profitAndLossEndDate, -1)), instrument.Currency, , )), 
+  "Bond"->abs(denominatedvalue(nominal * py("sl_all_in_price", context).sl_all_in_price(instrument, accountingCurrency.Calendar.AdjustBankingDays(profitAndLossEndDate, -1)), instrument.Currency, , )), 
+  "CD"->abs(denominatedvalue(nominal * py("sl_all_in_price", context).sl_all_in_price(instrument, accountingCurrency.Calendar.AdjustBankingDays(profitAndLossEndDate, -1)), instrument.Currency, , )), 
+  "Bill"->abs(denominatedvalue(nominal * py("sl_all_in_price", context).sl_all_in_price(instrument, accountingCurrency.Calendar.AdjustBankingDays(profitAndLossEndDate, -1)), instrument.Currency, , )), 
+  "Deposit"->regulatoryNotionalInDisplayCurrency, 
+  default->sobRegulatoryNotionalInDisplayCurrency);
+[Securities Lending ABSA]FTradeRow:sobMarketValue = trade:sobMarketValue [displayCurrency = accountingCurrency, profitAndLossEndFXRates];

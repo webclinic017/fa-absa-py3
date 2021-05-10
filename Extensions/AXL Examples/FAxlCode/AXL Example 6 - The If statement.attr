@@ -1,0 +1,39 @@
+[AXL Examples]FObject:AXL Example 6 - The If statement
+//---------------------------------------------------------------------
+//AXL Example 6 - The If statement
+//---------------------------------------------------------------------
+
+//This example shows how to use selectors in AXL.
+//Selectors are, for example, Switch and If statements.
+//In this example we will show how to use the If statement.
+
+//main is the name of the main function and main is required for the formula
+//to compile. It is this function that is available to the Data Disposition UI
+//and in this UI the user can assign attributes, values or formulas to the arguments.
+
+//The actual formula is written after the = sign. In this case a call to MyFunction passing X
+//as an argument to the function.
+//The function is terminated by the ; sign.
+
+{
+  Parameters:
+  [
+    {Name:X,Type:Double}
+  ],
+  
+  DisplayInformation:
+  {
+    GroupLabel:'AXL Examples'
+  }
+}
+
+//The If statement takes three arguments. The first is the actual comparison.
+//The second argument is the return value if the comparison is true. The third argument
+//is the return value if the comparison is false. In this example we will
+//summerize X only if the value is larger than zero otherwise we will summarize zero.
+
+main = Aggregate.Sum( If(Compare.IsPositive($X),$X, 0.0 ) );
+
+
+
+...

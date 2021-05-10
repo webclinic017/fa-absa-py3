@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:priceGammaValuesCommodity = select(commodityPriceGreekFutures, 
+  nil->sumOf(priceGammaValuesCommodityPerRiskFactor), 
+  default->switch(commodityPriceGreekRiskFactorIndex == -1, 
+    true->nil, 
+    false->priceGammaValuesCommodityPerRiskFactor[commodityPriceGreekRiskFactorIndex]));

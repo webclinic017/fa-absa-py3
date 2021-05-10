@@ -1,0 +1,194 @@
+/*------------------------------------------------------------------
+    SAFI_MIS_SalesCredit
+    
+    This query supplies supplies the sales_credit totals per sales person 
+    for a specific range of dates and trade filter.
+
+    Date                : 2011-02-10
+    Purpose             : Select the sales credit created by the SAFI_SalesCredit python script
+    Department and Desk : PCG SM Middle Office
+    Requester           : Kelly Chetty
+    Developer           : Herman Hoon
+    CR Number           : 569952
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','SAFI_MIS_SalesCredit') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'SAFI_MIS_SalesCredit' and p.type = 'SQL Query' 
+
+select
+    display_id(t,'acquirer_ptynbr')         'Category',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    'YES'? time_to_day(t.time): ''          'Trade_Date',
+    'YES'? i.exp_day : ''                   'Maturity',
+    i.contr_size * t.quantity               'Notional',
+    t.trdnbr                                'FrontID',
+    i.insid                                 'Product',
+    display_id(t,'trader_usrnbr')           'Trader',
+    display_id(t,'prfnbr')                  'Portfolio'
+into 
+    trades      
+from    
+    trade t,
+    instrument i
+where
+    match_filter(t,@1_Filter{SAFI_SalesCredit;TradeFilter.fltid})
+and i.insaddr = t.insaddr
+and time_to_day(t.creat_time) between @2_Start_date{Yesterday} and @3_End_date{Yesterday} 
+
+select
+    tr.*,
+    display_id(t,'sales_person_usrnbr')     'Sales_Person',
+    to_double(t.sales_credit)               'Standard',
+    to_double(add_info(t,'ValueAddCredits'))     'VA',
+    to_double(t.sales_credit) +  to_double(add_info(t,'ValueAddCredits'))   'Total_Sales'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and t.sales_person_usrnbr ~= 0
+
+select
+    tr.*,
+    add_info(t,'Sales_Person2')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit2'))  'Standard',
+    to_double(add_info(t,'ValueAddCredits2'))     'VA',
+    to_double(add_info(t,'Sales_Credit2')) +  to_double(add_info(t,'ValueAddCredits2'))   'Total_Sales'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person2') ~= ''
+    
+select
+    tr.*,
+    add_info(t,'Sales_Person3')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit3'))  'Standard',
+    to_double(add_info(t,'ValueAddCredits3'))     'VA',
+    to_double(add_info(t,'Sales_Credit3')) +  to_double(add_info(t,'ValueAddCredits3'))   'Total_Sales'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person3') ~= ''
+
+select
+    tr.*,
+    add_info(t,'Sales_Person4')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit4'))  'Standard',
+    to_double(add_info(t,'ValueAddCredits4'))     'VA',
+    to_double(add_info(t,'Sales_Credit4')) +  to_double(add_info(t,'ValueAddCredits4'))   'Total_Sales'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person4') ~= ''
+    
+select
+    tr.*,
+    add_info(t,'Sales_Person5')             'Sales_Person',
+    to_double(add_info(t,'Sales_Credit5'))  'Standard',
+    to_double(add_info(t,'ValueAddCredits5'))     'VA',
+    to_double(add_info(t,'Sales_Credit5')) +  to_double(add_info(t,'ValueAddCredits5'))   'Total_Sales'
+into
+    final
+from
+    trades tr,
+    trade t
+where
+    tr.FrontID = t.trdnbr
+and add_info(t,'Sales_Person5') ~= ''
+
+select
+    *
+from
+    final
+    
+union
+
+select
+    'TOTAL BY SALES PERSON'             'Category',
+    ''                                  'Counterparty',
+    ''                                  'Trade_Date',
+    ''                                  'Maturity',
+    0.0                                 'Notional',
+    0                                   'FrontID',
+    ''                                  'Product',
+    ''                                  'Trader',
+    ''                                  'Portfolio',
+    t.Sales_Person                      'Sales_Person',
+    sum(t.Standard)                     'Standard',
+    sum(t.VA)                           'VA',
+    sum(t.Total_Sales)                  'Total_Sales'
+from 
+    final t
+where
+    @4_Show_Total_SalesPerson{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y') 
+group by 
+    t.Sales_Person
+
+union
+
+select
+    'TOTAL BY PORTFOLIO'                'Category',
+    ''                                  'Counterparty',
+    ''                                  'Trade_Date',
+    ''                                  'Maturity',
+    0.0                                 'Notional',
+    0                                   'FrontID',
+    ''                                  'Product',
+    ''                                  'Trader',
+    t.Portfolio                         'Portfolio',
+    ''                                  'Sales_Person',
+    sum(t.Standard)                     'Standard',
+    sum(t.VA)                           'VA',
+    sum(t.Total_Sales)                  'Total_Sales'
+from 
+    final t
+where
+    @5_Show_Total_Portfolio{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 
+    t.Portfolio
+
+union
+
+select
+    'TOTAL BY PORTFOLIO & SALES PERSON' 'Category',
+    ''                                  'Counterparty',
+    ''                                  'Trade_Date',
+    ''                                  'Maturity',
+    0.0                                 'Notional',
+    0                                   'FrontID',
+    ''                                  'Product',
+    ''                                  'Trader',
+    t.Portfolio                         'Portfolio',
+    t.Sales_Person                      'Sales_Person',
+    sum(t.Standard)                     'Standard',
+    sum(t.VA)                           'VA',
+    sum(t.Total_Sales)                  'Total_Sales'
+from 
+    final t
+where
+    @6_Show_Total_Portfolio_SalesPerson{Yes;'Yes','No'} in ('Yes','YES','yes','Y','y')
+group by 
+    t.Portfolio, t.Sales_Person

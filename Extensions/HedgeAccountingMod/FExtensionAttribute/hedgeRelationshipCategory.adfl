@@ -1,0 +1,9 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeRelationshipCategory = switch(usedInHedge, 
+  true->getHedgeRelationshipCategory(object.DealPackage), 
+  default->nil);
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeRelationshipCategory = switch(usedInHedge, 
+  true->getHedgeRelationshipCategory(lowestChild.Trade.DealPackage), 
+  default->nil);
+[HedgeAccountingMod]FTradeRow:hedgeRelationshipCategory = switch(usedInHedge, 
+  true->getHedgeRelationshipCategory(object.OriginalTrade.DealPackage), 
+  default->nil);

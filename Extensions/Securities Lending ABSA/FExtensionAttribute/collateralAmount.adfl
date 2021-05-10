@@ -1,0 +1,16 @@
+[Securities Lending ABSA]FInstrumentAndTrades:collateralAmount = sumOf(tradesInPosition :* "collateralAmount" [positionObject]);
+[Securities Lending ABSA]FTrade:collateralAmount = switch((sl_startDate <= profitAndLossEndDate) and (object.Status <> "Void"), 
+  true->switch(sl_isExpired, 
+    true->instrument:currencyZero, 
+    false->select(sl_instype, 
+      "Fixed Cash"->sl_premium, 
+      "Call Cash"->balance, 
+      "SecurityLoan"->denominatedvalue(stripDateTimePart(underlying:markToMarketPricePreviousBusinessDateDirty), currency, , ) * sl_position, 
+      "FRN"->denominatedvalue(nominal, currency, , ), 
+      default->select(object.Instrument.InsType, 
+        "Bill"->denominatedvalue(nominal, currency, , ), 
+        "Bond"->switch(object.TradeCategory == "Collateral", 
+          true->py("sl_functions", context).GetBesaDirtyPrice(object, profitAndLossEndDate) * object.FaceValue / 100, 
+          false->nominal * denominatedvalue(stripDateTimePart(mtmPriceSuggest), currency, , ) / instrument:eqQuoteFactor), 
+        default->nominal * denominatedvalue(stripDateTimePart(mtmPriceSuggest), currency, , ) / instrument:eqQuoteFactor))), 
+  false->instrument:currencyZero);

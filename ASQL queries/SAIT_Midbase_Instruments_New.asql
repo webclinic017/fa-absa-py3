@@ -1,0 +1,25 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Midbase_Instruments_New') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Midbase_Instruments_New' and p.type = 'SQL Query' 
+
+
+
+SELECT 
+    i.insaddr,
+    ael_i(i,'SAGEN_str_functions.getInstypeENUM',i.insaddr) 	'instype', 
+    i.und_insaddr, 
+    i.insid, 
+    ael_i(u,'SAGEN_str_functions.getInstypeENUM',u.insaddr)  'und_instype'  
+FROM 
+    instrument i,
+    instrument u				
+where 
+    i.und_insaddr *= u.insaddr
+and (i.exp_day > '2005-04-01' 
+or  i.exp_day is null 
+or  i.insid LIKE 'USD/IMM/%')
+and not (i.creat_usrnbr = 2060
+and to_date(i.creat_time) > '2012-08-16')

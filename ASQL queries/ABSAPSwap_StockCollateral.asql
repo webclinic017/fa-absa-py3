@@ -1,0 +1,105 @@
+/*------------------------------------------------------------------
+    ABSAPSwap_StockCollateral
+
+    This query selects all the Start and End premiums as well as the difference between them for Stocks in a ceratain portfolio.
+    Collateral Management will use the difference to determine the actual collateral movement for the day.
+
+    Department and Desk : Prime Services
+    Requester           : Francois Henrion
+    Developer           : Herman Hoon
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2011-04-14  628893       Herman Hoon	Initial implementation
+------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','ABSAPSwap_StockCollateral') 'Name' 
+into  
+    ASQL_LOG_TEMP 
+from 
+    TextObject p 
+where 
+    p.name = 'ABSAPSwap_StockCollateral' 
+and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    @1_Portfolio{;portfolio.prfid}              'Portfolio',
+	@2_Start_Settle_Date{PrevBusDay} = 'PrevBusDay' ? date_add_banking_day(@3_End_Settle_Date{Today},'ZAR',-1) : to_date(@2_Start_Settle_Date{PrevBusDay})	'StartDate',
+	to_date(@3_End_Settle_Date{Today})			'EndDate'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	Start and End premiums
+------------------------------------------------------------------*/
+select
+    p.prfid,
+    i.insid,
+    m.StartDate,
+    m.EndDate,
+    sum(t.value_day <= m.StartDate ? t.premium : 0) 'StartPremium',
+    sum(t.value_day <= m.EndDate ? t.premium : 0)   'EndPremium'
+into
+    premium
+from
+    macros m,
+    portfolio p,
+    trade t,
+    instrument i
+where
+    m.Portfolio = p.prfid
+and p.prfnbr = t.prfnbr
+and t.insaddr = i.insaddr
+and i.instype = 'Stock'
+group by
+    1,2,3,4
+
+/*------------------------------------------------------------------
+	Calclate Move between Start and End premiums
+------------------------------------------------------------------*/
+select
+    p.prfid         'Portfolio',
+    p.insid         'Instrument',
+    to_string(p.StartDate)     'Start_Settle_Date',
+    to_string(p.EndDate)       'End_Settle_Date',
+    p.StartPremium  'Start_Settle_Premium',
+    p.EndPremium    'End_Settle_Premium',
+    p.StartPremium - p.EndPremium   'Move'
+into
+    total
+from
+    premium p
+
+/*------------------------------------------------------------------
+	Totals
+------------------------------------------------------------------*/
+select
+    *
+from
+    total
+
+union
+
+select
+    'TOTAL'         'Portfolio',
+    ''              'Instrument',
+    ''              'Start_Settle_Date',
+    ''              'End_Settle_Date',
+    sum(t.Start_Settle_Premium)     'Start_Settle_Premium',
+    sum(t.End_Settle_Premium)       'End_Settle_Premium',
+    sum(t.Move)                     'Move'
+from
+    total t
+group by
+    1,2,3,4

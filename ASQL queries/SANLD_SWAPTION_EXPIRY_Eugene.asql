@@ -1,0 +1,99 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_SWAPTION_EXPIRY_Eugene') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_SWAPTION_EXPIRY_Eugene' and p.type = 'SQL Query' 
+
+/*
+Purpose                       :  Added columns for mtm price, In/out money
+Department and Desk           :  PCG
+Requester                     :  Kulfath, Rishi
+Developer                     :  Ickin Vural
+CR Number                     :  C000000411643
+
+*/
+
+
+/* options*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',
+    u.insid        'Und Instrument',
+	i.exp_day	'Expiry',
+	l.start_day     'Und Start Date',
+	l.end_day       'Und End Date',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.strike_price,
+	mtm_price(t, Today),
+	mtm_price(t, Today) > 0 ? 'Yes' : 'No' 'In The Money',
+	t.type
+	
+	
+	
+from
+	trade	t,
+	instrument	i,
+	instrument u,
+	leg l
+where
+	i.insaddr = t.insaddr
+and   u.insaddr = i.und_insaddr
+and   u.insaddr = l.insaddr
+and	i.instype = 'Option'
+and	i.und_instype in ('Swap','Bond','FRA')
+and	t.status not in ('Simulated','Void','Terminated')
+and   i.exp_day >= @Day{Today}
+and   t.nominal_amount ~= 0
+order by i.exp_day
+
+		
+union	
+				
+/* combinations */
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	und.instype 'Und Instype',	
+	und.insid   'Und Instrument',
+	und.exp_day	'Expiry',
+	l.start_day     'Und Start Date',
+	l.end_day       'Und End Date',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.strike_price,
+	mtm_price(t, Today),
+	mtm_price(t, Today) > 0 ? 'Yes' : 'No' 'In The Money',
+	t.type
+
+from
+	trade	t,
+	instrument	i,
+	instrument und,
+	instrument u,
+	CombinationLink cl,
+	leg l
+where
+	i.insaddr = t.insaddr
+and 	i.insaddr = cl.owner_insaddr
+and	cl.member_insaddr = und.insaddr
+and 	u.insaddr = und.und_insaddr
+and 	u.insaddr = l.insaddr
+and 	i.instype = 'Combination'
+and 	und.instype = 'Option'
+and 	t.status not in ('Simulated','Void','Terminated')
+and 	und.exp_day >= @Day{Today}
+and 	t.nominal_amount ~= 0
+order by und.exp_day
+
+				

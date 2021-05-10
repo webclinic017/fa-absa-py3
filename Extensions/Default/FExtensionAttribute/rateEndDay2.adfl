@@ -1,0 +1,10 @@
+[Default]FAbstractReset:rateEndDay2 = select(floatRateReference2, 
+  nil->nil, 
+  default->shunt[](fixingIsFixed, 
+    false->select(cashFlowInformation, 
+      nil->nil, 
+      default->cashFlowInformation.RateEndDay2(fixingIndex)), 
+    true->nil));
+[Default]FMoneyFlow:rateEndDay2 = nil;
+[Default]FMoneyFlowAndTrades:rateEndDay2 = moneyFlow:rateEndDay2;
+[Default]FResetMoneyFlow:rateEndDay2 = abstractReset:rateEndDay2;

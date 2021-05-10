@@ -1,0 +1,10 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FO_confirm_trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FO_confirm_trades' and p.type = 'SQL Query' 
+select t.trdnbr, i.instype 'InstrumentType', time_to_day(t.time)'DealDate',i.exp_day, display_id(t,'acquirer_ptynbr')'Acquirer', display_id(t,'prfnbr') 'Portfolio', t.status, TODAY 'DateTODAY'from trade t, instrument i
+where i.insaddr = t.insaddr
+and t.status in ('FO Confirmed')
+and i.exp_day >= TODAY

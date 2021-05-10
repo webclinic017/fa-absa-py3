@@ -1,0 +1,9 @@
+[Equity Market Making]FQuoteController:qPriceSelectionAsk = switch(qUnderlyingPriceType, 
+  "Bid/Ask"->select(instrument:isUndPositive, 
+    true->qPriceArrayAsk, 
+    false->qPriceArrayBid), 
+  "SprAvg"->qPriceArraySpreadAverage, 
+  "Bid"->qPriceArrayBid, 
+  "Ask"->qPriceArrayAsk, 
+  "Last"->qPriceArrayLast, 
+  default->qPriceArraySpreadAverage);

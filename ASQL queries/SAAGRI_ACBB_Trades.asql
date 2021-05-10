@@ -1,0 +1,112 @@
+
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAAGRI_ACBB_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAAGRI_ACBB_Trades' and p.type = 'SQL Query' 
+
+/*
+
+coded by Anil - July 2009 
+
+query to provide agri trade information ACBB agri trades
+of all unexpired instruments and agri physicals that have exp_day = '01-01-0000'
+
+
+in the case of options the 'price' column reflects the strike of the option
+in the case of options the 'premium' column reflects the trade price 
+
+
+Changes in Nov 2009 by anil
+
+incorporate 3 additional payment related columns in the case of deffered option premiums
+
+========================================
+Changes in April 2010
+
+Purpose: Counterparty name can start with ACBB or with the name AGRI
+Department : Trading
+Desk : Agri
+Requester :  Jeanette De Beer
+Developer : Anil Parbhoo
+CR Number : 268476
+Book of Work Reference Number : EQ29
+=============================================
+Changes in June 2010
+
+Purpose: incorrect decimal format of the premium payment amount column
+Department : Trading
+Desk : Agri
+Requester :  Jeanette De Beer
+Developer : Anil Parbhoo
+CR Number : 335158
+Book of Work Reference Number : EQ67
+
+*/
+
+
+
+select
+
+Today 'date',
+acq.ptyid'ACQ',
+t.trdnbr,
+cp.ptyid'CP',
+/*cp.fullname'CP_Fullname',*/
+t.status,
+i.insid'instrument',
+ui.insid'underlying',
+to_string(add_info(i, 'Commodity Type'))'Commodity Type',
+i.instype,
+i.instype = 'Option' ? (i.call_option = 'Yes' ? 'C' : 'P') : ' ' 'C/P' ,
+t.quantity>=0 ? 'B' : 'S' 'B/S',
+curr.insid 'curr',
+t.value_day,
+t.acquire_day,
+i.exp_day,
+i.instype = 'Option' ? i.strike_price : ' ''Strike',
+t.quantity,
+i.instype = 'Option' ? i.strike_price : t.price 'price', /* in the case of options the 'price' column reflects the strike of the option */
+i.instype = 'Option' ? t.price : t.premium 'premium', /* in the case of options the 'premium' column reflects the trade price */
+to_string(add_info(t, 'AgriSalesCredits')) 'Agri_Sales_Credits',
+to_string(add_info(t, 'AgriSiloLocation')) 'Agri_Silo_location',
+to_string(add_info(t, 'AgriTransportDiff')) 'Agri_Transport_Diff',
+to_string(add_info(t, 'AgriStatus')) 'Agri_Status',
+t.creat_time ,
+p.type is Null ? '' : to_string(p.type)     'payment type', 
+p.payday is Null ? '' : to_string(p.payday) 'payment date',
+p.amount is Null ? '' : p.amount 'payment amount'
+
+
+
+from
+instrument i,
+instrument ui,
+trade t,
+party acq,
+party cp,
+instrument curr,
+payment p
+
+where
+
+i.insaddr=t.insaddr
+and i.und_insaddr *= ui.insaddr
+and t.acquirer_ptynbr = acq.ptynbr
+and t.counterparty_ptynbr = cp.ptynbr
+and i.curr=curr.insaddr
+and acq.ptyid = 'Agris Desk'
+and (cp.ptyid like 'AGRI %'
+or cp.ptyid like 'ACBB %')
+
+and t.status ~= 'Simulated'
+and (i.exp_day >= Today
+or i.exp_day = '0000-01-01')
+and t.trdnbr *= p.trdnbr
+
+
+
+
+order by t.trdnbr

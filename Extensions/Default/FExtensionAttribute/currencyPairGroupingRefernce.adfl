@@ -1,0 +1,8 @@
+[Default]FInstrumentAndTrades:currencyPairGroupingRefernce = select(parent, 
+  nil->nil, 
+  default->parentCurrencyPairGroupingReference);
+[Default]FMultiInstrumentAndTrades:currencyPairGroupingRefernce = select(groupingReference, 
+  nil->parentCurrencyPairGroupingReference, 
+  default->select(groupingReference.IsKindOf("FCurrencyPair"), 
+    true->groupingReference:weakerCurrency, 
+    false->parentCurrencyPairGroupingReference));

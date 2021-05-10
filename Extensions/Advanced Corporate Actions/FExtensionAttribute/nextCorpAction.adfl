@@ -1,0 +1,8 @@
+[Advanced Corporate Actions]FInstrument:nextCorpAction = corpActionSetExternally;
+[Advanced Corporate Actions]FMultiInstrumentAndTrades:nextCorpAction = select(instrumentGroupingReference, 
+  default->get_next_corporate_action(get_corporate_actions(instrumentGroupingReference.UnderlyingOrSelf)), 
+  nil->nil);
+[Advanced Corporate Actions]FPortfolioInstrumentAndTrades:nextCorpAction = get_next_corporate_action(get_corporate_actions(instrumentGroupingReference.UnderlyingOrSelf));
+[Advanced Corporate Actions]FPriceLevelRow:nextCorpAction = get_next_corporate_action(get_corporate_actions(instrument.UnderlyingOrSelf));
+[Advanced Corporate Actions]FSingleInstrumentAndTrades:nextCorpAction = corpActionSetExternally;
+[Advanced Corporate Actions]FTradeRow:nextCorpAction = get_next_corporate_action(get_corporate_actions(instrument.UnderlyingOrSelf));

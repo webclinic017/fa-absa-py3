@@ -1,0 +1,38 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIT_Midbase_Portfolios') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIT_Midbase_Portfolios' and p.type = 'SQL Query' 
+
+/*
+Purpose:                Midas Dual Key project
+Department and Desk:    PCG
+Requester:              Nick Bance
+Developer:              Kim Madeley
+CR Number:              627299
+*/
+
+SELECT DISTINCT 
+    p.prfid,
+    p.creat_time,
+    p.creat_usrnbr,
+    p.updat_time,
+    p.updat_usrnbr,
+    p.protection,
+    p.owner_usrnbr,
+    p.four_eye_on= 'No' ? '0' : to_string(p.four_eye_on)  'four_eye_on',
+    p.authorizer_usrnbr= 0 ? 'NULL' : to_string(p.authorizer_usrnbr)  'authorizer_usrnbr',
+    p.prfnbr,
+    p.assinf,
+    p.curr,
+    p.type_chlnbr= 0 ? 'NULL' : p.type_chlnbr 'type_chlnbr',
+    p.compound= 'No' ? '0' : to_string(p.compound)  'compound' ,
+    p.owner_ptynbr,
+    p.ias_class_chlnbr= 0 ? 'NULL' : to_string(p.ias_class_chlnbr) 'ias_class_chlnbr' ,
+   ael_s(,'MidasDualKey_PortfolioFlag.port_tree',p.prfid) 	 'OnTree'	,
+   ael_s(,'MidasDualKey_PortfolioFlag.find_root_level',p.prfid) 	 'RootPortfolioLevel',
+   ael_s(,'MidasDualKey_PortfolioFlag.PortfolioClientNbr',p.prfid) 	 'Portfolio_Client_Nbr'
+FROM 
+    Portfolio p
+

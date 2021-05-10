@@ -1,0 +1,110 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','GT_Dates_Used') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'GT_Dates_Used' and p.type = 'SQL Query' 
+ 
+  /*
+
+coded by anil 1 nov 2006
+
+implicit dates periods are generated or defined
+
+to determine the explicit dates
+
+results reflect a duplicate 1 in the months column. 
+
+However the 1st '1' relates to days and not months
+
+"months up to" in the macro value refers to increment from month 1 by 1 month each time
+
+*/ 
+
+
+select
+	p1.ptynbr,
+	count(p2.ptynbr)-1	'Nbr'
+into
+	TMP
+from
+	party p1,
+	party p2
+where
+	p1.ptynbr<p2.ptynbr
+and	p1.ptynbr < 500
+and	p2.ptynbr < 500
+group by p1.ptynbr
+
+/*Generate sequence 1-1000*/
+
+select
+	100*t3.Nbr+10*(t2.Nbr)+t1.Nbr+1	'Nbr'
+into
+	SCEN
+from 
+	TMP	t1,
+	TMP	t2,
+	TMP	t3
+where
+	t1.Nbr<10
+and	t2.Nbr<10
+and	t3.Nbr<150
+
+
+
+
+/* just for demand bucket*/
+
+
+
+select
+
+@report_date{Today;}'report_date',
+s.Nbr'months',
+bankday_adjust(date_add_delta(@report_date{Today;},1,0,0),'ZAR','Following')'date'
+
+from
+
+SCEN s
+
+where
+s.Nbr=1
+
+
+union
+
+/*Calculate result by scenario*/
+
+select
+
+@report_date{Today;}'report_date',
+s.Nbr'months',
+bankday_adjust(date_add_delta(@report_date{Today;},0,s.Nbr,0),'ZAR','Following')'date'
+
+from
+
+SCEN s
+
+where
+s.Nbr<=@months_up_to[120]
+
+order by s.Nbr
+
+union
+
+select
+
+@report_date{Today;}'report_date',
+s.Nbr'months',
+bankday_adjust(date_add_delta(@report_date{Today;},0,s.Nbr,0),'ZAR','Following')'date'
+
+from
+
+SCEN s
+
+where
+s.Nbr in (126,132,138,144,150,156,162,168,174,180,186,192,198,204,210,216,222,228,234,240)
+
+order by s.Nbr
+

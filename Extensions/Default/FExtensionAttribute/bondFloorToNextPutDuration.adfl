@@ -1,0 +1,8 @@
+[Default]FInstrument:bondFloorToNextPutDuration = select(ytmCalculationValid, 
+  true->shunt(nextPutInFuture, 
+    nil->nil, 
+    default->putDurationFromModifiedPutDuration), 
+  false->nan);
+[Default]FInstrumentAndTrades:bondFloorToNextPutDuration = instrument :* "bondFloorToNextPutDuration" [priceSource];
+[Default]FMultiInstrumentAndTrades:bondFloorToNextPutDuration = nan;
+[Default]FPriceAggregate:bondFloorToNextPutDuration = instrument:bondFloorToNextPutDuration;

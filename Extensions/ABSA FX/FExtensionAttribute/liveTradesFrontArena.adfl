@@ -1,0 +1,7 @@
+[ABSA FX]FMultiInstrumentAndTrades:liveTradesFrontArena = select(children.Size, 
+  0->denominatedvalue(valuesInUnit(0, currenciesForVectorColumn, true)), 
+  default->sumOf(children :* "liveTradesFrontArena" [currenciesForVectorColumn]));
+[ABSA FX]FPortfolioInstrumentAndTrades:liveTradesFrontArena = select(children.Size, 
+  0->denominatedvalue(valuesInUnit(0, currenciesForVectorColumn, true)), 
+  default->sumOf(children :* "liveTradesFrontArena" [currenciesForVectorColumn]));
+[ABSA FX]FSingleInstrumentAndTrades:liveTradesFrontArena = denominatedvalue(valuesInUnit(ael("MidasLiveTrades", context).FA_LivePositionPerCurrency(tradesInPosition, profitAndLossEndDate, currenciesForVectorColumn), currenciesForVectorColumn, true));

@@ -1,0 +1,9 @@
+[Default]FInstrumentAndTrades:expiryPosition = select(nil == timeBucketsSetExternally, 
+  true->expiryPositionCalculation, 
+  false->scenarioaxis(expiryPositionCalculation, <["timeDistributionBucket"], , , timeBucketsSetExternally>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>));
+[Default]FMultiInstrumentAndTrades:expiryPosition = select(nil == currencyGroupingReference, 
+  true->timeBucketsSetExternallyNilVector, 
+  false->select(nil == timeBucketsSetExternally, 
+    true->expiryPositionCalculation, 
+    false->scenarioaxis(expiryPositionCalculation, <["timeDistributionBucket"], , , timeBucketsSetExternally>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)));
+[Default]FPortfolioInstrumentAndTrades:expiryPosition = timeBucketsSetExternallyNilVector;

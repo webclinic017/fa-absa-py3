@@ -1,0 +1,600 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ABSA.PLReport_FINAL_SHORT_NLD') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ABSA.PLReport_FINAL_SHORT_NLD' and p.type = 'SQL Query' 
+/*
+	ABSA.PLReport_FINAL_SHORT
+
+BASED ON ABSA.PLReport_FINAL
+
+This query calculates the economic profit and loss over an input period
+for all trades matching a trade filter or entered as single trade
+numbers.
+
+
+The query prerequisites that the mark to market procedure is run for
+the input dates unless 'today' is used as the input end date. In this case
+the prevailing market rates are used.
+
+The query splits the result over each currency included in a trade. A 
+Curr Swap will be reported in each of it's leg currencies and also in 
+all additional currencies where there might be various premiums or 
+fees.
+The mark to market procedure should hence be performed per currency for
+all instrument types containing more than one currency.
+
+The Previous Reporting date - used for Overnight P&L, is determined by the previous business
+date of the REPORTING CURRENCY.
+
+
+AN IMPORTANT NOTE ON ACCUMULATED CASH
+AS each desk migrates onto Front Arena, that desk will need to ensure that the 
+accumulated cash at the beginning of the reporting period is correct.
+This is particularily important for NON Reporting currencies.
+
+A "CASH JOURNAL" will need to be loaded per Desk per portfolio, per insturment type.
+This can be done by loading a zero qty, zero price deal with Payments attached.
+The trade can also be marked as type = "ADJUST".
+Be sure to check the payment date of the cash as well as the value date of the trade.
+Make sure that the only P&L effect that this trade has is the change in cash
+as per the payment.
+
+Date		Who		What
+
+2003-06-09	Debbie Osler	Took ABSA.PLREport_FINAL and removed all YTD and MTD calcs.  Now user
+				selects start and end dates for reporting period.
+
+2003-06-24	Debbie Osler	At the request of Parin (for FX Options), the following changes have been made:
+				1. Premium Col only shows premium if premium ccy = leg currency
+				2. HPremium Col has been added (replaces HPosition)
+				2. Nominal Amount only shows nominal amount for leg
+				3. HPosition has been removed - noone uses it (replaced by HPremium)
+
+2003-10-01	Andries Brink	Counterparty Reference number added to the report as per the request of Bryan Arlow and Chris Kriel
+
+2004-02-05	Debbie Osler	Added Col Trade Area (Trade Key 2 as col in report)
+					Added Col MM_Product 
+					Added Total Section: Total by Product and Portfolio 
+
+2009-10-09	Jaysen Naicker	Make changes for FXSwaps (Currency iinsturments) for upgrade purposes
+*/
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	to_date(@3_EndDate{today})					'RepDay',
+	to_date(@4_StartDate{yesterday})  				'PrevRepDay',
+
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}	'hcur',
+
+	
+	@10_ShowDetails{Yes;'Yes','No'}			'det',
+	/*@11_ShowTOTALTrade{Yes;'Yes','No'}		'TOTALTrade',*/
+	
+	@14_ShowTOTALCurr{Yes;'Yes','No'} 'ShowTOTALCurr'
+
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+SELECT
+	hc.insid						'hcurr',
+	curr.insid						'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) :
+		mtm_price(hc, m.RepDay, curr.insid)		'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)			'fxPrevRepDay'
+
+
+
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+
+
+
+/*--------------------------------------------------------------------------
+   CURRSWAP  Selecting base data into the 'result' temp table
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	(l.payleg='Yes' ? -1 : 1)*(position(t,,,m.RepDay)*l.nominal_factor)  'Position',
+	nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	t.premium,
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+	
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+	
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey2_chlnbr')	'TradeArea'  ,
+	add_info (t,'MM_Instype')				'MM_Product'
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	leg		l,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND l.insaddr =* i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND curr.insaddr= l.curr
+	AND i.instype in ('CurrSwap')
+
+/*--------------------------------------------------------------------------
+   FXSWAP  Selecting base data into the 'result' temp table
+----------------------------------------------------------------------------*/
+
+SELECT distinct
+	t.connected_trdnbr  'trdnbr',
+	t.optional_key				'DevonRef',
+    i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	curr.insid = i.insid ? t.quantity : t.Premium  'Position',
+	m.RepDay > t.value_day ?  0  : 
+        curr.insid = i.insid ? t.quantity : t.Premium   'Nominal',
+	0.00     'Premium',
+	t.value_day	 'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)	'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1) 	'mtm_PrevRepDate',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None') 	'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')    'cash_PrevRepDate',
+
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product'
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    AND i.insaddr = t.insaddr
+	AND t.trade_process in (4096,8192)
+    AND i.instype in ('Curr')
+    AND fx.curr = curr.insid
+	AND curr.instype = 'Curr'
+	AND curr.insaddr in (t.curr,i.insaddr)
+
+
+
+SELECT distinct
+	t.connected_trdnbr  'trdnbr',
+	t.optional_key				'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	curr.insid = i.insid ? -1.0 * t.quantity : -1.0 * t.Premium  'Position',
+    m.RepDay > t2.value_day ? 0 : 
+        curr.insid = i.insid ? -1.0 * t.quantity : -1.0 * t.Premium			 'Nominal',
+
+	0.00     'Premium',
+	t2.value_day	 'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	
+	/*PL CALCS*/
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)	+ mtm_value_fo(t2, m.RepDay, curr.insid, 2, 0, 1)	'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1) + mtm_value_fo(t2, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+
+	
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None') + accumulated_cash(t2, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None') + accumulated_cash(t2, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey1_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product'
+INTO
+	result
+FROM
+	trade		t,
+	trade		t2,
+	instrument	i,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    AND t.trade_process = 16384
+	AND t2.connected_trdnbr = t.connected_trdnbr
+    AND t2.trade_process = 32768
+	AND t.insaddr = i.insaddr
+	AND curr.instype = 'Curr'
+	AND curr.insaddr in (t.curr,i.insaddr)
+	AND fx.curr = curr.insid
+	AND i.instype in ('Curr')
+	
+/*--------------------------------------------------------------------------
+   FOR SWAP Selecting base data into the 'result' temp table 
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 		'Position',
+	nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	t.premium,
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+	
+
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey2_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product'
+
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND (i.instype in ('Swap'))
+
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table (excl FXSWAP/CURRSWAP/SWAP)
+----------------------------------------------------------------------------*/
+SELECT distinct
+	t.trdnbr,
+	t.optional_key						'DevonRef',
+	i.insid,
+	display_id(t, 'acquirer_ptynbr')			'Desk',
+	display_id(t, 'prfnbr')					'portfolio',
+	curr.insid							'curr',
+	ael_s(t,'InstrType.InstrumentType')				'instype',
+	fx.hcurr							'hcurr',
+	position(t,,,m.RepDay)	 		'Position',
+	nominal_amount(t,m.repday,curr.insid)			 'Nominal',
+	curr.insid=display_id(t,'curr') ? t.premium : 0.00	'Premium',
+	i.exp_day							'Exp_day',
+	m.RepDay							'RepDay',
+	t.status							'Status',
+		
+	mtm_price(i, m.RepDay, curr.insid)			'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)		'mtmpx_PrevRepDay',
+
+	1/fx.fxRepDay							'fxRepDay',
+	1/fx.fxPrevRepDay						'fxPrevRepDay',
+
+	mtm_value_fo(t, m.RepDay, curr.insid, 2, 0, 1)		'mtm_RepDate',
+	mtm_value_fo(t, m.PrevRepDay, curr.insid, 2, 0, 1)		'mtm_PrevRepDate',
+
+	accumulated_cash(t, m.RepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_RepDate',
+	
+	accumulated_cash(t, m.PrevRepDay, curr.insid, 2, 0, , 1, 'None')
+								'cash_PrevRepDate',
+
+	
+	display_id(t,'counterparty_ptynbr')	'Cpty',
+	t.your_ref  'CptyRef',
+	display_id(t,'optkey2_chlnbr')	'TradeArea',
+	add_info (t,'MM_Instype')				'MM_Product'
+
+
+INTO
+	result
+FROM
+	trade		t,
+	instrument	i,
+	instrument 	u,
+	instrument	curr,
+	macros		m,
+	fxrates		fx
+
+WHERE
+	    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND t.insaddr = i.insaddr
+	AND i.und_insaddr *= u.insaddr
+	AND curr.instype = 'Curr'
+	AND currency_included(t, curr.insid) = 1
+	AND fx.curr = curr.insid
+	AND not(i.instype in ('FXSwap','CurrSwap','Swap','Curr'))
+
+
+
+
+/*------------------------------------------------------------------
+	Creating Final DATA table
+------------------------------------------------------------------*/
+
+SELECT
+	r.trdnbr						,
+	r.DevonRef						,
+	r.insid						,
+	r.Desk						,
+	r.portfolio						,
+	r.TradeArea,
+	r.curr						,
+	r.instype						,
+	r.mm_Product,
+	r.Cpty,
+	r.CptyRef,
+
+	r.exp_day,
+	r.status,
+	r.repday,
+	
+	sum(r.position) 		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+	
+	/*PLINCEP*/
+	sum(r.mtm_RepDate+r.Cash_Repdate)					'PLIncep1',
+	sum(r.mtm_RepDate)							'Val',
+	sum(r.cash_repdate)							'CashIncep',
+	
+	/*PLON*/
+	sum((r.mtm_RepDate-r.mtm_PrevRepDate) + (r.cash_RepDate-r.cash_PrevRepDate))	'PLON1',
+	sum((r.mtm_RepDate-r.mtm_PrevRepDate)) 							'ChangeMTM_ON',
+	sum((r.cash_RepDate-r.cash_PrevRepDate))							'ChangeCash_ON',
+	
+	hcurr							,
+	
+	sum(r.Premium)*r.fxRepDay		'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay)	'HPLIncep',
+	sum(r.mtm_RepDate*r.fxRepDay)						'HVal',
+	sum(r.cash_repdate*r.fxRepDay)					'HCashIncep',
+
+	
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))	'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 								'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))							'HChangeCash_ON',
+	
+
+	
+	r.fxRepDay ,
+	r.fxPrevRepDay ,
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay
+
+INTO
+	final
+
+FROM
+	result		r
+
+/************************************************************************/
+SELECT
+	(r.trdnbr)				'TrdNbr',
+	r.DevonRef				'ExternalSystemRef',
+	'TOTAL by Curr'		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea,
+	r.cpty,
+	r.CptyRef,
+	r.curr						,
+	r.instype						,
+	r.mm_Product,
+	
+	r.exp_day,
+	r.status,
+
+	0.00		'Position',
+	0.00		'Nominal',
+	0.00		'Premium',
+
+	/*PLINCEP*/
+	0.00	'PLIncep',
+	0.00		'Val',
+	sum(r.cashincep)'CashIncep',
+
+
+	/*PLON*/
+	0.00 'PL_Period',
+	0.00 'ChangeUnRealsd_Period',
+	0.00 'ChangeCash_Period',
+	
+	r.hcurr							,
+	sum(r.HPremium) 'HPremium',	
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_Period',
+	sum(r.HChangeCash_ON) 'HChangeCash_Period',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	m.RepDay,
+	m.PrevRepDay
+
+FROM
+	final			r,
+	macros		m
+
+where
+	m.ShowTOTALCurr IN ('Yes','YES','yes','Y','y')
+
+group by
+r.curr, r.portfolio
+order by r.curr, r.portfolio
+union 
+
+
+/*------------------------------------------------------------------
+DETAILS
+------------------------------------------------------------------*/
+
+SELECT
+	(r.trdnbr)				'TrdNbr',
+	r.DevonRef				'ExternalSystemRef',
+	'Details'		'Section',
+	r.insid,
+	r.desk						,
+	r.portfolio						,
+	r.TradeArea,
+	r.cpty,
+	r.CptyRef,
+	r.curr						,
+	r.instype						,
+	r.mm_Product,
+	
+	r.exp_day,
+	r.status,
+
+	sum(r.position)		'Position',
+	sum(r.nominal)		'Nominal',
+	sum(r.premium)		'Premium',
+
+	/*PLINCEP*/
+	sum(r.PLIncep1)	'PLIncep',
+	sum(r.Val)		'Val',
+	sum(r.CashIncep)	'CashIncep',
+
+
+	/*PLON*/
+	sum(r.PLON1)	'PLON',
+	sum(r.ChangeMTM_ON) 'ChangeUnRealsd_Period',
+	sum(r.ChangeCash_ON) 'ChangeCash_Period',
+	
+	
+	r.hcurr							,
+	sum(r.HPremium) 'HPremium',
+	/*PLIncep Home Curr*/
+	sum(r.HPLIncep)	'HPLIncep',
+	sum(r.HVal)		'HVal',
+	sum(r.HCashIncep)	'HCashIncep',
+	
+	/*PLON*/
+	sum(r.HPLON1)  'HPLON',
+	sum(r.HChangeMTM_ON) 'HChangeUnRealsd_Period',
+	sum(r.HChangeCash_ON) 'HChangeCash_Period',
+	
+	avg(r.fxPrevRepDay) 	'FXPrevRepDay',	
+	avg(r.fxRepDay)		'FXRepDay',
+	avg(r.mtmpx_RepDay) 	'MTMPr_RepDay',
+	avg(r.mtmpx_PrevRepDay) 'MTMPr_PrevRepDay',
+	
+	m.RepDay,
+	m.PrevRepDay
+
+FROM
+	final			r,
+	macros		m
+
+Where
+m.det IN ('Yes','YES','yes','Y','y')
+

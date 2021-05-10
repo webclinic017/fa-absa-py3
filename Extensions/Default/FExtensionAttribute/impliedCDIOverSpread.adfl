@@ -1,0 +1,6 @@
+[Default]FFrn:impliedCDIOverSpread = shunt(implyValid and (riskFreeDiscountCurvesInTheoreticalPriceRiskFree <> nil), 
+  false->nil, 
+  true->imply(cdiSpread, irFunctionAbsoluteShifted, marketPrice, implyPrecision, -0.99, 1.0, implyMaxIterations));
+[Default]FInstrument:impliedCDIOverSpread = nil;
+[Default]FInstrumentAndTrades:impliedCDIOverSpread = instrument :* "impliedCDIOverSpread" [marketPrice, irShiftFunction = irShiftFunctionCDIOver];
+[Default]FMultiInstrumentAndTrades:impliedCDIOverSpread = nil;

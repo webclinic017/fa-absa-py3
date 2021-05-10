@@ -1,0 +1,4 @@
+[Default]FGroupingOrder:preTradeInitValueCustomerCurrency = sumOf(removeNil(prePostTradeOrders :* "preTradeInitValueCustomerCurrency"));
+[Default]FOrderProgram:preTradeInitValueCustomerCurrency = sumOf(memberOrders :* "preTradeInitValueCustomerCurrency");
+[Default]FPrePostTradeAnalysis:preTradeInitValueCustomerCurrency = denominatedvalue(preTradeInitValue * initCustFxRate, customerCurrency, , );
+[Default]FSalesOrder:preTradeInitValueCustomerCurrency = prePostTradeAnalysis:preTradeInitValueCustomerCurrency;

@@ -1,0 +1,5 @@
+[Default]FOrderProgram:postTradePerformance = switch(customerCurrency, 
+  nil->bidOrAskSign * (postTradePerformanceValue / postTradeBenchmarkValue), 
+  default->bidOrAskSign * (postTradePerformanceValueCustomerCurrency / postTradeBenchmarkValueInCustomerCurrency));
+[Default]FOwnOrder:postTradePerformance = nil;
+[Default]FSalesOrder:postTradePerformance = bidOrAskSign * (postTradeBenchmarkPrice - postTradeTradesPrice) / postTradeBenchmarkPrice;

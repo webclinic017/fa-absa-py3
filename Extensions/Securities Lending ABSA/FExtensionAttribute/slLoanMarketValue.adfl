@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:slLoanMarketValue = 0.0;
+[Securities Lending ABSA]FInstrumentAndTrades:slLoanMarketValue = sumOf(trades :* "slLoanMarketValue" [includeAllTrades = false, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FSecurityLoan:slLoanMarketValue = slMarketValue;
+[Securities Lending ABSA]FTrade:slLoanMarketValue = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition, includeAllTrades], 
+  true->0.0, 
+  default->double(instrument :* "slLoanMarketValue" [singleTradePosition, profitAndLossEndFXRates]));
+[Securities Lending ABSA]FTradeRow:slLoanMarketValue = trade :* "slLoanMarketValue" [includeAllTrades = true, profitAndLossEndFXRates];

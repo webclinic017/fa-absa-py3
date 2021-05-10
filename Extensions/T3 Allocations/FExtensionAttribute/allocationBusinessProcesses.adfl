@@ -1,0 +1,6 @@
+[T3 Allocations]FInstrument:allocationBusinessProcesses = (tradesInPosition :* "allocationBusinessProcesses").Flatten;
+[T3 Allocations]FMultiInstrumentAndTrades:allocationBusinessProcesses = (instruments :* "allocationBusinessProcesses" [positionObject]).Flatten;
+[T3 Allocations]FSingleInstrumentAndTrades:allocationBusinessProcesses = instrument :* "allocationBusinessProcesses" [positionObject];
+[T3 Allocations]FTrade:allocationBusinessProcesses = shunt(object.AllocIsValid, 
+  true->allocationBusinessProcessResult, 
+  default->[nil]);

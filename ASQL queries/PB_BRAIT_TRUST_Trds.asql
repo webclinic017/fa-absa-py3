@@ -1,0 +1,20 @@
+SELECT
+t.trdnbr
+FROM
+Trade t,
+Instrument i,
+Portfolio p
+WHERE
+t.insaddr = i.insaddr
+AND
+t.prfnbr = p.prfnbr
+AND
+p.prfid in ('PB_MONEYMARKET_FF_BRAIT_TRUST_CR','PB_CASH_EQUITY_FF_BRAIT_TRUST_CR','PB_YIELDX_BRAIT_TRUST_CR','PB_SAFEX_BRAIT_TRUST_CR','PB_REPOBOND_BRAIT_TRUST_CR','PB_NAKEDBOND_BRAIT_TRUST_CR','PB_CASH_EQUITY_BRAIT_TRUST_CR','PB_CFD_BRAIT_TRUST_CR','PB_FRA_BRAIT_TRUST_CR','PB_IRS_BRAIT_TRUST_CR','PB_OPTION_EQ_BRAIT_TRUST_CR','PB_OPTION_FI_BRAIT_TRUST_CR')
+AND
+(
+convert('date', time_to_day(t.time)) = today
+OR
+convert('date', time_to_day(t.creat_time)) = today
+)
+AND
+t.status not in ('Simulated', 'Void')

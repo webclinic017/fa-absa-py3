@@ -1,0 +1,8 @@
+[Default]FInstrument:upperBoundForImpliedStrike = select(storedStrikeType, 
+  "Absolute"->absoluteUpperBoundForImpliedStrike, 
+  default->relativeUpperBoundForImpliedStrike);
+[Default]FLeg:upperBoundForImpliedStrike = 100.0;
+[Default]FOption:upperBoundForImpliedStrike = select(isFXOption, 
+  true->upperBoundForImpliedStrikeForFXO, 
+  default->upperBoundForImpliedStrikeOptionUnderlying);
+[Default]FTradeRow:upperBoundForImpliedStrike = instrument:upperBoundForImpliedStrike;

@@ -1,0 +1,30 @@
+[Default]FObject:Cash Current Balance
+{
+}
+
+isValueDayBeforeOrEqualToday = Or(Compare.IsLess(&'value_day', DateTime.Today()),Compare.IsEqual(&'value_day', DateTime.Today()));
+
+{
+}
+
+cashCurrentBalance = If(And(&'settledCashExtAttr', @isValueDayBeforeOrEqualToday()), &'amount', 0.0);
+
+{
+  DisplayInformation:
+  {
+    Label:'Current Balance',
+    GroupLabel:'Cash',
+    Description:'Total settled cash with value day today or earlier.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+
+main = Modify(Aggregate.Sum(@cashCurrentBalance()),  AttributeDimensions = AttributeList(['curr']));
+
+...

@@ -1,0 +1,80 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','eagle_option') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'eagle_option' and p.type = 'SQL Query' 
+ 
+  select
+
+t.trdnbr                                 'SOURCE_TRADE_ID',
+i.insaddr                                'OPTION_ID',
+t.version_id                             'CHANGE_ID',
+convert('time',t.value_day, '%Y%m%d')    'EXERCISE_DATE',
+convert('time',t.value_day, '%Y%m%d')    'NOTICE_DATE',
+'PRM'                                    'EVENT_TYPE',
+display_id(t,'Curr')                     'CCY',
+t.premium                                'INTEREST'
+
+/*i.notice_period.unit,
+i.notice_period.count*/
+
+
+
+from
+
+trade t,
+instrument i,
+party p
+
+where 
+
+    t.insaddr = i.insaddr
+    and p.ptynbr = t.counterparty_ptynbr
+and i.instype in ('Option')
+and i.und_instype = 'Swap'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= TODAY
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+
+
+
+/*
+union
+
+select
+
+t.trdnbr                                 'SOURCE_TRADE_ID',
+i.insaddr                                'OPTION_ID',
+t.version_id                             'CHANGE_ID',
+convert('time',t.value_day, '%Y%m%d')    'EXERCISE_DATE',
+convert('time',t.value_day, '%Y%m%d')    'NOTICE_DATE',
+'PRM'                                    'EVENT_TYPE',
+display_id(t,'Curr')                     'CCY',
+t.premium                                'INTEREST'
+
+/*i.notice_period.unit,
+i.notice_period.count*/
+
+/*
+
+from
+
+trade t,
+instrument i
+
+where 
+
+    t.insaddr = i.insaddr
+and i.instype in ('Option')
+and i.und_instype = 'BOND'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= TODAY
+and match_filter(t, @2_Filter{;tradefilter.fltid}, @2_TrdNbrs{})*/

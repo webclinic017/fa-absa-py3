@@ -1,0 +1,4 @@
+[Automated Trading]QuoteAndHedge:hedgeLegResidualPrice = switch(priceSpreadUnit, 
+  "In Hedge Leg"->(((hedgeLegFilledAndResidualQuantity * (quoteLegAveragePrice * hedgePerQuotePriceRatio / fxRateFromHedgeToQuote)) - hedgeLegFilledValue) / hedgeLegResidual) - quoteAndHedgePriceSpread, 
+  default->(((hedgeLegFilledAndResidualQuantity * (quoteLegAveragePrice - quoteAndHedgePriceSpread) * hedgePerQuotePriceRatio) / fxRateFromHedgeToQuote) - hedgeLegFilledValue) / hedgeLegResidual);
+[Automated Trading]QuoteAndHedgeTotalPrice:hedgeLegResidualPrice = ((((quoteAndHedgeTotalPrice - quoteLegAveragePrice) * quoteAndHedgePriceRatio * hedgeLegFilledAndResidualQuantity) / fxRateFromHedgeToQuote) - hedgeLegFilledValue) / hedgeLegResidual;

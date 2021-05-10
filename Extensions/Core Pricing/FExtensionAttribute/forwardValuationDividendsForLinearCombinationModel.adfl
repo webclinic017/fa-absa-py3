@@ -1,0 +1,7 @@
+[Core Pricing]FCombination:forwardValuationDividendsForLinearCombinationModel = select(ignoreForwardValuationCashFlows, 
+  true->nil, 
+  false->select(dividendForecast, 
+    nil->nil, 
+    default->select(underlyingforwardValuationDividendsNeedFxConversion, 
+      true->ForwardValueDividends(dividendForecast, valuationDate, underlyingForwardValuationDividendsCurve, underlyingForwardValuationDividendsCurrency, dividendFactor, forwardValueDividendDataCore, spotBankingDaysOffset, true, underlyingForwardValuationDividendsFxSpotRates, underlyingForwardValuationDividendDividendsFxCurves), 
+      false->ForwardValueDividends(dividendForecast, valuationDate, underlyingForwardValuationDividendsCurve, underlyingForwardValuationDividendsCurrency, dividendFactor, forwardValueDividendDataCore, spotBankingDaysOffset, true))));

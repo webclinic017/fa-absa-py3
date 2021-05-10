@@ -1,0 +1,9 @@
+[Core Pricing]FCashFlowInstrument:interestModelProvider = select(calculationCurrency == instrumentInterestModelProviderCurrency, 
+  false->CompoundModel(instrumentInterestModelProvider, instrumentInterestModelProviderFxRate :* "fxComponentInterestModelProvider" [exposeForwardValueProviderTargets, forwardValuationInInstrumentCurrency, priceSource, discountingType]), 
+  true->collapse(instrumentInterestModelProvider));
+[Core Pricing]FFxRate:interestModelProvider = collapse(instrumentInterestModelProvider);
+[Core Pricing]FInstrument:interestModelProvider = select(useExplicitRepoCurve, 
+  true->collapse(instrumentInterestModelProvider), 
+  false->select(calculationCurrency == currency, 
+    false->CompoundInterestModel(instrumentInterestModelProvider, instrumentToCalculationFxRate:fxComponentInterestModelProvider [exposeForwardValueProviderTargets, forwardValuationInInstrumentCurrency, priceSource, discountingType]), 
+    true->collapse(instrumentInterestModelProvider)));

@@ -1,0 +1,360 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SwapsPVCash') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SwapsPVCash' and p.type = 'SQL Query' 
+
+
+/*
+
+Change in April 2010
+Purpose: New bucket range effecting 4 years
+Department : IRD
+Desk : Group Treasury
+Requester :  Bandile Motha
+Developer : Bandile Motha
+Code Review : Anil Parbhoo
+CR Number : 277621
+Book of Work Reference Number : n/a as this ASQL is used by Group Treasury
+
+*/
+
+
+select 
+s.srdnbr,
+date_add_delta(@StartDay{;},1,0,0)'1d',
+date_add_delta(@StartDay{;},2,0,0)'2d',
+date_add_delta(@StartDay{;},8,0,0)'8d',
+date_add_delta(@StartDay{;},9,0,0)'9d',
+date_add_delta(@StartDay{;},0,1,0)'1m',
+date_add_delta(@StartDay{;},0,3,0)'3m',
+date_add_delta(@StartDay{;},0,6,0)'6m',
+date_add_delta(@StartDay{;},0,0,1)'1y',
+date_add_delta(@StartDay{;},0,0,2)'2y',
+date_add_delta(@StartDay{;},0,0,3)'3y',
+date_add_delta(@StartDay{;},0,0,4)'4y',
+date_add_delta(@StartDay{;},0,0,5)'5y',
+date_add_delta(@StartDay{;},0,0,10)'10y',
+date_add_delta(@StartDay{;},0,0,11)'Rest'
+
+
+into Buckets
+
+from serverdata s
+
+
+select
+	t.trdnbr,
+	t.status,
+	display_id (t, 'acquirer_ptynbr') 'Desk',
+	p.ptynbr,
+	display_id (t, 'counterparty_ptynbr') 'CP',
+	display_id (t, 'prfnbr') 'Portfolio',
+	i.insid,
+	i.insaddr,
+	t.value_day,
+	i.exp_day,
+	cf.type		'CFType',
+	display_id (l, 'curr') 'CFCurr',
+	cf.pay_day	'Payday',
+	nominal_amount(t,@StartDay{;},,) 'Nominal',
+	projected_cf (cf, @StartDay{;},) * t.quantity 'ProjectedCF',
+	/*0.0 'PV'*/
+	present_value(cf)*  t.quantity 'PV'
+into FtCash
+
+from
+	trade 		t,
+	instrument 	i,
+	party		p,
+	cashflow 	cf,
+	leg		l
+	
+	
+where match_filter(t, @Filter{;tradefilter.fltid})
+and	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+and	t.counterparty_ptynbr=p.ptynbr
+and cf.pay_day >= @StartDay{;}
+and time_to_day(t.time) <= @StartDay{;}
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed','Terminated')
+
+/*select * from  FtCash*/
+
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'0-1day' 'Bucket',
+sum(ft.ProjectedCF)'Projected CF',
+sum(PV)'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday <= b.1d
+and t.trdnbr = ft.trdnbr
+
+group by 1,2,3,4,5,6,7 
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'2-8days' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV)'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+where ft.Payday > b.1d and ft.Payday <= b.8d
+and  t.trdnbr = ft.trdnbr
+
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'9days-1month' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV)'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.8d and ft.Payday <= b.1m
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'1-3months' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+where ft.Payday > b.1m and ft.Payday <= b.3m
+and  t.trdnbr = ft.trdnbr
+
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'3-6months' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.3m and ft.Payday <= b.6m
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'6months-1y' 'Bucket',
+sum(ft.ProjectedCF ),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.6m and ft.Payday <= b.1y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'1-2years' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.1y and ft.Payday <= b.2y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'2-3years' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.2y and ft.Payday <= b.3y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'3-4years' 'Bucket',
+sum(ft.ProjectedCF ),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.3y and ft.Payday <= b.4y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'4-5years' 'Bucket',
+sum(ft.ProjectedCF ),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.4y and ft.Payday <= b.5y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'5-10years' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+     
+where ft.Payday > b.5y and ft.Payday <= b.10y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+
+union
+
+select 
+@StartDay{;} 'FromDate',
+ft.trdnbr,
+ft.insid,
+ft.status,
+ft.CP,
+ft.Portfolio,
+ft.value_day,
+ft.Nominal,
+'Greaterthan10years' 'Bucket',
+sum(ft.ProjectedCF),
+sum(PV) 'PV'
+
+from FtCash ft,
+     Buckets b,
+     trade t
+where ft.Payday > b.10y
+and  t.trdnbr = ft.trdnbr
+group by 1,2,3,4,5,6,7
+

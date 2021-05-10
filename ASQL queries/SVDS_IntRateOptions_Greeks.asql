@@ -1,0 +1,471 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SVDS_IntRateOptions_Greeks') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SVDS_IntRateOptions_Greeks' and p.type = 'SQL Query'
+
+/*S. van der Straaten 2006-01-31
+INTEREST RATE OPTIONS GREEKS*/
+
+/*S. van der Straaten 2006-04-04
+Add trade status*/
+
+
+/***FRAS***/
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	l.start_day															'ExpiryDay',
+	days_between(today, l.start_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	0.00																'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	present_value(t)														'PVZAR',
+	l.fixed_rate															'Strike',
+	par_rate(i) 															'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Leg l
+	
+where
+	i.insaddr = t.insaddr
+and 	t.insaddr = l.insaddr
+and	i.instype = 'FRA'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+and days_between(today, l.start_day, 'Act/365') > 0
+order by 6,1,3,4
+
+
+
+/***SWAPS***/
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	i.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)/2														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	0.00																'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	present_value(t)/2														'PVZAR',
+	0.00															'Strike',
+	par_rate(i) 															'FwdPrice',
+	delta_implicit(t)/2									'DeltaPVBP',
+	gamma_implicit(t)/2 												'GammaPVBP',
+	vega(t)/2															'Vega',
+	theta(t)/2															'Theta',
+	theta_classic(t)/2                                                    'ThetaClassic',
+	0.00															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Leg l1,
+	Leg l2
+	
+where
+	i.insaddr = t.insaddr
+and t.insaddr = l1.insaddr
+and t.insaddr = l2.insaddr
+and l1.legnbr ~= l2.legnbr
+and	i.instype = 'Swap'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+group by 1
+order by 6,1,3,4
+
+
+/***CAPS & FLOORS***/
+
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	i.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	t.premium															'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	present_value(t)														'PVZAR',
+	l.strike															'Strike',
+	used_und_frw_price(i)														'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp
+
+from
+	Trade t,
+	Instrument i,
+	Leg l
+		
+where
+	i.insaddr = t.insaddr
+and	t.insaddr = l.insaddr
+and	i.instype in ('Cap', 'Floor')
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+order by 6,1,3,4
+
+
+
+
+/***OPTIONS***/
+
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype 															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	i.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	t.premium															'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	present_value(t)														'PVZAR',
+	i.strike_price															'Strike',
+	used_und_frw_price(i)														'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i
+			
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Option'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+order by 6,1,3,4
+
+
+/***COMBINATIONS***/
+
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	und.und_instype       															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	und.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	t.premium															'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	p.settle*nominal_amount(t)*0.01														'PVZAR',
+	und.strike_price															'Strike',
+	used_und_frw_price(i)														'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	instrument und,
+	CombinationLink cl,
+	Party party,
+    Lastprice p,
+    Instrument c
+	
+			
+where
+	i.insaddr = t.insaddr
+and i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = und.insaddr
+and	i.instype = 'Combination'
+and und.instype = 'Option'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and	t.status not in ('Simulated','Void','Terminated')
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	und.exp_day > today
+order by 6,1,3,4
+
+
+/***FREEDEFCFS - Barclays Price***/
+
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype      															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	i.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	t.premium															'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	p.settle*nominal_amount(t)*0.01										'PVZAR',
+	i.strike_price															'Strike',
+	used_und_frw_price(i)														'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Party party,
+    Lastprice p,
+    Instrument c
+			
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'FreeDefCF'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+order by 6,1,3,4
+
+/***FREEDEFCFS - Absa Price***/
+
+
+select
+	'YES' ? t.trdnbr : ''														'TradeNo',
+	t.optional_key                                                      'TMSNo',
+	i.instype 															'Instype',
+	i.und_instype      															'UnderlyingIns',
+	i.insid																'Insid',
+	display_id(t,'prfnbr')														'Portfolio',
+	display_id(t,'counterparty_ptynbr')												'Counterparty',
+	t.status															'TrdStatus',
+	i.exp_day															'ExpiryDay',
+	days_between(today, i.exp_day, 'Act/365')											'DaystoMaturity',
+	nominal_amount(t)														'Nominal',
+	display_id(t, 'Curr')														'Currency',
+	t.premium															'ZARPremium',
+	t.value_day															'ValueDay',
+	nominal_amount(t) > 0 ? 'B' : 'S'												'BuySell',
+	present_value(t)            										'PVZAR',
+	i.strike_price															'Strike',
+	used_und_frw_price(i)														'FwdPrice',
+	delta_implicit(t)														'DeltaPVBP',
+	gamma_implicit(t)														'GammaPVBP',
+	vega(t)																'Vega',
+	theta(t)															'Theta',
+	theta_classic(t)                                                    'ThetaClassic',
+	used_vol(t)															'Volatility'
+
+into
+
+temp	
+
+from
+	Trade t,
+	Instrument i,
+	Party party,
+    Lastprice p,
+    Instrument c
+			
+where
+		i.insaddr = t.insaddr
+and	i.instype = 'FreeDefCF'
+and p.curr=c.insaddr
+and i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='internal'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status ~= 'Terminated'
+and	i.exp_day > today
+order by 6,1,3,4
+
+
+
+
+
+select
+	tt.TradeNo,
+	tt.TMSNo,
+	tt.Instype,
+	tt.UnderlyingIns,
+	tt.Insid,
+	tt.Portfolio,
+	tt.Counterparty,
+	tt.TrdStatus,
+	tt.ExpiryDay,
+	tt.DaystoMaturity,
+	tt.Nominal,
+	tt.Currency,
+	tt.ZARPremium,
+	tt.ValueDay,
+	tt.BuySell,
+	tt.PVZAR,
+	tt.Strike,
+	tt.FwdPrice,
+	tt.DeltaPVBP,
+	tt.GammaPVBP,
+	tt.Vega,
+	tt.Theta,
+	tt.ThetaClassic,
+	tt.Volatility
+from
+	temp tt
+
+
+union
+
+select
+	'Total',
+	'Total',
+	tt.Instype,
+	tt.UnderlyingIns,
+	'',
+	tt.Portfolio,
+	'',
+	tt.TrdStatus,
+	tt.ExpiryDay,
+	max(DaystoMaturity),
+	sum(Nominal),
+	tt.Currency,
+	0.00,
+	tt.ValueDay,
+	'',
+	sum(PVZAR),
+	0.00,
+	0.00,
+	sum(DeltaPVBP),
+	sum(GammaPVBP),
+	sum(Vega),
+	sum(Theta),
+	sum(ThetaClassic),
+	0.00
+
+from
+	temp tt
+ 
+group by 3,4
+
+union
+
+select
+	'Total',
+	'Total',
+	tt.Instype,
+	tt.UnderlyingIns,
+	'',
+	tt.Portfolio,
+	'',
+	tt.TrdStatus,
+	tt.ExpiryDay,
+	max(DaystoMaturity),
+	sum(Nominal),
+	tt.Currency,
+	0.00,
+	tt.ValueDay,
+	'',
+	sum(PVZAR),
+	0.00,
+	0.00,
+	sum(DeltaPVBP),
+	sum(GammaPVBP),
+	sum(Vega),
+	sum(Theta),
+	sum(ThetaClassic),
+	0.00
+
+from
+	temp tt
+ 
+group by 1

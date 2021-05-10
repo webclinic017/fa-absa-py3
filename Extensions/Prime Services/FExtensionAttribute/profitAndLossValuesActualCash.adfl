@@ -1,0 +1,7 @@
+[Prime Services]FInstrument:profitAndLossValuesActualCash = shunt(isCFDPSwap, 
+  true->sumOf(tradesInPosition :* "object.Quantity") * sumOf(legs :* "profitAndLossValuesActualCash_ps" [valuationBaseDateTimeInput]), 
+  default->profitAndLossValues.ActualCash(excludeFunding) + rtmCashAdjustment + rtmCashPaymentsSettled);
+[Prime Services]FLegAndTrades:profitAndLossValuesActualCash = shunt(isCFDPSwap, 
+  true->sumOf(tradesInPosition :* "object.Quantity") * (leg :* "profitAndLossValuesActualCash_ps" [valuationBaseDateTimeInput]), 
+  default->profitAndLossValues.ActualCash(excludeFunding) + rtmCashAdjustment + rtmCashPaymentsSettled);
+[Prime Services]FTradeRow:profitAndLossValuesActualCash = instrument :* "profitAndLossValuesActualCash" [valuationBaseDateTimeInput, singleTradePosition, tradeSetUsedInProfitandLoss];

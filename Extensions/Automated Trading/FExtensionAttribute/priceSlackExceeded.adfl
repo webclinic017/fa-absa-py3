@@ -1,0 +1,8 @@
+[Automated Trading]ExecutionAlgo:priceSlackExceeded = switch(currentOrder, 
+  nil->false, 
+  default->switch(object.Trigger, 
+    "Match"->false, 
+    "MatchAll"->not algoPriceLimitExceeded and not almostEqual(currentOrder.Price, targetPriceTickAdjusted), 
+    default->switch(algoIsBuy, 
+      true->(currentOrder.Price < (object.TargetPrice - object.DistEJ * object.LimPriceSlack)), 
+      false->(currentOrder.Price > (object.TargetPrice + object.DistEJ * object.LimPriceSlack)))));

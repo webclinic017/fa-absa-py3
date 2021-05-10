@@ -1,0 +1,11 @@
+[Default]QuoteAndHedge:potentialResult = switch(quoteLegCalculatedPriceRounded > 0, 
+  true->switch((hedgeLegLimitPriceForPotentialQuantity > 0) and (quoteLegMatchingPriceDepth.QuantityAtPrice(quoteLegPotentialPriceRounded) >= quoteLegTotalQuantity), 
+    true->"Match all", 
+    default->switch(quoteLegMatchingPriceDepth.QuantityAtPrice(quoteLegCalculatedPriceRounded) > 0, 
+      true->"Match", 
+      default->switch(quoteLegCurrentPriceDepth.QuantityAtPrice(quoteLegCalculatedPriceRounded) == 0, 
+        true->"In Spread", 
+        default->switch(quoteLegUsedOrderBook.PriceFeed.RoundTickUpDown(quoteLegIsSell, quoteLegCurrentPriceDepth.LevelPrice(0, -1)) == quoteLegCalculatedPriceRounded, 
+          true->"Join", 
+          default->"In the Order book")))), 
+  default->"");

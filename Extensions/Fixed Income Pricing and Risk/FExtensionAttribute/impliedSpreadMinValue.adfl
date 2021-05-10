@@ -1,0 +1,9 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedSpreadMinValue = select(uniqueStrikeInTheoreticalPrice, 
+  nil->-0.99, 
+  default->-0.01 * uniqueStrikeInTheoreticalPrice);
+[Fixed Income Pricing and Risk]FLeg:impliedSpreadMinValue = select(uniqueStrikeInTheoreticalInstrumentValue, 
+  nil->-0.99, 
+  default->select(isFloorLeg and not staticLegInformation:isSpread, 
+    true->-0.01 * uniqueStrikeInTheoreticalInstrumentValue - stripDateTimePart(atmParLevelForLeg), 
+    false->-0.99));
+[Fixed Income Pricing and Risk]FTradeRow:impliedSpreadMinValue = instrument:impliedSpreadMinValue;

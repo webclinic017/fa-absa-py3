@@ -1,0 +1,54 @@
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','Identify_Stale_ALSI_member_Prices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'Identify_Stale_ALSI_member_Prices' and p.type = 'SQL Query' 
+ */
+
+
+/*
+
+Coded By Anil Parbhoo to identify possible stale prices of ALSI member stocks 
+
+CHG0078251 - 30 Jan 2020
+
+*/
+
+
+
+select
+    i.insid	'index',
+    c.insid		'index_member',	
+    pld.idp_code'Ric', 
+    p.ptyid'Market',
+    lp.bid,
+    lp.ask,
+    lp.last,
+    lp.updat_time'Latest Update Time',
+    Now'Now',
+    (Now - lp.updat_time) 'diff in secs',
+    ael_s(c , 'CopyPrices.ListPrices')'List Instrument'
+
+from
+    instrument i,
+    instrument c,
+    CombinationLink cl,
+    lastprice lp,
+    party p, 
+    pricelinkdefinition pld,
+    PriceDistributor pd
+where
+i.insaddr = cl.owner_insaddr
+and c.insaddr = cl.member_insaddr
+and c.insaddr = pld.insaddr
+and pld.disnbr = pd.disnbr
+and pd.disid = 'REUTERS_FEED'
+and c.insaddr = lp.insaddr
+and lp.ptynbr = p.ptynbr
+and p.ptyid = 'SPOT'
+and i.insid in ('ZAR/ALSI')
+and (Now - lp.updat_time) > 300
+
+
+order by 9 desc, c.insid

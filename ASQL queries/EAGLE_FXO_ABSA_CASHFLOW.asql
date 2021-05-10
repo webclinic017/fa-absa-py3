@@ -1,0 +1,141 @@
+/*
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2014-05-07     CHNG0001946630   Wentzel DeClercq   Ondrej Bahounek    Fixing legacy issue in Absa Trade Feeds. 
+2016-08-31                      McEwan Kieron      Mpaki Elephant     Ensuring that Barrier trades are not marked as Vanilla
+2018-06-13                      McEwan Kieron      Lehakoe Mothobi    Ensuring that the FX Asian options are included in the FXO feeds.
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+select
+ael_i(p,'ASQL_log','EAGLE_FXO_ABSA_CASHFLOW') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p 
+where p.name = 'EAGLE_FXO_ABSA_CASHFLOW' and p.type = 'SQL Query' 
+
+/****Asians exclude***/
+
+select
+/*ex.average_method_type in ('Arithmetic', 'Geometric', 'Custom') ? 'Yes' : 'No' 'TypeA',*/
+t.trdnbr,
+ex.barrier_crossed_status 'CROSSED_STATUS'
+
+into temp
+
+from
+
+
+trade t,
+instrument i,
+party p,
+exotic ex 
+
+where   
+
+    t.insaddr = i.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and i.instype = 'Option'
+and i.und_instype = 'Curr'
+and i.exp_day >= Today
+and i.insaddr *= ex.insaddr 
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/*and ex.barrier_crossed_status not in ('Confirmed')*/
+/* exclude nonempty Commodty Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')
+/**********/
+
+
+
+select *
+into tempA
+from temp
+where CROSSED_STATUS not in ('Confirmed')
+
+select
+'ABS-FXO'                                                                                  'SOURCE_ID',
+ael_s(t,'Eagle_Date.FXONbr')                                                                               'SOURCE_TRADE_ID',
+'1'                                                                                     'LEG_NUMBER',
+t.premium                                                                               'CASHFLOW_AMOUNT',
+display_id(t,'curr')                                                                    'CASHFLOW_CURRENCY',
+convert('time',t.value_day, '%Y%m%d')                                                   'CASHFLOW_DATE',
+'PREMIUM'                                                                               'CASHFLOW_TYPE',
+'P'                                                                                      'CASHFLOW_CALC_TYPE'
+
+
+
+
+
+from
+
+    trade t,
+    instrument i,
+    instrument und,
+    party p,
+    tempA tp
+    
+where 
+
+    t.insaddr = i.insaddr
+and tp.trdnbr = t.trdnbr
+and i.und_insaddr = und.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and i.instype = 'Option'
+and und.instype = 'Curr'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= TODAY
+and t.premium ~= 0
+and p.ptyid not in ('FMAINTENANCE')
+/*and tp.TypeA ~= 'Yes'*/
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/* exclude nonempty Commodity Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')
+/*and (add_info(p,'BarCap_SMS_LE_SDSID') ~= '' and add_info(p,'BarCap_SMS_CP_SDSID') ~= '')*/
+
+/*and t.trdnbr  = 1273301*/
+
+union
+
+
+/*Additional Payments*/
+select
+'ABS-FXO'                                                                                 'SOURCE_ID',
+ael_s(t,'Eagle_Date.FXONbr')                                                                               'SOURCE_TRADE_ID',
+'1'                                                                                     'LEG_NUMBER',
+py.amount                                                                               'CASHFLOW_AMOUNT',
+display_id(py,'curr')                                                                   'CASHFLOW_CURRENCY',
+convert('time',py.payday, '%Y%m%d')                                                                                       'CASHFLOW_DATE',
+'FEE'                                                                                  'CASHFLOW_TYPE',
+'P'                                                                                  'CASHFLOW_CALC_TYPE'
+
+
+
+from
+
+    trade t,
+    instrument i,
+    instrument und,
+    party p,
+    payment py,
+    tempA tp
+    
+where 
+
+    t.insaddr = i.insaddr
+and i.und_insaddr = und.insaddr
+and tp.trdnbr = t.trdnbr
+and t.counterparty_ptynbr = p.ptynbr
+and py.trdnbr = t.trdnbr
+and i.instype = 'Option'
+and und.instype = 'Curr'
+and t.status not in ('Simulated', 'Terminated', 'Void')
+and i.exp_day >= TODAY
+/*and tp.TypeA ~= 'Yes'*/
+and p.ptyid not in ('FMAINTENANCE')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+/* exclude nonempty Commodity Label instruments: */
+and (add_info(i, 'Commodity Label') IS NULL
+    or add_info(i, 'Commodity Label') = '')

@@ -1,0 +1,16 @@
+/* update_method=0 */
+select
+    i.insid                     'InstrumentName',
+    display_id(p, 'ptynbr')       'Market',
+    p.day                       'Date',
+    round(p.settle, 6)          'Price'
+
+from
+    LastPrice p,
+    Instrument i
+    
+where
+    p.ptynbr = '10' 
+and p.insaddr = i.insaddr
+and p.day = today
+and i.insid in  ('ZAR/ABG','ZAR/SBK','ZAR/NED','ZAR/FSR','ZAR/INL','ZAR/FINI')

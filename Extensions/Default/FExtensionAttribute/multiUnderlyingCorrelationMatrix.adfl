@@ -1,0 +1,5 @@
+[Default]FInstrument:multiUnderlyingCorrelationMatrix = select(underlyingIsFxBasket and (not correlationInformationExists), 
+  true->impliedFxCorrelation.Values, 
+  default->select(correlationMatrixInformation <> nil, 
+    true->correlationMatrixInformation.Values, 
+    default->flatCorrelationMatrix(zeroCorrelationInformation.Correlation, count(multiValuationUnderlying))));

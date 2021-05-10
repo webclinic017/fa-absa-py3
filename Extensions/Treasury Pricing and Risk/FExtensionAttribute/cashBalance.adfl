@@ -1,0 +1,6 @@
+[Treasury Pricing and Risk]FDeposit:cashBalance = -(lastCallRateProjectedCashFlow + redemptionAmountProjectedCashFlow);
+[Treasury Pricing and Risk]FInstrument:cashBalance = nil;
+[Treasury Pricing and Risk]FInstrumentAndTrades:cashBalance = select(currencyGroupingReference, 
+  nil->nil, 
+  default->sumOf(instruments :* "cashBalancePosition" [positionObject, valuesOnSpotOverride, valuationDate]));
+[Treasury Pricing and Risk]FSingleInstrumentAndTrades:cashBalance = instrument :* "cashBalancePosition" [positionObject, valuesOnSpotOverride, valuationDate];

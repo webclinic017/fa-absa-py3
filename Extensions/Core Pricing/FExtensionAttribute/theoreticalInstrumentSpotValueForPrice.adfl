@@ -1,0 +1,9 @@
+[Core Pricing]FCashFlowInstrument:theoreticalInstrumentSpotValueForPrice = select(includesOther(instrumentCurrencies, currency), 
+  true->sumOf(discountAndConvertToCurrency(theoreticalInstrumentSpotValuesForPrice, createDictionary(discountingUnit, moneyMarketCurve), instrumentSpotDate, [1], currencySymbol, filterUnit, instrumentFxDiscountCurvesPerUnit, instrumentCurrencies :* "fxSpotRate" [fxToCurrency := currency], currencySymbol)), 
+  false->collapse(theoreticalInstrumentSpotValuesForPriceFiltered));
+[Core Pricing]FCreditDefaultSwap:theoreticalInstrumentSpotValueForPrice = moneyMarketCurve.DiscountValue(theoreticalInstrumentSpotValuesForPriceFiltered, instrumentValueDate);
+[Core Pricing]FDerivative:theoreticalInstrumentSpotValueForPrice = collapse(theoreticalOrMarketInstrumentValueFiltered);
+[Core Pricing]FInstrument:theoreticalInstrumentSpotValueForPrice = select(includesOther(instrumentCurrencies, currency), 
+  true->sumOf(discountAndConvertToCurrency(theoreticalOrMarketInstrumentValue, createDictionary(discountingUnit, moneyMarketCurve), instrumentSpotDate, [1], currencySymbol, filterUnit, instrumentFxDiscountCurvesPerUnit, instrumentCurrencies :* "fxSpotRate" [fxToCurrency := currency], currencySymbol)), 
+  false->collapse(theoreticalOrMarketInstrumentValueFiltered));
+[Core Pricing]FInstrumentAndTrades:theoreticalInstrumentSpotValueForPrice = instrument:theoreticalInstrumentSpotValueForPrice;

@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:dailyShortFunding = sumOf(children :* "dailyShortFunding");
+[Prime Services]FSingleInstrumentAndTrades:dailyShortFunding = switch(instrumentType == "Portfolio Swap", 
+  true->0, 
+  default->dailyFunding * shortPremiumRate / (overnightBaseRate + overnightSpread + shortPremiumRate));

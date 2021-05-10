@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:atmVolatilityTransform = select(atmVol, 
+  nil->nil, 
+  default->instrument:volatilityATMStructureValue [volatilityInformation = atmVol, priceSource, isSplitAllGrouped]);
+[Default]FMultiInstrumentAndTrades:atmVolatilityTransform = nil;
+[Default]FTimeBucketAndObject:atmVolatilityTransform = rowInstrumentAndTrades :* "atmMalzVol" [expiryDate := timeBucketDate];

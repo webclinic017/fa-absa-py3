@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:nonCouponPriceSign = select(isValidSwaptionUnderlying, 
+  true->select(0 < nonCouponValue, 
+    true->1.0, 
+    false->-1.0), 
+  false->1.0);
+[Default]FInstrument:nonCouponPriceSign = 1.0;
+[Default]FSwap:nonCouponPriceSign = select(0 < nonCouponValue, 
+  true->1.0, 
+  false->-1.0);

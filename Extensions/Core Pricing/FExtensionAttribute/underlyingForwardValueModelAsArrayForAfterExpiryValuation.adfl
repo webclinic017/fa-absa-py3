@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:underlyingForwardValueModelAsArrayForAfterExpiryValuation = select(isCashSettled, 
+  true->underlyingValueModelAsArrayForAfterExpiryValuation, 
+  false->select(isMultiExercise, 
+    true->arrayAny(underlyingForwardValueModelForAfterExpiry), 
+    default->underlyingForwardValueModelForAfterExpiry));

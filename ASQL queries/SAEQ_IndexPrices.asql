@@ -1,0 +1,35 @@
+/*
+Purpose: Corrected TheorPrice.
+Department: PCG
+Requester: Herman Levin
+Developer: Willie van der Bank
+CR Number: 204775 (21/01/2010)
+
+
+CHNG0003433131 - ABITFA-4075 - Add additional indexes to SPOT VS. Theoretical price comparision report 
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_IndexPrices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_IndexPrices' and p.type = 'SQL Query' 
+ 
+select
+    i.insid                 'Instrument',
+    ael_f(,'SAEQ_IndexPrices.SPrice',i.insid)    'ReutersPrice',
+    ael_f(,'SAEQ_IndexPrices.Prices',i.insid)    'TheorPrice'    
+into temp
+from 
+    instrument  i
+where
+    i.insid in (@1_Instrument{ZAR/ALSI,ZAR/SWIX,ZAR/INDI,ZAR/FINI,ZAR/RESI,ZAR/CAPI,ZAR/FNDI,ZAR/ALSI_Harmony,ZAR/ALSI_85DIVS,ZAR/SWIX_85DIVS,ZAR/INDI_80DIVS;instrument.insid* where instype = 'EquityIndex'})
+
+select
+    t.Instrument,
+    t.ReutersPrice,
+    t.TheorPrice,
+    (t.TheorPrice - t.ReutersPrice) 'Difference'
+from
+    temp    t

@@ -1,0 +1,7 @@
+[Securities Lending]FAlert:secLendSuggestedFee = select(subject.IsKindOf("FSecurityLoan"), 
+  true->subject:secLendSuggestedFee, 
+  default->nil);
+[Securities Lending]FSecurityLoan:secLendSuggestedFee = secLendMainTrade:secLendSuggestedFee;
+[Securities Lending]FSingleInstrumentAndTrades:secLendSuggestedFee = instrument:secLendSuggestedFee;
+[Securities Lending]FTrade:secLendSuggestedFee = round(secLendTheorFeeWithMargin, 2);
+[Securities Lending]FTradeRow:secLendSuggestedFee = trade:secLendSuggestedFee;

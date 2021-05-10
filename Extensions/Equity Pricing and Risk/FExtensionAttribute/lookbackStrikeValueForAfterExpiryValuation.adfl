@@ -1,0 +1,5 @@
+[Equity Pricing and Risk]FInstrument:lookbackStrikeValueForAfterExpiryValuation = select(isFloatingStrike, 
+  true->select(isCall, 
+    true->min(lookbackExtremeValueInCalculationCurrency, underlyingValueForAfterExpiryValuation), 
+    false->max(lookbackExtremeValueInCalculationCurrency, underlyingValueForAfterExpiryValuation)), 
+  false->strikeValue);

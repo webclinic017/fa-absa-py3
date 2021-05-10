@@ -1,0 +1,13 @@
+[Equity Pricing and Risk]FInstrument:multiUnderlyingInitialFixing = switch(adsPriceDate <> valuationDate, 
+  true->switch(isForwardStarting, 
+    true->multiUnderlyingValueMovedToForwardStartDate, 
+    false->T(multiUnderlyingInitialFixingTimeShifted)), 
+  false->select(hasForwardStartDateToday, 
+    true->shunt(forwardStartDateTime < valuationDateTime, 
+      true->switch(hasInvalidMultiUnderlyingInitialFixingToday, 
+        true->T(multiUnderlyingInitialFixingsAdjusted), 
+        false->T(multiUnderlyingInitialFixingsStored)), 
+      false->multiUnderlyingValueMovedToForwardStartDate), 
+    false->select(forwardStartDate > valuationDate, 
+      true->multiUnderlyingValueMovedToForwardStartDate, 
+      false->T(multiUnderlyingInitialFixingsStored))));

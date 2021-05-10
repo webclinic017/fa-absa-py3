@@ -1,0 +1,8 @@
+[ABSA FXO 4.3]FInstrument:fxBarrierStartDate = nil;
+[ABSA FXO 4.3]FOption:fxBarrierStartDate = select(object.IsExotic, 
+  true->select(barrierMonitorType, 
+    "Continuous"->nil, 
+    "Window"->object.FxCurrentBarrierEvent.Date, 
+    "Discrete"->object.FxCurrentBarrierEvent.Date, 
+    default->nil), 
+  false->nil);

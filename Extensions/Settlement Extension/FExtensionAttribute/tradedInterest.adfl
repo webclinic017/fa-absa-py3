@@ -1,0 +1,12 @@
+[Settlement Extension]FSettlement:tradedInterest = select(object.Type, 
+  "Security Nominal"->select(isPartOfDvP and (instrument <> nil), 
+    true->select(instrument.IsSecurity, 
+      true->select(settlementTradedInterestCurrency, 
+        "Instrument Curr"->collapse(tradedInterestInInstrumentCurr), 
+        "Settlement Curr"->collapse(tradedInterestInSettlementCurr)), 
+      false->nil), 
+    false->nil), 
+  "Security DvP"->select(tradedInterestChildrenNilRemoved.IsEmpty, 
+    true->nil, 
+    false->sumOf(tradedInterestChildrenNilRemoved)), 
+  default->nil);

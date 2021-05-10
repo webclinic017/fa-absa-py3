@@ -1,0 +1,37 @@
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Expiry') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Expiry' and p.type = 'SQL Query' 
+
+
+/*
+
+'''
+Report indicating trade expiries according to specified trade filter
+Date                	: 2010-06-02
+Department and Desk 	: TECHNICAL SUPPORT
+Requester           	: Willem Kellerman
+Developer           	: Jaysen Naicker
+Date			        : 02/07/2010
+CR Number           	: 362001
+'''
+*/
+
+select
+	@Date{today}				'Expiry Date',
+    i.instype               'InsType',
+	i.insid                 'Instrument',
+	t.trdnbr				'Trdnbr',
+	t.optional_key
+
+
+FROM
+	trade t,
+	instrument i
+
+WHERE
+    match_filter(t, @TradeFilter{NLD_IROptions_Expiries;tradefilter.fltid},)
+    and i.insaddr = t.insaddr

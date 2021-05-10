@@ -1,0 +1,126 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SND_Exception_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SND_Exception_Report' and p.type = 'SQL Query' 
+
+
+/*-------------------------------------------------------*/
+/*
+Date        CR Number   Who             What
+2008-11-11  4625        Heinrich Cronje Created
+
+Description
+
+Retrieve all live trades in SND portfolios (Trade filter)
+who have no Trans Ref or no add info SND_Trade_Type.
+It also highlights what deals have 0 cash flows on them.
+*/
+
+/*-----------------Select All SND trades-----------------*/
+select
+    t.trdnbr    'Trdnbr',
+    i.insid 'Insid',
+    i.instype   'Instype',
+    display_id(t,'prfnbr')  'Portfolio',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    t.status    'Status',
+    t.trx_trdnbr    'Trans_Ref',
+    add_info(t,'SND_Trade_Type')    'SND_Trade_Type',
+    i.insaddr
+into
+    temp
+from
+    trade t,
+    instrument i
+where
+        t.insaddr = i.insaddr
+    and match_filter(t, @1_Filter{SND_All_Trades;tradefilter.fltid}, @2_TrdNos{})
+    and i.exp_day >= @3_Exp_Day{Today}
+    and t.status not in ('Void','Terminated')
+/*-------------------------------------------------------*/
+
+/*--------------Trades with zero Cash Flows--------------*/
+select
+    t.Trdnbr,
+    t.Insid,
+    t.Instype,
+    t.Portfolio,
+    t.Counterparty,
+    t.Status,
+    t.Trans_Ref,
+    t.SND_Trade_Type,
+    projected_cf(cf)    'Amount'
+into
+    cash
+from
+    temp t,
+    leg l,
+    cashflow cf
+where
+        t.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+
+/*-------------------------------------------------------*/
+
+/*----------------Trades with no Trans Ref---------------*/
+select
+    'Trans_Ref' 'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Instype,
+    t.Portfolio,
+    t.Counterparty,
+    t.Status,
+    t.Trans_Ref,
+    t.SND_Trade_Type
+from
+    temp t
+where
+    t.Trans_Ref <= 0
+
+order by t.Status
+/*-------------------------------------------------------*/
+
+union
+
+/*-------------Trades with no SND_Trade_Type-------------*/
+select
+    'SND_Trade_Type' 'Section',
+    t.Trdnbr,
+    t.Insid,
+    t.Instype,
+    t.Portfolio,
+    t.Counterparty,
+    t.Status,
+    t.Trans_Ref,
+    t.SND_Trade_Type
+from
+    temp t
+where
+    t.SND_Trade_Type = ''
+
+order by t.Status
+/*-------------------------------------------------------*/
+
+union
+
+/*--------------Trades with zero Cash Flows--------------*/
+select
+    'Zero Cash Flows' 'Section',
+    c.Trdnbr,
+    c.Insid,
+    c.Instype,
+    c.Portfolio,
+    c.Counterparty,
+    c.Status,
+    c.Trans_Ref,
+    c.SND_Trade_Type
+from
+    cash c
+where
+    c.Amount = 0
+
+group by c.Trdnbr
+/*-------------------------------------------------------*/

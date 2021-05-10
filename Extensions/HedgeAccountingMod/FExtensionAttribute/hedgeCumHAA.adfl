@@ -1,0 +1,9 @@
+[HedgeAccountingMod]FDealPackageInstrumentAndTrades:hedgeCumHAA = sumOf(children :* "hedgeCumHAA_singleCurr");
+[HedgeAccountingMod]FMultiInstrumentAndTrades:hedgeCumHAA = sumOf(children :* "hedgeCumHAA_singleCurr");
+[HedgeAccountingMod]FTradeRow:hedgeCumHAA = switch(usedInHedge and (isNIHHR or isCashFlowHR), 
+  default->denominatedvalue(0, displayCurrencySymbol, , ), 
+  true->switch(isExternalTrade, 
+    true->denominatedvalue(hedgeCapLimit, displayCurrencySymbol, , ), 
+    false->switch(isZeroBondTrade, 
+      true->deprecRPLColumn, 
+      default->denominatedvalue(0, displayCurrencySymbol, , ))));

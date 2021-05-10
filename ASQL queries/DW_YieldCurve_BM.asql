@@ -1,0 +1,46 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','DW_YieldCurve_BM') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'DW_YieldCurve_BM' and p.type = 'SQL Query' 
+ 
+  /* 
+    ================================================================
+    asql used to calc benchmark deltas
+    done by simulating a 1bp bump on benchmarks for given curve
+    Dirk Strauss    14-Sept-2007
+    adapted by DW to obtain benchmarks and prices used for MR PnL calcs
+    excludes bonds and index linked bonds
+    ================================================================
+*/
+
+select
+    TODAY                                   'RepDate',
+    yc.yield_curve_name                     'yc',
+    ins.insid                               'bm',
+    theor_price(Ins,,,,)                    'Price',
+    ins.exp_period.count                    'Expiry_Count',
+    ins.exp_period.unit                    'Expiry_Unit',
+    ins.exp_period.unit = 'Years' ?  to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, ins.exp_period.count), 'Act/365'))
+    : ins.exp_period.unit = 'Months' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, ins.exp_period.count,0), 'Act/365'))
+    : ins.exp_period.unit = 'Days' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  ins.exp_period.count, 0,0), 'Act/365'))
+    : ins.exp_period.unit = 'Weeks' ? to_int(days_between(@Date{today}, date_add_delta(@Date{today},  ins.exp_period.count*7, 0,0), 'Act/365'))
+    : to_int(days_between(@Date{today}, date_add_delta(@Date{today}, 0, 0, ins.exp_period.count), 'Act/365')) 'Days In Period',
+    ins.exp_period.unit = 'Years' ? date_add_delta(@Date{today}, 0, 0, ins.exp_period.count)
+    : ins.exp_period.unit = 'Months' ? date_add_delta(@Date{today}, 0, ins.exp_period.count,0)
+    : ins.exp_period.unit = 'Days' ? date_add_delta(@Date{today}, ins.exp_period.count, 0, 0)
+    : ins.exp_period.unit = 'Weeks' ? date_add_delta(@Date{today}, ins.exp_period.count * 7, 0, 0)
+    : date_add_delta(@Date{today}, 0, 0, ins.exp_period.count) 'End Date'
+
+from
+    yieldcurve yc,
+    benchmark bm,
+    instrument ins
+where
+    yc.yield_curve_name  in (@01_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name *})
+    and bm.yield_curve_seqnbr = yc.seqnbr
+    and bm.instrument = ins.insaddr
+
+
+order by 8

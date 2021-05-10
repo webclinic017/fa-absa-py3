@@ -1,0 +1,8 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:fixingValueIsObserved = select(singleReset, 
+  nil->false, 
+  default->select(cashFlowInformation, 
+    nil->nil, 
+    default->cashFlowInformation.ResetFixingValue(valuationDate, reset, nil)));
+[Core Cash Flow Pricing]FResetMoneyFlow:fixingValueIsObserved = select(reset, 
+  nil->false, 
+  default->reset:fixingValue [legInformation = nil]);

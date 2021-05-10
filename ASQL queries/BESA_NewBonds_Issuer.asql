@@ -1,0 +1,12 @@
+select
+i.insid 'Bond Name',
+display_id(i,'issuer_ptynbr') 'FA Owner',
+i.creat_time 'Date Created',
+display_id(i,'creat_usrnbr') 'Issuer'
+
+from
+Instrument i
+
+where
+i.instype = 'Bond'
+and i.creat_time >= date_add_banking_day(Today,,0)

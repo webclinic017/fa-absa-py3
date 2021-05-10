@@ -1,0 +1,54 @@
+/* update_method=0 */
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Access_UserProfile_Check') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_Access_UserProfile_Check' and p.type = 'SQL Query' 
+
+/*
+Purpose                       :  Returns names of users who have selected access profile(s)
+Department and Desk           :  FORC, Client Services
+Requester                     :  Wilbur Adams, Juanita Mans
+Developer                     :  Bhavnisha Sarawan
+CR Number                     :  CHG0077398
+
+*/
+
+select distinct
+    'Group'                     'Level',
+    up.profid                   'Profile',
+    g.grpid                     'Group',
+    u.name                      'User Name',
+    u.userid                    'FA ID',
+    add_info(u,'AB Number')     'AB Number'
+from
+    groupProfileLink gl,
+    userProfile      up,
+    front.group      g,
+    user             u
+where
+    g.grpnbr = gl.grpnbr
+and gl.profnbr = up.profnbr
+and u.grpnbr = g.grpnbr
+and up.profid in (@UserProfile{;userProfile.profid *})
+
+union
+
+select
+    'User'                      'Level',
+    up.profid                   'Profile',
+    g.grpid                     'Group',
+    u.name                      'User Name',
+    u.userid                    'FA ID',
+    add_info(u,'AB Number')     'AB Number'
+from
+    user u,
+    userProfileLink ul,
+    userProfile up,
+    front.group g 
+where
+    u.usrnbr = ul.usrnbr
+and ul.profnbr = up.profnbr
+and u.grpnbr = g.grpnbr
+and up.profid in (@UserProfile{;userProfile.profid *})

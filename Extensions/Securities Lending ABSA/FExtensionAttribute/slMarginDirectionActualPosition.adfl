@@ -1,0 +1,12 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slMarginDirectionActualPosition = select(groupingReference.IsKindOf("FParty"), 
+  false->nil, 
+  default->select(groupingReference.AdditionalInfo.SL_CptyType == "Borrower", 
+    true->switch(slMarginCallActualPosition > 0, 
+      true->"Due to YOU", 
+      false->"Due to US"), 
+    false->select(groupingReference.AdditionalInfo.SL_CptyType == "Lender", 
+      true->switch(slMarginCallActualPosition < 0, 
+        true->"Due to YOU", 
+        false->"Due to US"), 
+      default->nil), 
+    default->nil));

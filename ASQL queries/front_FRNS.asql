@@ -1,0 +1,208 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','front_FRNS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'front_FRNS' and p.type = 'SQL Query' 
+
+
+
+
+
+
+/********************************
+
+Change 		: Excluded FreeDefCF trades that use CDIssuer Curve for discounting.  
+              (request from ERM)
+Date   		: July 2006
+Changed by	: Aaeda
+
+
+Change      : Added Payments to Swaps with one fixed and one Float leg.
+Date        : Aug 2006
+Changed By  : Aaeda
+
+
+Change      : Added FRNS
+              FRNS as seperate file front_FRNS.  (layout same as SAERM_SWAPS)
+Date        : Oct 2006
+Changed By  : Aaeda   
+
+Change      : Edit Payment Amount
+Date        : Mar 2007
+Changed By  : Heinrich
+
+Change      : Added reset information
+Date        : Sep 2009
+Changed By  : Kepler           
+              
+*********************************/
+
+
+
+
+/* FRNS */
+
+select 
+	distinct
+	'BAS'							'Type',							
+	t.trdnbr					'DealID',
+	convert('date', time_to_day(t.time))			'DealDate',
+	display_id(t, 'trader_usrnbr')				'Dealer',
+	display_id(t, 'prfnbr')					'Portfolio',
+	display_id(t, 'counterparty_ptynbr')			'CounterParty',
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status	'Status',
+	convert('double',mtm_value_fo(t))			'MtM_Currency',
+	t.quantity > 0 ? 'Buy' : 'Sell'				'Buy_Sell',
+    ael_s(i,'getYCName')='' ? 'No Discount Curve Allocated' : ael_s(i,'getYCName')      'DiscountCurvePay',
+	ael_s(i,'getYCName')='' ? 'No Discount Curve Allocated' : ael_s(i,'getYCName')	'DiscountCurveReceive',
+	'' 							'StructuredPaymentType',
+	to_double('0')						'PaymentAmount',
+	''							'Currency',
+	''							'RealStartDate',
+	''							'RealEndDate',
+	0.0							'CouponRate',
+	''							'Daycount',
+	0							'cfwnbr',
+	0.0							'CurrentRateValue',
+	''							'ResetDate',
+	''							'CurveIndex',
+	0.0							'InsSpread',
+	0.0							'InsFactor',
+	''							'Pay_Rec',
+	ael_f(t,'ResetDates.nominal_Scale')			'NominalScaling',
+    ''                           'ResetType',
+    ''                           'reset_day_method',
+    ''                           'reset_day_offset',
+    0.0                          'reset_period_count',
+    ''                           'reset_period_unit'	
+into 
+	temptrd
+from
+	Trade t,
+	Instrument i,
+	leg l,
+	portfolio p
+where
+    match_filter(t, @1_Filter{front_FRNS;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and l.type = 'Float'
+and	l.nominal_scaling ~= 'FX'
+and i.instype = 'FRN'
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and p.prfnbr = t.prfnbr
+and	i.exp_day > Today
+
+
+select 
+	*
+into
+	BA
+from
+	temptrd
+
+
+/* FRNS */
+select
+	'RO4'							'Type',
+	t.trdnbr						'DealId',
+	'' 							'DealDate',
+	'' 							'Dealer',
+	'' 							'Portfolio',
+	''							'CounterParty',
+	'' 							'Status',
+	'' 							'MtM_Currency',
+	'' 							'Buy_Sell',
+	'' 							'DiscountCurvePay',
+	''							'DiscountCurveReceive',	
+	c.type =  'Float Rate' ? 'Float Rate' : c.type		'StructuredPaymentType',
+	projected_cf(c) = 0 ? 0 : nominal_amount(c) * t.quantity				'PaymentAmount',
+	display_id(l, 'curr')					'Currency',
+	convert('date', c.start_day)				'RealStartDate',
+	c.type = 'Fixed Amount' ? c.pay_day : convert('date', c.end_day) 		'RealEndDate',
+	0.0							'CouponRate',
+	l.daycount_method = 'Act/365' ? 'Act/365' : l.daycount_method	'Daycount',
+	c.cfwnbr						'cfwnbr',
+	ael_f(,'ResetDates.CurrentResetValue', c, 1)		'CurrentRateValue',
+	convert('date', ael_d(,'ResetDates.CurrentResetDay', c, 0))	'ResetDate',
+	display_id(l,'float_rate') 				'CurveIndex',
+	c.type in ('Float Rate', 'Caplet', 'Floorlet') ? c.spread : 0.0	'InsSpread',
+	c.float_rate_factor					'InsFactor',
+	l.payleg = 'No' ? 'Rec' : 'Pay'				'Pay_Rec',
+	0.0							'NominalScaling',
+    1 = 1 ? l.reset_type : ''  'ResetType',
+    'YES' ? l.reset_day_method : ''   'reset_day_method',
+    'YES' ? l.reset_day_offset : '' 'reset_day_offset',
+    'YES' ? l.reset_period.count : 0.0   'reset_period_count',
+    'YES' ? l.reset_period.unit : ''   'reset_period_unit'	
+into
+	BA
+
+from
+	Trade t,
+	Instrument i,
+	Instrument lcurr,
+	Leg l,
+	Cashflow c,
+	Temptrd tmp,
+	portfolio p
+
+where
+	t.trdnbr = tmp.DealId
+and	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	l.curr = lcurr.insaddr
+and	l.legnbr = c.legnbr
+and	c.pay_day > TODAY
+and l.type = 'Float'
+and i.instype = 'FRN'
+and t.status not in ('Simulated',  'Terminated', 'Void')
+/*or (t.status = 'Simulated' and display_id(t, 'prfnbr') in ('IRD_BarCapLondon', 'IRD_BarCapIlovo')))*/
+and p.prfnbr = t.prfnbr
+
+
+
+
+
+
+/******* main *******/
+select
+	t.Type,
+	t.DealId,
+	t.DealDate,
+	t.Dealer,
+	t.Portfolio,
+	t.CounterParty,
+	t.Status,
+	t.MtM_Currency,
+	t.Buy_Sell,
+	t.DiscountCurvePay,
+	t.StructuredPaymentType,
+	t.PaymentAmount,
+	t.Currency,
+	t.RealStartDate,
+	t.RealEndDate,
+	t.CouponRate,
+	t.Daycount,
+	t.cfwnbr,
+	t.CurrentRateValue,
+	t.ResetDate,
+	t.CurveIndex,
+	t.InsSpread,	
+	t.InsFactor,
+	t.Pay_Rec,
+	TODAY		'DATE_TODAY',
+	t.DiscountCurveReceive,
+	t.NominalScaling,
+    t.ResetType,
+    t.reset_day_method,
+    t.reset_day_offset,
+    t.reset_period_count,
+    t.reset_period_unit  
+from 
+	BA t
+
+order by
+	t.DealId, t.Type 

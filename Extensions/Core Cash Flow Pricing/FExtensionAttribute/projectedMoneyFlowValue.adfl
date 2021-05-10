@@ -1,0 +1,16 @@
+[Core Cash Flow Pricing]FDividendMoneyFlow:projectedMoneyFlowValue = select(moneyFlowType, 
+  "Dividend Transfer"->-tradeQuantities * dividend.Amount * dividend.TaxFactor, 
+  default->tradeQuantities * dividend.Amount * dividend.TaxFactor);
+[Core Cash Flow Pricing]FInstrumentMoneyFlow:projectedMoneyFlowValue = select(moneyFlowType, 
+  "Payout"->projectedPayOutMoneyFlowValue, 
+  default->instrument.RefValue * trade.Quantity);
+[Core Cash Flow Pricing]FPaymentMoneyFlow:projectedMoneyFlowValue = payment.Amount;
+[Core Cash Flow Pricing]FPriceMoneyFlow:projectedMoneyFlowValue = instrument:moneyFlowProfitAndLossValuesCleanCost [valuationBaseDateTimeInput = object.Price.Day, tradesInPosition] - instrument:moneyFlowProfitAndLossValuesCleanCost [valuationBaseDateTimeInput = locationCalendar.AdjustBankingDays(object.Price.Day, -1), tradesInPosition];
+[Core Cash Flow Pricing]FSecurityMoneyFlow:projectedMoneyFlowValue = select(moneyFlowType, 
+  "Security Nominal"->securityNominal, 
+  default->-securityNominal);
+[Core Cash Flow Pricing]FTradeFeeMoneyFlow:projectedMoneyFlowValue = trade.Fee;
+[Core Cash Flow Pricing]FTradePremiumMoneyFlow:projectedMoneyFlowValue = select(instrument:payType, 
+  "Forward"->trade:quoteToPremium, 
+  default->trade.Premium);
+[Core Cash Flow Pricing]FTradeQuantityMoneyFlow:projectedMoneyFlowValue = trade.Quantity;

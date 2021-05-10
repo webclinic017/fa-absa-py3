@@ -1,0 +1,18 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_STATUS_EXTRACT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_STATUS_EXTRACT' and p.type = 'SQL Query' 
+select
+	t.status			'Name',
+	max(time_to_day(t.time))	'LastTraded',
+	TODAY				'BusinessDay'
+	
+from
+	trade t,
+	instrument i
+where
+	(i.exp_day >= TODAY or i.exp_day = '0000-01-01')
+and	t.insaddr = i.insaddr
+group by t.status

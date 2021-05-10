@@ -1,0 +1,13 @@
+[Profit and Loss Explain]FArray:profitAndLossExplainPerRiskFactorXGamma = rowObject:profitAndLossExplainPerRiskFactorXGamma [displayCurrency, profitAndLossExplainType, riskFactorTypeName, riskFactorTypeNameSecond, profitAndLossExplainTimeBucketsSetExternally, riskFactorVectorItemPairSetExternally := object];
+[Profit and Loss Explain]FInstrumentAndTrades:profitAndLossExplainPerRiskFactorXGamma = select(nil == timeBucketsSetExternally, 
+  true->select(profitAndLossExplainType, 
+    "Risk Factor Change"->profitAndLossExplainRiskFactorChange, 
+    "Risk Factor Change 2"->profitAndLossExplainRiskFactorSecondChange, 
+    "Delta Start"->nil, 
+    "Delta End"->nil, 
+    "Gamma Start"->profitAndLossExplainRiskFactorXGammaAtStartDate, 
+    "Gamma End"->profitAndLossExplainRiskFactorXGammaAtEndDate, 
+    "Value"->profitAndLossExplainRiskFactorXGammaAttribution, 
+    "Percent Of Total"->profitAndLossExplainRiskFactorXGammaAttribution / profitAndLossExplainTotalPL * 100, 
+    default->[nan, profitAndLossExplainRiskFactorXGammaLive]), 
+  false->timeBucketsSetExternallyNilVector);

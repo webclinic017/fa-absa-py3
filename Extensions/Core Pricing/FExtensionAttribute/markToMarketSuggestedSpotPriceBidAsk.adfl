@@ -1,0 +1,10 @@
+[Core Pricing]FInstrument:markToMarketSuggestedSpotPriceBidAsk = select(mtmFromFeed, 
+  true->shunt(useMarkToMarketPriceToday, 
+    0->shunt(isFinite(minOf(marketPriceBidAsk)), 
+      true->marketPriceBidAsk, 
+      false->object:theoreticalPrice [priceSource, theoreticalPriceIsExpired = isExpiredFullDay]), 
+    1->shunt(hasMarkToMarketPriceToday, 
+      true->collapse(markToMarketBidAskPrices), 
+      false->marketPriceBidAsk), 
+    2->collapse(markToMarketBidAskPrices)), 
+  false->object:theoreticalPrice [priceSource, theoreticalPriceIsExpired = isExpiredFullDay]);

@@ -1,0 +1,14 @@
+[Brokerage Risk]FCurrency:haircut = shunt(haircutCondition <> nil, 
+  true->haircutCurve.MinValue, 
+  default->0.0);
+[Brokerage Risk]FDeposit:haircut = shunt(haircutCondition <> nil, 
+  true->haircutCurve.MinValue, 
+  default->0.0);
+[Brokerage Risk]FInstrument:haircut = shunt((collateralPosition > 0), 
+  true->shunt(haircutCondition <> nil, 
+    true->haircutCurve.MinValue, 
+    default->shunt((priceCapCondition == nil) and (quantityCapCondition == nil) and (valueCapCondition == nil), 
+      true->100.0, 
+      default->0.0)), 
+  default->nil);
+[Brokerage Risk]FSingleInstrumentAndTrades:haircut = instrument:haircut [portfolio, positionObject];

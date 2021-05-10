@@ -1,0 +1,109 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CLN_information') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CLN_information' and p.type = 'SQL Query'
+
+/*CDS leg*/
+Select distinct
+    i.insaddr,
+    t.trdnbr,
+    t.creat_time,
+    i.instype 'instype',
+    i.insid 'insid',
+    memins.insid 'Underlying_ID',
+    memins.instype 'Underlying_Type',
+    memins.exp_day,
+    l.spread,
+    memins.instype = 'Deposit' ? to_string(l.fixed_rate) : display_id(l,'float_rate') 'Reference_Index',
+    l.float_rate,
+    l.fixed_rate,
+    nominal_amount(t) 'Nominal'
+Into
+    CDSTemp
+From 
+    trade t,
+    instrument i,
+    combinationlink cl,
+    instrument memins, leg l
+Where
+        t.insaddr = i.insaddr
+    and cl.owner_insaddr = i.insaddr
+    and memins.InsAddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and i.instype = 'Combination'
+    and memins.instype = 'CreditDefaultSwap'
+    and match_filter(t, @Filter{;tradefilter.fltid})
+
+/*Other leg*/
+Select distinct
+    i.insaddr,
+    t.trdnbr, 
+    t.creat_time,
+    i.instype 'instype',
+    i.insid 'insid',
+    memins.insid 'Underlying_ID',
+    memins.instype 'Underlying_Type', 
+    memins.exp_day, 
+    l.spread,
+    memins.instype = 'Deposit' ? to_string(l.fixed_rate) : display_id(l,'float_rate') 'Reference_Index',
+    l.float_rate,
+    l.fixed_rate,
+    nominal_amount(t) 'Nominal'
+Into
+    OtherTemp
+From
+    trade t, 
+    instrument i,
+    combinationlink cl, 
+    instrument memins, leg l
+Where
+        t.insaddr = i.insaddr
+    and cl.owner_insaddr = i.insaddr
+    and memins.InsAddr = cl.member_insaddr
+    and l.insaddr = cl.member_insaddr
+    and i.instype = 'Combination'
+    and memins.instype ~= 'CreditDefaultSwap'
+    and match_filter(t, @Filter{;tradefilter.fltid})
+
+/*Final*/
+Select distinct
+    OT.trdnbr,
+    OT.creat_time,
+    OT.Underlying_type, 
+    OT.insid, 
+    OT.Underlying_ID,
+    OT.exp_day,
+    OT.spread,
+    OT.Reference_Index,
+    OT.float_rate,
+    OT.fixed_rate, 
+    OT.Nominal
+From
+    CDSTemp CT,
+    OtherTemp OT
+Where   
+        CT.insaddr = OT.insaddr
+    and OT.Underlying_type = @Leg{FRN;'All', 'FRN'}
+
+UNION
+
+Select distinct 
+    OT.trdnbr,
+    OT.creat_time,
+    OT.Underlying_type,
+    OT.insid,
+    OT.Underlying_ID, 
+    OT.exp_day, 
+    OT.spread, 
+    OT.Reference_Index,
+    OT.float_rate,
+    OT.fixed_rate,
+    OT.Nominal
+From
+    CDSTemp CT, 
+    OtherTemp OT
+Where
+        CT.insaddr = OT.insaddr
+    and 'All' = @Leg{FRN;'All', 'FRN'}

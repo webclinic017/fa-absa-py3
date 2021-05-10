@@ -1,0 +1,7 @@
+[Treasury Pricing and Risk]FCurrency:fxNearRate = fxRateInstrument :* "fxNearRate" [fxForwardDate, fxPriceFindingPriceType, discountingType];
+[Treasury Pricing and Risk]FFxRate:fxNearRate[fxForwardDate, fxPriceFindingPriceType, discountingType] = select(foreignEqualsDomestic, 
+  true->1, 
+  false->shunt[fxForwardDate, fxPriceFindingPriceType, discountingType]((instrumentSpotDate == fxForwardDate), 
+    true->fxSpotRate, 
+    false->(domesticCurrency:fxDiscountCurve [discountingType]).DiscountValue(fxSpotRate, fxForwardDate) * (foreignCurrency:fxDiscountCurve [discountingType]).Discount(instrumentSpotDate, fxForwardDate)));
+[Treasury Pricing and Risk]FFxSwap:fxNearRate = currency1 :* "fxNearRate" [fxToCurrency := currency2, fxForwardDate = nearDate, discountingType];

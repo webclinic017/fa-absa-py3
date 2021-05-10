@@ -1,0 +1,36 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MO_Exception_Dialy_Fixing_Check') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MO_Exception_Dialy_Fixing_Check' and p.type = 'SQL Query' 
+
+
+
+
+Select
+
+    @1_Outpath{'F:\temp\DailyExceptionResets\'}                'Outpath'
+
+
+into 
+
+    params
+
+from 
+
+    serverdata s
+
+where
+	s.srdnbr > 0
+
+
+
+select
+ 
+    p.Outpath,
+    MO_Exception_Daily_Fixing_Check.Main(Outpath) 'Output Path'
+
+from
+
+params p

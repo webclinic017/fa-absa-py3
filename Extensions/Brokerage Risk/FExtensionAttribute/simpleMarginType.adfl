@@ -1,0 +1,9 @@
+[Brokerage Risk]FCurrency:simpleMarginType = nil;
+[Brokerage Risk]FInstrument:simpleMarginType = shunt((collateralPosition == 0) and (portfolio:portfolioType <> "Cash Account"), 
+  true->switch(spanInstruments.HasKey(object.Oid), 
+    true->"SPAN", 
+    default->switch(initialMarginCondition <> nil, 
+      true->initialMarginCurve.CurveType, 
+      default->"Default")), 
+  default->nil);
+[Brokerage Risk]FSingleInstrumentAndTrades:simpleMarginType = instrument:simpleMarginType [portfolio, positionObject];

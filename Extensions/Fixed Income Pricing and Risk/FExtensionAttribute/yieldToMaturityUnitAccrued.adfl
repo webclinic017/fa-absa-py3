@@ -1,0 +1,6 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:yieldToMaturityUnitAccrued = select(isFinite(ctdFactor), 
+  true->sumOf(convertToCurrencyValidateDates(legs :* "yieldToMaturityUnitAccrued" [instrumentSpotDate], fxLegsToInstrument, currencySymbol)) / ctdFactor, 
+  false->sumOf(convertToCurrencyValidateDates(legs :* "yieldToMaturityUnitAccrued" [instrumentSpotDate], fxLegsToInstrument, currencySymbol)));
+[Fixed Income Pricing and Risk]FFuture:yieldToMaturityUnitAccrued = underlying :* "yieldToMaturityUnitAccrued" [instrumentSpotDate = payDate, ctdFactor];
+[Fixed Income Pricing and Risk]FInstrument:yieldToMaturityUnitAccrued = nil;
+[Fixed Income Pricing and Risk]FLeg:yieldToMaturityUnitAccrued = yieldToMaturityUnitAccrued(legInformation, staticLegInformation, instrumentSpotDate, valuationDate);

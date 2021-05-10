@@ -1,0 +1,7 @@
+[ABSA Accounting 4.3]FInstrument:counterparty = object.Trades.At(0).Counterparty;
+[ABSA Accounting 4.3]FInstrumentAndTrades:counterparty = switch(count(distinct(trades :* "counterparty")), 
+  1->object.Trades.AsArray.At(0).Counterparty, 
+  default->nil);
+[ABSA Accounting 4.3]FMoneyFlowAndTrades:counterparty = object.MoneyFlow.Counterparty;
+[ABSA Accounting 4.3]FTrade:counterparty = object.Counterparty;
+[ABSA Accounting 4.3]FTradeRow:counterparty = trade:counterparty;

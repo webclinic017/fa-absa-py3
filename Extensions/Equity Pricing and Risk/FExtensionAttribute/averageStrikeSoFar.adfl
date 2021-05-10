@@ -1,0 +1,6 @@
+[Equity Pricing and Risk]FInstrument:averageStrikeSoFar = nil;
+[Equity Pricing and Risk]FOption:averageStrikeSoFar = select(isAsian and useAverageStrikeDates, 
+  false->nil, 
+  default->select(baseValuationOnUnderlyingComponents, 
+    false->asianAverage(asianHistoricalAverageStrikeEvents, asianHistoricalStrikeWeight, unit(storedStrike), datetime(storedStrike), exoticAverageMethodTypeIsArithmetic), 
+    default->asianBasketAverage(asianBasketHistoricalAverageStrikeEvents, asianBasketHistoricalStrikeWeight, basketWeightsForHistoricalCalculations, unit(strikeValue), datetime(strikeValue), exoticAverageMethodTypeIsArithmetic)));

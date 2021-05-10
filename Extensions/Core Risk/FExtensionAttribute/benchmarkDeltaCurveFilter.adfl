@@ -1,0 +1,10 @@
+[Core Risk]FObject:benchmarkDeltaCurveFilter = select(benchmarkDeltaInstrumentsSpecification, 
+  nil->select(benchmarkDeltaCurve, 
+    nil->select(ycVectorItemSetExternally, 
+      nil->select(filterCurveCurrencySetExternally, 
+        nil->nilObject:benchmarkDeltaCurveFilter, 
+        default->simpleAndQuery("FYieldCurve", ["Currency"], , [filterCurveCurrencySetExternally])), 
+      default->LiveCurveEntitiesQuery(ycVectorItemSetExternallyAndOwners)), 
+    default->LiveCurveEntitiesQuery(benchmarkDeltaCurveAndOwners)), 
+  default->benchmarkDeltaInstrumentsFilter(benchmarkInstruments));
+[Core Risk]FUndefinedObject:benchmarkDeltaCurveFilter = acm.Filter.CreateDynamicFilter("benchmarkDeltaCurveFilterCriteria", []);

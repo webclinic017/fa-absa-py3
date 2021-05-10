@@ -1,0 +1,93 @@
+[AccountingExtension]FAccountingInstruction:CustomLayout_Accounting
+vbox(;
+        Name;
+        Description;
+        Type;
+        CategoryChlItem;
+        AIPeriodic;
+        ReversalMethod;
+        ReversalFrequency;
+        BusinessDayMethod;
+        AggregationLevel;
+        JournalTriggerType;
+        hbox{;
+                vbox(;
+                        AmendHistoricJournals;
+                        KeepHistoricJournals;
+                );
+                vbox(;
+                        SuppressIfUnchanged;
+                        ReverseDayOneNextPeriod;
+                );
+        };
+        vbox[Journal Generation Interval;
+                hbox(;
+                        AIStartDate;
+                );
+                hbox(;
+                        AIEndDate;
+                );
+        ];
+        
+        vbox[FX Conversion;
+                hbox(;
+                        ExcludeFXConversion;
+                );
+                hbox(;
+                        AIFXRateDate;
+                );
+                hbox(;
+                        AIFXRate;
+                );
+        ];
+        
+        vbox[Exclude Reversals;
+                hbox(;
+                        ExcludeReversalsOnEndDate;
+                );
+                hbox(;
+                        ReversalExclusion;
+                );
+        ];
+        
+        AIReallocationDate;
+        AICalculationDate;
+);
+...
+
+[AccountingExtension]FBook:CustomLayout_Accounting
+
+...
+
+[AccountingExtension]FTAccount:CustomLayout_Accounting
+vbox{;
+        Name;
+        Description;
+        Type;
+        ReportingClass;
+        Number;
+        CategoryChlItem;
+        Active;
+        vbox[Ledger Balances;
+                SplitProfitLoss;
+                RevaluationTAccount;
+                RevaluationTAccount2;
+                RollForwardTAccount;
+                vbox[Ledger Key;
+                        InheritLedgerKey;
+                        LedgerKey;
+                        LedgerKeyExplanation;
+                ];
+        ];
+};
+...
+
+[AccountingExtension]FTreatment:CustomLayout_Accounting
+vbox(;
+        vbox{;
+                Name;
+                TreatmentType;
+                Description;
+        };
+);
+...

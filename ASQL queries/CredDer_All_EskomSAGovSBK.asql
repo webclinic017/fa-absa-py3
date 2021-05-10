@@ -1,0 +1,26 @@
+select
+
+    t.trdnbr
+       
+from
+    trade   t,
+    portfolio   p,
+    /*portfolio pp,*/
+    /*portfoliolink pl,*/
+    instrument  i,
+    leg l
+    
+where
+    t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.type ~= 'Fixed'
+    and i.instype = 'CreditDefaultSwap'
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+    and maturity_date(i) >= today
+    /*and pp.prfnbr = pl.owner_prfnbr*/
+    /*and pl.member_prfnbr = p.prfnbr*/
+    /*and pp.prfid in ('4533','0057')*/
+    and p.prfid LIKE 'CD_%'
+    and p.prfid LIKE 'CD_QUANTO'
+    and t.prfnbr = p.prfnbr
+    and (display_id(l,'credit_ref') LIKE 'SAGov%' or display_id(l,'credit_ref') LIKE 'Eskom%' or display_id(l,'credit_ref') LIKE 'STDBank%')

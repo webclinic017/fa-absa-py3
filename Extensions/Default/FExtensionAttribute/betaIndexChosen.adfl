@@ -1,0 +1,9 @@
+[Default]FDerivative:betaIndexChosen = underlying:betaIndexChosen;
+[Default]FInstrument:betaIndexChosen = var(select(instrumentHasBeta, 
+  true->switch(betaIndexChosenGuess, 
+    nil->betaIndexAlternatives[0], 
+    default->betaIndexChosenGuess), 
+  false->betaIndexAlternatives[0]), "FInstrument");
+[Default]FInstrumentAndTrades:betaIndexChosen = instrument:betaIndexChosen;
+[Default]FMultiInstrumentAndTrades:betaIndexChosen = nil;
+[Default]FPriceAggregate:betaIndexChosen = instrument:betaIndexChosen;

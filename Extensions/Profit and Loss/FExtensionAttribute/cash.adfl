@@ -1,0 +1,9 @@
+#grouping: aef base/profit and loss
+
+[Profit and Loss]FCombInstrMapAndTrades:cash = nil;
+[Profit and Loss]FDeliverableLinkAndTrades:cash = nil;
+[Profit and Loss]FInstrumentAndTrades:cash = actualCash;
+[Profit and Loss]FPriceAggregate:cash = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "cash");
+[Profit and Loss]FTimeBucketAndObject:cash = scenarioaxisarray(rowInstrumentAndTrades:cash [displayCurrency, profitAndLossSeparateHistorical := true, profitAndLossStartDate := longTimeAgo, profitAndLossEndDate = valuationBaseDate], timeDistributionPerimeterNames, <["timeDistributionBucket"], , , timeBucketCollection>)[timeBucketCollectionIndex];

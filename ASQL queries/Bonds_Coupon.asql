@@ -1,0 +1,266 @@
+/*
+Purpose:    Created. Based on Bond_Coupon_Confo with some specific differences. Remove Duplicates.
+            [Added SecurityLoan on portfolios SBL_Structured Bond Loans & SBL SNP Bond Collateral Loans, changed display of ins type to show repo or reverse repo.]
+Department: PCG, PCG
+Requester:  Mthetho Mhlafu, Sipho Ndlalane, Sipho Ndlalane
+Developer:  Willie van der Bank, Ickin Vural, Bhavnisha Sarawan
+CR Number:  C494911 (16/11/2010)C000000534301,C000000543245, C576299
+*/
+/* C860581 Peter Kutnik - fixed calculation for inflation-linked bonds, adjusted to include only trades live as of ex-coupon date in calc */
+/* ******************  ASQL USAGE LOG  ********************** */
+ select
+      ael_i(p,'ASQL_log','Bonds_Coupon') 'Name'
+ into  ASQL_LOG_TEMP
+ from TextObject p
+ where p.name = 'Bonds_Coupon' and p.type = 'SQL Query'
+
+select
+    @Date{Today;}   'RDate',
+    s.srdnbr
+into macro
+from
+    serverdata s
+
+/* dates */
+select
+    date_add_banking_day(m.RDate,i.insid,0)   'd0',
+    date_add_banking_day(m.RDate,i.insid,1)  'dp1',
+    date_add_banking_day(m.RDate,i.insid,2)  'dp2',
+    date_add_banking_day(m.RDate,i.insid,3)  'dp3',
+    date_add_banking_day(m.RDate,i.insid,4)  'dp4',
+    date_add_banking_day(m.RDate,i.insid,5)  'dp5',
+    date_add_banking_day(m.RDate,i.insid,6)  'dp6',
+    date_add_banking_day(m.RDate,i.insid,7)  'dp7',
+    date_add_banking_day(m.RDate,i.insid,8)  'dp8',
+    date_add_banking_day(m.RDate,i.insid,9)  'dp9',
+    date_add_banking_day(m.RDate,i.insid,10)  'dp10',
+    date_add_banking_day(m.RDate,i.insid,11)  'dp11'
+
+into 	dates
+from
+    instrument i,
+    macro m
+where
+    i.insid = 'ZAR'
+
+/*Bond data*/
+
+select 
+    i.insid,
+    i.instype,
+    l.fixed_rate 'coupon',
+    l.fixed_rate*(l.rolling_period.count/(l.rolling_period.unit = 'Months'? 12 : 1)) 'sa_coupon',
+    i.instype = 'IndexLinkedBond' ?  r.value/l.initial_index_value : nominal_amount(cf,m.RDate,display_id(i,'curr'))/nominal_amount(i) 'scaling',
+    ael_d(i,'bond_ldr_bcc.next_bond_paydte_includeToday',m.RDate) 'nextcf',
+    ael_d(i,'bond_ldr_bcc.next_bond_excoupdte',m.RDate) 'nextExCoup',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.d0,m.RDate) 'ldr0',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp1,m.RDate) 'ldr1',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp2,m.RDate) 'ldr2',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp3,m.RDate) 'ldr3',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp4,m.RDate) 'ldr4',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp5,m.RDate) 'ldr5',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp6,m.RDate) 'ldr6',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp7,m.RDate) 'ldr7',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp8,m.RDate) 'ldr8',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp9,m.RDate) 'ldr9',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp10,m.RDate) 'ldr10',
+    ael_d(i,'bond_ldr_bcc.bond_ldr_date',d.dp11,m.RDate) 'ldr11'
+    
+into bonddata
+from
+    instrument i,
+    instrument curr,
+    leg l,
+    cashflow cf,
+    dates d,
+    macro m,
+    Reset r
+where
+    i.insaddr = l.insaddr
+    and i.curr = curr.insaddr
+    and r.cfwnbr =* cf.cfwnbr
+    and curr.insid = 'ZAR'
+    and l.legnbr = cf.legnbr
+    and m.RDate <= cf.end_day
+    and m.RDate > cf.start_day
+    and i.instype in ('Bond','IndexLinkedBond','SecurityLoan')
+
+/*Instruments excl TotalReturnSwap*/
+
+select distinct
+    i.insaddr,
+    i.instype in ('Collateral','Repo/Reverse','SecurityLoan','BuySellback') ? ui.insid : i.insid 	'instrument',
+    i.instype 'instype',
+    l.start_day,
+    l.end_day
+into
+    ins_temp 
+from
+    instrument i,
+    instrument ui,
+    Leg l
+where
+        ui.insaddr =* i.und_insaddr
+    and l.insaddr = i.insaddr
+    and i.instype in ('Bond','IndexLinkedBond','Repo/Reverse','SecurityLoan')
+
+/*TotalReturnSwap*/
+
+select 
+    i.insaddr,
+    ui.insid  'instrument',
+    i.instype 'instype',
+    l.start_day,
+    l.end_day
+into
+    ins_temp  
+from
+    instrument i,
+    instrument ui,
+    leg l
+where
+    i.insaddr = l.insaddr
+    and l.type = 'Total Return'
+    and ui.insaddr = l.index_ref
+    and i.instype = 'TotalReturnSwap'
+
+/*Positions*/
+
+select 
+    display_id(t,'prfnbr')                                                              'port',
+    p.ptyid                                                                             'Party',
+	i.instrument 	                                                                    'instrument',
+    i.instype = 'SecurityLoan' ? t.quantity >=0 ? 'Repo/Reverse': 'Repo': i.instype     'instype',
+    sum(position(t,,,,m.RDate,))                                                        'current',  
+    sum(position(t,,,,bd.ldr0,))    				                                    'posm11',
+    sum(position(t,,,,bd.ldr1,))    				                                    'posm10',
+    sum(position(t,,,,bd.ldr2,))     				                                    'posm9',
+    sum(position(t,,,,bd.ldr3,))     				                                    'posm8',
+    sum(position(t,,,,bd.ldr4,))     				                                    'posm7',
+    sum(position(t,,,,bd.ldr5,))     				                                    'posm6',
+    sum(position(t,,,,bd.ldr6,))     				                                    'posm5',
+    sum(position(t,,,,bd.ldr7,))     				                                    'posm4',
+    sum(position(t,,,,bd.ldr8,))     				                                    'posm3',
+    sum(position(t,,,,bd.ldr9,))     				                                    'posm2',
+    sum(position(t,,,,bd.ldr10,))     				                                    'posm1',
+    sum(position(t,,,,bd.ldr11,))    				                                    'pos0'
+    
+into pos_tmp
+
+from    
+    ins_temp i,
+    trade t,
+    bonddata bd,
+    party p,
+    macro m,
+    portfolio port
+    
+where
+    match_filter(t,@Filter{All_Bond_Pfs_incl_Job6/12_Sim;tradefilter.fltid})
+    and i.insaddr = t.insaddr
+    and port.prfnbr = t.prfnbr
+    and bd.insid = i.instrument
+    and t.counterparty_ptynbr = p.ptynbr
+    and p.ptyid ~= 'DRA TRANSAKSIES'
+    and i.start_day <= bd.nextExCoup
+    and i.end_day >= bd.nextExCoup
+    and ((i.instype in ('Bond','IndexLinkedBond') and abs(t.premium) < 0.05)
+    or i.instype not in ('Bond','IndexLinkedBond'))
+GROUP BY 1,2,3,4
+
+/*Select non-zero positions*/
+
+select * 
+into positions  
+from 
+    pos_tmp
+where
+    (pos0 ~= 0 or posm1 ~= 0 or posm2 ~=0 or posm3 ~= 0 or posm4 ~=0 or posm5 ~= 0 or posm6 ~=0 or posm7 ~= 0 or posm8 ~=0 or posm9 ~= 0 or posm10 ~=0 or posm11 ~= 0)
+
+/*Pos into Temp*/
+
+select 
+    pos.port,
+    pos.Party,
+    pos.instrument,
+    convert('instype',pos.instype) 'type',
+    bd.coupon,
+    convert('date',bd.nextcf)'nextcf',
+    convert('double',pos.posm11) ~= 0 ? convert('double',pos.posm11) : convert('double',pos.posm10) ~= 0 ? convert('double',pos.posm10) : convert('double',pos.posm9) ~= 0 ? convert('double',pos.posm9) : convert('double',pos.posm8) ~= 0 ? convert('double',pos.posm8) : convert('double',pos.posm7) ~= 0 ? convert('double',pos.posm7) : convert('double',pos.posm6) ~= 0 ? convert('double',pos.posm6) : convert('double',pos.posm5) ~= 0 ? convert('double',pos.posm5) : convert('double',pos.posm4) ~= 0 ? convert('double',pos.posm4) : convert('double',pos.posm3) ~= 0 ? convert('double',pos.posm3) : convert('double',pos.posm2) ~= 0 ? convert('double',pos.posm2) : convert('double',pos.posm1) 'LDR_Pos',
+    convert('double',(pos.posm11*-1) * bd.sa_coupon/100 * bd.scaling,2) 'tdy',
+    convert('double',(pos.posm10*-1) * bd.sa_coupon/100 * bd.scaling,2) 't1',
+    convert('double',(pos.posm9*-1) * bd.sa_coupon/100 * bd.scaling,2) 't2',
+    convert('double',(pos.posm8*-1) * bd.sa_coupon/100 * bd.scaling,2) 't3',
+    convert('double',(pos.posm7*-1) * bd.sa_coupon/100 * bd.scaling,2) 't4',
+    convert('double',(pos.posm6*-1) * bd.sa_coupon/100 * bd.scaling,2) 't5',
+    convert('double',(pos.posm5*-1) * bd.sa_coupon/100 * bd.scaling,2) 't6',
+    convert('double',(pos.posm4*-1) * bd.sa_coupon/100 * bd.scaling,2) 't7',
+    convert('double',(pos.posm3*-1) * bd.sa_coupon/100 * bd.scaling,2) 't8',
+    convert('double',(pos.posm2*-1) * bd.sa_coupon/100 * bd.scaling,2) 't9',
+    convert('double',(pos.posm1*-1) * bd.sa_coupon/100 * bd.scaling,2) 't10',
+    convert('double',(pos.pos0*-1) * bd.sa_coupon/100 * bd.scaling,2) 't11'
+    
+    
+into
+    Temp
+    
+from
+    positions pos,
+    bonddata bd    
+
+where 
+    bd.insid = pos.instrument
+
+/*Display and final coupon calc*/
+
+select 
+    '' 'Portfolio',
+    '' 'Party',
+    '' 'Instrument',
+    '' 'Type',
+    0.0 'Coupon',
+    '' 'Next CF',
+    '' 'LDR Pos',
+    convert('date',dte.d0)  'tdy',
+    convert('date',dte.dp1) 't1',
+    convert('date',dte.dp2) 't2',
+    convert('date',dte.dp3) 't3',
+    convert('date',dte.dp4) 't4',
+    convert('date',dte.dp5) 't5',
+    convert('date',dte.dp6) 't6',
+    convert('date',dte.dp7) 't7',
+    convert('date',dte.dp8) 't8',
+    convert('date',dte.dp9) 't9',
+    convert('date',dte.dp10) 't10',
+    convert('date',dte.dp11) 't11'
+from 
+    dates dte
+
+union
+
+select 
+    t.port,
+    t.Party,
+    t.instrument,
+    t.type,
+    t.coupon,
+    t.nextcf,
+    t.LDR_Pos,
+    t.tdy,
+    t.t1,
+    t.t2,
+    t.t3,
+    t.t4,
+    t.t5,
+    t.t6,
+    t.t7,
+    t.t8,
+    t.t9,
+    t.t10,
+    t.t11
+from
+    Temp t    
+where 
+    to_int(t.LDR_Pos) ~= 0
+
+order by 2

@@ -1,0 +1,17 @@
+/*
+    Purpose: All cash payment trades
+    Developer: Libor Svoboda
+*/
+
+select
+    t.trdnbr
+from
+    Trade t,
+    Instrument i
+where
+    t.insaddr = i.insaddr
+and i.instype = 'Curr'
+and t.curr = i.insaddr
+and t.price = 0.0
+and t.premium = 0.0
+and t.status in ('FO Confirmed', 'BO Confirmed', 'BO-BO Confirmed')

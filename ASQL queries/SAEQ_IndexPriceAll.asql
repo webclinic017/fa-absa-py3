@@ -1,0 +1,28 @@
+/*
+Purpose: Returns all Index Closing Prices for a given historical date.
+Department: OPS
+Requester: Christo Davids
+Developer: Willie van der Bank
+CR Number: C550288 (20/01/2011)
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','SAEQ_IndexPricesAll') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAEQ_IndexPricesAll' and p.type = 'SQL Query' 
+
+select
+    i.insid     'Index',
+    p.settle    'SettlePrice',
+    p.day       'Day'
+from
+    instrument i,
+    price p
+where
+        i.instype in ('RateIndex','EquityIndex')
+    and i.insaddr = p.insaddr
+    and p.day >= @1_Start_Day{yesterday;}
+    and p.day <= @2_End_Day{yesterday;}
+    and p.ptynbr = 1563                       /*Internal*/

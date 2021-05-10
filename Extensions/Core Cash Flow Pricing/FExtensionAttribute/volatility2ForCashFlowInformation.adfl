@@ -1,0 +1,6 @@
+[Core Cash Flow Pricing]FCashFlow:volatility2ForCashFlowInformation = select(cashFlowInformation, 
+  nil->nil, 
+  default->cashFlowInformation :* "volatility2ForCashFlowInformation" [legInformation]);
+[Core Cash Flow Pricing]FCashFlowInformation:volatility2ForCashFlowInformation = select((spreadVolatilityInformation <> nil) and not needsReplicationOptionValuation, 
+  false->nil, 
+  default->object.Volatility(legInformation, true, valuationDate));

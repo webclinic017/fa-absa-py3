@@ -1,0 +1,7 @@
+[Fixed Income Pricing and Risk]FInstrument:modifiedDurationYTW = select(ytmCalculationValid and (fixLeg <> nil), 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->object:modifiedDurationFromYTW [instrumentSpotDate, priceSource]), 
+  false->nan);
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:modifiedDurationYTW = instrument :* "modifiedDurationYTW" [priceSource];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:modifiedDurationYTW = nil;

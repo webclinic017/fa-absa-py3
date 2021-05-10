@@ -1,0 +1,8 @@
+[_ucits_exts]FDerivative:inventoryPositionOnValuationDate = 0.0;
+[_ucits_exts]FInstrument:inventoryPositionOnValuationDate = inventoryPosition(tradesInPosition, inventoryPositionReference, valuationDate, tradeStatusInclusionMaskDefault);
+[_ucits_exts]FInstrumentAndTrades:inventoryPositionOnValuationDate = shunt(0 == count(inventoryPositionOpenInstrument), 
+  true->0.0, 
+  false->inventoryPositionOpenInstrument :* "collapse(inventoryPositionOnValuationDate)" [positionObject, instrumentGroupingReference]);
+[_ucits_exts]FMultiInstrumentAndTrades:inventoryPositionOnValuationDate = select(instrumentGroupingReference, 
+  nil->0.0, 
+  default->sumOf(inventoryPositionOpenInstruments :* "collapse(inventoryPositionOnValuationDate)" [positionObject, instrumentGroupingReference]));

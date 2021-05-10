@@ -1,0 +1,323 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_TIER2') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_TIER2' and p.type = 'SQL Query' 
+
+
+select 
+	@reportdate{TODAY}	'repdate'
+into
+	makro
+from
+	serverdata s
+where
+	srdnbr = 1
+	
+/***********Second Currency Trade for FX Swaps**********/	
+select 	
+    t.connected_trdnbr  'Trdnbr',
+    t.value_day,
+    t.value_day	        'ExpiryDay',
+    t.value_day         'Second_Date',
+    t.price             'Forward_Rate',
+    present_value(t)		'PV',
+    t.quantity > 0 ? 'pay' : 'rec' 'PayRec'
+into 
+    tempswl
+from
+    Trade t,
+    Instrument i
+where 
+    match_filter(t,@Filter{;Tradefilter.fltid})
+    and i.instype in ('Curr')
+    and t.connected_trdnbr ~= t.trdnbr
+    and i.insaddr = t.insaddr
+    
+
+select
+	t.trdnbr			'Trdnbr',
+	'FxSwap'			'Instype',
+	i.call_option = 'YES' ? 'C' : 'P'		'OptionType',
+	add_info(t,'NDF')			'NDF',
+	i.exotic_type			'ExoticType',
+	i.insid				'Insid',
+	display_id(t,'counterparty_ptynbr') 'Counterparty',
+	i.spot_banking_days_offset	'BDO',
+/*	date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final') , i.spot_banking_days_offset)	'MaturityDate',*/
+	t.trade_process in (4096,8192) ? t.value_day : tsw.ExpiryDay	'ExpiryDay',
+	date_add_banking_day(t.trade_process in (4096,8192) ? t.value_day : tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final'),i.pay_day_offset)			'MaturityDate',
+/*	days_between(m.repdate,(date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final'), i.spot_banking_days_offset)),'Act/365')	'DaysToMaturity',*/
+	days_between(m.repdate,(date_add_banking_day(t.trade_process in (4096,8192) ? t.value_day : tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final'), i.spot_banking_days_offset)),'Act/365')		'DaysToExpiry',
+	display_id(t,'prfnbr')		'Portfolio',
+	display_id(t,'acquirer_ptynbr')	'Desk',
+	1.0 'quantity',
+	t.premium 		'nominal_amount',
+	ael_s(t,'SANLD_NOMINALCURR.getcurrpair')		'CurrPair',
+	(t.trade_process in (4096,8192) ? present_value(t) : tsw.PV) * used_price(i,m.repdate,nc.insid)		'PV',
+	1.0				'Delta',
+	0.0				'Gamma',
+	risk(t,'Vega')			'Vega',
+	risk(t,'Theta')			'Theta',
+	risk(t,'Rho')			'Rho',
+	ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final')		'NomCurr',
+	ael_s(t,'SANLD_NOMINALCURR.get_vegacurr')		'VegaCurr',
+	display_id(t,'curr')		'curr',
+	used_und_frw_price(t) > -1 and used_und_frw_price(t) < 1 ? 1 / used_und_frw_price(t) : used_und_frw_price(t) 					'UndFWD',
+	used_und_price(t) > -1 and used_und_price(t) < 1 ? 1 / used_und_price(t) : used_und_price(t)					'UndSpot',
+	t.price					'strike_price',
+	i.barrier			'Barrier',
+	ael_f(i,'SANLD_NOMINALCURR.get_continuos_rate',ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final'),days_between(m.repdate,(date_add_banking_day(t.trade_process in (4096,8192) ? t.value_day : tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final'), i.spot_banking_days_offset)),'Act/365'))	'BaseCurrRate',
+	ael_f(i,'SANLD_NOMINALCURR.get_continuos_rate',(ael_s(t,'SANLD_NOMINALCURR.getcurrpair') = 'USDCHF' ? 'CHF' : ael_s(t,'SANLD_NOMINALCURR.get_vegacurr')),days_between(m.repdate,(date_add_banking_day(t.trade_process in (4096,8192) ? t.value_day : tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final'), i.spot_banking_days_offset)),'Act/365'))		'QuotedCurrRate',
+	0.0				'vol',
+	0.0  'premium',
+	t.optional_key,
+	clst.entry
+into 
+	temp
+from
+	trade t,
+	tempswl tsw,
+	instrument i,
+	leg l,
+	makro m,
+	instrument nc,
+	choicelist clst
+
+where
+	i.instype in ('Curr')
+and i.product_chlnbr *= clst.seqnbr
+and	t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.curr = nc.insaddr
+and t.trdnbr *= tsw.trdnbr
+and t.trdnbr = t.connected_trdnbr
+
+
+select
+	i.insaddr,
+	yc.yield_curve_name	'Y',	
+	yc_rate(yc,today,today,'Continuous') * 100		'rate'
+into 
+	tempchf
+from
+	instrument i,
+	trade t,
+	YieldCurve yc,
+	Contextlink cl,
+	context c
+where
+	i.instype in ('Option')
+and	t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	c.name = 'ACMB Global'
+and	c.seqnbr = cl.context_seqnbr
+and	cl.type = 'Yield Curve'
+and 	cl.name = yc.yield_curve_name
+and	cl.group_chlnbr = i.product_chlnbr
+and	display_id(cl,'curr') = 'CHF'
+group by 1
+	
+select
+	t.trdnbr			'Trdnbr',
+	to_string(i.instype)			'Instype',
+	i.call_option = 'YES' ? 'C' : 'P'		'OptionType',
+	add_info(t,'NDF')			'NDF',
+	i.exotic_type			'ExoticType',
+	i.insid				'Insid',
+	display_id(t,'counterparty_ptynbr') 'Counterparty',
+	i.spot_banking_days_offset	'BDO',
+/*	date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final') , i.spot_banking_days_offset)	'MaturityDate',*/
+	i.exp_day	'ExpiryDay',
+	date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final'),i.pay_day_offset)			'MaturityDate',
+/*	days_between(m.repdate,(date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final'), i.spot_banking_days_offset)),'Act/365')	'DaysToMaturity',*/
+	days_between(m.repdate,(date_add_banking_day(i.exp_day,ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final'), i.pay_day_offset)),'Act/365')		'DaysToExpiry',
+	display_id(t,'prfnbr')		'Portfolio',
+	display_id(t,'acquirer_ptynbr')	'Desk',
+	t.quantity,
+	/*nominal_amount(t)*/t.quantity*i.contr_size 		'nominal_amount',
+	ael_s(i,'SANLD_NOMINALCURR.getcurrpair')		'CurrPair',
+	(t.value_day > m.repdate ? t.premium : 0.0) + present_value(t)		'PV',
+	delta_explicit(t)		'Delta',
+	gamma_explicit(t)		'Gamma',
+	vega(t)				'Vega',
+	risk(t,'Theta')			'Theta',
+	risk(t,'Rho')			'Rho',
+	ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final')		'NomCurr',
+	ael_s(i,'SANLD_NOMINALCURR.get_vegacurr')		'VegaCurr',
+	display_id(t,'curr')		'curr',
+	used_und_frw_price(i)					'UndFWD',
+	used_und_price(i)					'UndSpot',
+	i.strike_price,
+	i.barrier						'Barrier',
+	yc_rate(yc,i.exp_day,i.exp_day,'Continuous') * 100		'BaseCurrRate',
+	(ael_s(i,'SANLD_NOMINALCURR.getcurrpair') = 'USDCHF') ? (chf.rate) : (yc_rate(ycv,i.exp_day,i.exp_day,'Continuous') * 100)		'QuotedCurrRate',
+	used_vol(t)			'vol',
+	t.premium,
+	t.optional_key,
+	clst.entry
+
+into 
+	temp
+from
+	trade t,
+	instrument i,
+	makro m,
+	Context c,
+	ContextLink cl,
+	ContextLink clv,
+	YieldCurve yc,
+	YieldCurve ycv,
+	tempchf chf,
+	choicelist clst
+
+where
+	i.instype in ('Option')
+and i.product_chlnbr = clst.seqnbr
+and	t.insaddr = i.insaddr
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	c.name = 'ACMB Global'
+and	c.seqnbr = cl.context_seqnbr
+and	cl.context_seqnbr = clv.context_seqnbr
+/*and	display_id(cl,'curr') = ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final')
+and 	display_id(clv,'curr') = ael_s(i,'SANLD_NOMINALCURR.get_vegacurr')*/
+and	cl.type = 'Yield Curve'
+and	clv.type = 'Yield Curve'
+and 	cl.name = yc.yield_curve_name
+and 	clv.name = ycv.yield_curve_name
+and	cl.group_chlnbr = i.product_chlnbr
+and	clv.group_chlnbr = i.product_chlnbr
+and	chf.insaddr =* i.insaddr
+/*and	i.exp_day > m.repdate*/
+group by 1
+
+select
+	t.Trdnbr,
+	t.Instype,
+	t.OptionType,
+	t.NDF,
+	t.ExoticType,
+	t.Insid,
+	t.Counterparty,
+	t.BDO,
+	t.ExpiryDay,
+	t.MaturityDate,
+	t.DaysToExpiry,
+	t.Portfolio,
+	t.Desk,
+	t.quantity,
+	t.nominal_amount => 0 ? 'B' : 'S'	'BuySell',
+	t.nominal_amount,
+	t.CurrPair,
+	t.PV * (t.CurrPair = 'USDCHF' ? used_price(swcurr,m.repdate,'ZAR') : (t.CurrPair = 'AUDUSD' ? used_price(aucurr,m.repdate,'ZAR') : used_price(cur,m.repdate,'ZAR')))	'PVZAR',
+	t.CurrPair = 'AUDUSD' ? 1 / t.UndFWD : t.UndFWD			'UndFWD',
+	t.CurrPair = 'AUDUSD' ? 1 / t.UndSpot :  t.UndSpot		'UndSpot',
+	t.strike_price,
+	t.Barrier,
+	t.BaseCurrRate,
+	t.QuotedCurrRate,
+	t.Delta,
+	t.Gamma,
+	t.Vega,
+	t.Theta,
+	t.Rho,
+	t.curr,
+	t.NomCurr,
+	t.VegaCurr,
+	t.Vega * used_price(cur,m.repdate,t.NomCurr) 			'VegaNomCurr',
+	used_price(cur,m.repdate,t.NomCurr)				'UsedPriceNomVegaCurr',	
+	t.Vega * used_price(cur,m.repdate,'USD')			'VegaUSD',
+	used_price(cur,m.repdate,'USD')					'Vega_ThetaCurrtoUSD',
+	used_price(ncur,m.repdate,'USD')				'Delta_GammaNomCurrtoUSD',		
+	t.Gamma * nominal_amount 					'GammaNomCurr',
+	t.Gamma * nominal_amount * used_price(ncur,m.repdate,'USD')	'GammaUSD',
+	t.Theta * used_price(zcurr,m.repdate,t.NomCurr)							'ThetaNomCurr',  
+	t.Theta * used_price(zcurr,m.repdate,'USD')			'ThetaUSD',
+	t.vol,
+	t.premium * used_price(pcurr,m.repdate,'ZAR')			'ZARPremium',
+    t.premium 			'CurrPremium',	
+	optional_key,
+	ael_f(i,'SANLD_NOMINALCURR.delta_fwd',t.NomCurr,t.BaseCurrRate,t.DaysToExpiry)	'DeltaFWD',
+	m.repdate,
+    t.entry
+into 
+	tempo
+from
+	temp t,
+	instrument cur,
+	instrument ncur,
+	instrument i,
+	makro m,
+	instrument swcurr,
+	instrument aucurr,
+	instrument zcurr,
+	instrument pcurr
+
+where
+	t.insid = i.insid
+and	t.VegaCurr = cur.insid
+and	t.NomCurr = ncur.insid
+and	swcurr.insid = 'CHF'
+and	aucurr.insid = 'USD'
+and 	zcurr.insid = 'ZAR'
+and	t.curr = pcurr.insid
+
+select
+	t.Trdnbr,
+	t.optional_key,
+	t.Instype,
+	t.OptionType,
+	t.NDF,
+	t.ExoticType,
+	t.Insid,
+	t.Counterparty,
+	t.BDO,
+	t.ExpiryDay,
+	t.MaturityDate,	
+	t.DaysToExpiry,
+	t.DaysToExpiry <= 1 * 31 ? '0to1' : t.DaysToExpiry <= 2 * 31 ? '1to2' : t.DaysToExpiry <= 3 * 31 ? '2to3' : t.DaysToExpiry <= 6 * 31 ? '3to6' : t.DaysToExpiry <= 12 * 31 ? '6to12' : t.DaysToExpiry <= 60 * 31 ?'12to60' : 'None' 'MaturityBucket',
+	t.Portfolio,
+	t.Desk,
+	t.quantity,
+	t.BuySell,
+	t.nominal_amount,
+	t.CurrPair,
+	t.PVZAR,
+	t.UndFWD,
+	t.UndSpot,
+	t.strike_price,
+	t.Barrier,
+	t.ZARPremium,
+	t.CurrPremium,
+	t.NomCurr,
+	t.curr				'PremiumCurr',
+	t.BaseCurrRate,
+	t.QuotedCurrRate,
+	t.Instype = 'Curr' ? t.DeltaFWD : t.Delta       'Delta',
+	t.Gamma,
+	t.Vega,
+	t.Theta,
+	t.Rho,
+	t.Delta_GammaNomCurrtoUSD,
+	t.UsedPriceNomVegaCurr,
+	t.VegaCurr			'Vega_ThetaCurr',
+	t.Vega_ThetaCurrtoUSD,
+	(t.Instype = 'Curr' ? t.DeltaFWD : t.Delta) * t.nominal_amount 				'DeltaNom',
+	(t.Instype = 'Curr' ? t.DeltaFWD : t.Delta) * t.nominal_amount * used_price(nc,t.repdate,'USD')	'DeltaUSD',
+	t.GammaNomCurr,
+	t.GammaUSD,	
+	t.VegaNomCurr,
+	t.VegaUSD,
+	t.ThetaNomCurr,
+	t.ThetaUSD,
+	t.vol,
+	t.entry
+	
+	
+from
+	tempo t,
+	instrument nc
+where
+	nc.insid = t.NomCurr
+

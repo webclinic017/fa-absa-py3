@@ -1,0 +1,133 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Projected_Cashflows_TRS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Projected_Cashflows_TRS' and p.type = 'SQL Query' 
+
+
+/*Description
+
+Purpose              : Used to produce a cashflow report for TRS's.
+Department and Desk  : PCG
+Requester            : Christo Davids
+Developer            : Willie van der Bank
+CR Number            : C419736
+*/
+
+/*********** Macros ***********/
+select
+    @2_Start_Date{Yesterday}    'start',
+    @3_End_Date{Today}  'end'
+into
+    macros
+from
+    serverdata s
+where
+    s.srdnbr > 0
+
+select
+    t.trdnbr,
+    t.insaddr,
+    i.insid,
+    i.instype,
+    i.exp_day,
+    p.ptyid,
+    t.your_ref,
+    po.prfid,
+    t.status,
+    t.premium,
+    t.value_day,
+    curr.insid  'curr',
+    nominal_amount(t,t.value_day)   'Original_Nominal'
+into
+    trades
+from
+    trade t,
+    instrument i,
+    instrument curr,
+    party p,
+    portfolio po
+where
+        t.insaddr = i.insaddr
+    and t.counterparty_ptynbr = p.ptynbr
+    and t.prfnbr = po.prfnbr
+    and match_filter(t, @1_Filter{TRS_Projected_Cashflow;tradefilter.fltid})
+    and i.curr = curr.insaddr
+  
+/*********** Cashflows ***********/
+select
+    tt.trdnbr,
+    tt.insid,
+    tt.instype,
+    tt.exp_day,
+    tt.ptyid,
+    tt.prfid,
+    tt.status,
+    t.quantity*projected_cf(cf)   'Cash',
+    to_string(cf.type)   'Cash_Type',
+    cf.pay_day    'Pay_Day',
+    tt.curr  'Currency',
+    tt.Original_Nominal,
+    l.initial_index_value   'Initial_Price'
+into
+    final
+from
+    trades tt,
+    trade t,
+    instrument i,
+    leg l,
+    cashflow cf,
+    macros m
+where
+        t.trdnbr = tt.trdnbr
+    and t.insaddr = i.insaddr
+    and i.insaddr = l.insaddr
+    and l.legnbr = cf.legnbr
+    and cf.pay_day >= m.start
+    and cf.pay_day <= m.end
+    and abs(round(projected_cf(cf),2)) > 0.00
+
+/*********** Initial Settlement ***********/
+
+select
+    t.trdnbr,
+    t.insid,
+    t.instype,
+    t.exp_day,
+    t.ptyid,
+    t.prfid,
+    t.status,
+    t.Original_Nominal * l.initial_index_value / 100    'Cash',
+    'Initial Settlement Amount'                         'Cash_Type',
+    t.value_day                                         'Pay_day',
+    t.curr                                              'Currency',
+    t.Original_Nominal,
+    l.initial_index_value                               'Initial_Price'
+into final
+from
+    trades t,
+    leg l,
+    macros m
+where
+        t.value_day >= m.start
+    and t.value_day <= m.end
+    and t.insaddr = l.insaddr
+    and l.nominal_scaling = 'Initial Price'
+    
+/*********** Final ***********/
+
+select
+    f.trdnbr    'Trade_number',
+    f.insid     'Instrument_ID',
+    f.instype   'Ins_type',
+    f.exp_day   'Expiry_day',
+    f.ptyid     'Counterparty',
+    f.prfid     'Portfolio',
+    f.status    'Status',
+    f.Cash,
+    f.Cash_Type,
+    f.Pay_Day,
+    f.Currency
+from
+    final f

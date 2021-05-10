@@ -1,0 +1,37 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAEQ_Quanto_Cashflow') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAEQ_Quanto_Cashflow' and p.type = 'SQL Query'
+
+select
+    @TimeSeries{;TimeSeriesSpec.field_name} 'TimeSeries',
+    @Cash_Instrument{;Instrument.insid} 'Cash_Ins',
+    @Div_Instrument{;Instrument.insid} 'Div_Ins'
+into
+    temp
+from 
+    Serverdata s
+where
+    s.srdnbr > 0 
+ 
+select
+    t.TimeSeries 'TimeSeries',
+    t.Cash_Ins 'Cash_Instrument',
+    t.Div_Ins 'Div_Instrument',
+    ael_s(,'Quanto_CashAccount.change_div',t.TimeSeries,t.Cash_Ins,t.Div_Ins) 'ael'
+into
+    data
+from
+    temp t
+    
+select
+    d.TimeSeries,
+    d.Cash_Instrument,
+    d.Div_Instrument,
+    d.ael
+from
+    data d
+where
+    ael = 'Success'

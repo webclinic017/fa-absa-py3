@@ -1,0 +1,8 @@
+[PreAndPostTradeAnalysis]FMarketPlace:marketOpeningTime = object.OpeningTime;
+[PreAndPostTradeAnalysis]FOrderBook:marketOpeningTime = object.TradingInterface.Schedule.FirstTradingPhase.StartTime;
+[PreAndPostTradeAnalysis]FOwnOrder:marketOpeningTime = marketPlace:marketOpeningTime;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:marketOpeningTime = switch(homeTrading, 
+  nil->nil, 
+  default->homeTrading :* "marketOpeningTime");
+[PreAndPostTradeAnalysis]FSalesOrder:marketOpeningTime = prePostTradeAnalysis:marketOpeningTime;
+[PreAndPostTradeAnalysis]FTradingInterface:marketOpeningTime = object.Schedule.FirstTradingPhase.StartTime;

@@ -1,0 +1,9 @@
+[ACL]FDeposit:faclAttrAmount = select(firstLeg, 
+  nil->nil, 
+  default->abs(firstLeg:faclAttrAmount * faclTradeQuantity));
+[ACL]FInstrument:faclAttrAmount = nil;
+[ACL]FLeg:faclAttrAmount = select(redemptionCashFlowInformation, 
+  nil->1.0, 
+  default->redemptionAmountProjectedCashFlow);
+[ACL]FTrade:faclAttrAmount = instrument :* "faclAttrAmount" [faclTradeQuantity = faclTradeNominal];
+[ACL]FTradeRow:faclAttrAmount = faclAttrScalingFactor * abs(trade:faclAttrAmount);

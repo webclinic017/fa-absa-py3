@@ -1,0 +1,10 @@
+[Standard Calculations]FInstrument:calibrationYieldCurveMappingLinkNames = select(hybridUsesPriceCurveInCalibration, 
+  true->"mappedPriceCurveLink", 
+  default->select(hybridUsesRepoCurveInCalibration, 
+    true->select(object.UseExplicitRepoCurve(currency), 
+      true->"mappedRepoLink", 
+      false->"mappedDiscountLink")), 
+  false->select(hybridUsesInflationCurveInCalibration, 
+    true->"mappedInflationLink", 
+    false->["mappedDiscountLink", "mappedForwardLink", "mappedCreditLink", "mappedRiskFreeLink", "mappedFXDiscountLink", "mappedMoneyMarketLink"]));
+[Standard Calculations]FInstrumentAndTrades:calibrationYieldCurveMappingLinkNames = instrument:calibrationYieldCurveMappingLinkNames;

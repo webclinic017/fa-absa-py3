@@ -1,0 +1,8 @@
+[Default]FInstrument:valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss = select(isValuedAtCost, 
+  true->-marketInstrumentPositionValuesForProfitAndLoss, 
+  false->instrumentSpotZero);
+[Default]FInstrumentAndTrades:valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss = shunt(isOpenPosition, 
+  true->instrument :* "valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss" [positionObject, priceSource, valuesOnSpotOverride], 
+  false->instrumentSpotZero);
+[Default]FMultiInstrumentAndTrades:valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss = sumOf(openInstruments :* "collapse(valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss)" [positionObject, priceSource, valuesOnSpotOverride]);
+[Default]FTradeRow:valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss = instrument :* "valueAtCostMarketInstrumentPositionValuesAdjustmentForProfitLoss" [singleTradePosition, includeAllTrades, tradeSetUsedInProfitandLoss, priceSource, valuesOnSpotOverride];

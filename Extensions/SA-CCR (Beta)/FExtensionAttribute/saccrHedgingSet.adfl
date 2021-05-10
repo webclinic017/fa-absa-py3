@@ -1,0 +1,7 @@
+[SA-CCR (Beta)]FCashFlow:saccrHedgingSet = instrument:saccrHedgingSet;
+[SA-CCR (Beta)]FInstrument:saccrHedgingSet = select(saccrAssetClassDefined, 
+  true->object.SACCRHedgingSet, 
+  false->nil);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrHedgingSet = select(isOpenPosition, 
+  true->openInstrument :* "saccrHedgingSet", 
+  false->nil);

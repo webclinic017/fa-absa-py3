@@ -1,0 +1,9 @@
+[Core Pricing]FAverageForward:moveValueViaAccountingDate = collapse(moveValue);
+[Core Pricing]FCashFlowInstrument:moveValueViaAccountingDate = select(isCredit, 
+  true->moveValueHazardViaDate(moveValue, valuationDate, instrumentSpotDate, moveToDate, accountingInclusionDate, legInformations, staticLegInformations, nil, nil, nil, false, false, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, nil, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation), 
+  false->moveValueViaDate(moveValue, valuationDate, instrumentSpotDate, moveToDate, accountingInclusionDate, legInformations, staticLegInformations, nil, nil, false, false, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, 0.0, theoreticalModelCashFlowProjectedValue, doFlatAccruedAdjustment, roundingInformation));
+[Core Pricing]FCombination:moveValueViaAccountingDate = select(needsLegInformation, 
+  true->select(isCredit, 
+    true->moveValueHazardViaDate(moveValue, valuationDate, instrumentSpotDate, moveToDate, accountingInclusionDate, combinationLegInformationsForMoveValue, combinationStaticLegInformationsForMoveValue, nil, nil, nil, false, false, timeApportionmentType, timeDistributionBucket, true, true, nil, theoreticalModelCashFlowProjectedValue, false, roundingInformation), 
+    false->moveValueViaDate(moveValue, valuationDate, instrumentSpotDate, moveToDate, accountingInclusionDate, combinationLegInformationsForMoveValue, combinationStaticLegInformationsForMoveValue, nil, nil, false, false, timeApportionmentType, timeDistributionBucket, moveFixedAmounts, moveCoupons, contractSize, nil, false, roundingInformation)), 
+  false->moveValue);

@@ -1,0 +1,54 @@
+/*
+ -- HISTORY --
+Date           CR                       Requestor          Developer          Change
+------------------------------------------------------------------------------------------------
+2010-09-01     264536, 644358           Natalie Austin     Douglas Finkel     Original
+2019-11-26                              Gary Beukes        Richard Coppin     https://jira-agl.absa.co.za/browse/FAU-493 
+                                                                              MR Extracts - MR_RepoReverse missing trades
+*/
+
+
+Select
+    ael_i(p,'ASQL_log','MR_RepoReverse') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_RepoReverse' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_RepoReverse.OpenFile',@1_path{'f:\'},@2_FileName{'MR_RepoReverse.csv'},@3_PositionName{'MR_RepoReverse_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_RepoReverse.Write',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i
+Where 
+	(i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('BasketRepo/Reverse','Repo/Reverse') 
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

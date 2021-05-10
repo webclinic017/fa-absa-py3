@@ -1,0 +1,10 @@
+[Core Pricing]FExerciseEvent:strikeValueDirtyOrClean = select(useDirtyStrike, 
+  true->instrument:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = storedStrike, quoteConversionWrapperDoRounding], 
+  false->instrument:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = storedStrike, quoteConversionWrapperDoRounding]);
+[Core Pricing]FInstrument:strikeValueDirtyOrClean = select(isDeltaStrikeQuotation, 
+  true->select(isReciprocal, 
+    false->object:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = setDateTimePart(absoluteStrikePrice, carryEndDateInverted), quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll], 
+    true->1.0 / object:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = setDateTimePart(absoluteStrikePrice, carryEndDateInverted), quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll]), 
+  default->select(useDirtyStrike, 
+    true->underlying:quoteConversionWrapperQuoteToUnitValue [quoteConversionWrapperFromQuote = setDateTimePart(absoluteStrikePriceInUnderlyingQuotation, carryEndDateInverted), quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll], 
+    false->underlying:quoteConversionWrapperQuoteToCleanUnitValue [quoteConversionWrapperFromQuote = setDateTimePart(absoluteStrikePriceInUnderlyingQuotation, carryEndDateInverted), quoteConversionWrapperFromQuotation = underlyingQuotation, quoteConversionWrapperDoRounding, priceSource, doSplitAll]));

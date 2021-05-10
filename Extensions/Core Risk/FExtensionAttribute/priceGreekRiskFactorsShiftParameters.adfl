@@ -1,0 +1,9 @@
+[Core Risk]FInstrument:priceGreekRiskFactorsShiftParameters = select(invertedFxRisk, 
+  true->select(priceGreekDifferenceForm, 
+    "Central Difference"->[1.0 / (1.0 + valuationModelSpecificRelativePriceShift), 1.0 / (1.0 - valuationModelSpecificRelativePriceShift)], 
+    "Forward Difference"->[1.0 / (1.0 + valuationModelSpecificRelativePriceShift)], 
+    "Backward Difference"->[1.0 / (1.0 - valuationModelSpecificRelativePriceShift)]), 
+  default->select(priceGreekDifferenceForm, 
+    "Central Difference"->[(1.0 + valuationModelSpecificRelativePriceShift), (1.0 - valuationModelSpecificRelativePriceShift)], 
+    "Forward Difference"->[(1.0 + valuationModelSpecificRelativePriceShift)], 
+    "Backward Difference"->[(1.0 - valuationModelSpecificRelativePriceShift)]));

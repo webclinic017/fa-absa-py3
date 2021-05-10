@@ -1,0 +1,138 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Premium_Caps_Floors') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Premium_Caps_Floors' and p.type = 'SQL Query' 
+
+
+Select
+@ToValueDate{Today;}'valuation_date',
+t.trdnbr,
+t.optional_key'Dev_Ref',
+i.insid,
+t.quantity>0 ? 'B' : 'S' 'b_s',
+
+t.quantity*1000000'nominal',
+t.premium,
+i.exp_day,
+
+p.prfid'portfolio'
+
+
+into summary
+
+from 
+
+trade t,
+instrument i,
+portfolio p
+
+
+
+where
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.instype in ('cap','floor')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and (i.exp_day>date_add_delta(@ToValueDate{Today;},0,0,0)
+and date_add_delta(@ToValueDate{Today;},0,0,0)>=time_to_day(t.creat_time))
+
+and (p.prfid in (@Portfolio{NLDO;portfolio.prfid *})
+or  'None' in (@Portfolio{}))
+and (display_id(t,'optkey1_chlnbr') in (@TradeArea{None;choicelist.entry* where list = 'TradArea'})
+or  'None' in (@TradeArea{}))
+and (display_id(t,'counterparty_ptynbr') in (@Cpty{None;party.ptyid* where type = 'Counterparty'})
+or  'None' in (@Cpty{}))
+and t.value_day<=date_add_delta(@ToValueDate{Today;},0,0,0)
+/*----------------*/
+
+
+
+select
+s.valuation_date,
+s.trdnbr,
+s.Dev_Ref,
+s.insid,
+s.b_s,
+s.nominal,
+s.premium,
+s.exp_day,
+s.portfolio
+
+
+
+from summary s
+
+order by s.portfolio,s.b_s
+
+union
+
+
+select
+s.valuation_date,
+s.trdnbr,
+s.Dev_Ref,
+'Sub Total / Portfolio' /*s.insid*/,
+s.b_s,
+sum(s.nominal),
+sum(s.premium),
+s.exp_day,
+s.portfolio
+
+
+
+
+
+from summary s
+
+
+
+group by s.portfolio, s.b_S
+
+
+order by s.portfolio, s.b_s
+
+union
+
+select
+s.valuation_date,
+s.trdnbr,
+s.Dev_Ref,
+'Total / Portfolio' /*s.insid*/,
+''/*s.b_s*/,
+sum(s.nominal),
+sum(s.premium),
+s.exp_day,
+s.portfolio
+
+
+
+
+
+from summary s
+
+group by s.portfolio, s.valuation_date
+
+order by s.portfolio
+
+union
+
+select
+s.valuation_date,
+s.trdnbr,
+s.Dev_Ref,
+'Grand Total' /*s.insid*/,
+s.b_s,
+sum(s.nominal),
+sum(s.premium),
+s.exp_day,
+'ALL' /*s.portfolio*/
+
+
+
+
+
+from summary s
+
+group by s.valuation_date

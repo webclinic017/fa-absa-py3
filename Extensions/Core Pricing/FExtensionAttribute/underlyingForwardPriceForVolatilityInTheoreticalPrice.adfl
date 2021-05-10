@@ -1,0 +1,7 @@
+[Core Pricing]FInstrumentAndTrades:underlyingForwardPriceForVolatilityInTheoreticalPrice = snoop01(theoreticalPrice, "underlyingForwardPriceForVolatility", alwaysMatchedFilter, lotIndex);
+[Core Pricing]FOrderBook:underlyingForwardPriceForVolatilityInTheoreticalPrice = snoop01(theoreticalPrice, "underlyingForwardPriceForVolatility", alwaysMatchedFilter);
+[Core Pricing]FPriceAggregate:underlyingForwardPriceForVolatilityInTheoreticalPrice = priceFeed:underlyingForwardPriceForVolatilityInTheoreticalPrice;
+[Core Pricing]FPriceFeed:underlyingForwardPriceForVolatilityInTheoreticalPrice = snoop01(theoreticalPrice, "underlyingForwardPriceForVolatility", alwaysMatchedFilter);
+[Core Pricing]FVolatilityPoint:underlyingForwardPriceForVolatilityInTheoreticalPrice = select(volatilityStructure.Skews.Size == 0, 
+  true->0.0, 
+  default->volatilityStructure.GetSkewsWithExpiryAndMaturity(object.ActualExpiryCoordinate, object.ActualUnderlyingMaturityCoordinate).First.StoredForwardPriceOrException);

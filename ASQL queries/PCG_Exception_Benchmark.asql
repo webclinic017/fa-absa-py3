@@ -1,0 +1,40 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_Exception_Benchmark') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_Exception_Benchmark' and p.type = 'SQL Query' 
+ 
+  select    
+   'Benchmark - Yield'                             'Object', 
+   ins.insid                                 'BenchmarkId',
+   b.instrument                              'InstrumentId',
+   yc.yield_curve_name                       'Curve',
+   b.yield_curve_seqnbr                      'Seqnbr',
+   b.spread                                  'Spread'
+from
+    benchmark b,
+    instrument ins,
+    yieldcurve yc
+where
+    b.instrument = ins.insaddr  
+    and b.yield_curve_seqnbr = yc.seqnbr  
+order by 4
+
+union
+
+select    
+   'Benchmark - Vol'                         'Object', 
+    ins.insid                               'BenchmarkId',
+    b.instrument                            'InstrumentId',
+    v.vol_name                              'Curve',
+    b.seqnbr                                'Seqnbr',
+    b.spread                                'Spread'
+from
+    volatility v,
+    benchmark b,
+    instrument ins
+where
+    b.seqnbr = v.seqnbr
+    and b.instrument = ins.insaddr    
+order by 4

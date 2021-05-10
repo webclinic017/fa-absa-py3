@@ -1,0 +1,332 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_Trade_Details') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_Trade_Details' and p.type = 'SQL Query'
+
+/******************** Describtion******************/
+/*
+This query looks up data for FX Swaps, FX Outrights and Options
+ When		Who		What
+2008/08/07	Bronwyn Ladner	Created
+2009-11-24  Anwar Banoo     Corrected leg2 currency to look at the strike curr
+2010-01-22  Rohan vd Walt   Certain currency pairs (returned from AEL functions) caused some trades not to show, changed relevant join to outer join to avoid this in the future. Also added check for null in PVZAR column
+
+Changes:
+
+Purpose               : Alter code to report Option maturity dates correctly.
+                        Alter code to report Option maturity dates correctly - last change had an error.
+                        Add in column Trade_Type
+Date:		          : 16/03/2010, 23/03/2010, 16/11/2010
+Department and Desk   : PCG SM Middle Office, PCG SM Middle Office, SM PCG Middle Office - Foreign Exchange 
+Requester             : Simon Mahudu, Simon Mahudu, Wesley Sukdao
+Developer             : Jaysen Naicker, Jaysen Naicker, Jaysen Naicker
+CR Number             : 254022, 259316, 495005 
+
+
+
+*/
+
+/*********macro********/
+select 
+	@reportdate{TODAY}	'repdate'
+into
+	macro
+from
+	serverdata s
+where
+	srdnbr = 1
+
+/***********Second Currency Trade for FX Swaps**********/	
+select 	
+    t.connected_trdnbr  'Trdnbr',
+    t.value_day,
+    t.value_day	        'ExpiryDay',
+    t.value_day         'Second_Date',
+    t.price             'Forward_Rate',
+    t.quantity          'max_nominal_rec',
+    t.premium           'max_nominal_pay',
+    t.quantity > 0 ? 'pay' : 'rec' 'PayRec2'
+into 
+    tempswl
+from
+    Trade t,
+    Instrument i
+where 
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.instype in ('Curr')
+    and t.connected_trdnbr ~= t.trdnbr
+    and i.insaddr = t.insaddr
+
+/*********** Select for FX Swaps and FX Outright Swap**********/	
+select
+    t.type                              'Trade_Type',
+    t.trdnbr			                'Trdnbr',
+    to_date(t.time)                     'Trade_Date',
+    t.status                            'Status',
+    t.optional_key  'ExternalID',
+    'FxSwap'			                'Instype',
+    i.call_option = 'YES' ? 'C' : 'P'	'OptionType',
+    i.exotic_type		                'ExoticType',
+    i.insid				                'Insid',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    i.spot_banking_days_offset	        'BDO',
+    tsw.ExpiryDay 	                    'ExpiryDay',
+    date_add_banking_day(tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final',t.trdnbr),i.pay_day_offset)			'MaturityDate',
+    days_between(m.repdate,(date_add_banking_day(tsw.value_day,ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final',t.trdnbr), i.spot_banking_days_offset)),'Act/365')		'DaysToExpiry',
+    display_id(t,'prfnbr')		        'Portfolio',
+    display_id(t,'acquirer_ptynbr')	    'Desk',
+    1.0                                 'Quantity',
+    t.quantity > 0 ? 'pay' : 'rec'      'PayRec1',
+    i.insid                             'LegCurr1',
+    t.value_day                         'First_Date' ,
+    t.price                             'strike_price',
+    t.quantity		                    'min_nominal_rec',
+    t.premium 		                    'min_nominal_pay',
+    tsw.Second_Date                     'Second_Date',
+    tsw.Forward_Rate                    'Forward_Rate', 
+    tsw.max_nominal_rec                 'max_nominal_rec',
+    tsw.max_nominal_pay                 'max_nominal_pay',
+    tsw.PayRec2                         'PayRec2',
+    curr.insid                          'LegCurr2',
+    ael_s(t,'SANLD_NOMINALCURR.getcurrpair')		'CurrPair',
+    present_value(t)		            'PV',
+    present_value(t) = 0 ? 'ZEROPV' : '' 'ZeroPV',
+    ael_s(t,'SANLD_NOMINALCURR.get_nomcurr_final')		'NomCurr',
+    ael_s(t,'SANLD_NOMINALCURR.get_vegacurr')		'VegaCurr',
+    display_id(t,'curr')		        'curr',
+    used_und_frw_price(i) > -1 and used_und_frw_price(i) < 1 ? 1 / used_und_frw_price(i) : used_und_frw_price(i) 					'UndFWD',
+    used_und_price(i) > -1 and used_und_price(i) < 1 ? 1 / used_und_price(i) : used_und_price(i)					'UndSpot',
+    i.barrier			                'Barrier',
+    0.0				                    'vol',
+    0.0                                 'Premium',
+    ''                                  'BuySellPremium',
+    clst.entry                          'Entry'
+into
+    tempsw
+from
+    Trade t,
+    tempswl tsw,
+    Instrument curr,
+    Instrument i,
+    choicelist clst,
+    macro m
+where 
+    t.curr = curr.insaddr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.instype in ('Curr')
+    and i.insaddr = t.insaddr
+    and t.trdnbr = t.connected_trdnbr
+    and i.product_chlnbr *= clst.seqnbr
+    and t.trdnbr *= tsw.trdnbr
+    
+/***********Final select for FX Swaps and FX Outright Swaps**********/	
+select 	
+    t.Trade_Type,
+    t.Trdnbr,
+    t.Trade_Date,
+    t.Status,
+    t.ExternalID,
+    t.Instype,
+    t.OptionType,
+    t.ExoticType,
+    t.Insid,
+    t.Counterparty,
+    t.BDO,
+    t.ExpiryDay = '' ? t.First_Date :  t.ExpiryDay 	'ExpiryDay',
+    t.MaturityDate = '' ? date_add_banking_day(t.First_Date,ael_s(ttemp,'SANLD_NOMINALCURR.get_nomcurr_final',t.trdnbr),i.pay_day_offset) :	t.MaturityDate		'MaturityDate',
+    t.DaysToExpiry = 0 ? days_between(m.repdate,(date_add_banking_day(t.First_Date,ael_s(ttemp,'SANLD_NOMINALCURR.get_nomcurr_final',t.trdnbr), i.spot_banking_days_offset)),'Act/365') : t.DaysToExpiry		'DaysToExpiry',
+    t.Portfolio,
+    t.Desk,
+    t.Quantity,
+    t.PayRec1,
+    t.LegCurr1,
+    t.First_Date,
+    t.strike_price,
+    t.min_nominal_rec,
+    t.min_nominal_pay, 
+    t.Second_Date = '' ? t.First_Date :  t.Second_Date  'Second_Date',
+    t.Forward_Rate, 
+    t.max_nominal_rec = '' ? 0.0 :  t.max_nominal_rec  'max_nominal_rec',
+    t.max_nominal_pay = '' ? 0.0 :  t.max_nominal_pay 'max_nominal_pay',
+    t.PayRec2 = '' ? t.PayRec1 = 'pay' ? 'rec' : 'pay' : t.PayRec2 'PayRec2',
+    t.LegCurr2,
+    t.CurrPair,
+    t.PV,
+    t.ZeroPV,
+    t.NomCurr,
+    t.VegaCurr,
+    t.curr,
+    t.UndFWD = '' ? 0.0 : t.UndFWD 'UndFWD',
+    t.UndSpot = '' ? 0.0 : t.UndSpot 'UndSpot',
+    t.Barrier,
+    t.vol,
+    t.Premium,
+    t.BuySellPremium, 
+    t.Entry
+into 
+    temp
+from
+    Trade ttemp,
+    tempsw t,
+    Instrument i,
+    macro m
+where 
+    match_filter(ttemp, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and i.instype in ('Curr')
+    and i.insaddr = ttemp.insaddr
+    and t.trdnbr = ttemp.trdnbr
+    
+    
+/***********Yield Curve Rate for Options**********/
+select distinct
+    i.insaddr,
+    yc.yield_curve_name	'Y',	
+    yc_rate(yc,today,today,'Continuous') * 100		'rate'
+into 
+    tempchf
+from
+    instrument i,
+    trade t,
+    YieldCurve yc,
+    Contextlink cl,
+    context c
+where
+	i.instype in ('Option')
+and t.insaddr = i.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and c.name = 'ACMB Global'
+and c.seqnbr = cl.context_seqnbr
+and cl.type = 'Yield Curve'
+and cl.name = yc.yield_curve_name
+and cl.group_chlnbr = i.product_chlnbr
+and display_id(cl,'curr') = 'CHF'
+
+
+/***********Final Option Table***********/
+select
+    t.type                              'Trade_Type',
+    t.trdnbr			'Trdnbr',
+    to_date(t.time) 'Trade_Date',
+    t.status 'Status',
+    t.optional_key  'ExternalID',
+    to_string(i.instype)			'Instype',
+    i.call_option = 'YES' ? 'C' : 'P'		'OptionType',
+    i.exotic_type			'ExoticType',
+    i.insid				'Insid',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    i.spot_banking_days_offset	'BDO',
+    i.exp_day	'ExpiryDay',
+    date_add_banking_day(i.exp_day,display_id(i,'strike_curr'),i.pay_day_offset) > date_add_banking_day(i.exp_day,display_id(i,'und_insaddr'),i.pay_day_offset) ? date_add_banking_day(i.exp_day,display_id(i,'strike_curr'),i.pay_day_offset) : date_add_banking_day(i.exp_day,display_id(i,'und_insaddr'),i.pay_day_offset)			'MaturityDate',
+    date_add_banking_day(i.exp_day,display_id(i,'strike_curr'),i.pay_day_offset) > date_add_banking_day(i.exp_day,display_id(i,'und_insaddr'),i.pay_day_offset) ? days_between(m.repdate,(date_add_banking_day(i.exp_day,display_id(i,'strike_curr'), i.pay_day_offset)),'Act/365') :	days_between(m.repdate,(date_add_banking_day(i.exp_day,display_id(i,'und_insaddr'), i.pay_day_offset)),'Act/365')	'DaysToExpiry',
+    display_id(t,'prfnbr')		'Portfolio',
+    display_id(t,'acquirer_ptynbr')	'Desk',
+    t.quantity 'Quantity',
+    '' 'PayRec1',
+    display_id(i,'und_insaddr') 'LegCurr1',
+    to_date('') 'First_Date' ,
+    i.strike_price,
+    t.quantity*i.contr_size 	'min_nominal_rec',
+    i.strike_price*t.quantity*i.contr_size		'min_nominal_pay',
+    to_date('') 'Second_Date',
+    0.00 'Forward_Rate',
+    0.00    'max_nominal_rec',
+    0.00  'max_nominal_pay',
+    '' 'PayRec2',
+    display_id(i,'strike_curr') 'LegCurr2',
+    ael_s(i,'SANLD_NOMINALCURR.getcurrpair')		'CurrPair',
+    (t.value_day > m.repdate ? t.premium : 0.0) + present_value(t)		'PV',
+    ((t.value_day > m.repdate ? t.premium : 0.0) + present_value(t)) = 0 ? 'ZEROPV' : '' 'ZeroPV', 
+    ael_s(i,'SANLD_NOMINALCURR.get_nomcurr_final')		'NomCurr',
+    ael_s(i,'SANLD_NOMINALCURR.get_vegacurr')		'VegaCurr',
+    display_id(t,'curr')		'curr',
+    used_und_frw_price(i)					'UndFWD',
+    used_und_price(i)					'UndSpot',
+    i.barrier						'Barrier',
+    used_vol(t)			'vol',
+    t.premium 'Premium',
+    t.premium > 0 ? 'Buy' : t.premium < 0 ? 'Sell' : '' 'BuySellPremium',
+    clst.entry 'Entry'
+into
+    temp
+from
+	trade t,
+	instrument i,
+	macro m,
+	tempchf chf,
+	choicelist clst
+where
+	i.instype in ('Option')
+and i.product_chlnbr = clst.seqnbr
+and t.insaddr = i.insaddr
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and chf.insaddr =* i.insaddr
+
+
+
+/*************Final Table for FX Swaps, FX Outrights and Options**************/
+select
+	t.Trdnbr,
+	t.Trade_Date,
+	t.Status,
+	t.ExternalID,
+	t.Instype,
+	t.OptionType,
+	t.ExoticType,
+	t.Insid,
+	t.Counterparty,
+	t.Trade_Type,
+	
+	t.ExpiryDay,
+	t.MaturityDate,	
+	t.DaysToExpiry,
+	t.DaysToExpiry <= 1 * 31 ? '0to1' : t.DaysToExpiry <= 2 * 31 ? '1to2' : t.DaysToExpiry <= 3 * 31 ? '2to3' : t.DaysToExpiry <= 6 * 31 ? '3to6' : t.DaysToExpiry <= 12 * 31 ? '6to12' : t.DaysToExpiry <= 60 * 31 ?'12to60' : 'None' 'MaturityBucket',
+	t.Portfolio,
+	t.Desk,
+	t.quantity,
+	t.min_nominal_rec=> 0 ? 'B' : 'S'	'BuySell',
+    	t.First_Date,
+	t.strike_price,
+	t.min_nominal_rec,
+	t.LegCurr1 ,	
+	t.min_nominal_pay,    	
+	t.LegCurr2 ,
+	t.Second_Date,
+	t.Forward_Rate,
+	t.max_nominal_rec,
+	t.LegCurr1,
+	t.max_nominal_pay,
+	t.LegCurr2,
+	t.PayRec1,
+	t.PayRec2,
+	t.CurrPair,
+	(t.CurrPair = 'USDCHF' ? t.PV * used_price(swcurr,m.repdate,'ZAR') : (t.CurrPair = 'AUDUSD' ? t.PV * used_price(aucurr,m.repdate,'ZAR') : ( cur IS NULL ? 'ISNULL' : t.PV * used_price(cur,m.repdate,'ZAR'))))	'PVZAR',
+	t.ZeroPV,
+	t.CurrPair = 'AUDUSD' ? 1 / t.UndFWD : t.UndFWD			'UndFWD',
+	t.CurrPair = 'AUDUSD' ? 1 / t.UndSpot :  t.UndSpot		'UndSpot',
+	t.Barrier,
+	t.premium * used_price(pcurr,m.repdate,'ZAR')			'ZARPremium',
+	t.premium 			'CurrPremium',
+	t.BuySellPremium,
+	t.NomCurr,
+	t.curr				'PremiumCurr',
+	t.vol,
+	t.entry,
+	t.BDO
+from
+	temp t,
+	instrument cur,
+	instrument i,
+	macro m,
+	instrument swcurr,
+	instrument aucurr,
+	instrument zcurr,
+	instrument pcurr
+where
+	t.insid = i.insid
+and	t.VegaCurr *= cur.insid
+and	swcurr.insid = 'CHF'
+and	aucurr.insid = 'USD'
+and	zcurr.insid = 'ZAR'
+and	t.curr = pcurr.insid

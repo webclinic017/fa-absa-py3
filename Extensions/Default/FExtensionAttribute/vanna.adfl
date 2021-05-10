@@ -1,0 +1,5 @@
+[Default]FInstrumentAndTrades:vanna = shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->convertToCurrency(object:vannaPercentValuesCalculation [priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, volatilityGreekFilter, filterUnit, priceGreekShiftFilter, priceGreekOnSpot := true], priceGreekFxRates, displayCurrencySymbol, filterUnit) / (singlePriceGreekRiskFactorValueInDisplayCurrency / 100), 
+  default->denominatedValueZero);
+[Default]FTimeBucketAndObject:vanna = scenarioaxisarray(rowInstrumentAndTrades:vanna [volatilityGreekGroupingSensitive], timeDistributionPerimeterNames, <["timeDistributionDateRule"], , , "ExpiryDate">, <["timeDistributionBucket"], , , timeBucketCollection>, <["timeApportionmentType"], , , timeApportionmentTypeSelected>)[timeBucketCollectionIndex];

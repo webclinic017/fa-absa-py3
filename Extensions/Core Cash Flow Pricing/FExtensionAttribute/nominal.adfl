@@ -1,0 +1,14 @@
+[Core Cash Flow Pricing]FCashFlowInformation:nominal = object.Nominal(legInformation, valuationDate, doSettlementFxScaling);
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:nominal = select(tradeHasRightToCashFlow, 
+  true->nominalPosition, 
+  false->denominatedValueZero);
+[Core Cash Flow Pricing]FInstrument:nominal = nominalFactor * contractSize;
+[Core Cash Flow Pricing]FInstrumentAndTrades:nominal = contractTradeQuantity * nominalFactor;
+[Core Cash Flow Pricing]FLeg:nominal = cashFlowInformations :* "nominal" [legInformation];
+[Core Cash Flow Pricing]FMoneyFlow:nominal = select(doSettlementFxScaling, 
+  true->contractTradeQuantity * nominalFactor, 
+  false->nil);
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:nominal = moneyFlow:nominal [doSettlementFxScaling];
+[Core Cash Flow Pricing]FMultiMoneyFlowAndTrades:nominal = nil;
+[Core Cash Flow Pricing]FResetMoneyFlow:nominal = nil;
+[Core Cash Flow Pricing]FTrade:nominal = object.Nominal;

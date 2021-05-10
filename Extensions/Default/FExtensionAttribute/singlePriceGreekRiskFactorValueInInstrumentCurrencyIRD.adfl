@@ -1,0 +1,3 @@
+[Default]FInstrument:singlePriceGreekRiskFactorValueInInstrumentCurrencyIRD = select(count(units(singlePriceGreekRiskFactorIRD)) == 1, 
+  true->stripDateTimePart(singlePriceGreekRiskFactorIRD) * stripDateTimePart(currency(units(singlePriceGreekRiskFactorIRD)) :* "fxForwardRate" [fxToCurrency := currency, fxForwardDate = instrumentSpotDate]), 
+  false->double(singlePriceGreekRiskFactorIRD));

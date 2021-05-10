@@ -1,0 +1,5 @@
+[Adaptiv FVA]FCreditBalance:aggregatedFVAValues = shunt((creditBalanceCollateralAgreement == nil) and (optimiseFVACalculation) and (fvaCalculationType == "FVA"), 
+  true->thTPLWithFundingCurve - thTPL, 
+  default->adjustForSpotHandling(aggregatedFVAResult, valuesOnSpot));
+[Adaptiv FVA]FInstrumentAndTrades:aggregatedFVAValues = instrument :* "collapse(aggregatedFVAValues)" [priceSource, positionObject, fvaCalculationType];
+[Adaptiv FVA]FMultiInstrumentAndTrades:aggregatedFVAValues = sumOf(instruments :* "collapse(aggregatedFVAValues)" [priceSource, positionObject, fvaCalculationType]);

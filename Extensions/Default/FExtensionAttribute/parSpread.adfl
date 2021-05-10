@@ -1,0 +1,27 @@
+[Default]FCap:parSpread = nil;
+[Default]FCashFlowInstrument:parSpread = select(isGenericSpreadQuoted, 
+  false->select(numberOfFloatOrCapFloorLegs, 
+    1->firstNonFixedLeg :* "parSpread" [priceSource, parSpreadTargetValue], 
+    default->select(floatOrCapFloorPayLegOrNil, 
+      nil->nil, 
+      default->floatOrCapFloorPayLegOrNil :* "parSpread" [priceSource, parSpreadTargetValue])), 
+  true->object.UnitValueToUnitQuote((unitGoalValueForParOnParRateDate - nonCouponValue) / couponFactor, valuationDate, 1.0));
+[Default]FDeposit:parSpread = select(isGenericCouponQuoted or isGenericSpreadQuoted, 
+  false->select(firstNonFixedLeg, 
+    nil->nil, 
+    default->firstNonFixedLeg :* "parSpread" [priceSource, parSpreadTargetValue]), 
+  true->object.UnitValueToUnitQuote((unitGoalValueForParOnParRateDate - nonCouponValue) / couponFactor, valuationDate, 1.0));
+[Default]FFloor:parSpread = nil;
+[Default]FFra:parSpread = nil;
+[Default]FInstrument:parSpread = nil;
+[Default]FInstrumentAndTrades:parSpread = instrument :* "parSpread" [isSplitAllGrouped, priceSource];
+[Default]FLeg:parSpread = shunt[priceSource, parSpreadTargetValue](uniqueSpreadInParSpreadTargetValue, 
+  nil->nil, 
+  default->imply(uniqueSpreadInParSpreadTargetValue, parSpreadTargetValue, instrument:unitGoalValueForPar, 1e-06, impliedSpreadMinValue, impliedSpreadMaxValue, 100));
+[Default]FLegAndTrades:parSpread = select(instrument:isGenericSpreadQuoted, 
+  false->leg :* "parSpread" [priceSource], 
+  true->nil);
+[Default]FMultiInstrumentAndTrades:parSpread = nil;
+[Default]FTotalReturnSwap:parSpread = select(object.TotalReturnFundingLeg, 
+  nil->nil, 
+  default->(object.TotalReturnFundingLeg) :* "parSpread" [priceSource]);

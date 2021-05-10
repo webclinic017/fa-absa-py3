@@ -1,0 +1,6 @@
+[Fixed Income Market Making]FQuoteController:accumulatedAskDriverValue = proposedSpreadData :* "accumulatedAskDriverValue" [qQuoteContext, qOffsetController = qMultiQuoteController];
+[Fixed Income Market Making]FQuoteSetting:accumulatedAskDriverValue = shunt(proposedQuoteDriverAsk, 
+  "Offset"->shunt(qOffsetSettings, 
+    nil->proposedDriverValueAsk, 
+    default->proposedDriverValueAsk + (qOffsetSettings :* "accumulatedAskDriverValue" [qQuoteContext])), 
+  default->proposedDriverValueAsk);

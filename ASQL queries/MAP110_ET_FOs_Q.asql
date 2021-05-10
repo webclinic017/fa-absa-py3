@@ -1,0 +1,23 @@
+/*
+This ASQL query selects all the trades on exchange traded futures
+and options for client MAP110.
+It is used by the similarly named trade filter
+which is then used by the Since Inception Trade Summary report.
+*/
+select t.trdnbr from trade t, instrument i, portfolio p
+where t.insaddr = i.insaddr
+and p.prfnbr = t.prfnbr
+and p.prfid in ('PB_YIELDX_MAP110_CR',
+    'PB_SAFEX_MAP110_CR',
+    'PB_REPOBOND_MAP110_CR',
+    'PB_NAKEDBOND_MAP110_CR',
+    'PB_CASH_EQUITY_MAP110_CR',
+    'PB_MONEYMARKET_FF_MAP110_CR',
+    'PB_CASH_EQUITY_FF_MAP110_CR',
+    'PB_CFD_MAP110_CR',
+    'PB_FRA_MAP110_CR',
+    'PB_IRS_MAP110_CR',
+    'PB_OPTION_EQ_MAP110_CR',
+    'PB_OPTION_FI_MAP110_CR')
+and i.otc = 'No'
+and (i.instype = 'Future/Forward' or i.instype = 'Option')

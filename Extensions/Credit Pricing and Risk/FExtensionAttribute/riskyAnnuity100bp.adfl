@@ -1,0 +1,11 @@
+[Credit Pricing and Risk]FInstrument:riskyAnnuity100bp = contractSize * couponFactor / 100;
+[Credit Pricing and Risk]FInstrumentAndTrades:riskyAnnuity100bp = select(numberOfCreditCurvesInTheoreticalPrice, 
+  0->0, 
+  default->instrument :* "riskyAnnuity100bp" [priceSource]);
+[Credit Pricing and Risk]FLeg:riskyAnnuity100bp = select(object.IsFixedLeg, 
+  true->instrument :* "riskyAnnuity100bp" [priceSource], 
+  false->0);
+[Credit Pricing and Risk]FLegAndTrades:riskyAnnuity100bp = select(numberOfCreditCurvesInTheoreticalPrice, 
+  0->0, 
+  default->leg :* "riskyAnnuity100bp" [priceSource]);
+[Credit Pricing and Risk]FMultiInstrumentAndTrades:riskyAnnuity100bp = nil;

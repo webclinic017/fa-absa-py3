@@ -1,0 +1,5 @@
+[SA-CCR (Beta)]FCashFlow:saccrEffectiveNotional = saccrAdjustedNotional * saccrSupervisoryDeltaAdjustment * saccrUnmarginedMaturityFactor;
+[SA-CCR (Beta)]FInstrument:saccrEffectiveNotional = saccrAdjustedNotional * saccrSupervisoryDeltaAdjustment * saccrUnmarginedMaturityFactor;
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrEffectiveNotional = select(isOpenPosition and saccrAssetClassDefined, 
+  true->openInstrument :* "saccrEffectiveNotionals" [positionObject], 
+  false->nil);

@@ -1,0 +1,34 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','CounterParty_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'CounterParty_Trades' and p.type = 'SQL Query' 
+/*
+
+name=	CounterParty_Trades
+
+date 	by	change
+020610	ap	initial query to list trades from given date to today for a specified counterparty
+*/
+
+select
+    p.ptyid'CP',
+    t.trdnbr'trade no',
+    t.value_day'settlement',
+    i.insid'instrument',
+    i.instype,
+    i.exp_day
+
+from 
+    instrument i,
+    trade t,
+    party p
+
+where
+        i.insaddr=t.insaddr
+    and t.counterparty_ptynbr=p.ptynbr
+    and p.ptyid=@counter_party{;party.ptyid where type='Counterparty'}
+    /*and t.value_day>=@trades_from{2001-05-01;}*/
+
+order by t.value_day, i.instype

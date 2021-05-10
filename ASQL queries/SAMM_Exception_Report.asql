@@ -1,0 +1,597 @@
+/* update_method=1 */
+
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Exception_Report') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Exception_Report' and p.type = 'SQL Query' 
+
+/*  ABAW339     July 06
+    ABWB248     March 09        Added check for rates <6% or >18%
+    ABHC164     July 09         Added check for blank MM_Profit_Spread   1744
+    ABWB248     September 09    Removed t.price in (0, 100), ValGroup not equal to SAMM or SAFUND, Instype = FRN and Valgroup not equal to SAIR, Spread ~= 0
+                                Updated Interest rate >18% or <6%  - The changed lower band to 4.5%
+    ABHC164     December 09     Added sections "Cashflow Spread" and "Start Date Not End Date"
+    
+    Updated             : 13/04/10
+    Department and Desk : PCG - Funding Desk
+    Purpose             : Adding a column to raise an exception on the PrimaryIssuance field
+    Requester           : Haroon Mansoor
+    Developer           : Tshepo Mabena
+    CR Number           : 279055
+    
+    ==============
+    updated : 17 Feb 2011
+    department : PCG - Funding Desk
+    change referece to add_info 'MM_Profit_Spread' to 'MM_Profit_Spread'
+    Developer : Anil Parbhoo
+    CR 576543
+    Jira ABITFA 505
+    
+    
+    
+*/
+
+/*********** List of Trades ***********/
+select
+	t.trdnbr,
+	u.name  'Trader',
+	i.insid 'Insid',
+	i.instype   'Instype',
+	add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+	t.time  'Time',
+	l.start_day 'Start_day',
+	i.exp_day   'Exp_day',
+	t.value_day 'Value_day',
+	t.price 'Price',
+	l.fixed_rate    'Fixed_Rate',
+	l.float_rate_factor 'Float_Factor',
+    t.quantity * i.contr_size   'Nominal',
+	t.premium   'Premium',
+	i.pay_day_offset    'Pay_Day_Offset',
+	i.instype in ('Bill', 'CD', 'FRN') ? display_id(i, 'issuer_ptynbr') : ''    'Issuer',
+	display_id(i, 'product_chlnbr')	'ValGroup',
+	l.spread    'Spread',
+    l.fixed_coupon  'FixedCoupon',
+    add_info(t, 'Denom1') ~= '' ?  add_info(t, 'Denom1')
+        : add_info(t, 'Denom2') ~= '' ?  add_info(t, 'Denom2')
+        : add_info(t, 'Denom3') ~= '' ?  add_info(t, 'Denom3')
+        : add_info(t, 'Denom4') ~= '' ?  add_info(t, 'Denom4')
+        : add_info(t, 'Denom5') ~= '' ?  add_info(t, 'Denom5')
+        : add_info(t, 'Denom6') ~= '' ?  add_info(t, 'Denom6')
+        : add_info(t, 'Denom7') ~= '' ?  add_info(t, 'Denom7')
+        : add_info(t, 'Denom8') ~= '' ?  add_info(t, 'Denom8')
+        : add_info(t, 'Denom9') ~= '' ?  add_info(t, 'Denom9')
+        : add_info(t, 'Denom10') ~= '' ?  add_info(t, 'Denom10')
+        : add_info(t, 'Denom11') ~= '' ?  add_info(t, 'Denom11') : ''   'Denom',
+    l.type  'LegType',
+    t.insaddr,
+    ael_i(l,'FSQL_functions.last_res',l)    'TLR',
+    add_info(t,'MM_Profit_Spread')   'MM_Profit_Spread',
+    l.legnbr,
+    display_id(i,'issuer_ptynbr') in ('ABSA BANK LTD') and i.instype in ('CD','FRN') and t.primary_issuance in ('Yes') ? 'Ticked' 
+                            : 'Not Ticked'  'Primary_Issuance' 
+into
+	TRD
+from
+	Trade t,
+	Instrument i,
+	Leg l,
+	User U,
+	party p
+where
+        match_filter(t, @1_Filter{;tradefilter.fltid})
+    and	t.insaddr = i.insaddr
+    and	l.insaddr = i.insaddr
+    and	t.trader_usrnbr = u.usrnbr
+    and	(time_to_day(t.time) = @Date{today}
+    or	time_to_day(t.creat_time) = @Date{today})
+    
+/*********** Output ***********/
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+    t.MM_Profit_Spread,
+	'Nominal not equal Premium'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+	abs(t.nominal) ~= abs(t.premium)
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'start_day ~= value_day'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+	t.start_day ~= t.value_day
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	ael_s(,'SAGEN_str_functions.concat','Nominal > 0 and MM_Instype = ', t.MM_Instype, '')		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.nominal > 0 
+    and	t.MM_Instype in ('FDE', 'FDC', 'FDI', 'SWT', 'CD', 'NCD', 'NCC', 'NCF', 'FRN', 'PRN', 'DBE')
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	ael_s(,'SAGEN_str_functions.concat', 'Nominal < 0 and MM_Instype = ', t.MM_Instype, '')		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.nominal < 0
+    and t.MM_Instype in ('FTL', 'FLI', 'RDL', 'CL')
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'Pay_day_offset not equal 0'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+	t.pay_day_offset ~= '0'
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'Price not equal Fixed_rate'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.instype ~= 'FRN'
+    and t.price ~= t.fixed_rate
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	't.fixed_rate in (0, 100)'	'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.instype ~= 'FRN'
+    and t.fixed_rate in (0, 100)
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'Instype = Deposit and Issuer not equal to ABSA BANK LTD'	'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.instype ~= 'Deposit'
+    and t.issuer ~= 'ABSA BANK LTD'
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'MM_Instype = NCF and Float Factor = 0 or 1'	'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.MM_Instype = 'NCF'
+    and t.Float_Factor in (1, 0)
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'Interest due dates inconsistent'	'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.MM_Instype in ('NCF','FDI')
+    and t.FixedCoupon = 'No'	
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,
+	t.MM_Profit_Spread,
+	'Paper instrument, Denom is blank'	'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+where
+        t.MM_Instype in ('FRN', 'NCC', 'NCD', 'NCF', 'PRN')
+    and t.Denom = ''
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,	
+	t.MM_Profit_Spread,
+	'Interest rate >18% or <4.5%'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t
+
+where
+        (t.Fixed_Rate < 4.5 or t.Fixed_Rate > 18)
+    and t.LegType = 'Fixed'
+    
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,	
+	t.MM_Profit_Spread,
+	'Interest rate >18% or <4.5%'		'Exception Report',
+	t.Primary_Issuance
+from
+	TRD t,
+	cashflow c,
+	reset r,
+	instrument i,
+	leg l
+where        
+    	t.insaddr = i.insaddr
+    and	l.insaddr = i.insaddr
+    and l.legnbr = c.legnbr
+    and	r.cfwnbr =* c.cfwnbr
+	and (forward_rate(c)*100 + c.spread < 4.5 or forward_rate(c)*100 + c.spread > 18)
+    and t.LegType = 'Float'
+    and r.resnbr = t.TLR
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,	
+	t.MM_Profit_Spread,
+	'Liquidity Spread'		'Exception Report',
+	t.Primary_Issuance
+from
+    TRD t
+where
+    t.MM_Profit_Spread = ''
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,	
+	t.MM_Profit_Spread,
+	'Cashflow Spread'		'Exception Report',
+	t.Primary_Issuance
+from
+    TRD t,
+    cashflow c
+where
+        t.legnbr = c.legnbr
+    and t.Spread ~= c.spread
+    and c.type ~= 'Fixed Amount'
+
+union
+
+select
+	t.Trdnbr,
+	t.Trader,
+	t.Insid,
+	t.Instype,
+	t.MM_Instype,
+	t.Start_day,
+	t.Exp_day,
+	t.Value_day,
+	t.Price,
+	t.Fixed_Rate,
+	t.Float_Factor,
+	t.Time,
+	t.Nominal,
+	t.Premium,
+	t.Pay_Day_Offset,
+	t.Issuer,
+	t.ValGroup,
+	t.Spread,
+	t.Denom,	
+	t.MM_Profit_Spread,
+	'Start Date Not End Date'		'Exception Report',
+	t.Primary_Issuance
+from
+    TRD t,
+    cashflow c
+where
+        t.legnbr = c.legnbr
+    and c.start_day = c.end_day
+    and c.type ~= 'Fixed Amount'

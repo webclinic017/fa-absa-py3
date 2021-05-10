@@ -1,0 +1,155 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TMS_CashFile') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TMS_CashFile' and p.type = 'SQL Query'
+
+
+
+
+/*-----------------------------------------------------------------------------
+                                    FX Rates
+------------------------------------------------------------------------------*/
+SELECT
+	hc.insid						                                    'HCurr',
+	curr.insid						                                    'Curr',
+	@1_Date{Today;} = Today
+        ? used_price(hc, @1_Date{Today;}, curr.insid)
+        : mtm_price(hc, @1_Date{Today;}, curr.insid)		            'FxRepDay'
+
+INTO
+	fxrates
+
+FROM
+	instrument	hc,
+	instrument	curr
+
+WHERE
+    hc.insid = 'ZAR'
+	AND curr.instype = 'Curr'
+/*-----------------------------------------------------------------------------
+                                    FX Rates
+------------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+                            FXSwap / CurrSwap / Swap Cash
+------------------------------------------------------------------------------*/
+SELECT DISTINCT 
+       T.TrdNbr,
+       i.insid                                                                                  'InsID',
+       i.instype                                                                                'InsType',
+       ael_s(Port,'TMS_Functions.Get_BarCap_Book_ID')                                           'Book',
+       curr.insid							                                                    'Curr',
+       accumulated_cash(t,@1_Date{Today;}, curr.insid, 2, 0, , 1, 'None')               	    'Cash_Balance',
+       accumulated_cash(t,@1_Date{Today;}, curr.insid, 2, 0, , 1, 'None') * 1/fx.fxrepday    	'Cash_Balance_Reporting_Curr'
+
+INTO CashResult
+
+FROM
+	Trade		T,
+	Instrument	I,
+	Instrument	Curr,
+	Leg		    L,
+	fxrates		fx,
+	Portfolio Port
+
+WHERE
+	    match_filter(t,@2_Filter{;Tradefilter.fltid})
+	AND T.insaddr = I.insaddr
+	AND L.insaddr =* I.insaddr
+	AND Curr.instype = 'Curr'
+	AND currency_included(T, curr.insid) = 1
+	AND fx.Curr = Curr.insid
+	AND curr.insaddr= l.curr
+	AND t.prfnbr = Port.prfnbr
+	AND i.instype in ('FXSwap','CurrSwap','Swap')
+GROUP BY 1,2,3,4,5
+/*-----------------------------------------------------------------------------
+                            FXSwap / CurrSwap / Swap Cash
+------------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------
+                All trades except - FXSwap / CurrSwap / Swap Cash
+------------------------------------------------------------------------------*/
+SELECT DISTINCT 
+       T.TrdNbr,
+       i.insid                                                                                  'InsID',
+       i.instype                                                                                'InsType',
+       ael_s(Port,'TMS_Functions.Get_BarCap_Book_ID')                                           'Book',
+       curr.insid							                                                    'Curr',
+       accumulated_cash(t,@1_Date{Today;}, curr.insid, 2, 0, , 1, 'None')               	    'Cash_Balance',
+       accumulated_cash(t,@1_Date{Today;}, curr.insid, 2, 0, , 1, 'None') * 1/fx.fxrepday 	    'Cash_Balance_Reporting_Curr'
+
+INTO CashResult
+
+FROM
+	Trade		T,
+	Instrument	I,
+	Instrument	Curr,
+	fxrates		fx,
+	Portfolio Port
+
+WHERE
+	    match_filter(t,@2_Filter{;Tradefilter.fltid})
+	AND T.insaddr = I.insaddr
+	AND Curr.instype = 'Curr'
+	AND currency_included(T, curr.insid) = 1
+	AND fx.Curr = Curr.insid
+	AND t.prfnbr = Port.prfnbr
+	AND i.instype not in ('FXSwap','CurrSwap','Swap')
+GROUP BY 1,2,3,4,5
+/*-----------------------------------------------------------------------------
+             All trades except - FXSwap / CurrSwap / Swap Cash
+------------------------------------------------------------------------------*/
+
+
+/*-----------------------------------------------------------------------------
+             All trade Payments
+------------------------------------------------------------------------------
+SELECT DISTINCT 
+       T.TrdNbr,
+       I.InsID                                                                                  'InsID',
+       I.InsType                                                                                'InsType',
+       ael_s(Port,'TMS_Functions.Get_BarCap_Book_ID')                                           'Book',
+       display_id(P,'Curr')  				                                                    'Curr',
+       SUM(p.amount)                                                                           	'Cash_Balance',
+       SUM(p.amount * 1/fx.fxrepday) 	                                                        'Cash_Balance_Reporting_Curr'
+
+INTO CashResult
+
+FROM
+	Trade		T,
+	Instrument	I,
+	fxrates		fx,
+	Portfolio Port,
+	Payment P
+
+WHERE
+	    match_filter(t,@2_Filter{;Tradefilter.fltid})
+	AND T.insaddr = I.insaddr
+	AND T.trdnbr = P.TrdNbr
+	AND fx.Curr = display_id(P,'Curr')
+	AND t.prfnbr = Port.prfnbr
+	AND p.type not in ('Broker Fee','Premium')
+GROUP BY 1,2,3,4,5
+-----------------------------------------------------------------------------
+             All trade Payments
+------------------------------------------------------------------------------*/
+
+SELECT  '' 'TB ID','' 'SOURCE_ID','' 'COMPANY',
+        '311A' 'ACCOUNT_TYPE',
+        '' 'ACCOUNT_TYPE_DESCRIPTION',
+        CR.curr 'CURRENCY',
+        CR.Book 'BOOK',
+        '' 'BOOK_DESCRIPTION','00000000' 'PRODUCT_CODE','' 'PRODUCT_CODE_DESCRIPTION',
+        '' 'ACCOUNT_CATEGORY','' 'ACCOUNT_CATEGORY_DESCRIPTION',
+        '' 'ACCOUNT_REFERENCE',
+        SUM(CR.Cash_Balance) 'BALANCE',
+        SUM(CR.Cash_Balance_Reporting_Curr) 'REPORTING_CCY_BALANCE',
+        '' 'SAP_TRANSACTION_TYPE','' 'SAP_PARTNER_PROFIT_CENTRE',
+        '' 'SAP_COST_CENTRE','' 'SAP_COMPANY_CODE','' 'SAP_ACCOUNT','' 'ACCOUNT_CAPTION'
+
+from
+    CashResult CR
+GROUP BY 4,6,7

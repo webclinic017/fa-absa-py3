@@ -1,0 +1,25 @@
+[Core Pricing]FCombination:theoreticalPrice = shunt(isCalculatedTheoretically, 
+  true->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = theoreticalInstrumentSpotValueForPrice, priceSource, doSplitAll, quoteConversionWrapperToQuotation = quotation], 
+  false->marketPrice);
+[Core Pricing]FInstrument:theoreticalPrice = switch(theoreticalPriceIsExpired, 
+  true->valuationDateZero, 
+  false->select(isCalculatedTheoretically, 
+    true->select(isDynamicQuoted, 
+      true->denominatedvalue(dynamicQuotedTheoreticalPrice, currency, nil, valuationDate), 
+      false->object:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = theoreticalInstrumentSpotValueForPrice, priceSource, doSplitAll, quoteConversionWrapperToQuotation = quotation]), 
+    false->marketPrice));
+[Core Pricing]FInstrumentAndTrades:theoreticalPrice = openInstrumentOrInstrument :* "collapse(theoreticalPrice)" [priceSource, isSplitAllGrouped, filterCurrency];
+[Core Pricing]FMultiInstrumentAndTrades:theoreticalPrice = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "collapse(theoreticalPrice)" [priceSource, isSplitAllGrouped, filterCurrency]);
+[Core Pricing]FOrderBook:theoreticalPrice = shunt(isCalculatedTheoretically, 
+  true->equivalentInstrument :* "theoreticalPrice" [priceSource, quotation] * fxInstrumentToOrderBook, 
+  nil->nil);
+[Core Pricing]FOwnOrder:theoreticalPrice = trading :* "theoreticalPrice";
+[Core Pricing]FPortfolioInstrumentAndTrades:theoreticalPrice = nil;
+[Core Pricing]FPriceAggregate:theoreticalPrice = priceFeed:theoreticalPrice [priceSource, useVanillaEquivalent, strikeCurrencyAsInstrumentCurrency];
+[Core Pricing]FPriceFeed:theoreticalPrice = shunt(isCalculatedTheoretically, 
+  true->equivalentInstrument :* "theoreticalPrice" [priceSource, quotation] * fxInstrumentToPriceFeed, 
+  nil->nil);
+[Core Pricing]FTradeRow:theoreticalPrice = equivalentInstrument:theoreticalPrice [priceSource, isSplitAllGrouped, filterCurrency, quotation = tradeRowQuotation];
+[Core Pricing]FTradingInterface:theoreticalPrice = priceFeed:theoreticalPrice [priceSource];

@@ -1,0 +1,50 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','PCG_YieldCurvePoints') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_YieldCurvePoints' and p.type = 'SQL Query' 
+ 
+  
+/*Generate sequence 0-9 */
+select
+	u1.usrnbr,
+	count(u2.usrnbr) -1  	'Nbr'
+into 
+	TMP
+from
+	user u1,
+	user u2
+where
+	u1.usrnbr < u2.usrnbr
+group by u1.usrnbr
+
+/* Generate sequence 1-1000 */
+select
+	100*t3.Nbr + 10*(t2.Nbr) + t1.Nbr + 1	'Nbr'
+into 
+	SCEN	
+from
+	TMP t1,
+	TMP t2,
+	TMP t3
+where
+	t1.Nbr < 10 
+and	t2.Nbr < 10
+and	t3.Nbr < 70
+
+/* Calculate result by scenario */
+select
+	date_add_delta(TODAY,s.Nbr,,)					'Date',
+	yc_rate(yc,TODAY,date_add_delta(TODAY,s.Nbr,,),@DayCount{Annual Comp;'Simple','Monthly','Quarterly','Semi Annual','Annual Comp','Continuous','Discount'},,@DisplayedRate{Spot Rate;'Spot Rate','Forward Rate','Par Rate','Market Rate','Discount'},,'ZAR')	'Yield Curve Point',
+	s.Nbr
+from
+
+	SCEN s,
+	yieldcurve yc
+where
+   	
+	yc.yield_curve_name = @YieldCurve{;yieldcurve.yield_curve_name}
+and	s.Nbr <= @Nbr_7000_is_29years[7000]
+
+order by 1

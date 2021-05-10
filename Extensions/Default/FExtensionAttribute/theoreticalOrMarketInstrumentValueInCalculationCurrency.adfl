@@ -1,0 +1,6 @@
+[Default]FCombination:theoreticalOrMarketInstrumentValueInCalculationCurrency = select(calculationCurrency == currency, 
+  true->collapse(theoreticalOrMarketInstrumentValueInInstrumentCurrency), 
+  false->theoreticalOrMarketInstrumentValueInInstrumentCurrency * fxInstrumentToCalculation);
+[Default]FInstrument:theoreticalOrMarketInstrumentValueInCalculationCurrency = select(calculationCurrency == currency, 
+  true->theoreticalOrMarketInstrumentValue, 
+  false->theoreticalOrMarketInstrumentValue * fxInstrumentToCalculation);

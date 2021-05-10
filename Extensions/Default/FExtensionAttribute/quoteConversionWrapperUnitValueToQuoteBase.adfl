@@ -1,0 +1,5 @@
+#grouping: extension attribute classification
+
+[Default]FInstrument:quoteConversionWrapperUnitValueToQuoteBase[quoteConversionWrapperQuotation, quoteConversionUnitValue, quoteConversionWrapperAccruedInQuoteCurrency, priceSource, doSplitAll] = select(quoteConversionWrapperHasQuoteConversionImplementation, 
+  true->object:quoteConversionToQuote [quoteConversionQuotation = quoteConversionWrapperQuoteConversionQuotation, priceSource, doSplitAll, quoteConversionUnitValue], 
+  false->collapse(quoteConversionWrapperUnitValueToQuoteOld));

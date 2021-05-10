@@ -1,0 +1,10 @@
+[Core Risk]FCombInstrMapAndTrades:vannaInstrument = combinationInstrumentMapFactor * instrument :* "vannaInstrument" [isSplitAllGrouped, priceSource, priceGreekIncludeVolatilityMovement];
+[Core Risk]FInstrument:vannaInstrument = select(isSettled, 
+  true->denominatedValueZero, 
+  false->select((priceGreekRiskFactorNodeCount == 1) and (volatilityGreekRiskFactorCount > 0), 
+    true->stripDateTimePart(vannaPercentValuesInstrument) / (singlePriceGreekRiskFactorValueInInstrumentCurrency * percentAdjustmentFactor), 
+    false->denominatedValueZero));
+[Core Risk]FInstrumentAndTrades:vannaInstrument = openInstrumentOrInstrument :* "collapse(vannaInstrument)" [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement];
+[Core Risk]FMultiInstrumentAndTrades:vannaInstrument = nil;
+[Core Risk]FPriceAggregate:vannaInstrument = instrument :* "vannaInstrument" [priceSource];
+[Core Risk]FTradeRow:vannaInstrument = instrument:vannaInstrument [isSplitAllGrouped, priceSource, normalizeFxRisk, priceGreekIncludeVolatilityMovement, currency = tradeRowCurrency];

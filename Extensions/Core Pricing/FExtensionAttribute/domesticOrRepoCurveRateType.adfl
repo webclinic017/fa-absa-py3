@@ -1,0 +1,16 @@
+[Core Pricing]FInstrumentAndTrades:domesticOrRepoCurveRateType = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultRateType, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageRateType), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageRateType);
+[Core Pricing]FOrderBook:domesticOrRepoCurveRateType = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultRateType, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageRateType), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageRateType);
+[Core Pricing]FPriceAggregate:domesticOrRepoCurveRateType = priceFeed:domesticOrRepoCurveRateType;
+[Core Pricing]FPriceFeed:domesticOrRepoCurveRateType = select(domesticCurrencyCurveInTheoreticalPrice, 
+  nil->select(domesticRepoCurveInTheoreticalPrice, 
+    nil->defaultRateType, 
+    default->domesticRepoCurveInTheoreticalPrice.StorageRateType), 
+  default->domesticCurrencyCurveInTheoreticalPrice.StorageRateType);

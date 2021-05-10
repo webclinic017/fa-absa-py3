@@ -1,0 +1,15 @@
+[Core Risk]FCashFlowDerivativeInstrument:priceDeltaHedgeAlternativeChosen = underlying:priceDeltaHedgeAlternativeChosen;
+[Core Risk]FDerivative:priceDeltaHedgeAlternativeChosen = underlying:priceDeltaHedgeAlternativeChosen;
+[Core Risk]FInstrument:priceDeltaHedgeAlternativeChosen = var(defaultHedgeInstrument, "FInstrument");
+[Core Risk]FInstrumentAndTrades:priceDeltaHedgeAlternativeChosen = select(hedgeAlternativeLevel, 
+  "Portfolio"->parent:priceDeltaHedgeAlternativeChosen, 
+  "Sheets"->nilObject:priceDeltaHedgeAlternativeChosen, 
+  default->instrument:priceDeltaHedgeAlternativeChosen);
+[Core Risk]FMultiInstrumentAndTrades:priceDeltaHedgeAlternativeChosen = select(hedgeAlternativeLevel, 
+  "Portfolio"->firstPriceDeltaHedgeAlternative, 
+  "Sheets"->nilObject:priceDeltaHedgeAlternativeChosen, 
+  default->select(instrumentGroupingReference, 
+    nil->var(priceDeltaHedgeAlternatives.First, "FInstrument"), 
+    default->instrumentGroupingReference:priceDeltaHedgeAlternativeChosen));
+[Core Risk]FPriceAggregate:priceDeltaHedgeAlternativeChosen = instrument:priceDeltaHedgeAlternativeChosen;
+[Core Risk]FUndefinedObject:priceDeltaHedgeAlternativeChosen = ref(hedgePageInstruments.First);

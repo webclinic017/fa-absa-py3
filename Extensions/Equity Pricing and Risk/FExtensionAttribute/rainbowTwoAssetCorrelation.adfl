@@ -1,0 +1,9 @@
+[Equity Pricing and Risk]FInstrument:rainbowTwoAssetCorrelation = nil;
+[Equity Pricing and Risk]FInstrumentAndTrades:rainbowTwoAssetCorrelation = instrument:rainbowTwoAssetCorrelation;
+[Equity Pricing and Risk]FMultiInstrumentAndTrades:rainbowTwoAssetCorrelation = nil;
+[Equity Pricing and Risk]FOption:rainbowTwoAssetCorrelation = select(isRainbowOption, 
+  true->select(count(multiUnderlyingCorrelationMatrix) == 4, 
+    true->multiUnderlyingCorrelationMatrix[0, 1], 
+    false->nil), 
+  false->nil);
+[Equity Pricing and Risk]FPriceAggregate:rainbowTwoAssetCorrelation = instrument:rainbowTwoAssetCorrelation;

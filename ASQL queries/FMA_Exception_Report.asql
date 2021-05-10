@@ -1,0 +1,49 @@
+/*------------------------------------------------------------------
+    FMA_Exception_Report
+
+    This query extracts all OTC derivative trades that were booked against counterparties that are incorrectlty marked for FMA categorization. 
+    This information is used by the static team.
+
+    Department and Desk : COB 
+    Requester           : Sarah Elstob
+    Developer           : Snowy Mabilu
+
+    History:
+    When: 	    CR Number:   Who:		    What:       
+    2020-04-07	ARR-33       Snowy Mabilu	Created
+------------------------------------------------------------------*/
+select
+    t.trdnbr 'Trade Number', 
+    i.insid 'Instrument',
+    t.execution_time 'Execution Time',
+    t.value_day 'Value Day',
+    i.instype 'Type',
+    t.price 'Price',
+    t.quantity 'Quantity',
+    t.acquire_day 'Acquire Day',
+    display_id(t,'curr') 'Currency',
+    t.status 'Status',
+    t.quantity > 0 ? 'Buy' : 'Sell'    'Buy/Sell',
+    display_id(t,'trader_usrnbr') 'Trader',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    add_info(p,'BarCap_SMS_CP_SDSID') 'Counterparty SDSID',
+    add_info(p,'BarCap_SMS_LE_SDSID') 'Legal Party SDSID',  
+    display_id(p,'parent_ptynbr') 'Parent',
+    display_id(t,'prfnbr' ) 'Portfolio',
+    i.otc 'OTC',
+    p.type 'Type',
+    display_id(p,'free5_chlnbr') 'OTC Derivatives Provider Category'
+from 
+    Instrument i,
+    Trade t,
+    Party p
+where t.insaddr = i.insaddr 
+    and t.counterparty_ptynbr = p.ptynbr
+    and i.otc = 'Yes'
+    and i.instype in ('Future/Forward','Option','Swap','FRA','CurrSwap','Cap','Floor',
+                      'RateIndex','Combination','FreeDefCF','FxSwap','CreditDefaultSwap',
+                      'IndexLinkedBond','CFD','VarianceSwap','FXOptionDatedFwd','Portfolio Swap','PriceSwap')
+    and time_to_day(t.execution_time) >=  date_add_delta(TODAY , 0, -1,0) and time_to_day(t.execution_time) <= TODAY
+    and t.status not in ('Simulated','Void','FO Sales','Reserved')
+    and p.type not in ('Intern Dept')
+    and p.free5_chlnbr=0

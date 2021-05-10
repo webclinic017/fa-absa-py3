@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:valuationStartDateTime = valuationDateTime;
+[Core Pricing]FOption:valuationStartDateTime = select(isExotic, 
+  true->switch(isForwardStarting and (not isCliquet), 
+    true->forwardStartDateTime, 
+    false->valuationDateTime), 
+  false->valuationDateTime);

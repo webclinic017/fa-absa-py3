@@ -1,0 +1,9 @@
+[Prime Services]FInstrument:rtmCashAdjustment = denominatedvalue(0.0, currency, , valuationDate);
+[Prime Services]FInstrumentAndTrades:rtmCashAdjustment = instrument:rtmCashAdjustment [positionObject];
+[Prime Services]FLeg:rtmCashAdjustment = select(categoryChlItem, 
+  "Performance"->-denominatedvalue(double(securityInstrumentAndTrades :* "opaque(unfundedCashExcludingFeesAndDividends)" [displayCurrency, profitAndLossStartDate = object.StartDate]), displayCurrency, , valuationDate), 
+  default->denominatedvalue(0.0, currency, , valuationDate));
+[Prime Services]FLegAndTrades:rtmCashAdjustment = -riskPosition * (leg:rtmCashAdjustment);
+[Prime Services]FMultiInstrumentAndTrades:rtmCashAdjustment = sumOf(instruments :* "rtmCashAdjustment" [positionObject]);
+[Prime Services]FPortfolioSwap:rtmCashAdjustment = -riskPosition * sumOf(legs :* "rtmCashAdjustment");
+[Prime Services]FTradeRow:rtmCashAdjustment = instrument:rtmCashAdjustment [singleTradePosition];

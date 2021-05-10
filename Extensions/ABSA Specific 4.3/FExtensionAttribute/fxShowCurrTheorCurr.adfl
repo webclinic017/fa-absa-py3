@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FCombination:fxShowCurrTheorCurr = select(object.AdditionalInfo.Structured_Products, 
+  "Quanto_Hedge"->FX, 
+  default->instrumentCurrency.MtMPrice(mtmPriceDay, displayCurrency, 0));
+[ABSA Specific 4.3]FInstrument:fxShowCurrTheorCurr = (instrument:currency).MtMPrice(mtmPriceDay, displayCurrency, 0);
+[ABSA Specific 4.3]FPriceAggregate:fxShowCurrTheorCurr = instrument :* "fxShowCurrTheorCurr" [displayCurrency];
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:fxShowCurrTheorCurr = instrument :* "fxShowCurrTheorCurr" [displayCurrency];

@@ -1,0 +1,35 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','ERM_Bond_Option_Vols') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'ERM_Bond_Option_Vols' and p.type = 'SQL Query' 
+/*
+Query	:	ERM_Bond_Options_Vols
+Purpose	:	Show vol values for unexpired options on vol surface 'VALUATION VOLS BONDS'.
+Logic	:	Straightforward.
+History	:	
+	2003/10/27 - Russel Webber - Added comments.
+*/
+
+select 
+	ui.extern_id1				'bond',
+	i.strike_price				'strike',
+	i.call_option='YES' ? 'C' : 'P' 	'C_P',
+	i.exp_day				'expiry',
+	(vp.volatility*100)			'vol',
+	Today					'Data_Date'
+from 
+	instrument 	i,
+	volpoint 	vp,
+	volatility 	v,
+	instrument 	ui
+where
+	i.insaddr=vp.insaddr
+and 	i.instype='Option'
+and 	i.und_insaddr=ui.insaddr
+and 	i.exp_day>=Today
+and 	v.seqnbr=vp.vol_seqnbr
+and 	v.vol_name='VALUATION VOLS BONDS' 
+order by 
+	ui.extern_id1, i.exp_day

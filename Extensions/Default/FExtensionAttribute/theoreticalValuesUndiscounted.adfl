@@ -1,0 +1,4 @@
+[Default]FFuture:theoreticalValuesUndiscounted = select(payContingent, 
+  true->contingentAdjustedValue(theoreticalValuesUndiscountedInstrumentPart + valuesInType(positionValues, futureSettlementSymbol, false), underlying:creditCurveForContingentForwardValue, underlying:discountCurve, underlying:riskFreeDiscountCurve, valuationDate, true) + valuesNotInType(positionValues, futureSettlementSymbol, false), 
+  default->theoreticalValuesUndiscountedInstrumentPart + positionValues);
+[Default]FInstrument:theoreticalValuesUndiscounted = theoreticalValuesUndiscountedInstrumentPart + positionValues;

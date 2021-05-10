@@ -1,0 +1,9 @@
+[Default]FInstrument:underlyingForwardPriceTransformed = select(underlyingForwardPriceIsAssetSwapSpread, 
+  true->snoop01(theoreticalPrice, "underlyingForwardPrice"), 
+  false->select(underlyingForwardPriceFromForwardValueProvider, 
+    false->underlyingForwardRateForUnderlyingForwardPriceTransformed, 
+    true->select(underlyingForUnderlyingForwardPriceInTheoreticalPrice, 
+      nil->nil, 
+      default->select(underlyingForwardValueInStrikeCurrency, 
+        nil->nil, 
+        default->underlyingForUnderlyingPriceInTheoreticalPrice:quoteConversionWrapperUnitValueToQuote [quoteConversionWrapperFromUnitValue = underlyingForwardValueInStrikeCurrency, quoteConversionWrapperToQuotation = underlyingPriceInTheoreticalPriceQuotation, priceSource, isSplitAllGrouped]))));

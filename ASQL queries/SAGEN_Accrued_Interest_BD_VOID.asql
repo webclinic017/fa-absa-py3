@@ -1,0 +1,289 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_Accrued_Interest_BD_VOID') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_Accrued_Interest_BD_VOID' and p.type = 'SQL Query' 
+ 
+/* New Accrued Interest Accounting entries Report by Andries Brink
+
+Function:
+
+This report aims to simplify the generation of generic accounting 
+entries for most classes of interest bearing instruments. It breaks 
+Entries into Capital Value (Clean Value throughout), Accrued Interest
+and accrued Capital Value (Essentially to account for the pull to 
+par effect of the instruments.)  
+
+Version 1: 	07 July 2005			
+
+*/
+
+select
+	@Date_Today{today}					'today',
+	@Date_Yesterday{date_add_banking_day(TODAY, , -1)}	'yesterday',
+	@Date_YE{Year_End}					'Year_End',
+	@Back_Day{Back_day}					'Back_day'
+
+into
+	dates
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+
+/*** BILLS ***/
+
+select 
+
+t.trdnbr,
+t.status,
+display_id(t,'acquirer_ptynbr')  	'Acquirer',
+display_id(t,'prfnbr')			'Portfolio',
+t.value_day,
+i.exp_day,
+used_price(i, d.today,,,,'internal')									'used_price_today',
+used_price(i, d.yesterday,,,,'internal')								'used_price_yesterday',
+dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+t.premium + (interest_accrued(i, , t.value_day) * t.quantity)				'Clean_value_day',
+nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+
+dirty_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Dirty_tdy',
+clean_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Clean_tdy',
+
+dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Dirty_yesterday',
+clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Clean_yesterday',
+
+nominal_amount(t)						'Nominal',
+nominal_amount(t, d.today)					'CurrentNominal',
+
+/*interest_accrued(i, d.yesterday, d.today) * t.quantity			'AccInt_ON',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.today, d.today, 'IntON')	'AccInt_ON',
+/*interest_accrued(i, d.Year_End, d.today) * t.quantity				'AccInt_Year',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.Year_End, d.today, '')	'AccInt_Year',
+/*interest_accrued(i, , d.today) * t.quantity					'AccInt_Incep',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+
+projected_cf(cf) * t.quantity					'Coupon',
+
+days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+
+(nominal_amount(t, t.value_day) + 
+(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+
+
+/*l.legnbr,
+cf.cfwnbr,
+cf.start_day	'cf',
+i.start_day	'i',
+cf.start_day	'cfend',
+i.exp_day	'iend'*/
+
+t.text1,
+display_id(t, 'counterparty_ptynbr')			'Counterparty'	,
+t.creat_time		
+
+
+
+
+into
+	temp
+
+from
+
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+/*	changed today to d.today  2005-12-23*/
+
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+
+/*and	cf.type ~= 'Fixed Amount'
+and	cf.start_day <= d.today
+and	cf.end_day => d.today*/
+
+and 	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+and	t.value_day <= d.today
+and	i.exp_day >= d.today
+and	i.instype = 'Bill'
+/*and	time_to_day(t.creat_time) > t.value_day*/
+and	time_to_day(t.creat_time) = d.Back_day
+/*and t.trdnbr = 532555*/
+and	(time_to_day(t.creat_time) > t.value_day
+or	t.status = 'Void'
+and	time_to_day(t.creat_time) ~= time_to_day(t.updat_time))
+
+
+
+
+
+/*** OTHER ***/
+
+select 
+
+t.trdnbr,
+t.status,
+display_id(t,'acquirer_ptynbr')  	'Acquirer',
+display_id(t,'prfnbr')			'Portfolio',
+t.value_day,
+i.exp_day,
+used_price(i, d.today,,,,'internal')									'used_price_today',
+used_price(i, d.yesterday,,,,'internal')								'used_price_yesterday',
+dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+t.premium + (interest_accrued(i, , t.value_day) * t.quantity)				'Clean_value_day',
+nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+
+dirty_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Dirty_tdy',
+clean_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Clean_tdy',
+
+dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Dirty_yesterday',
+clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Clean_yesterday',
+
+nominal_amount(t, t.value_day)						'Nominal',
+nominal_amount(t, d.today)						'CurrentNominal',
+
+/*interest_accrued(i, d.yesterday, d.today) * t.quantity			'AccInt_ON',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.today, d.today, 'IntON')	'AccInt_ON',
+/*interest_accrued(i, d.Year_End, d.today) * t.quantity				'AccInt_Year',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.Year_End, d.today, '')	'AccInt_Year',
+/*interest_accrued(i, , d.today) * t.quantity					'AccInt_Incep',*/
+ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+
+projected_cf(cf) * t.quantity					'Coupon',
+
+days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+
+(nominal_amount(t, t.value_day) + 
+(t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+
+
+/*l.legnbr,
+cf.cfwnbr,
+cf.start_day	'cf',
+i.start_day	'i',
+cf.start_day	'cfend',
+i.exp_day	'iend'*/
+
+t.text1,
+display_id(t, 'counterparty_ptynbr')			'Counterparty'	,
+t.creat_time			
+
+
+
+
+into
+	temp
+
+from
+
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+/*	changed today to d.today  2005-12-23*/
+
+	i.insaddr = t.insaddr
+and	i.insaddr = l.insaddr
+and	l.legnbr = cf.legnbr
+and	cf.type ~= 'Fixed Amount'
+/*and	t.value_day < cf.end_day
+and	cf.start_day < i.exp_day*/
+and	cf.start_day <= d.today
+and	cf.end_day > d.today
+and 	match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+and	t.value_day <= d.today
+and	i.exp_day >= d.today
+and	i.instype ~= 'Bill'
+/*and	time_to_day(t.creat_time) > t.value_day*/
+and	time_to_day(t.creat_time) = d.Back_day
+and	(time_to_day(t.creat_time) > t.value_day
+or	t.status = 'Void'
+and	time_to_day(t.creat_time) ~= time_to_day(t.updat_time))
+
+/*and t.trdnbr = 532555*/
+
+
+
+
+
+
+/*** FINAL ***/
+select
+t.trdnbr,
+i.insid			'Instrument',
+i.instype		'Instype',
+add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+tt.portfolio,
+tt.status,
+tt.acquirer,
+tt.used_price_today,
+tt.used_price_yesterday,
+tt.Clean_tdy					'Clean MTM',
+tt.Dirty_tdy					'MTM',
+tt.Clean_value_day,
+tt.Dirty_value_day,
+
+tt.Clean_yesterday,
+tt.Dirty_yesterday,
+
+t.premium					'Premium',
+tt.Clean_value_day				'Capital Value Start',
+tt.Clean_tdy					'Capital Value Today',
+tt.Daily_Pull_to_Par,
+tt.accintdays,
+tt.Prem_Disc_Value_day,
+tt.Prem_Disc_Value_day - (tt.Daily_Pull_to_Par * tt.AccIntDays)		'Pull to Par Balance',
+tt.Clean_value_day - tt.Dirty_value_day		'Start Accrued Interest',
+tt.Clean_tdy - tt.Dirty_tdy			'Present Accrued Interest',
+tt.status = 'Void' ? (tt.Prem_Disc_Value_day - (tt.Daily_Pull_to_Par * tt.AccIntDays) - tt.AccInt_Incep)  : (tt.Prem_Disc_Value_day - (tt.Daily_Pull_to_Par * tt.AccIntDays) - tt.AccInt_Incep)*-1 'Accrued Disc Bal',
+
+tt.status = 'Void' ? -1*(tt.nominal) : tt.nominal				'Original Nominal',
+tt.status = 'Void' ? -1*(tt.CurrentNominal) : tt.CurrentNominal				'Current Nominal',
+tt.value_day,
+tt.exp_day,
+d.yesterday,
+d.today,
+tt.status = 'Void' ? -1*(tt.AccInt_ON) : tt.AccInt_ON 	'AccInt_ON',
+tt.status = 'Void' ? -1*(tt.AccInt_Year) : tt.AccInt_Year 'AccInt_Year',
+tt.status = 'Void' ? -1*(tt.AccInt_Incep) : tt.AccInt_Incep 'AccInt_Incep',
+tt.Clean_value_day - tt.Clean_tdy		'Clean P&L Incep',
+tt.Clean_yesterday - tt.Clean_tdy		'Clean P&L Overnight',
+tt.Coupon,
+tt.AccIntDays,
+tt.text1,
+tt.Counterparty,
+tt.creat_time
+
+/*tt.legnbr,
+tt.cfwnbr,
+tt.cf,
+tt.i,
+tt.cfend,
+tt.iend*/
+
+
+from
+
+instrument i,
+trade t,
+temp tt,
+dates d
+
+where
+
+i.insaddr = t.insaddr
+and t.trdnbr = tt.trdnbr

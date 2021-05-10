@@ -1,0 +1,95 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','KK_BondGamma') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'KK_BondGamma' and p.type = 'SQL Query' 
+ 
+  /* Bonds*/
+
+
+select
+
+    t.trdnbr    'TrdNbr',
+    i.insid     'InsId',
+    display_id(t,'prfnbr')      'Portfolio',
+    nominal_amount(t)           'Nominal',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0)  )*(nominal_amount(t)/100)   'const'
+
+into temp1
+
+from 
+
+    trade t,
+    instrument i
+
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	t.value_day > today
+
+select
+
+    t.trdnbr    'TrdNbr',
+    i.insid     'InsId',
+    display_id(t,'prfnbr')      'Portfolio',
+    nominal_amount(t)           'Nominal',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0.01)  )*(nominal_amount(t)/100)   '1bpUp'
+
+into temp2
+
+from 
+
+    trade t,
+    instrument i
+
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	t.value_day > today
+
+select
+
+    t.trdnbr    'TrdNbr',
+    i.insid     'InsId',
+    display_id(t,'prfnbr')      'Portfolio',
+    nominal_amount(t)           'Nominal',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0.02)  )*(nominal_amount(t)/100)   '2bpUp'
+
+into temp3
+
+from 
+
+    trade t,
+    instrument i
+
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+and	t.status not in ('Simulated', 'Terminated', 'Void')
+and	t.value_day > today
+
+
+select 
+    t1.TrdNbr,
+    t1.InsId,
+    t1.Portfolio,
+    t1.Nominal,
+    t2.1bpUp - t1.const     'delta',
+    (t3.2bpUp - t2.1bpUp) - (t2.1bpUp - t1.const)   'gamma'
+
+from
+    temp1   t1,
+    temp2   t2,
+    temp3   t3
+
+where
+    t1.TrdNbr = t2.TrdNbr
+and t3.TrdNbr = t2.TrdNbr
+
+    

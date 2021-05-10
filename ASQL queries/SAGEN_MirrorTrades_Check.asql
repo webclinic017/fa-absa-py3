@@ -1,0 +1,46 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAGEN_MirrorTrades_Check') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAGEN_MirrorTrades_Check' and p.type = 'SQL Query' 
+
+/* ALL INTERNAL TRADES */
+/* === ======== ====== */
+ 
+
+select 
+    t.trdnbr                                                                    'Trade_Number',
+    display_id(t, 'counterparty_ptynbr')                                        'Counter_Party',
+    acq.ptyid                                                                   'Acquirer',
+    ael_i(,'get_mirror_trade', t.trdnbr)                                        'Mirror_Trade_Nbr',
+    (t.mirror_trdnbr > 0) ? 'Mirrored' : 'Not Mirrored'                         'Mirror_Status',
+    display_id(t, 'prfnbr')                                                     'Portfolio',
+    i.exp_day                                                                   'Exp_Day',
+    i.instype                                                                   'Ins_Type',
+    u.userid                                                                    'Trader',
+    u.name                                                                      'Trader_Name',
+    time_to_day(t.time)                                                         'Trade_Date',
+    nominal_amount(t, t.value_day)                                              'Nominal_Amount',
+    add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+        : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype') 
+        : add_info(t, 'Instype'))                                               'Product_Code'
+
+from 
+    trade t,
+    party acq,
+    instrument i,
+    user u
+
+where 
+    t.insaddr = i.insaddr
+and t.acquirer_ptynbr = acq.ptynbr
+and t.trader_usrnbr = u.usrnbr
+and ('Any' in (@Acquirer{Any;}) or acq.ptyid in (@Acquirer{;party.ptyid}))
+and match_filter(t, @Filter{SAGEN_MirrorTrades;tradefilter.fltid})
+/*and t.trdnbr in (18716524)*/
+
+
+ 
+
+ 

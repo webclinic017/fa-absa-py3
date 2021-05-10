@@ -1,0 +1,39 @@
+[Instrument Definition API]FMethod:InsDef.CreateInstrumentFromTemplate$5
+This method is used when creating a new instrument from an existing instrument in a similar way as when creating it from the instrument definition window.
+
+Similar UI scenario:
+
+	1. Open existing instrument in the instrument definition window
+	2. Modify fields in the instrument section
+	3. Press Save New
+	4. Answer all pop up questions
+
+@param
+The initial instrument
+
+@param
+Parameters that should be set before saving the new instrument. By default, the instrument will look identical to the initial template instrument. Parameters are specified using methods and method chains that can be reached from the FInstrumentLogicDecorator. When a value is set, it will behave as when setting the value in the instrument definition window, which means that all side effects that occur when setting the value will occur here as well.
+
+@param
+An object holding answers to questions. When saving from the instrument definition window, these questions are answered in pop ups.
+
+@param
+A callback that will be run before commiting the instrument. See example for the  CreateTrade method on how to use it.
+
+@param
+A callback that will be run if the commit fails. This callback is used to roll back changes that were made in the *'preCommitBlock'*
+
+@return
+The saved instrument if save is successful. Exceptions will be raised if the save is not successful
+
+Example::
+
+	templateIns = acm.InsDef.CreateInstrument('Swap', parameters)
+	parameters = acm.FOrderedDictionary()
+	parameters['LegEndPeriod'] = '3y'
+	parameters['FirstReceiveLeg.Spread'] = 2
+	ins = acm.InsDef.CreateInstrumentFromTemplate(templateIns, parameters)
+	acm.StartApplication('Instrument Definition', ins)
+
+**Tip:** Enable Log Category *'gui - custom layouts'* to see which method that is mapped to a certain field. When this log category is enabled, the tooltips for the fields in the instrument definition window will show which methods they are mapped to.
+...

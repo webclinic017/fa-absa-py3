@@ -1,0 +1,8 @@
+[Default]FInstrument:priceDeltaPercentForwardHedgeTradeAdjustment = select(includePremiumAdjustment, 
+  true->denominatedValueOrBasket(priceDeltaTradeAdjustmentUndiscounted / 100), 
+  false->priceDeltaTradeAdjustmentZero);
+[Default]FInstrumentAndTrades:priceDeltaPercentForwardHedgeTradeAdjustment = select(isCandidateForPremiumAdjustedDelta, 
+  true->instrument :* "collapse(priceDeltaPercentForwardHedgeTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment], 
+  false->spotHandlingZero);
+[Default]FMultiInstrumentAndTrades:priceDeltaPercentForwardHedgeTradeAdjustment = sumOf(premiumAdjustedDeltaInstruments :* "collapse(priceDeltaPercentForwardHedgeTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment]);
+[Default]FTradeRow:priceDeltaPercentForwardHedgeTradeAdjustment = instrument :* "priceDeltaPercentForwardHedgeTradeAdjustment" [singleTradePosition, includeAllTrades, priceGreekIncludePremiumAdjustment];

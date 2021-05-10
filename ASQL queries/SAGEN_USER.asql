@@ -1,0 +1,35 @@
+/* update_method=0 */
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select ael_i(p,'ASQL_log','SAGEN_USER') 'Name' 
+ into ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'SAGEN_USER' and p.type = 'SQL Query' 
+
+/*------------------------------------------------------------------
+    Date                : 2020-01-10
+    Purpose             : Report showing all users not in Previous User
+    Department and Desk : Markets business and Markets IT
+    Requester           : Marsha de Wet and Jochem Melis
+    Developer           : Bhavnisha Sarawan
+    CR Number           : 
+------------------------------------------------------------------*/
+select
+    u.userid				            'FA_ID',
+    u.name				                'Name',
+    u.email				                'Email',
+    add_info(u, 'AB Number')            'AbNumber',
+    add_info(u, 'Area')                 'Area',
+    g.grpid                             'Group',
+    l.name                              'LicenseType',
+    u.inactive				            'Inactive',
+    u.updat_time                        'UpdateTime'
+from
+    User u,
+    front.Group g,
+    LicenseType l
+
+where
+    u.grpnbr = g.grpnbr
+and u.license_type *= l.seqnbr
+
+order by 8,7,6,5

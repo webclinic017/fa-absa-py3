@@ -1,0 +1,9 @@
+[Standard Calculations]FCashFlowMoneyFlow:volatilityNoSimulation = cashFlow:volatility;
+[Standard Calculations]FInstrumentAndTrades:volatilityNoSimulation = select(instrument:isMultiExercise, 
+  true->select(instrument:exerciseEventsExist, 
+    true->instrument :* "volatility" [exerciseEvents := lastExerciseEvent], 
+    false->0.0), 
+  default->select(instrument:numberOfCapFloorLegs or instrument:needsConvexityAdjustment, 
+    true->parVolatilityProxy, 
+    default->instrument :* "volatility"));
+[Standard Calculations]FMoneyFlowAndTrades:volatilityNoSimulation = moneyFlow:volatility;

@@ -1,0 +1,91 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 627757
+----------------------------------------------------------------------------------------------------------------
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------------------------------
+2020-10-23     CHG0134281	Anji Mandepudi	   Heinrich Cronje    https://absa.atlassian.net/browse/CMRI-856
+2021-03-11     CHG0158547       Thando Mpalala     Andile Biyana      https://absa.atlassian.net/browse/FAFO-41              
+*/
+
+select
+ael_i(p,'ASQL_log','MR_SyntheticMarketIndex') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MR_SyntheticMarketIndex' and p.type = 'SQL Query'
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_SyntheticMarketIndex.OpenFile',@1_path{'f:\'},@2_FileName{'MR_SyntheticMarketIndex.csv'},@3_PositionName{'MR_SyntheticMarketIndex_Position.csv'})	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process',
+    ael_s(pi,'MR_SyntheticMarketIndex.WriteBondIndex',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+From 
+      CombinationLink cl, 
+      instrument pi, 
+      instrument i,
+      instrument u,
+      TimeSeries ts,
+      TimeSeriesSpec tsS
+
+Where  (pi.exp_day = 0 or pi.exp_day > Today)
+    /* Select only combinations with a KFactor */
+and pi.instype in ('ETF')
+and pi.und_insaddr = i.insaddr
+and cl.owner_insaddr = i.insaddr
+and cl.member_insaddr = u.insaddr
+and ts.ts_specnbr = tsS.specnbr
+and tsS.field_name = 'KFactor'
+and ts.recaddr = i.insaddr
+and ts.day = Today
+
+
+Select
+    'Write File' 'Process',
+    ael_s(i,'MR_SyntheticMarketIndex.WriteETF',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+From
+    Instrument i
+Where
+    /* Basic filtering conditions */
+    (i.exp_day = 0 or i.exp_day > Today)
+And i.instype in ('ETF')
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_SyntheticMarketIndex.Write',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i
+Where 
+    i.instype in ('BondIndex','EquityIndex') 
+And
+	(i.exp_day = 0 or i.exp_day > Today)
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+

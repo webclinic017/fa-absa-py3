@@ -1,0 +1,56 @@
+/*
+Purpose                       :  The purpose of this is for a clean up being done between our bookings on Front arena and the Barcap deals bookings
+Department and Desk           :  Ops
+Requester                     :  Letitia Carboni 
+Developer                     :  Ickin Vural
+CR Number                     :  ABOPSIR - 103 ( CR 243385 )
+*/
+
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MTM and CCS Economics Barclays') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MTM and CCS Economics Barclays' and p.type = 'SQL Query' 
+
+select
+    
+    i.insid 'InsID',
+    i.exp_day 'Ins_Expiry',
+    display_id(t,'prfnbr') 'Portfolio',
+    t.your_ref 'CP Ref',
+    t.trdnbr 'TradeNumber',
+    t.status 'Status',
+    l.type 'Leg Type',
+    l.reset_day_offset 'Offset',
+    l.float_rate 'FloatRate',
+    display_id(l,'curr') 'LegCurrency',
+    p.ptyid 'CounterParty',
+    display_id(l,'pay_calnbr') 'CashCal_1',
+    display_id(l,'pay2_calnbr') 'CashCal_2',
+    display_id(l,'pay3_calnbr') 'CashCal_3',
+    display_id(l,'pay4_calnbr') 'CashCal_4',
+    display_id(l,'pay5_calnbr') 'CashCal_5',
+    display_id(l,'reset_calnbr') 'ResCal_1',
+    display_id(l,'reset2_calnbr') 'ResCal_2',
+    display_id(l,'reset3_calnbr') 'ResCal_3',
+    display_id(l,'reset4_calnbr') 'ResCal_4',
+    display_id(l,'reset5_calnbr') 'ResCal_5'
+    
+ 
+from
+    Instrument i,
+    Trade t,
+    Leg l,
+    Party p
+
+where
+
+    match_filter(t, @1_Filter{MTM_CCS_Trades;tradefilter.fltid}, @2_TrdNbrs{})
+and i.insaddr = t.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and l.insaddr = t.insaddr
+
+    

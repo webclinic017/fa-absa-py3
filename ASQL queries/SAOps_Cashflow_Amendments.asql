@@ -1,0 +1,48 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAOps_Cashflow_Amendments') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAOps_Cashflow_Amendments' and p.type = 'SQL Query' 
+
+/*
+Purpose             :   Report on view of amended cash flows after settlement, Opened report for all Acquirers
+Department and Desk :   Ops, Ops
+Rquester            :   FATLM Project, SND Settlements
+Developer           :   Anwar Banoo, Heinrich Cronje
+CR Number           :   662927
+*/
+    
+/*---------- Amended Cashflows ----------*/
+select    
+    i.instype   'Instrument Type',
+    s.status    'Settlement Status',
+    s.trdnbr    'Trade No',
+    s.amount    'Amount',
+    display_id(s, 'curr')   'Currency',
+    s.value_day 'Pay Date',
+    s.type  'Type',
+    s.acquirer_ptyid    'Acquirer',
+    p.ptyid 'Counterparty'
+from
+    settlement s,
+    cashflow c,
+    trade t,
+    instrument i,
+    party p,
+    instrument curr
+where
+        s.trdnbr = t.trdnbr
+    and s.curr = curr.insaddr
+    and s.cfwnbr = c.cfwnbr
+    and t.insaddr = i.insaddr    
+    and s.counterparty_ptynbr = p.ptynbr
+    and s.value_day >= @1_StartDate{Yesterday} 
+    and s.value_day <= @2_EndDate{Today}    
+    and ((@3_Counterparty{All;Party.ptyid*} in ('All')) or (p.ptyid in (@3_Counterparty{All;Party.ptyid*})))    
+    and round(s.amount, 2) ~= round(projected_cf(c) * t.quantity, 2)
+    and (@4_TradeNbr{All} in ('All', '') or t.trdnbr = @4_TradeNbr{All})
+    and s.status in ('Released', 'Acknowledged', 'Not Acknowledged', 'Pending Closure', 'Closed')
+    and (('All' in (@5_Acquirer{All;Party.ptyid*})) or (s.acquirer_ptyid in (@5_Acquirer{All;Party.ptyid*})))
+    
+order by 6

@@ -1,0 +1,7 @@
+[PrimeBrokingAfrica]FMultiInstrumentAndTrades:pbaClosingOtherFee = switch((children :* "displayCurrency").AsSet.Size > 1, 
+  true->nil, 
+  default->sumOf(children :* "pbaClosingOtherFee"));
+[PrimeBrokingAfrica]FSingleInstrumentAndTrades:pbaClosingOtherFee = sumOf(tradesInPosition :* "pbaClosingOtherFee");
+[PrimeBrokingAfrica]FTrade:pbaClosingOtherFee = denominatedvalue(switch((tradeDate <= profitAndLossEndDate) and isGeneralPortfolio, 
+  true->py("PaymentFees", context).ReturnOtherFee(object, profitAndLossEndDate), 
+  false->0), displayCurrency, , );

@@ -1,0 +1,77 @@
+/*
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536,316586
+*/
+
+Select
+    ael_i(p,'ASQL_log','MR_Benchmark_Curve') 'Name' 
+Into
+    ASQL_LOG_TEMP 
+From     TextObject p 
+Where    p.name = 'MR_Benchmark_Curve' and p.type = 'SQL Query' 
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Benchmark_Curve.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Benchmark_Curve.csv'})    'BuildConfirmation'
+Into
+    Macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+
+
+Select
+    'Write File' 'Process',
+    ael_s(yc,'MR_Benchmark_Curve.PreWrite',@1_path{'f:\'},@2_FileName{'MR_Benchmark_Curve.csv'}) 'BuildConfirmation'
+Into
+    Macro
+From
+    Context c,
+    ContextLink cl,
+    YieldCurve yc
+Where  
+    c.name = 'ACMB Global' 
+And c.seqnbr = cl.context_seqnbr
+And cl.name = yc.yield_curve_name
+And cl.mapping_type in ('Val Group','Instrument')
+and yc.yield_curve_type in ('Benchmark','Spread','Inflation','Composite')
+
+
+
+Select
+    'Write File' 'Process',
+    ael_s(,'MR_Benchmark_Curve.Write',@1_path{'f:\'},@2_FileName{'MR_Benchmark_Curve.csv'})     'BuildConfirmation'
+Into
+    Macro
+From
+                serverdata s
+Where
+                s.srdnbr > 0
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+
+
+Select 
+	* 
+From 
+	Macro
+Where 
+	Process In ('Create File','Close File')
+

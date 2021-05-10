@@ -1,0 +1,50 @@
+[UDMC Templates]FObject:udmcFXDualBinaryBasketPayoff
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Payoff for FX dual binary option
+#
+# INTERPRETATION
+# An FX binary basket option with a knock-in barrier on each of the two underlying currencies.
+# The first underlying has an upper barrier and the second has a lower barrier.
+# The knock-in barriers are checked only at the expiration date.
+#
+# DEFINITION
+# relativeStrikes - Defines the barriers for each of the two currencies. 
+# 
+#--------------------------------------------
+
+# PARAMETERS
+param matrix(double) relativeStrikes;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double optionValue = 0.0;
+matrix(double) barrierRates = relativeStrikes;
+matrix(double) breachedRates = zeros(2,1);
+matrix(double) finalRates = zeros(2,1);
+matrix(double) ones = 1.0 + zeros(2,1);
+int breachedUpper = 0;
+int breachedLower = 0;
+int isBreached = 0;
+
+# MAIN LOOP
+
+finalRates = ones./S[:,0];
+
+breachedUpper = (finalRates[0]>barrierRates[0]);
+breachedLower = (finalRates[1]<barrierRates[1]);
+
+isBreached = breachedUpper + breachedLower;
+
+if (isBreached>=2) {
+    optionValue = 1.0;
+}
+else {
+    optionValue = 0.0;
+};
+
+cashFlow(0, optionValue);
+
+...

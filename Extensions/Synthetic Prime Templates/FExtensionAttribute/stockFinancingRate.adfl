@@ -1,0 +1,5 @@
+[Synthetic Prime Templates]FInstrumentAndTrades:stockFinancingRate = switch(unfundedCash >= 0.0, 
+  true->instrument:securitySpreadLong [adsPriceDate = profitAndLossEndDate], 
+  false->instrument:securitySpreadShort [adsPriceDate = profitAndLossEndDate]);
+[Synthetic Prime Templates]FLeg:stockFinancingRate = setDateTimePart(spreadFixingRowObject:stockFinancingRate [spreadFixingDate, spreadInstrument = instrument], spreadFixingDate);
+[Synthetic Prime Templates]FPortfolioInstrumentAndTrades:stockFinancingRate = denominatedvalue(0.0, nil, nil, spreadFixingDate);

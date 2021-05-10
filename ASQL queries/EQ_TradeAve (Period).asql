@@ -1,0 +1,24 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_TradeAve (Period)') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_TradeAve (Period)' and p.type = 'SQL Query' 
+ 
+  /*Create Ave Trade Levels for Instruments in a Port*/
+select
+        display_id(t,'prfnbr'),
+        i.insid                 'Inst',
+        avg(used_price(i))      'Spot',
+        avg(mtm_price(i,date_add_banking_day(@Date[today;today,yesterday],,-1)))'MTMB4',
+        sum(t.quantity)         'Qty',
+        sum(t.price*t.quantity)/sum(t.quantity) 'Ave',
+        sum(t.price*t.quantity)/100  'Value',
+        display_id(t,'optkey1_chlnbr'),
+        display_id(t,'optkey4_chlnbr')
+from    instrument          i,
+        trade               t
+where   i.insaddr=t.insaddr
+and     time_to_day(t.time)> @Date[today;today,yesterday]
+and     match_filter(t,@Filter{;'EQ_Arb_Baskets','EQ_SA_StockVol','EQ_SA_Opportunity','EQ_SA_RelativeVol','EQ_SA_Pairs'})
+group by 1,2,3

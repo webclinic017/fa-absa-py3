@@ -1,0 +1,6 @@
+[InternationalFutures]FInstrumentAndTrades:pswapClosingMarketValue = sumOf(children :* "pswapClosingMarketValue");
+[InternationalFutures]FSingleInstrumentAndTrades:pswapClosingMarketValue = select(isIntFutPortfolio, 
+  false->nil, 
+  true->select(instrumentType, 
+    "Deposit"->(object :* "profitAndLossPositionDisplay" [profitAndLossStartDate := longTimeAgo]).Number * closingPrice.Number * instrument:quotationFactor, 
+    default->PSwapMTMAsOf(instrument, fundingInstrument, profitAndLossEndDate)));

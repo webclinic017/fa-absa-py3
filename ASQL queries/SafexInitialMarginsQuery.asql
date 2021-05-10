@@ -1,0 +1,43 @@
+select
+    trd.trdnbr,ins.extern_id1
+from
+    Instrument ins,
+    Trade trd,
+    Portfolio prf
+where
+    prf.prfnbr = trd.prfnbr
+and
+    ins.insaddr = trd.insaddr
+and
+    prf.prfid in ('SBL - Index Flow',
+'SBL Alsi Trading Loans ACS',
+'SBL Delta One Loans ACS',          
+'SBL NS Risk Loans ACS',
+'SBL Arbitrage Baskets Loans ACS',
+'SBL Index Arb Loans ACS',
+'SBL Single Stock FC Loans ACS',
+'SBL Eq CFD Loans ACS',
+'SBL Structured Exotics',
+'SBL Single Stock Baskets ACS'
+)
+and
+    ins.instype = 'Deposit'
+and
+    ins.extern_id1 in ('ABLM',
+'AOPTS',
+'BARXX',
+'BOPTS',
+'D1ARB',
+'DELPR',
+'EXOTS',
+'FHENR',
+'FSWAP',
+'IARBF',
+'LEONS',
+'PROPT',
+'STLIB',
+'VOLPR',
+'48363'
+)
+and
+    trd.status not in ('Void','Terminated')

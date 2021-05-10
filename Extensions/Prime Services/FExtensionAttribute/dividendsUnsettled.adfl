@@ -1,0 +1,31 @@
+[Prime Services]FCashFlow:dividendsUnsettled = (currencyZAR:discountCurve).DiscountValue((-1.0) * denominatedvalue(shunt(object.PayDate > valuationDate, 
+  true->object.FixedAmount, 
+  default->0.0), object.Leg.Currency, "Dividends", object.PayDate), valuationDate);
+[Prime Services]FDividend:dividendsUnsettled = select(pLDividendComparisonMethod, 
+  "Acquire day vs record day"->shunt(trade.AcquireDay <= object.RecordDay, 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil), 
+  "Acquire day vs calc record day"->shunt(trade.AcquireDay < (object.ExDivDay + trade.Instrument.SpotBankingDaysOffset), 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil), 
+  default->shunt(trade.TradeTime < object.ExDivDay, 
+    true->denominatedvalue(object.Amount * trade.Quantity, object.Currency, "Dividends", object.PayDay), 
+    default->nil));
+[Prime Services]FInstrument:dividendsUnsettled = shunt(isCFDPSwap, 
+  true->sumOf(tradesInPosition :* "object.Quantity") * convertToCurrency(denominatedvalue(emptyListToZero(sumOf(legs :* "dividendsUnsettled")), displayCurrencySymbol, nil, valuationDate), currency:immediateOrSpotFxRate [fxToCurrency = accountingCurrency], displayCurrency), 
+  default->convertToCurrency(flattenAndRemoveNil(tradesInPosition :* "dividendsUnsettled" [includeAllTrades]), instrumentToDisplayFxRates, displayCurrencySymbol) + convertToCurrency(dividendsUnsettledAggregatedDividends, instrumentToDisplayFxRates, displayCurrencySymbol) + convertToCurrency(dividendsUnsettledDividendSuppression, instrumentToDisplayFxRates, displayCurrencySymbol));
+[Prime Services]FInstrumentAndTrades:dividendsUnsettled = sumOf(instruments :* "dividendsUnsettled" [positionObject, displayCurrency, includeAllTrades = false]);
+[Prime Services]FLeg:dividendsUnsettled = shunt(isCFDPSwap, 
+  true->shunt(legDescription, 
+    "Dividend"->denominatedvalue(emptyListToZero(sumOf((object.CashFlows) :* "dividendsUnsettled")), displayCurrency, nil, valuationDate), 
+    default->denominatedvalue(0, displayCurrency, nil, valuationDate)), 
+  default->instrument :* "dividendsUnsettled" [positionObject, displayCurrency, includeAllTrades = false]);
+[Prime Services]FLegAndTrades:dividendsUnsettled = shunt(isCFDPSwap, 
+  true->leg :* "dividendsUnsettled", 
+  default->instrument :* "dividendsUnsettled" [positionObject, displayCurrency, includeAllTrades = false]);
+[Prime Services]FMultiInstrumentAndTrades:dividendsUnsettled = sumOf(children :* "dividendsUnsettled");
+[Prime Services]FSingleInstrumentAndTrades:dividendsUnsettled = instrument :* "dividendsUnsettled" [positionObject, displayCurrency, includeAllTrades = false];
+[Prime Services]FTrade:dividendsUnsettled = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades], 
+  true->nil, 
+  default->(instrument:ACSLiveDividends) :* "dividendsUnsettled" [trade = object]);
+[Prime Services]FTradeRow:dividendsUnsettled = instrument :* "dividendsUnsettled" [singleTradePosition, displayCurrency, includeAllTrades = true];

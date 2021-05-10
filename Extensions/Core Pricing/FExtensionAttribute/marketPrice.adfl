@@ -1,0 +1,32 @@
+#grouping: aef base/price retrieval
+#grouping: risk factors/quoted market price
+
+[Core Pricing]FFxRate:marketPrice[marketPriceChoice, priceSource, priceFindingCurrencyRule, adsPriceCurrency, adsPriceDate, priceFindingIsCorrectDay] = fxSpotRate;
+[Core Pricing]FInstrument:marketPrice[marketPriceChoice, priceSource, priceFindingCurrencyRule, adsPriceCurrency, adsPriceDate, priceFindingIsCorrectDay] = select(marketPriceChoice, 
+  "Price Find"->marketPriceFind, 
+  "Bid"->marketPriceBid, 
+  "Ask"->marketPriceAsk, 
+  "Last"->marketPriceLast, 
+  "Settle"->marketPriceClose);
+[Core Pricing]FInstrumentAndTrades:marketPrice = instrument:marketPrice [marketPriceChoice, priceSource];
+[Core Pricing]FLeg:marketPrice = instrument:marketPrice [marketPriceChoice, priceSource];
+[Core Pricing]FMultiInstrumentAndTrades:marketPrice = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "marketPrice" [marketPriceChoice, priceSource]);
+[Core Pricing]FOrderBook:marketPrice[marketPriceChoice] = priceFeed:marketPrice [marketPriceChoice];
+[Core Pricing]FPriceAggregate:marketPrice = priceFeed:marketPrice [marketPriceChoice];
+[Core Pricing]FPriceFeed:marketPrice[marketPriceChoice] = select(marketPriceChoice, 
+  "Price Find"->marketPriceFind, 
+  "Bid"->collapse(pricingPriceFeedMarketPriceBid), 
+  "Ask"->collapse(pricingPriceFeedMarketPriceAsk), 
+  "Last"->(pricingPriceFeedMarketOrADS :* "marketPriceLast"), 
+  "Settle"->(pricingPriceFeedMarketOrADS :* "marketPriceClose"));
+[Core Pricing]FTradingInterface:marketPrice[marketPriceChoice] = select(marketPriceChoice, 
+  "Price Find"->marketPriceFind, 
+  "Bid"->collapse(pricingPriceFeedMarketPriceBid), 
+  "Ask"->collapse(pricingPriceFeedMarketPriceAsk), 
+  "Last"->(pricingPriceFeedMarketOrADS :* "marketPriceLast"), 
+  "Settle"->(pricingPriceFeedMarketOrADS :* "marketPriceClose"));
+[Core Pricing]FVolatilityPoint:marketPrice = select(volPointObject, 
+  nil->nil, 
+  default->volPointObject:marketPrice [marketPriceChoice]);

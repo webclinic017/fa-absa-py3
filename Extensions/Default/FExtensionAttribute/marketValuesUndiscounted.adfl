@@ -1,0 +1,4 @@
+[Default]FFuture:marketValuesUndiscounted = select(payContingent, 
+  true->contingentAdjustedValue(marketValuesUndiscountedInstrumentPart + valuesInType(positionValues, futureSettlementSymbol, false), underlying:creditCurveForContingentForwardValue, underlying:discountCurve, underlying:riskFreeDiscountCurve, valuationDate, true) + valuesNotInType(positionValues, futureSettlementSymbol, false), 
+  default->marketValuesUndiscountedInstrumentPart + positionValues);
+[Default]FInstrument:marketValuesUndiscounted = marketValuesUndiscountedInstrumentPart + positionValues;

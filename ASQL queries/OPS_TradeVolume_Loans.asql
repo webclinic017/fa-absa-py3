@@ -1,0 +1,134 @@
+/* update_method=0 */
+/*
+Purpose                 :[New KRI report for tracking trade volume for loans,PCG OPS]
+Department and Desk     :[PCG OPS]
+Requester:              :[Letitia Carboni]
+Developer               :[Edmore Chagwedera]
+CR Number               :CHG1000646776]
+
+ -- HISTORY --
+Date           CR               Requestor          Developer          Change
+----------------------------------------------------------------------------------------
+2018-07-10     CHG1000334621   Letitia Carboni     Edmore Chagwedera  New KRI report to track trade volume for Loans
+This query is executed by the OPS_TradeVolume.py module
+*/
+select
+    t.trdnbr                                'TrdNo',
+    time_to_day(t.time)                     'DealDate',
+    i.instype                               'Instrument',
+    i.exp_day                               'Expiry',
+    display_id(t,'prfnbr')                  'Portfolio',
+    display_id(t,'counterparty_ptynbr')     'Counterparty',
+    cp.type                                 'PartyType',
+    nominal_amount(t,,display_id(i,'curr')) 'Nominal',
+    present_value(t)                        'PresentValue',
+    display_id(i,'curr')                    'CCY',
+    display_id(t,'broker_ptynbr')           'Broker',
+    u.name                                  'Trader',
+    t.fee                                   'Fee',
+    t.status                                'Status',
+    display_id(t, 'acquirer_ptynbr')        'Acquirer',
+    1                                       'Volume'
+
+into
+    trds
+    
+from
+    trade t,
+    instrument i,
+    user u,
+	party cp,
+	party ap,
+	instrument c,
+	Portfolio  p
+
+where
+    t.insaddr = i.insaddr
+and cp.ptynbr = t.counterparty_ptynbr
+and t.prfnbr = p.prfnbr
+and ap.ptynbr = t.acquirer_ptynbr
+and c.insaddr = i.curr
+and u.usrnbr = t.trader_usrnbr
+and (time_to_day(t.time) >= @1_StartDate{}
+and time_to_day(t.time) <= @2_EndDate{})
+and display_id(t, 'acquirer_ptynbr') in ('PRIMARY MARKETS','UHAMBO')
+and t.status in ( 'BO Confirmed', 'BO-BO Confirmed','FO Confirmed','FO Sales','Terminated')
+	
+select
+    t.TrdNo,
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    t.Nominal,
+    t.PresentValue,
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    t.Fee,
+    t.Status,
+    t.Acquirer,
+    t.Volume
+    
+from
+    trds t
+    
+order by
+    t.Expiry
+
+
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+   t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by
+    t.Instrument
+    
+    
+union
+
+
+select
+    count(t.TrdNo),
+    t.DealDate,
+    t.Instrument,
+    t.Expiry,
+    t.Portfolio,
+    t.Counterparty,
+    t.PartyType,
+    sum(abs(t.Nominal)),
+    sum(t.PresentValue),
+    t.CCY,
+    t.Broker,
+    t.Trader,
+    sum(t.Fee),
+    t.Status,
+    t.Acquirer,
+    count(t.Volume)
+    
+from
+    trds t
+    
+group by t.CCY

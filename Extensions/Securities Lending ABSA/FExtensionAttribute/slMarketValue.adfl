@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FDeposit:slMarketValue = sumOf(tradesInPosition :* "regulatoryNotionalInDisplayCurrency" [displayCurrency = accountingCurrency, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FInstrument:slMarketValue = sumOf(tradesInPosition :* "slMarketValue" [displayCurrency = accountingCurrency, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FInstrumentAndTrades:slMarketValue = sumOf(trades :* "slMarketValue" [includeAllTrades = false, profitAndLossEndFXRates]);
+[Securities Lending ABSA]FTrade:slMarketValue = sobMarketValue;
+[Securities Lending ABSA]FTradeRow:slMarketValue = trade :* "slMarketValue" [includeAllTrades = true, profitAndLossEndFXRates];

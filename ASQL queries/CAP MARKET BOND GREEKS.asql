@@ -1,0 +1,49 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','CAP MARKET BOND GREEKS') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET BOND GREEKS' and p.type = 'SQL Query' 
+ 
+  select
+/*t.trdnbr,*/
+i.insid,
+display_id(t,'prfnbr'),
+nominal_amount(t) 'Position',
+@Day1{today} 'day1',
+date_add_banking_day(@Day1{today},,-1) 'Day-1',
+date_add_banking_day(@Day1{today},,3)'day1 +3',
+date_add_banking_day(@Day1{today},,2)'day-1 +3',
+mtm_price(i,@Day1{today}) 'Yield t',
+mtm_price(i,date_add_banking_day(@Day1{today},,-1)) 'Yield t-1',
+
+( Dirty_from_yield(i, date_add_banking_day(@Day1{today},,-1),,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))  )  + 0.5  )- 
+  Dirty_from_yield(i, date_add_banking_day(@Day1{today},,-1),,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))  )  - 0.5  )   ) / (0.5+0.5) 'Delta',
+  
+/*risk(t,'Theta',,2,,,,0,)            'Theta',*/
+
+(Dirty_from_yield(i, date_add_delta(date_add_banking_day(@Day1{today},,-1),1) ,,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))))  -
+Dirty_from_yield(i,                date_add_banking_day(@Day1{today},,-1)    ,,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1)))))* nominal_amount(t)/100 'Theta',
+
+pl_economic(t,,,0,@Day1{today},date_add_banking_day(@Day1{today},,-1),,,,1,0,1,,,)                      'P&L',
+
+nominal_amount(t) * /*risk(i,'Delta',,2,,,,0,)*/( Dirty_from_yield(i, date_add_banking_day(@Day1{today},,-1),,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))  )  + 0.5  )- 
+  Dirty_from_yield(i, date_add_banking_day(@Day1{today},,-1),,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))  )  - 0.5  )   ) / (0.5+0.5) * (mtm_price(i,@Day1{today}) - mtm_price(i,date_add_banking_day(@Day1{today},,-1)))/100 + 
+(Dirty_from_yield(i, date_add_delta(date_add_banking_day(@Day1{today},,-1),1) ,,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1))))  -
+Dirty_from_yield(i,                date_add_banking_day(@Day1{today},,-1)    ,,, (mtm_price(i,date_add_banking_day(@Day1{today},,-1)))))* nominal_amount(t)/100         'Attributed P&L' 
+
+ 
+
+from 
+
+trade t,
+instrument i
+
+where
+t.insaddr = i.insaddr
+
+and display_id(t,'prfnbr') = 'CD_CORPBONDS'
+and i.instype = 'Bond'
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+group by 1

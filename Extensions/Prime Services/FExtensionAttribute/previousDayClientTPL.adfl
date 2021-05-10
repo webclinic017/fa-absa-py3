@@ -1,0 +1,4 @@
+[Prime Services]FInstrumentAndTrades:previousDayClientTPL = sumOf(children :* "previousDayClientTPL");
+[Prime Services]FSingleInstrumentAndTrades:previousDayClientTPL = switch(instrumentType == "Portfolio Swap", 
+  true->0, 
+  default->py("PS_Functions", context).GetTPLValue(fundingInstrument, instrument, businessDayBeforePnLEndDate));

@@ -1,0 +1,14 @@
+[Default]FFuture:marketSpotPrice = select(payType, 
+  "Future"->select(dividendForecast, 
+    nil->marketPrice, 
+    default->shunt[priceSource](priceNeedsDividendAdjustment, 
+      true->timeShiftedFuturePrice, 
+      false->marketPrice)), 
+  default->marketPrice);
+[Default]FIndex:marketSpotPrice = shunt[priceSource](priceNeedsDividendAdjustment, 
+  true->timeShiftedSpotPrice, 
+  false->marketPrice);
+[Default]FInstrument:marketSpotPrice = marketPrice;
+[Default]FStock:marketSpotPrice = shunt[priceSource](priceNeedsDividendAdjustment, 
+  true->timeShiftedSpotPrice, 
+  false->marketPrice);

@@ -1,0 +1,48 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','GT_Prime_Trades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'GT_Prime_Trades' and p.type = 'SQL Query' 
+
+/* reflects all unexpired prime trades */
+
+select
+today'Today',
+t.trdnbr,
+i.insid,
+display_id(t,'counterparty_ptynbr')'cp',
+t.status,
+nominal_amount(t)'Nominal',
+present_value(t),
+
+i.exp_day,
+delta_implicit(t,,,,'ZAR'),
+
+ui.insid'index',
+display_id(t,'prfnbr')'portfolio',
+cl.entry'valuation group'
+
+
+
+
+from
+
+trade t,
+instrument i,
+instrument ui,
+leg l,
+choicelist cl
+
+where
+i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and l.float_rate=ui.insaddr
+and ui.insid in ('ZAR-PRIME','ZAR-PRIME-3M')
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and i.exp_day>Today
+
+and i.product_chlnbr=cl.seqnbr
+
+
+order by 11

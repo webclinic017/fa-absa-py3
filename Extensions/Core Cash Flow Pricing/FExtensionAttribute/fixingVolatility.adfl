@@ -1,0 +1,8 @@
+[Core Cash Flow Pricing]FAbstractReset:fixingVolatility = select(cashFlowInformation, 
+  nil->nil, 
+  default->select(fixingIsApplicableForVolatility, 
+    false->nil, 
+    true->cashFlowInformation:fixingVolatility [legInformation, fixingIndex]));
+[Core Cash Flow Pricing]FCashFlowInformation:fixingVolatility = select((volatilityInformation <> nil) and not needsReplicationOptionValuation, 
+  false->nil, 
+  default->object.FixingVolatility(legInformation, false, fixingIndex, valuationDate));

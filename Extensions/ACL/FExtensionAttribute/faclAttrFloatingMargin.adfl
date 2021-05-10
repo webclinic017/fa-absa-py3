@@ -1,0 +1,8 @@
+[ACL]FCashFlowInstrument:faclAttrFloatingMargin = select(object.FirstFloatLeg, 
+  nil->nil, 
+  default->object.FirstFloatLeg.Spread);
+[ACL]FInstrument:faclAttrFloatingMargin = nil;
+[ACL]FOption:faclAttrFloatingMargin = select(underlying, 
+  nil->nil, 
+  default->underlying:faclAttrFloatingMargin);
+[ACL]FTradeRow:faclAttrFloatingMargin = instrument:faclAttrFloatingMargin;

@@ -1,0 +1,5 @@
+[T3 Allocations]FInstrument:positionValueDiscounted = select(emptyListToZero(marketInstrumentPositionValues), 
+  0->denominatedvalue(0.0, displayCurrencySymbol, , valuationDate), 
+  default->discountAndConvertToCurrency(notANumberIsZero(denominatedvalue(stripDateTimePart(marketInstrumentPositionValues).Number, symbol(currency), , instrumentSpotDate)), instrumentDiscountCurves, valuationDate, instrumentToDisplayFxRates, displayCurrencySymbol));
+[T3 Allocations]FInstrumentAndTrades:positionValueDiscounted = stripDateTimePart(flattenAndRemoveNil(instruments :* "positionValueDiscounted" [positionObject, displayCurrency]));
+[T3 Allocations]FSingleInstrumentAndTrades:positionValueDiscounted = stripDateTimePart(instrument :* "positionValueDiscounted" [positionObject, displayCurrency]);

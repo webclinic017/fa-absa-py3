@@ -1,0 +1,125 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_MIDAS_TAP_CASH_RECON') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_MIDAS_TAP_CASH_RECON' and p.type = 'SQL Query' 
+
+/*
+Description:     Tap to Front daily cash recon file for the Consolidated Forwards Risk Project.
+Frequency:       Extracted Daily to reconcile Midas Legacy to Front Arena cash positions
+                 Extracted daily at the following interval:
+                 
+                 Front_Midas_Tap_Cash_yyyymmdd  - 04.00
+                                  
+                    
+                 File is automated and delivered to the following Server (FTP location): 
+                 UAT = Y:\Ldn\Apps\ImatchUAT\FTP\INTRANET\sysImatchFTPUAT\FrontArena
+
+
+Developer:          Kim Madeley, Hein Momberg
+CR Number:          CR71696    - Update script to include payments on instrument type Curr
+
+
+
+*/
+
+select
+
+t.trdnbr,
+display_id(t,'Curr')                                                                                'Currency',
+t.value_day                                                                                         'VALDAT',
+round(t.premium,2)                                                                                  'CurrencyAmount',
+ael_s(,'SAGEN_str_functions.split_string',display_id(t,'prfnbr'), '_', 1)  'Desk',
+to_date(today) = TO_DATE(FIRSTDAYOFWEEK) ? date_add_delta(to_date(today),-3,0,0) : date_add_delta(to_date(today),-1,0,0)  'Date'
+
+into temp
+
+from
+
+    trade t, 
+    instrument i
+    
+where
+
+    i.insaddr = t.insaddr    
+and i.instype = 'Curr'
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day <= to_date(@3_ReportDate{yesterday})
+
+/*and t.optional_key like '%394940%'*/
+
+
+/*  Select Trade Details - Second leg of FXcash*/
+
+select
+
+t.trdnbr,
+
+display_id(i,'Curr')                                                    'Currency',
+
+t.value_day                                                             'VALDAT',
+
+round(t.quantity,2)                                                     'CurrencyAmount',
+ael_s(,'SAGEN_str_functions.split_string',display_id(t,'prfnbr'), '_', 1)  'Desk',
+to_date(today) = TO_DATE(FIRSTDAYOFWEEK) ? date_add_delta(to_date(today),-3,0,0) : date_add_delta(to_date(today),-1,0,0)  'Date'
+
+into temp
+
+from
+
+    trade t, 
+    instrument i
+    
+where
+
+    i.insaddr = t.insaddr    
+and i.instype = 'Curr'
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day <= to_date(@3_ReportDate{yesterday})
+
+/*and t.optional_key like '%394940%'*/
+
+select
+
+t.trdnbr,
+display_id(p,'Curr')                                                                                'Currency',
+p.payday                                                                                           'VALDAT',
+round(p.amount,2)                                                                                  'CurrencyAmount',
+ael_s(,'SAGEN_str_functions.split_string',display_id(t,'prfnbr'), '_', 1)       'Desk',
+to_date(today) = TO_DATE(FIRSTDAYOFWEEK) ? date_add_delta(to_date(today),-3,0,0) : date_add_delta(to_date(today),-1,0,0)  'Date'
+
+into temp
+
+from
+
+    trade t, 
+    instrument i, 
+    payment p
+    
+where
+
+    i.insaddr = t.insaddr
+and t.trdnbr = p.trdnbr    
+and i.instype in ('Deposit', 'Swap','Curr')
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and p.payday <= to_date(@3_ReportDate{yesterday})
+
+
+
+select 
+Date  'GRGD10',
+Desk  'DCDESK',
+Currency = 'MZM' ? 'MZN' : Currency 'DCCCY',
+sum(CurrencyAmount) 'DCAMT'
+
+from
+
+temp
+
+group by 1,2,3
+
+
+
+
+

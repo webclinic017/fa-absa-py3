@@ -1,0 +1,12 @@
+[Default]FASQLQuery:TTBS_CombinationInstruments
+/* query Combination Instruments 
+*/
+select m.insid 'Instrument        ', m.instype 'Type   ', c.insid 'Cur', m.fix_fx_rate 'Fix rate',
+          cl.weight 'Weight', cl.default_date 'Def. date ',cl.recovery_rate 'Recovery rate',cl.restructuring_type 'Restructuring type'
+  from CombinationLink cl, Instrument m, Instrument o, Instrument c
+ where o.insid = @insid{ANY}
+   and cl.owner_insaddr = o.insaddr
+   and m.insaddr = cl.member_insaddr
+   and c.insaddr = m.curr
+   and c.instype = 'Curr'
+...

@@ -1,0 +1,35 @@
+[Fixed Income Pricing and Risk]FAssetMortgageBackedSecurity:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FBill:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FCashFlowMoneyFlow:faceNominalDisplay = nil;
+[Fixed Income Pricing and Risk]FCln:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FConvertible:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FDeposit:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FDualCurrencyBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FFlexiBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FFrn:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FFuture:faceNominalDisplay = select(underlying.Category, 
+  "Currency"->0.0, 
+  "FxRate"->0.0, 
+  default->riskPositionDisplay);
+[Fixed Income Pricing and Risk]FIndexLinkedBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FInstrument:faceNominalDisplay = 0;
+[Fixed Income Pricing and Risk]FLegAndTrades:faceNominalDisplay = nil;
+[Fixed Income Pricing and Risk]FMoneyFlowAndTrades:faceNominalDisplay = nil;
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:faceNominalDisplay = select(dispPosOnMultiRow, 
+  true->sumOf(openInstruments :* "double(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]), 
+  default->select(instrumentGroupingReferenceRow, 
+    nil->nil, 
+    default->instrumentGroupingReferenceRow :* "collapse(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]));
+[Fixed Income Pricing and Risk]FMultiMoneyFlowAndTrades:faceNominalDisplay = switch(count(sumOf(moneyFlows :* "faceNominalDisplay")) == 1, 
+  true->sumOf(moneyFlows :* "faceNominalDisplay"), 
+  false->nil);
+[Fixed Income Pricing and Risk]FPromisLoan:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FResetAndTrades:faceNominalDisplay = nil;
+[Fixed Income Pricing and Risk]FSingleInstrumentAndTrades:faceNominalDisplay = shunt(isZeroRiskPosition, 
+  true->0, 
+  false->openInstrumentOrInstrument :* "collapse(faceNominalDisplay)" [positionObject, displayCurrency, filterUnit]);
+[Fixed Income Pricing and Risk]FStock:faceNominalDisplay = object.ContractSize;
+[Fixed Income Pricing and Risk]FSwap:faceNominalDisplay = riskPositionDisplayWithNoAmortization;
+[Fixed Income Pricing and Risk]FTradeRow:faceNominalDisplay = instrument :* "faceNominalDisplay" [displayCurrency, filterUnit, singleTradePosition, includeAllTrades];
+[Fixed Income Pricing and Risk]FZeroBond:faceNominalDisplay = riskPositionDisplayWithNoAmortization;

@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrument:slSettlementDate = slDateFormatter.Format(object.StartDate);
+[Securities Lending ABSA]FPortfolioInstrumentAndTrades:slSettlementDate = select(count(children) == 1, 
+  true->(children.At(0)) :* "slSettlementDate" [slDateFormat], 
+  false->nil);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slSettlementDate = instrument:slSettlementDate [slDateFormat];
+[Securities Lending ABSA]FTrade:slSettlementDate = slDateFormatter.Format(object.ValueDay);
+[Securities Lending ABSA]FTradeRow:slSettlementDate = trade :* "slSettlementDate" [slDateFormat];

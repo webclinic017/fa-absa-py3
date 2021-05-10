@@ -1,0 +1,7 @@
+[ACL]FCurrencySwap:faclAttrPayCurrency = select(faclPayLeg, 
+  nil->nil, 
+  default->faclPayLeg.Currency.Name);
+[ACL]FInstrument:faclAttrPayCurrency = nil;
+[ACL]FTradeRow:faclAttrPayCurrency = select(trade.Quantity * instrument:contractSize > 0, 
+  true->instrument:faclAttrPayCurrency, 
+  false->instrument:faclAttrReceiveCurrency);

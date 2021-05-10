@@ -1,0 +1,15 @@
+[Core Cash Flow Pricing]FAbstractReset:fixingValue = select(cashFlow:legIsGenericZeroCouponFixed and (object.ResetType == "Compound"), 
+  true->100 * double(instrument:parCoupon), 
+  default->select(object.ResetType, 
+    "Total Cash Flow"->totalCashflowFixingValue * leg:payLegFactor, 
+    default->resetFixingValueOut));
+[Core Cash Flow Pricing]FCashFlowInformation:fixingValue = select(count(fixingValues), 
+  1->fixingValues[0], 
+  default->fixingValues);
+[Core Cash Flow Pricing]FMoneyFlowAndTrades:fixingValue = nil;
+[Core Cash Flow Pricing]FResetMoneyFlow:fixingValue = reset :* "fixingValue";
+[Core Cash Flow Pricing]FStubResetEstimation:fixingValue = select(doStubEstimation, 
+  false->nil, 
+  true->shunt(estimateFixingValue, 
+    false->fixingValueFromFixingMethod, 
+    true->fixingValueEstimated));

@@ -1,0 +1,7 @@
+[Default]FInstrumentAndTrades:nominalAmountForStandardCalculationsAtNominalDate = shunt(isOpenPosition, 
+  true->select(firstTrade.TradeCategory == "Collateral", 
+    true->firstTrade.Quantity * instrument:contractSize * normalizedNominalValue, 
+    false->select(instrument:isFxRate, 
+      true->convertToCurrency(instrument :* "positionProjectedPayments" [positionObject, singleTradePosition, valuationOrSpotDate = valuationDate], 1.0, nominalAmountFilterUnit, nominalAmountFilterUnit), 
+      false->nominalAmount)), 
+  false->plZero);

@@ -1,0 +1,7 @@
+[ABSA Specific 4.3]FInstrument:pricingYTM = select(object.Quotation, 
+  "Yield"->select(object.MtmFromFeed, 
+    true->marketPrice, 
+    false->theoreticalYieldToMaturity * 100), 
+  default->nil);
+[ABSA Specific 4.3]FInstrumentAndTrades:pricingYTM = instrument:pricingYTM;
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:pricingYTM = nil;

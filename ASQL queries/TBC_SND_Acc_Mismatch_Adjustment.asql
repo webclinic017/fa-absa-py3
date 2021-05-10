@@ -1,0 +1,117 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TBC_SND_Acc_Mismatch_Adjustment') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TBC_SND_Acc_Mismatch_Adjustment' and p.type = 'SQL Query' 
+ 
+  /* update_method=1 */
+select
+t.trdnbr 'Trade_Nbr',
+i.instype 'Instype',
+i.insid   'Insid',
+
+
+/*t.price 'tradePrice',
+l.fixed_rate 'leg fixedrate',
+refi.insid 'FloatRef1',
+l.spread 'Spread1',/*
+ref2i.insid 'Float Ref2',
+l.spread2 'spread2',*/
+
+/*l.rolling_period.count 'Rolling',
+l.rolling_period.unit 'Rolling unit',*/
+
+
+
+
+/*i.start_day'inst start',
+t.value_day 'trd valueday',
+i.exp_day,*/
+
+t.trx_trdnbr 'TransRef',
+it.instype   'Transref Instype',
+display_id(t,'prfnbr') 'Portfolio',
+
+/*nominal_amount(t,t.value_day)	'OriginalNominal',
+nominal_amount(t,@4_EndDate{yesterday})		'CurrentNominal',*/
+
+
+
+
+display_id(i,'product_chlnbr')'Val_Group',
+display_id(t,'counterparty_ptynbr') 'Cpty',
+/*t.optional_key 'BO_ExtId',*/
+
+ael_f(l,'dirk_utils.current_nominal_leg',to_date(@4_EndDate{yesterday})) * t.quantity 'Current Nom',
+
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')   'Cash Start',
+accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None')     'Cash End',
+accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None')  - 
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')   'Cash',
+
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1)                  'Val Start',
+mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)                    'Val End',
+mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)  - 
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1)                  'Val',
+
+(accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None') - 
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')) +
+(mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)  - 
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1))                 'TPL',
+
+
+
+interest_accrued(t,,@4_EndDate{yesterday},'ZAR',,) - interest_accrued(t,to_date('1970-01-01'), @3_StartDate{2006-12-31},'ZAR',,) 'Accrued Interest',
+interest_settled(t,@3_StartDate{2006-12-31},@4_EndDate{yesterday},'ZAR',,) 'Settled Interest',
+
+interest_accrued(t,,@4_EndDate{yesterday}/*,'ZAR',,*/) - interest_accrued(t,to_date('1970-01-01'), @3_StartDate{2006-12-31}/*,'ZAR',,*/) + 
+interest_settled(t,@3_StartDate{2006-12-31},@4_EndDate{yesterday},'ZAR',,) 'Interest/Total Accrual',
+
+
+
+
+/*(-1*t.premium) + interest_accrued(t,@3_StartDate{2006-12-31},@4_EndDate{yesterday},'ZAR',,) 'book value = prem + acrrued',*/
+
+/*
+mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1) - 
+((-1*t.premium) + interest_accrued(t,'2007-01-01','2007-06-11','ZAR',,)) 'val_BookVal Diff'
+*/
+/*mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1) - 
+((ael_f(l,'dirk_utils.current_nominal_leg',to_date(@4_EndDate{yesterday})) * t.quantity) + interest_accrued(t,,@4_EndDate{yesterday},'ZAR',,) - interest_accrued(t,to_date('1970-01-01'), @3_StartDate{2006-12-31},'ZAR',,)) 'AccMis BS Value RepDate'*/
+
+interest_accrued(t,,@4_EndDate{yesterday}/*,'ZAR',,*/) - interest_accrued(t,to_date('1970-01-01'), @3_StartDate{2006-12-31}/*,'ZAR',,*/) + 
+interest_settled(t,@3_StartDate{2006-12-31},@4_EndDate{yesterday},'ZAR',,)
+ -
+((accumulated_cash(t, @4_EndDate{yesterday}, 'ZAR', 2, 0, , 1, 'None') - 
+accumulated_cash(t, @3_StartDate{2006-12-31}, 'ZAR', 2, 0, , 1, 'None')) +
+(mtm_value_fo(t,@4_EndDate{yesterday}, 'ZAR', 2, 0, 1)  - 
+mtm_value_fo(t,@3_StartDate{2006-12-31}, 'ZAR', 2, 0, 1)) )               'Interest - TPL / Period Adjustment',
+
+@3_StartDate{2006-12-31} 'Start Date',
+@4_EndDate{yesterday} 'End Date'
+
+
+from 
+trade t,
+instrument i,
+trade tr,
+instrument it,
+/*instrument refi,
+instrument ref2i,*/
+leg l
+
+where 
+
+i.insaddr = t.insaddr
+and i.insaddr *= l.insaddr 
+/*and refi.insaddr =* l.float_rate */
+/*and ref2i.insaddr =* l.float_rate2*/
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.status not in ('Void','Terminated','Simulated')
+and i.exp_day > @3_StartDate{yesterday}
+and tr.trdnbr =t.trx_trdnbr
+and it.insaddr = tr.insaddr
+
+
+

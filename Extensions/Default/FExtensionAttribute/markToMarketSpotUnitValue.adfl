@@ -1,0 +1,6 @@
+[Default]FCreditDefaultSwap:markToMarketSpotUnitValue = select(isBook, 
+  true->setDateTime(collapse(markToMarketSpotUnitValueForValueDay), object.CDSEffectiveOrStartDate(date(markToMarketPrice))), 
+  false->moneyMarketCurve.DiscountValue(markToMarketSpotUnitValueForValueDay, instrumentSpotDate));
+[Default]FInstrument:markToMarketSpotUnitValue = select(payTypeFuture, 
+  true->setDateTime(collapse(markToMarketSpotUnitValueForValueDay), instrumentSpotDate), 
+  false->collapse(markToMarketSpotUnitValueForValueDay));

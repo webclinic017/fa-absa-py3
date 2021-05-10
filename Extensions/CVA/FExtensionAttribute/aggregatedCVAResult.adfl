@@ -1,0 +1,9 @@
+[CVA]FCreditBalance:aggregatedCVAResult = select(wrongWayRiskAdjustmentInAggregatedCVA, 
+  true->select(cvaCalculationType, 
+    "CVA"->theoreticalModelCallCVAWrongWayRiskAdjustment, 
+    "DVA"->theoreticalModelCallDVAWrongWayRiskAdjustment, 
+    "Bilateral CVA"->theoreticalModelCallBilateralCVAWrongWayRiskAdjustment), 
+  false->select(cvaCalculationType, 
+    "CVA"->theoreticalModelCallCVA, 
+    "DVA"->theoreticalModelCallDVA, 
+    "Bilateral CVA"->theoreticalModelCallBilateralCVA));

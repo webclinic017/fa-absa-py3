@@ -1,0 +1,6 @@
+[ABSA Greeks 4.3]FInstrumentAndTrades:hedgePriceDeltaPercentValues = select(isSettled, 
+  true->spotHandlingZero, 
+  false->shunt(isZeroRiskPosition, 
+    true->spotHandlingZero, 
+    false->sumOf(instrument :* "hedgePriceDeltaPercentValue" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceDeltaDiscountCurves, displayDate, displayCurrencySymbol, filterUnit]) + hedgePriceDeltaPercentTradeAdjustment));
+[ABSA Greeks 4.3]FMultiInstrumentAndTrades:hedgePriceDeltaPercentValues = sumOf(openInstruments :* "hedgePriceDeltaPercentValue" [isSplitAllGrouped, priceSource, positionObject, priceGreekIncludeVolatilityMovement, priceGreekShiftSizeOverride, priceGreekDifferenceForm, priceGreekShiftFilter, priceDeltaDiscountCurves, displayDate, displayCurrencySymbol, filterUnit]) + hedgePriceDeltaPercentTradeAdjustment;

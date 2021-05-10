@@ -1,0 +1,9 @@
+[ACL]FCurrencySwap:faclAttrPrincipalExchange = select(faclPayLeg.NominalAtStart, 
+  true->select(faclPayLeg.NominalAtEnd, 
+    true->"Start+Maturity", 
+    default->"Start"), 
+  default->select(faclPayLeg.NominalAtEnd, 
+    true->"Maturity", 
+    default->"None"));
+[ACL]FInstrument:faclAttrPrincipalExchange = nil;
+[ACL]FTradeRow:faclAttrPrincipalExchange = instrument:faclAttrPrincipalExchange;

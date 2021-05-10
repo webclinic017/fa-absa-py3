@@ -1,0 +1,133 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_SpotRates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_SpotRates' and p.type = 'SQL Query' 
+
+/*Sjane vd Straaten 2006-10-20 :  Daily spot rates per currency pair
+Sjane Crowder 2008-02-12:  Add CAD*/
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    to_string(i.insid,'-',display_id(p, 'Curr'))    'CurrPair',
+    p.settle                                        'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c,
+    party party,
+    lastprice p
+ 
+where
+    i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and p.curr = c.insaddr
+and i.instype = 'Curr'
+and i.insid in ('AUD','EUR','GBP','USD','XAU','CAD','NZD','TRY')
+and c.insid in ('USD','ZAR','CHF','JPY','CAD','KES','TRY')
+and to_string(i.insid,display_id(p, 'Curr')) not in ('USDZAR','USDUSD')
+
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    i.insid = 'USD' ? to_string(display_id(p, 'Curr'),'-','ZAR') : to_string(i.insid,'-','ZAR')  'CurrPair',
+    i.insid = 'USD' ? spot_price(c,'ZAR',1) : spot_price(i,'ZAR',1)       'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c,
+    party party,
+    lastprice p
+ 
+where
+    i.insaddr=p.insaddr
+and p.ptynbr=party.ptynbr
+and party.ptyid='SPOT'
+and p.curr = c.insaddr
+and i.instype = 'Curr'
+and i.insid in ('AUD','EUR','GBP','USD','XAU','CAD','NZD','TRY')
+and c.insid in ('USD','ZAR','CHF','JPY','CAD','KES','TRY')
+and to_string(i.insid,display_id(p, 'Curr')) ~= 'USDZAR'
+
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    to_string('TRY','-','JPY')  'CurrPair',
+    used_price(i,Today,'JPY')      'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c
+    
+ 
+where
+    i.insid='TRY'
+and c.insid = 'JPY'
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    to_string('ZAR','-','ZMK')  'CurrPair',
+    used_price(i,Today,'ZMK')      'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c
+    
+ 
+where
+    i.insid='ZAR'
+and c.insid = 'ZMK'
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    to_string('ZAR','-','ZMW')  'CurrPair',
+    used_price(i,Today,'ZMW')      'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c
+    
+ 
+where
+    i.insid='ZAR'
+and c.insid = 'ZMW'
+
+select
+ date_add_banking_day(Today,,0)                  'RepDay',
+    to_string('JPY','-','CHF')  'CurrPair',
+    used_price(i,Today,'CHF')      'Spot'
+     
+into temp
+ 
+from
+    instrument i,
+    instrument c
+    
+ 
+where
+    i.insid='JPY'
+and c.insid = 'CHF'
+
+
+select 
+    t.RepDay,
+    t.CurrPair,
+    t.Spot
+        
+from
+    temp t
+    
+order by 1
+

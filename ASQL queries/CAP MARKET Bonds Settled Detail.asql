@@ -1,0 +1,139 @@
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','CAP MARKET Bonds Settled Detail') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'CAP MARKET Bonds Settled Detail' and p.type = 'SQL Query' 
+ */
+
+
+/*----------SET UP------------------*/
+select
+s.srdnbr,
+/*date_add_banking_day('2004-04-01',,0)'YE',*/
+date_add_banking_day(Today,,3)'vdate'
+into
+temp
+from
+serverdata s
+
+
+/*----------------------------current settled bonds--------------*/
+select
+
+p.prfid'prfid',
+display_id(i,'issuer_ptynbr')	'Issuer',
+i.extern_id1'insid',
+t.trdnbr,
+t.value_day,
+(t.quantity*1000000)'Nominal',
+sum(tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))'Capital_Value',
+sum(tt.vdate>=i.exp_day ? 0 :((Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))-((Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))'Acc_Int_MtM',
+sum(tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)'Dirty_MtM',
+sum((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))'Capital_Amount',
+sum((t.premium)-((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1)))'Acc_Int_Trade',
+sum(t.premium)'Consideration',
+sum(((tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))+(((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))'Cap_PL',
+sum(((((tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+(t.premium)))-((((tt.vdate>=i.exp_day ? t.quantity*1000000 : (Clean_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000)))+(((Clean_from_yield(i,t.value_day,,,t.price)*t.quantity*10000*-1))))))'Int_PL',
+sum(((tt.vdate>=i.exp_day ? t.quantity*1000000 : Dirty_from_yield(i,tt.vdate,,,mtm_price(i,@upto{Today;}))*t.quantity*10000))+(t.premium))'PL',
+sum(t.value_day = @upto{Today;} ? 0 :((Dirty_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;})) - Clean_from_yield(i,@upto{Today;},,,mtm_price(i,@upto{Today;}))) - (Dirty_from_yield(i,(date_add_delta(@upto{Today;},-1,0,0)),,,mtm_price(i,@upto{Today;})) - Clean_from_yield(i,(date_add_delta(@upto{Today;},-1,0,0)),,,mtm_price(i,@upto{Today;})))) * t.quantity * 10000)    'DAYINT'
+
+into
+settled
+
+from
+instrument i,
+trade t,
+portfolio p,
+temp tt
+
+where
+
+
+i.insaddr=t.insaddr
+and t.prfnbr=p.prfnbr
+and i.instype in ('Bond','IndexLinkedBond')
+and t.status not in('Void','Terminated','Reserved','Simulated')
+and t.value_day<=@upto{Today;}
+and time_to_day(t.time)<= @upto{Today;}    
+and p.prfid not in ('9803AFS','9803HFT','9803CARRIES','ABS2','SF Carries And Repos','SPV1','SPV2','SPV3','SPV4') 
+and i.exp_day >= @upto{Today;}
+
+
+
+/*-----------------resultant query--------------*/
+
+select
+@upto{Today;}'Today',
+t2.prfid,
+t2.Issuer,
+'Yes' ? t2.insid : '' 'insid' ,
+'YES' ? t2.trdnbr : '' 'Trade_No',
+'YES' ? t2.value_day : '' 'Settlement_Date',
+t2.Nominal'Nominal',
+t2.Capital_Value,
+t2.Acc_Int_MtM,
+t2.Dirty_MtM,
+t2.Capital_Amount,
+t2.Acc_Int_Trade,
+t2.Consideration,
+t2.Cap_PL,
+t2.Int_PL,
+t2.PL,
+t2.DAYINT
+
+from
+settled t2
+
+union
+
+
+select
+@upto{Today;}'Today',
+t2.prfid,
+'' 'Issuer',
+'T/A',
+'Sub_Total_By_Trade_Area' /*t2.trdnbr*/,
+ '' 'Settlement_Date',
+sum(t2.Nominal)'Nominal',
+sum(t2.Capital_Value),
+sum(t2.Acc_Int_MtM),
+sum(t2.Dirty_MtM),
+sum(t2.Capital_Amount),
+sum(t2.Acc_Int_Trade),
+sum(t2.Consideration),
+sum(t2.Cap_PL),
+sum(t2.Int_PL),
+sum(t2.PL),
+sum(t2.DAYINT)
+
+from
+settled t2
+
+group by t2.prfid
+
+union
+
+select
+@upto{Today;}'Today',
+t2.prfid,
+'' 'Issuer',
+'Total',
+'TOTAL' /*t2.trdnbr*/,
+ '' 'Settlement_Date',
+sum(t2.Nominal)'Nominal',
+sum(t2.Capital_Value),
+sum(t2.Acc_Int_MtM),
+sum(t2.Dirty_MtM),
+sum(t2.Capital_Amount),
+sum(t2.Acc_Int_Trade),
+sum(t2.Consideration),
+sum(t2.Cap_PL),
+sum(t2.Int_PL),
+sum(t2.PL),
+sum(t2.DAYINT)
+
+from
+settled t2
+
+group by 1

@@ -1,0 +1,5 @@
+[CVA]FCreditBalance:incrementalCVA = -theoreticalModelCallCVA + theoreticalModelCallCVAWithIncrementalTrades;
+[CVA]FTrade:incrementalCVA = switch(nil == matchingCreditBalanceInstrument, 
+  true->throwError("No matching Credit Balance instrument found."), 
+  false->matchingCreditBalanceInstrument :* "incrementalCVA" [incTrds := incrementalTrdsList]);
+[CVA]FTradeRow:incrementalCVA = trade:incrementalCVA;

@@ -1,0 +1,131 @@
+/*
+Project                 : Client Valuation 
+Purpose                 : Added the following fields for the Client Val: Underlying_Expiry, SEDOL, Underlying_Fwd_Price and StartDate.   
+                           
+Department and Desk     : IT - CTB Primary Markets 
+Requester               : Phil Ledwaba
+Developer               : Tshepo Mabena
+CR Number               : 829680 
+*/
+
+/* Usage code for this ASQL */
+/*select
+ael_i(p,'ASQL_log','LandingArea_Stocks_Delta') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'LandingArea_Stocks_Delta' and p.type = 'SQL Query' */
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+SELECT
+	bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding') 	                                'RepDay',
+		
+    ael_s(,'CheckFirstofWeek', bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding')) = 'YES'
+        ? date_add_delta(bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding'), -2, 0, 0) 
+        : bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding')                              'D1',
+        
+	date_add_banking_day(bankday_adjust(@3_ReportDate{today}, 'ZAR', 'Preceding'), 'ZAR', -1)   'PrevRepDay',
+	
+	to_date(@4_YearEndDate{2009-12-31;})					                                    'YE'        
+        
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+
+
+
+
+
+/*--------------------------------------------------------------------------
+   Selecting base data into the 'result' temp table - ZAR
+----------------------------------------------------------------------------*/
+SELECT distinct    
+	t.trdnbr,
+	t.optional_key						                                                                'ExternalSystemRef',
+	i.insaddr				                                                                            'Insaddr',
+	i.insid                                                                                             'Instrument_ID',
+	display_id(t, 'acquirer_ptynbr')			                                                        'Desk',
+	t.your_ref                                                                                          'CptyRef',
+    t.acquire_day				                                                                        'Acquire_Date',	
+	t.creat_time				                                                                        'Create_Date_Time',
+	t.creat_usrnbr				                                                                        'Created_By',
+	t.updat_usrnbr				                                                                        'Updated_By',
+	i.curr					                                                                            'Currency',
+	t.fee					                                                                            'Fee',
+	t.guarantor_ptynbr			                                                                        'Gaurantor',
+	t.hedge_trdnbr				                                                                        'Hedge_Trade_no',
+	t.bo_trdnbr				                                                                            'Opening_BO_TradeNo',
+	t.price					                                                                            'Price',
+	t.quantity				                                                                            'Quantity',
+	t.time					                                                                            'Trade_Date_and_Time',
+	t.trader_usrnbr				                                                                        'Trader',
+	t.value_day				                                                                            'Value_date',	
+	t.status = 'BO Confirmed' ? 'BO Confirmed' : t.status							                    'Status',
+    t.quantity                                                                                          'Position',
+	t.quantity                                                                                          'Nominal',
+	t.quantity                                                                                          'ZARNominal',
+	t.premium                                                                                           'Premium',
+    i.issuer_ptynbr				                                                                        'IssuerPtynbr',
+
+	1.0							                                                                        'FXRepDay',
+	1.0							                                                                        'FXYE',
+    m.RepDay							                                                                'RepDay',
+    (t.quantity < 0 ? 0 : t.premium)		                                                            'PurchaseAmount',
+	(t.quantity < 0 ? t.premium : 0)		                                                            'SaleAmount',
+	t.broker_ptynbr			                                                                            'BrokerPtynbr',
+	t.prfnbr			                                                                                'PortfolioNumber',
+	t.counterparty_ptynbr		                                                                        'CptyNbr',
+    (t.quantity < 0 ? '' : i.curr)                                                                      'PurchaseCurrNbr',
+	(t.quantity < 0 ? i.curr : '')	                                                                    'SaleCurrNbr',
+
+    i.isin,
+	t.updat_time,    
+
+    (i.insid = 'ZAR/GLD' ? add_info(i,'DiscountFactor') : 0.0)		                                    'Coupon',
+    /*(nominal_amount(t, t.value_day) + t.premium) / (days_between(t.value_day, i.exp_day, 'Act/365'))*/
+    t.quantity + t.premium                                                                              'Daily_Pull_to_Par',
+	/*t.value_day > m.YE 
+        ? days_between(t.value_day, m.RepDay, 'Act/365')
+        : days_between(m.YE, m.RepDay, 'Act/365')*/	
+    1                                                                                                   'AccIntDays',
+
+	t.quantity * t.price                                                                                'Notional_Amount',
+	t.quantity >= 0 ? 'Buy' : 'Sell'	                                                                'BuySell',
+	
+    (display_id(t, 'prfnbr') = '4440798' or display_id(t, 'prfnbr') = '4440806') 
+        ?  abs(t.quantity) * t.price * 0.000175 / 100 
+        :  t.sales_credit                                                                               'SalesCredit',
+	display_id(t,'sales_person_usrnbr')                                                                 'SalesPerson',
+    add_info(t,'Sales_Credit2')                                                                         'SalesCredit2',
+    add_info(t,'Sales_Credit3')                                                                         'SalesCredit3',
+    add_info(t,'Sales_Person2')                                                                         'SalesPerson2',
+    add_info(t,'Sales_Person3')                                                                         'SalesPerson3',
+    
+    add_info(t, 'SND_Trade_Type')                                                                       'SND_Trade_Type',
+    t.trx_trdnbr                                                                                        'Trans_Ref',
+    0.0                                                                                                 'Repo_Exposure',
+    ael_s(,'SAIT_LandingArea_Functions.GNA_Asset_Code', i.insaddr)  'SEDOL',
+    /*add_info(i, 'SEDOL')                                                                                'SEDOL',*/
+    t.time                                                                                              'StartDate'    
+    /*(t.price - used_price(t, m.RepDay, curr.insid,,, 'SPOT')) 
+        * nominal_amount(t,m.repday,curr.insid)   'Repo_Exposure'*/   
+    
+    
+FROM
+	trade		t,
+	instrument	i,
+	macros		m
+
+WHERE
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.insaddr = i.insaddr
+and i.instype = 'Stock'
+and i.curr = 2
+and time_to_day(t.updat_time) >= m.D1
+/*and time_to_day(t.updat_time) = m.RepDay*/
+
+

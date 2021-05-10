@@ -1,0 +1,7 @@
+#grouping: risk factors/utilization factor
+
+[Securities Lending]FInstrument:utilizationFactor = ref(1.0);
+[Securities Lending]FInstrumentAndTrades:utilizationFactor = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->snoop01(securityLoanProjectedPV, "utilizationFactor", instrumentGroupingReference));
+[Securities Lending]FPortfolioInstrumentAndTrades:utilizationFactor = nil;

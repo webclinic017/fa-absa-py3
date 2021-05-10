@@ -1,0 +1,105 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SANLD_FUTURE_RESETS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SANLD_FUTURE_RESETS' and p.type = 'SQL Query' 
+select  distinct
+  t.trdnbr 'TradeNo',
+  present_value(t)	'PV',
+p.prfid,
+    i.insid   'Instrument',
+  r.resnbr  'ResNbr',
+  r.day     'ResetDay',
+  fr.insid  'RateIndex',
+  used_price(fr)	'Current',
+  t.quantity	'Nominal',
+  i.instype in ('Cap','Floor') ? l.strike : l.fixed_rate	'Strike',
+  r.value   'Value',
+  c.spread  'Spread',
+  r.read_time   'FixTime',
+  display_id(t,'counterparty_ptynbr')                   'Counterparty',
+ r.resnbr  'ResNbr',
+  r.type    'ResetType'
+from
+  reset r,
+  cashflow c,
+  leg l,
+  instrument i,
+  instrument fr,
+  trade t,
+  portfolio p
+where
+ 
+
+
+p.prfid=@Portfolio{NLDO;portfolio.prfid}
+
+and t.prfnbr=p.prfnbr
+
+/*
+ display_id(t,'acquirer_ptynbr') = (@Acquirer{;Party.ptyid where type='Intern Dept'})
+*/
+
+and (r.day >= @StartDate{} and r.day<=@StopDate{})
+
+and     ('None' in (@InsId{None;instrument.insid* where instype='Rateindex'})
+        or fr.insid in (@InsId{}))
+
+and r.cfwnbr = c.cfwnbr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and l.float_rate =* fr.insaddr
+and i.insaddr = t.insaddr
+and t.status not in ('Terminated','Void','Simulated')
+/*
+UNION
+
+select  distinct
+  t.trdnbr 'TradeNo',
+  p.prfid,
+    i.insid   'Instrument',
+  r.resnbr  'ResNbr',
+  r.day     'ResetDay',
+  fr.insid  'RateIndex',
+  used_price(fr)	'Current',
+  sum(t.quantity)	'Nominal',
+  i.instype in ('Cap','Floor') ? l.strike : l.fixed_rate	'Strike',
+  r.value   'Value',
+  c.spread  'Spread',
+  r.read_time   'FixTime',
+  display_id(t,'counterparty_ptynbr')                   'Counterparty',
+ r.resnbr  'ResNbr',
+  r.type    'ResetType'
+from
+  reset r,
+  cashflow c,
+  leg l,
+  instrument i,
+  instrument fr,
+  trade t,
+  portfolio p
+where
+ 
+
+
+p.prfid=@Portfolio{NLDO;portfolio.prfid}
+
+and t.prfnbr=p.prfnbr
+
+
+
+and (r.day >= @StartDate{} and r.day<=@StopDate{})
+
+and     ('None' in (@InsId{None;instrument.insid* where instype='Rateindex'})
+        or fr.insid in (@InsId{}))
+
+and r.cfwnbr = c.cfwnbr
+and c.legnbr = l.legnbr
+and l.insaddr = i.insaddr
+and l.float_rate =* fr.insaddr
+and i.insaddr = t.insaddr
+and t.status not in ('Terminated','Void','Simulated')
+
+group by
+	i.insid, r.day*/

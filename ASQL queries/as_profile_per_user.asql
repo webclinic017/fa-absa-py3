@@ -1,0 +1,19 @@
+select
+    u.name              'User Name',
+    u.userid            'User Id',
+    up.profid           'Profile on User',
+    g.grpid             'Group'
+from
+    user u,
+    userProfileLink ul,
+    userProfile up,
+    front.group g 
+where
+    u.usrnbr = ul.usrnbr
+and ul.profnbr = up.profnbr
+and u.grpnbr = g.grpnbr
+and (g.grpid like 'FO %')
+/*and (g.grpid like 'OPS%'
+or g.grpid like 'PCG Mkt%')*/
+
+order by 4

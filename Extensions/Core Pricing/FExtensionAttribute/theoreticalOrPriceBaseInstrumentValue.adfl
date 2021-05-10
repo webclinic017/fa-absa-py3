@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:theoreticalOrPriceBaseInstrumentValue = select(priceBase, 
+  None->collapse(theoreticalInstrumentValue), 
+  default->shunt[priceSource, doSplitAll, forwardPriceDate, ctd, ctdFactor, includeEmbeddedOption](timeDistributionBucketForPriceBase == defaultBucket, 
+    true->collapse(theoreticalInstrumentValuePriceBase), 
+    false->collapse(theoreticalInstrumentValue)));

@@ -1,0 +1,10 @@
+[Default]FAbstractReset:fixedFixingValue = switch(object.IsFixedAt(valuationDate), 
+  true->object.FixingValue, 
+  false->nil);
+[Default]FCashFlowInformation:fixedFixingValue = object.FixedFixingValue;
+[Default]FCashFlowMoneyFlow:fixedFixingValue = select(abstractResets.Size, 
+  1->(abstractResets.First) :* "fixedFixingValue", 
+  default->nil);
+[Default]FMoneyFlow:fixedFixingValue = nil;
+[Default]FMoneyFlowAndTrades:fixedFixingValue = moneyFlow:fixedFixingValue;
+[Default]FResetMoneyFlow:fixedFixingValue = reset:fixedFixingValue;

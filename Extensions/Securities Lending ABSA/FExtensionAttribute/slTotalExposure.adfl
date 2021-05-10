@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slTotalExposure = sumOf(children :* "slTotalExposure");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slTotalExposure = select(instrument.InsType == "SecurityLoan", 
+  true->select(sobMarketValue == [], 
+    true->0.0, 
+    default->sobMarketValue.Number), 
+  nil->0.0, 
+  default->0.0);

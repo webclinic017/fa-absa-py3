@@ -1,0 +1,10 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:durationFromModifiedDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(marketYieldToMaturity)) * modifiedDuration, 
+    default->(1 + double(marketYieldToMaturity) / fixLeg:rollingFrequency) * modifiedDuration));
+[Fixed Income Pricing and Risk]FInstrument:durationFromModifiedDuration = select(fixLeg, 
+  nil->nan, 
+  default->select(fixLeg:rollingFrequency, 
+    0->(1 + double(marketYieldToMaturity)) * modifiedDuration, 
+    default->(1 + double(marketYieldToMaturity) / fixLeg:rollingFrequency) * modifiedDuration));

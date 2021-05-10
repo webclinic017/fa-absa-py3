@@ -1,0 +1,7 @@
+[Default]FInstrument:creditExpiryDates = select(isCreditBasket, 
+  true->(creditReference.Instruments) :* "issuerExpiryDate", 
+  false->nil);
+[Default]FInstrumentAndTrades:creditExpiryDates = instrument:creditExpiryDates;
+[Default]FLeg:creditExpiryDates = select(isCreditBasket, 
+  true->(creditReference.Instruments) :* "issuerExpiryDate", 
+  false->0);

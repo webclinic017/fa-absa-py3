@@ -1,0 +1,29 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','OPS_UT_LateTrades') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'OPS_UT_LateTrades' and p.type = 'SQL Query' 
+
+Select
+    t.trdnbr
+
+From
+    Trade t,
+    Party p,
+    User u,
+    front.Group g,
+    Instrument i
+
+    
+Where
+    t.counterparty_ptynbr = p.ptynbr
+and t.creat_usrnbr = u.usrnbr
+and g.grpnbr = u.grpnbr
+and t.insaddr = i.insaddr
+
+and t.execution_time between time_of TODAY + 15*60*60 + 30*60 and time_of TOMORROW 
+and p.type ~= 'Intern Dept'
+and p.ptyid not in ('PRIME SERVICES DESK','SECURITY LENDINGS DESK','SBL AGENCY I/DESK')
+and g.grpid not in ('Integration Process', 'System Processes')
+and i.instype ~= 'Stock'

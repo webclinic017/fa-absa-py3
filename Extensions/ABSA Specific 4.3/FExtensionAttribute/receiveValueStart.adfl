@@ -1,0 +1,11 @@
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:receiveValueStart = select(firstReceiveLegOrNil, 
+  nil->nil, 
+  default->select(instrument.InsType, 
+    "CurrSwap"->object :* "assetMarkToMarketValueStart" [displayCurrency = firstReceiveLegOrNil.Currency], 
+    "FxSwap"->object :* "assetMarkToMarketValueStart" [displayCurrency = firstReceiveLegOrNil.Currency], 
+    "Swap"->instrument :* "profitAndLossPositionStart" [positionObject, startDate, profitAndLossStartDate] * markToMarketPriceMtmPriceDayFallback / 100.0, 
+    default->select(instrument :* "profitAndLossPositionStart" [positionObject, startDate, profitAndLossStartDate] <= 0, 
+      false->nil, 
+      default->select(instrument.Currency, 
+        "ZAR"->assetMarkToMarketValueStart, 
+        default->instrument :* "profitAndLossPositionStart" [positionObject, profitAndLossStartDate] * object :* "assetMarkToMarketValueStart" [displayCurrency = instrument.Currency] / instrument.ContractSize))));

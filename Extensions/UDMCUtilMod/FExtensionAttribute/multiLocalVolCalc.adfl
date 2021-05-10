@@ -1,0 +1,5 @@
+[UDMCUtilMod]FInstrument:multiLocalVolCalc = select(isApplicableForLocalVolatility, 
+  false->throwError("Volatility surface not supported for Monte Carlo local volatility"), 
+  default->select(udmcSimpleLocalVol, 
+    true->udmcSimpleMultiLocalVolatilityCalc, 
+    default->udmcMultiLocalVolatilityCalc));

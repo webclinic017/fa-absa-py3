@@ -1,0 +1,10 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:impliedOASBdtTrinomial = select(oasCalculationValid, 
+  true->select(object.UsesVolatility, 
+    true->select(isMultiExercise, 
+      true->impliedOasSpreadBdtTrinomial(instrumentSpotDate, marketUnitValue, startDateAsArray, expiryDateTimeAsArray, storedStrikeAsArray, underlyingValueAsArray, volatilitiesForBdtTrinomial, storedExerciseEventTypeAsArray, bdtTrinomStepsPerPeriod, bdtTrinomStepsPeriodType, firstLegInformation, firstStaticLegInformation, riskFreeDiscountCurve, valuationDate, roundingInformation), 
+      false->impliedOasSpreadBdtTrinomial(instrumentSpotDate, marketUnitValue, nil, nil, nil, nil, nil, nil, bdtTrinomStepsPerPeriod, bdtTrinomStepsPeriodType, firstLegInformation, firstStaticLegInformation, riskFreeDiscountCurve, valuationDate, roundingInformation)), 
+    false->nil), 
+  false->nil);
+[Fixed Income Pricing and Risk]FInstrument:impliedOASBdtTrinomial = nil;
+[Fixed Income Pricing and Risk]FInstrumentAndTrades:impliedOASBdtTrinomial = instrument :* "impliedOASBdtTrinomial" [marketPrice];
+[Fixed Income Pricing and Risk]FMultiInstrumentAndTrades:impliedOASBdtTrinomial = nil;

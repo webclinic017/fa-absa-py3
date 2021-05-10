@@ -1,0 +1,18 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+Select 
+     ael_i(p,'ASQL_log','NOSTRO_Migration_AcqAccountInfo') 'Name' 
+into  ASQL_LOG_TEMP 
+from TextObject p 
+where p.name = 'NOSTRO_Migration_AcqAccountInfo' and p.type = 'SQL Query' 
+
+select
+    display_id(a,'ptynbr')                      'Party',
+    a.account                                   'Account',
+    display_id(a,'correspondent_bank_ptynbr')   'Corresponding Bank',
+    display_id(a,'bic_seqnbr')                  'BIC',
+    display_id(a,'curr')                        'Currency',
+    a.name                                      'Account Name'
+from
+    Account a
+where
+    display_id(a,'curr') in ('USD','EUR')

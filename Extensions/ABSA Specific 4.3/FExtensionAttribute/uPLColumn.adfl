@@ -1,0 +1,4 @@
+[ABSA Specific 4.3]FPortfolioInstrumentAndTrades:uPLColumn = sumOf(children :* "uPLColumn");
+[ABSA Specific 4.3]FTradeRow:uPLColumn = select(instrument.InsType, 
+  "IndexLinkedBond"->denominatedvalue(tPL - carry - deprecRPLColumn, instrument.Currency, , ), 
+  default->object:uPL [displayCurrency, profitAndLossStartDate, profitAndLossEndDate, calculateTradeEffectInPosition := true]);

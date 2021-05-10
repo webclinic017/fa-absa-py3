@@ -1,0 +1,9 @@
+[Prime Services]FInstrumentAndTrades:psAccruedValueNav = sumOf((object.Children) :* "psAccruedValueNav");
+[Prime Services]FSingleInstrumentAndTrades:psAccruedValueNav = select(instrument.InsType, 
+  "Deposit"->switch(instrument.OpenEnd, 
+    "None"->denominatedvalue(psNominal, displayCurrency, nil, nil) + denominatedvalue(accrued, displayCurrency, nil, nil), 
+    default->psCallDepositSign * denominatedvalue(depositBalance.Number, depositBalance.Unit, nil, nil) + denominatedvalue(psMonthlyCarry.Number, depositBalance.Unit, nil, nil)), 
+  "Stock"->markToMarketValueEnd, 
+  default->switch(inventoryPositionAtValuationDate.IsKindOf(denominatedvalue(0, displayCurrency, nil, nil).Class), 
+    true->inventoryPositionAtValuationDate + accrued + denominatedvalue(exCouponValue, displayCurrency, nil, nil) + denominatedvalue(unsettledPremiumAndPaymentsEnd, displayCurrency, nil, nil), 
+    default->denominatedvalue(inventoryPositionAtValuationDate, displayCurrency, nil, nil) + accrued + denominatedvalue(exCouponValue, displayCurrency, nil, nil) + denominatedvalue(unsettledPremiumAndPaymentsEnd, displayCurrency, nil, nil)));

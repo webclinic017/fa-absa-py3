@@ -1,0 +1,158 @@
+select
+
+distinct 
+p.ptynbr,
+max(i.exp_day = 0 ? time_to_day(i.creat_time) : i.exp_Day) 'MaxTradeDate',
+max(i.exp_day = 0 ? time_to_day(i.creat_time) : i.exp_Day) 'MaxEndDate'
+
+into temp
+
+from
+
+instrument i, party p
+where i.issuer_ptynbr = p.ptynbr
+and p.type not in ('MtM Market', 'Market')
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+group by 1
+
+
+
+/*CP on TRADE*/
+
+select
+
+distinct 
+p.ptynbr,
+max(time_to_day(t.time)) 'MaxTradeDate',
+max(i.exp_day = 0 ? t.value_day: i.exp_Day) 'MaxEndDate'
+
+into temp
+
+from
+
+trade t, instrument i, party p
+
+where i.insaddr =  t.insaddr
+and t.counterparty_ptynbr = p.ptynbr
+and t.status not in ('Simulated')
+and p.type not in ('MtM Market', 'Market')
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+group by 1
+
+
+/*Broker on TRADE*/
+
+select
+
+distinct 
+p.ptynbr,
+max(time_to_day(t.time)) 'MaxTradeDate',
+max(i.exp_day = 0 ? t.value_day: i.exp_Day)  'MaxEndDate'
+
+into temp
+
+from
+
+trade t, instrument i, party p
+
+where i.insaddr =  t.insaddr
+and t.broker_ptynbr = p.ptynbr
+and t.status not in ('Simulated')
+and p.type not in ('MtM Market', 'Market')
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+group by 1
+
+
+/*Desk of trade*/
+select
+
+distinct 
+p.ptynbr,
+max(time_to_day(t.time)) 'MaxTradeDate',
+max(i.exp_day = 0 ? t.value_day: i.exp_Day)   'MaxEndDate'
+
+into temp
+
+from
+
+trade t, instrument i, party p
+
+where i.insaddr =  t.insaddr
+and t.acquirer_ptynbr = p.ptynbr
+and t.status not in ('Simulated')
+and p.type not in ('MtM Market', 'Market')
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+group by 1
+
+
+/*Payment CP of trade*/
+select
+
+distinct 
+p.ptynbr,
+max(time_to_day(t.time)) 'MaxTradeDate',
+max(py.payday) 'MaxEndDate'
+
+into temp
+
+from
+
+trade t, instrument i, party p, payment py
+
+where i.insaddr =  t.insaddr
+and py.trdnbr = t.trdnbr
+and py.ptynbr = p.ptynbr
+and t.status not in ('Simulated')
+and p.type not in ('MtM Market', 'Market')
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+group by 1
+
+
+select 
+
+distinct 
+t.ptynbr,
+max(t.MaxTradeDate)  'MaxTradeDate',
+max(t.MaxEndDate)  'MaxEndDate'
+
+into tempCP
+
+from temp t
+
+
+
+
+group by 1
+
+select 
+p.ptynbr                'UniqueClientID',
+p.fullname               'Client Legal Name',
+''                          'CIF Code',
+''     'BANKERS ALMANAC ID',
+''     'REGISTRATION ID',
+p.country           'COUNTRY OF ORIGIN',
+'' 'COUNTRY OF OPERATION',
+add_info(p,'FICA_Compliant')      'FICA STATUS',
+''      'FICA EXPIRY DATE',
+add_info(p,'BarCap_Eagle_SDSID') 'BarCap_Eagle_SDSID',
+add_info(p,'BarCap_SMS_CP_SDSID') 'BarCap_SMS_CP_SDSID',
+add_info(p,'BarCap_SMS_LE_SDSID') 'BarCap_SMS_LE_SDSID',
+t.MaxTradeDate  'MaxTradeDate',
+t.MaxEndDate  'MaxEndDate'
+
+
+
+
+
+from tempCP t, party p
+
+where p.ptynbr *= t.ptynbr
+/*and p.ptyid = 'INVESTEC BANK LTD'*/
+
+
+

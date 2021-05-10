@@ -1,0 +1,12 @@
+[Commodity Valuations]FCommodity:carryCost = select(useExplicitConvenienceYield, 
+  true->underlyingCurrencyDiscountRate - convenienceYield, 
+  false->select(hasMappedPriceCurve, 
+    false->repoCurve.Rate(carryStartDate, carryEndDate), 
+    true->calc_carry_cost(carryStartDate, carryEndDate, priceCurveModel(priceCurve, carryStartDate).Number, priceCurveModel(priceCurve, carryEndDate).Number)));
+[Commodity Valuations]FOption:carryCost = select(object.ValuationGrpChlItem.Name == "EQ_Option_Theo_Future", 
+  false->select(isCarryCostSensitive, 
+    true->select(baseValuationOnUnderlyingComponents, 
+      true->basketMoments["BasketCarryCost"], 
+      default->underlying :* "carryCost" [priceSource, carryStartDate, carryEndDate, calculationCurrency, defaultContingent, includeCallablePartInUnderlying, isCarryCostSensitive, expiryDate]), 
+    false->0.0), 
+  true->0.0);

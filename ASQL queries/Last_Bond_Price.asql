@@ -1,0 +1,27 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Last_Bond_Price') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Last_Bond_Price' and p.type = 'SQL Query' 
+select 
+	i.instype,
+	i.insid,
+	p.ask,
+	p.bid,
+	p.settle,
+	u.userid,
+	p.updat_time
+
+from 
+	Instrument i,
+	LastPrice p,
+	User u
+where
+	i.insaddr = p.insaddr and
+	(i.instype = 'Bond' or i.instype = 'IndexLinkedBond') and
+	u.usrnbr = p.updat_usrnbr
+	and i.generic~='Yes'
+	and i.exp_day>Today
+
+order by 2

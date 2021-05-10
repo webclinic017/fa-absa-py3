@@ -1,0 +1,3 @@
+[Core Pricing]FCashFlowInstrument:theoreticalLegComponentsValueAtSpot = select(includesOther(instrumentCurrencies, currency), 
+  true->sumOf(discountAndConvertToCurrency(theoreticalLegComponentsValuesAtSpot, instrumentDiscountCurvesPerUnit, instrumentSpotDate, instrumentCurrencies :* "fxSpotRate" [fxToCurrency := currency], currencySymbol, filterUnit)), 
+  false->theoreticalLegComponentsValuesAtSpot);

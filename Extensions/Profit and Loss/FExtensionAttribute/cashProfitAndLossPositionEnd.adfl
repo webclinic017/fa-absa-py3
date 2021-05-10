@@ -1,0 +1,8 @@
+[Profit and Loss]FInstrumentAndTrades:cashProfitAndLossPositionEnd = nil;
+[Profit and Loss]FMultiInstrumentAndTrades:cashProfitAndLossPositionEnd = select(calculateCash and (cashGrouperFilterCurrency <> nil), 
+  true->shunt(profitAndLossPeriodType, 
+    "Inception to Present"->cashProfitAndLossValuesPosition, 
+    "Inception to Historical"->cashProfitAndLossPositionEndCalculation, 
+    "Historical to Present"->cashProfitAndLossValuesPosition, 
+    "Historical to Historical"->cashProfitAndLossPositionEndCalculation), 
+  false->nil);

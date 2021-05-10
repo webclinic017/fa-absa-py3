@@ -1,0 +1,11 @@
+[Prime Services]FInstrument:psCollateralTypeDisplay = object.InsType;
+[Prime Services]FInstrumentAndTrades:psCollateralTypeDisplay = nil;
+[Prime Services]FMultiInstrumentAndTrades:psCollateralTypeDisplay = nil;
+[Prime Services]FPortfolioInstrumentAndTrades:psCollateralTypeDisplay = select(object.Portfolio.Class == "FPhysicalPortfolio" and not (object.Trades.IsEmpty), 
+  true->select(object.Trades.AsList.At(0).Portfolio.add_info("PS_CollCategory") == "", 
+    false->"Cat " + object.Trades.AsList.At(0).Portfolio.add_info("PS_CollCategory"), 
+    default->nil), 
+  default->nil);
+[Prime Services]FSingleInstrumentAndTrades:psCollateralTypeDisplay = select(object.Trades.AsList.At(0).Portfolio.add_info("PS_CollCategory") == "", 
+  false->"Cat " + object.Trades.AsList.At(0).Portfolio.add_info("PS_CollCategory"), 
+  default->nil);

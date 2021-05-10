@@ -1,0 +1,6 @@
+[Default]FInstrumentAndTrades:collateralExposureGap = nil;
+[Default]FMultiInstrumentAndTrades:collateralExposureGap = select(collateralAgreement, 
+  nil->nil, 
+  default->shunt(openInstruments.Size > 0, 
+    false->nil, 
+    true->collateralOTCMarkToMarketValue - adjustedCollateralMarkToMarketValue));

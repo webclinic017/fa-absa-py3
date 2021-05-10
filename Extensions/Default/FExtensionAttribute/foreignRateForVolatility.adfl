@@ -1,0 +1,10 @@
+[Default]FCombInstrMap:foreignRateForVolatility = 0;
+[Default]FDerivative:foreignRateForVolatility = select(volatilityStructure:isFloating, 
+  true->select(isReciprocal, 
+    true->domesticRate, 
+    false->foreignRate), 
+  false->0);
+[Default]FFxRate:foreignRateForVolatility = select(isReciprocal, 
+  true->domesticRate, 
+  false->foreignRate);
+[Default]FInstrument:foreignRateForVolatility = 0;

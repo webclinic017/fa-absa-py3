@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FLeg:currentRate = 
+# Upgrade 2017: change to use the core CashflowInformation.Rate() method.
+select(currentCashFlowInformation, 
+  nil->nil, 
+  default->currentCashFlowInformation.Rate(legInformation));
+[ABSA Specific 4.3]FLegAndTrades:currentRate = leg :* "currentRate";

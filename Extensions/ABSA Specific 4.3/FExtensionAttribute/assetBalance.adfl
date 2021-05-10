@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FDeposit:assetBalance = select(balance < 0, 
+  true->balance, 
+  false->currencyZero);
+[ABSA Specific 4.3]FInstrumentAndTrades:assetBalance = instrument :* "assetBalance" [positionObject, priceSource, valuesOnSpotOverride];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:assetBalance = sumOf(unSettledInstruments :* "assetBalance" [positionObject, priceSource, valuesOnSpotOverride]);

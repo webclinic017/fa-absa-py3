@@ -1,0 +1,6 @@
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:besaTPL = nil;
+[ABSA Specific 4.3]FSingleInstrumentAndTrades:besaTPL = sumOf(tradesInPosition :* "besaTPL");
+[ABSA Specific 4.3]FTrade:besaTPL = select(underlying <> nil, 
+  true->py("aam_tpl", context).calculate_besa_tpl(object, profitAndLossEndDate), 
+  default->nil);
+[ABSA Specific 4.3]FTradeRow:besaTPL = trade:besaTPL;

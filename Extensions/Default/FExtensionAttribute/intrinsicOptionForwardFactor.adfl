@@ -1,0 +1,5 @@
+[Default]FInstrument:intrinsicOptionForwardFactor = select(isFinite(underlyingForwardValueForUnderlyingForwardPrice) and isFinite(strikeValueModelTargetInTheoreticalPrice) and not almostZero(double(strikeValueModelTargetInTheoreticalPrice), 1e-05), 
+  false->nil, 
+  true->select(isReciprocal, 
+    true->inv(double(underlyingForwardValueForUnderlyingForwardPrice)) / double(strikeValueModelTargetInTheoreticalPrice), 
+    false->double(underlyingForwardValueForUnderlyingForwardPrice) / double(strikeValueModelTargetInTheoreticalPrice)));

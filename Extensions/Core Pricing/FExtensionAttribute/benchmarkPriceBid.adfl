@@ -1,0 +1,5 @@
+[Core Pricing]FInstrument:benchmarkPriceBid = switch(benchmarkPriceFeed.PriceReadDate < valuationSystemDate, 
+  true->benchmarkPriceFeed :* "benchmarkPrice" [priceSource, benchmarkPriceSearchOrderFromInstrument], 
+  false->benchmarkPriceFeed :* "benchmarkPriceBid" [priceSource]);
+[Core Pricing]FOrderBook:benchmarkPriceBid = priceFeed:benchmarkPriceBid;
+[Core Pricing]FPriceFeed:benchmarkPriceBid = object.BidPriceDepth.AveragePriceForQuantity(roundLot, false);

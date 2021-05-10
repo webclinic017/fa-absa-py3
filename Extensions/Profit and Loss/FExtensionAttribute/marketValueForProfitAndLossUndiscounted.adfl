@@ -1,0 +1,4 @@
+[Profit and Loss]FFuture:marketValueForProfitAndLossUndiscounted = select(payContingent, 
+  true->contingentAdjustedValue(portfolioMarketValuesForProfitAndLoss + valuesInType(positionValuesForProfitAndLoss, futureSettlementSymbol, false), underlying:creditCurveForContingentForwardValueForProfitAndLoss [valuationBaseDateTimeInput], underlying:discountCurveForProfitAndLoss [valuationBaseDateTimeInput], underlying:riskFreeDiscountCurveForProfitAndLoss [valuationBaseDateTimeInput], valuationDate, true) + valuesNotInType(positionValuesForProfitAndLoss, futureSettlementSymbol, false), 
+  default->denominatedValueOrBasket(portfolioMarketValuesForProfitAndLoss) + positionValuesForProfitAndLoss);
+[Profit and Loss]FInstrument:marketValueForProfitAndLossUndiscounted = denominatedValueOrBasket(portfolioMarketValuesForProfitAndLoss) + positionValuesForProfitAndLoss;

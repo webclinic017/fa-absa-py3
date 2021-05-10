@@ -1,0 +1,5 @@
+[Core Pricing]FInstrumentAndTrades:markToMarketValueFxRates = select(pLPeriodFX, 
+  "Start Date"->select(immediateFxRates, 
+    true->theoreticalValueFxRateInstruments :* "fxRateWithHistoricalParameters" [allowMarkToMarketPrice := true, discountingTypeForFXDiscountLink := nil, fxHistoricalDate = profitAndLossStartDate, fxHistoricalForwardDate = profitAndLossFXRateForwardDate], 
+    false->theoreticalValueFxRateInstruments :* "historicalSimplisticFXSpotRate" [useMarkToMarketPriceToday, allowMarkToMarketPrice := true, fxHistoricalDate = profitAndLossStartDate]), 
+  default->marketValueFxRates);

@@ -1,0 +1,8 @@
+[Default]FCombInstrMapAndTrades:nAV = nil;
+[Default]FInstrumentAndTrades:nAV = select(isCashGrouping, 
+  true->totalCash, 
+  default->totalCash + markToMarketPeriodValue);
+[Default]FLegAndTrades:nAV = nil;
+[Default]FSingleInstrumentAndTrades:nAV = select(isCashGrouping, 
+  false->totalCash + markToMarketPeriodValue, 
+  default->nil);

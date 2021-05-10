@@ -1,0 +1,66 @@
+/*
+'''
+Report used for recon on trade level between MoPL and Front
+Date                    : 2010-07-19
+Department and Desk     : IT Pricing and Risk BTB
+Requester               : Hennie Le Roux
+Developer               : Matthew Berry
+Date                    : 19/07/2010, 06/12/2010
+CR Number               : 359772,516476
+
+'''
+*/
+
+/* Usage code for this ASQL */
+
+select
+
+ael_i(p,'ASQL_log','MoPL_Population') 'Name' 
+
+into  ASQL_LOG_TEMP 
+
+from TextObject p 
+
+where 
+
+p.name = 'MoPL_Population' and p.type = 'SQL Query'
+
+ 
+
+select 
+p.prfnbr, 
+p.prfid, 
+add_info(p, 'Parent_Portfolio')          'Area'
+
+into IncludePofo
+
+from AdditionalInfoSpec ais, AdditionalInfo ai, Portfolio p
+
+where ais.field_name = 'MoPL_Population'
+
+and ai.addinf_specnbr = ais.specnbr 
+
+and ai.value = 'Yes'
+
+and p.prfnbr = ai.recaddr
+
+ 
+
+select 
+t.trdnbr, 
+p.prfid, 
+p.Area, 
+t.status, 
+i.instype, 
+t.updat_time
+
+from trade t, IncludePofo p, instrument i
+
+where t.prfnbr = p.prfnbr
+
+and t.status not in ('Void', 'Simulated')
+
+and not(i.open_end='Open End' and i.instype = 'Deposit' and add_info(t,'Funding Instype') in ('Call I/Div', 'Call I/Div SARB', 'Call I/Div DTI'))
+
+and i.insaddr = t.insaddr
+order by t.trdnbr

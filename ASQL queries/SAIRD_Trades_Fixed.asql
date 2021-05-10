@@ -1,0 +1,41 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAIRD_Trades_Fixed') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAIRD_Trades_Fixed' and p.type = 'SQL Query' 
+select
+	t.trdnbr,
+	p.prfid,
+r.resnbr,
+	t.optional_key,
+	i.insid,
+	ael_s(t,'InstrType.InstrumentType'),
+	r.day,
+	
+	r.value,
+	
+	fr.insid	'FloatReference',
+	r.type,
+	r.read_time
+from
+	instrument	i,
+	instrument	fr,
+	trade	t,
+	leg	l,
+	reset	r,
+	portfolio p
+where
+	t.insaddr = i.insaddr
+and	l.insaddr = i.insaddr
+and	fr.insaddr = l.float_rate
+and	r.legnbr = l.legnbr
+and	r.day = @Date{Today;}
+
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+/*
+and	t.status in (@Status{FO Confirmed,'BO Confirmed','BO-BO Confirmed';trade.status*})
+*/
+and 	p.prfnbr=t.prfnbr
+
+order by fr.insid,r.type

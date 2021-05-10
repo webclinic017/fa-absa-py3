@@ -1,0 +1,6 @@
+[Securities Lending ABSA]FInstrument:slPendingLoan = shunt(slBookedTradesQueryPerSecurity.IsDirty and slBookedTradesQueryPerSecurity.ApplyChanges, 
+  default->select((slBookedTradesQueryPerSecurity.Result).RemoveAll(slSettledTrades.Result) == [], 
+    true->0.0, 
+    default->sumOf(((slBookedTradesQueryPerSecurity.Result).RemoveAll(slSettledTrades.Result)) :* "sl_quantity")));
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPendingLoan = sumOf(instruments :* "slPendingLoan");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPendingLoan = instrument :* "slPendingLoan" [profitAndLossEndFXRates];

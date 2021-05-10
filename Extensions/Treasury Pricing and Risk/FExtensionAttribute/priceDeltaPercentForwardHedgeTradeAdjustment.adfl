@@ -1,0 +1,8 @@
+[Treasury Pricing and Risk]FInstrument:priceDeltaPercentForwardHedgeTradeAdjustment = select(includePremiumAdjustment, 
+  true->denominatedValueOrBasket(priceDeltaTradeAdjustmentUndiscounted / 100), 
+  false->priceDeltaTradeAdjustmentZero);
+[Treasury Pricing and Risk]FInstrumentAndTrades:priceDeltaPercentForwardHedgeTradeAdjustment = select(isCandidateForPremiumAdjustedDelta, 
+  true->instrument :* "collapse(priceDeltaPercentForwardHedgeTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment], 
+  false->spotHandlingZero);
+[Treasury Pricing and Risk]FMultiInstrumentAndTrades:priceDeltaPercentForwardHedgeTradeAdjustment = sumOf(premiumAdjustedDeltaInstruments :* "collapse(priceDeltaPercentForwardHedgeTradeAdjustment)" [positionObject, priceGreekIncludePremiumAdjustment]);
+[Treasury Pricing and Risk]FTradeRow:priceDeltaPercentForwardHedgeTradeAdjustment = instrument :* "priceDeltaPercentForwardHedgeTradeAdjustment" [singleTradePosition, includeAllTrades, priceGreekIncludePremiumAdjustment];

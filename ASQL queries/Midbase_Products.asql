@@ -1,0 +1,56 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Midbase_Products') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Midbase_Products' and p.type = 'SQL Query' 
+
+
+/* This extract supplies data to the Midbase scheduled job: Atlas_Balance_report
+   Step 2. This is to replace the current linked server SQL job that is not sufficient.*/
+
+SELECT distinct 
+	i.insaddr,
+	i.insid,
+	i.exp_day,
+	i.instype,
+	count(t.trdnbr) 'trdcount',
+	t.prfnbr 
+FROM 
+	instrument i,
+	trade t 
+where
+	i.insaddr = t.insaddr
+and	( i.exp_day > '2005-03-31' 
+	OR i.exp_day = '0000-01-01'  
+	OR i.insid LIKE 'USD/IMM/%' )
+	and t.status not in ('Simulated')
+group by	i.insaddr,
+		i.insid,
+		i.exp_day,
+		i.instype,
+		t.prfnbr
+order by 	i.exp_day
+
+union
+
+SELECT distinct 
+	i.insaddr,
+	i.insid,
+	i.exp_day,
+	i.instype,
+	count(t.trdnbr) 'trdcount',
+	t.prfnbr 
+FROM 
+	instrument i,
+	trade t 
+where
+	i.insaddr = t.insaddr
+	and match_filter(t,'SAGEN_MIDBASE_EXP') 
+	and t.status not in ('Simulated')
+group by	i.insaddr,
+		i.insid,
+		i.exp_day,
+		i.instype,
+		t.prfnbr
+order by 	i.exp_day

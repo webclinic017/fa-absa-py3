@@ -1,0 +1,10 @@
+[ABSA Columns]FCashFlowMoneyFlow:averageMaturity = stripDateTimePart(projectedMoneyFlow) * stripDateTimePart(currency:immediateOrSpotFxRate [fxToCurrency = displayCurrency]);
+[ABSA Columns]FMoneyFlow:averageMaturity = nil;
+[ABSA Columns]FTrade:averageMaturity = double(notANumberIsZero(sumOf(double(flattenAndRemoveNil(moneyFlows :* "averageMaturityWeighted" [displayCurrency]))) / sumOf(double(flattenAndRemoveNil(moneyFlows :* "averageMaturityUnweighted" [displayCurrency]))) / 365)) + 0.0;
+[ABSA Columns]FTradeRow:averageMaturity = select(instrument:isCashFlowInstrument, 
+  true->shunt(timeToExpiry < 0, 
+    true->0.0, 
+    default->shunt((trade:averageMaturity [displayCurrency = accountingCurrency]) < (timeToExpiry), 
+      true->trade:averageMaturity [displayCurrency = accountingCurrency], 
+      default->timeToExpiry)), 
+  default->nil);

@@ -1,0 +1,24 @@
+/* X_SAMM_Call_Dep_Loan_Confo_P: last updated on Fri Aug 21 17:23:43 2009. Extracted by Stowaway on 04/09/2009.*/
+/*Usage for this code*/
+select
+    ael_i(p,'ASQL_log','32_Day_Notice_PDF') 'Name'
+    into ASQL_LOG_TEMP
+    from TextObject p where
+    p.name = '32_Day_Notice_PDF' and p.type = 'SQL Query'
+
+/* 
+    Name      : 32_Day_Notice_PDF
+    Purpose   : Build confirmations for Call Depos via AEL and the output is generated in PDF format
+    Developer : Tshepo Mabena
+    Date      : 24/11/11
+    CR Number : 835702 
+*/
+
+select
+	ael_s(,'32_Day_Notice_PDF.ASQL')	  'OpenFile' /* Opens AEL */
+into
+	temp
+from
+	serverdata s
+where
+	s.srdnbr > 0 

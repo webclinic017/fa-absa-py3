@@ -1,0 +1,5 @@
+[Default]FObject:convertSourceValuesToTargetCurrency[targetToCurrency, sourceValue, priceSource, doSplitAll] = select(count(sourceValueCurrency) > 1, 
+  true->convertToCurrencyValidateDates(sourceValue, sourceValueCurrency :* "fxForwardRate" [fxForwardDate = sourceValueDate, fxToCurrency = targetToCurrency], symbol(targetToCurrency)), 
+  default->select(sourceValueCurrency <> targetToCurrency, 
+    true->convertToCurrencyValidateDates(sourceValue, sourceValueCurrency :* "fxForwardRate" [fxForwardDate = sourceValueDate, fxToCurrency = targetToCurrency], symbol(targetToCurrency)), 
+    default->collapse(sourceValue)));

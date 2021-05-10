@@ -1,0 +1,44 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','Fx Closing Rates') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Fx Closing Rates' and p.type = 'SQL Query' 
+
+/*
+Requestd by trishan Moonsamy
+Coded by Anil Parbhoo
+Change request number CHNG0002350409
+*/
+
+
+select
+
+i.insid'instrument',
+c.insid'currency',
+lp.day,
+lp.bid,
+lp.ask,
+lp.last,
+lp.settle,
+
+party.ptyid'Market'
+
+from
+instrument i,
+price lp,
+instrument c,
+party party
+
+where
+
+i.instype = 'Curr'
+and i.insaddr = lp.insaddr
+and lp.ptynbr = party.ptynbr
+and lp.curr = c.insaddr
+and party.ptyid = 'SPOT'
+and i.insid = @Instrument{USD;Instrument.insid where instype = 'Curr'}
+and c.insid = @Currency{ZAR;Instrument.insid where instype = 'Curr'}
+
+order by lp.day desc
+

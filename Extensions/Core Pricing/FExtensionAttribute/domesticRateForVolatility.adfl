@@ -1,0 +1,10 @@
+[Core Pricing]FCombInstrMap:domesticRateForVolatility = 0;
+[Core Pricing]FDerivative:domesticRateForVolatility = select(volatilityStructure:isFloating, 
+  true->select(isReciprocal, 
+    true->foreignRate, 
+    false->domesticRate), 
+  false->0);
+[Core Pricing]FFxRate:domesticRateForVolatility = select(isReciprocal, 
+  true->foreignRate, 
+  false->domesticRate);
+[Core Pricing]FInstrument:domesticRateForVolatility = 0;

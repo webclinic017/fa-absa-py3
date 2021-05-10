@@ -1,0 +1,20 @@
+[Default]FCombInstrMapAndTrades:vegaValues = instrument :* "vegaValues" [isSplitAllGrouped, priceSource, timeBucketsSetExternally, positionTradeQuantities, volatilityGreekFilter, vegaCalculationType, vegaStrikeBucketsInfoSetExternally, filterUnit, groupingSpotDiscountDate, useOnesidedShiftForVega, contractSize := contractSizeWeighted];
+[Default]FInstrument:vegaValues = select(isSettled or noVolatilityGreekRiskFactorsExist, 
+  true->setDateTimePart(timeBucketsSetExternallyZero, discountAndConvertToBaseDate), 
+  false->select(forwardFxRateConversion, 
+    true->discountAndConvertToCurrency(vegaValuesUndiscounted, discountAndConvertToBaseForwardFXConversionMoneyMarketCurve, discountAndConvertToBaseDate, 1.0, forwardFXConversionCurrencySymbol, filterUnit, discountAndConvertToBaseForwardFXConversionCurves, discountAndConvertToBaseForwardFXConversionFXRates, forwardFXConversionCurrencySymbol), 
+    false->discountAndFilterCurrency(vegaValuesUndiscounted, discountAndConvertToBaseDiscountCurves, discountAndConvertToBaseDate, filterUnit)));
+[Default]FInstrumentAndTrades:vegaValues = openInstrument :* "collapse(vegaValues)" [isSplitAllGrouped, priceSource, positionObject, timeBucketsSetExternally, volatilityGreekFilter, vegaCalculationType, vegaStrikeBucketsInfoSetExternally, filterUnit, useOnesidedShiftForVega, groupingSpotDiscountDate];
+[Default]FLeg:vegaValues = select(isSettled, 
+  true->timeBucketsSetExternallyZero, 
+  false->select(useOnesidedShiftForVega, 
+    true->oneSidedDifferential(vegaValuesLegShiftedUp - theoreticalLegComponentValue, node(vegaValuesLegShiftedUp).Axis) / timesHundred(valuationModelSpecificRelativeVolatilityShift), 
+    default->differential(vegaValuesLegShiftedUp, theoreticalLegComponentValue, timesHundred(valuationModelSpecificRelativeVolatilityShift))) * select(vegaCalculationType, 
+    "vegaBeta"->abs(betaValue), 
+    default->1.0));
+[Default]FLegAndTrades:vegaValues = leg :* "vegaValues" [isSplitAllGrouped, priceSource, timeBucketsSetExternally, volatilityGreekFilter, vegaCalculationType, filterUnit, groupingSpotDiscountDate, useOnesidedShiftForVega] * riskPosition;
+[Default]FMoneyFlow:vegaValues = vegaValuesMoneyFlow;
+[Default]FMoneyFlowAndTrades:vegaValues = moneyFlow :* "collapse(vegaValues)" [isSplitAllGrouped, priceSource, positionObject, displayDate, volatilityGreekFilter, vegaCalculationType, filterUnit, groupingSpotDiscountDate];
+[Default]FMultiInstrumentAndTrades:vegaValues = sumOf(openInstruments :* "collapse(vegaValues)" [isSplitAllGrouped, priceSource, positionObject, timeBucketsSetExternally, volatilityGreekFilter, vegaCalculationType, vegaStrikeBucketsInfoSetExternally, filterUnit, groupingSpotDiscountDate, useOnesidedShiftForVega]);
+[Default]FMultiMoneyFlowAndTrades:vegaValues = moneyFlows :* "collapse(vegaValues)" [isSplitAllGrouped, priceSource, positionObject, displayDate, volatilityGreekFilter, vegaCalculationType, filterUnit, groupingSpotDiscountDate];
+[Default]FTradeRow:vegaValues = openInstrument :* "vegaValues" [isSplitAllGrouped, priceSource, singleTradePosition, timeBucketsSetExternally, includeAllTrades, volatilityGreekFilter, vegaCalculationType, filterUnit, groupingSpotDiscountDate, useOnesidedShiftForVega];

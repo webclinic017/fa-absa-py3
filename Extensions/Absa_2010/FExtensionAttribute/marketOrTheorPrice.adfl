@@ -1,0 +1,12 @@
+[Absa_2010]FInstrument:marketOrTheorPrice = 
+# The PRIME 2010.2 attribute "theoreticalSpotValue" replaced with "theoreticalInstrumentValueAtSpot" based
+# on same substitution being made in 2013.3's DEFAULT module for standard attributes.
+# Added "staticLegInformations" argument and removed "unitDate" argument for call to
+# "QuoteToRoundedCleanUnitValue" (arguments changed since 2010.2). Testing for small set of instruments
+# showed no differences in behaviour between the systems.
+# Note: "QuoteToRoundedCleanUnitValueOverrideUnit" can be used if "unitDate" adjustment is needed.
+# 
+# 2016 Upgrade: "QuoteToRoundedCleanUnitValueOverrideUnit" was removed from ACM. Change to "QuoteToUnitValueBase"
+select(isCalculatedTheoretically, 
+  true->theoreticalInstrumentValueAtSpot, 
+  default->object.QuoteToUnitValueBase(marketSpotPrice, dateToday, dateToday, dirtyValue, legInformations, staticLegInformations, priceOrderBook.Quotation, couponToValueFactor, couponPriceAdjustment) * fxMarketToInstrument);

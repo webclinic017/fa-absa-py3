@@ -1,0 +1,8 @@
+[Securities Lending ABSA]FCashFlowMoneyFlow:slPLPeriodFee = slPLPeriodFeeFactor * convertToCurrency(abs(projectedMoneyFlowNoTimeOrType), currency:immediateOrSpotFxRate [fxToCurrency = displayCurrency], displayCurrency);
+[Securities Lending ABSA]FInstrument:slPLPeriodFee = nil;
+[Securities Lending ABSA]FInstrumentAndTrades:slPLPeriodFee = sumOf(removeNil(instruments :* "slPLPeriodFee" [positionObject, displayCurrency]));
+[Securities Lending ABSA]FMoneyFlow:slPLPeriodFee = nil;
+[Securities Lending ABSA]FSecurityLoan:slPLPeriodFee = sumOf(tradesInPosition :* "slPLPeriodFee" [displayCurrency]);
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slPLPeriodFee = instrument :* "slPLPeriodFee" [positionObject, displayCurrency];
+[Securities Lending ABSA]FTrade:slPLPeriodFee = sumOf(removeNil(moneyFlows :* "slPLPeriodFee" [displayCurrency]));
+[Securities Lending ABSA]FTradeRow:slPLPeriodFee = instrument:slPLPeriodFee [singleTradePosition, displayCurrency];

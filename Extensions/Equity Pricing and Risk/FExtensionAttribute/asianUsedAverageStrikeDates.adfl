@@ -1,0 +1,7 @@
+[Equity Pricing and Risk]FOption:asianUsedAverageStrikeDates = select(isAsian, 
+  true->select(isOptionValuedAsPureSingle, 
+    true->datetime(asianAverageStrikeEvents), 
+    false->select(mappedModelIsBasketAsSingleUnderlying and (not asianBasketAsSingleHasStrikeEventsDefinedOnComponents), 
+      true->datetime(asianAverageStrikeEvents), 
+      false->datetime(asianBasketAverageStrikeEvents[0]))), 
+  false->nil);

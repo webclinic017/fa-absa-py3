@@ -1,0 +1,8 @@
+[Treasury Pricing and Risk]FInstrumentAndTrades:novaDeltaDiff = shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->differential(priceDelta, shift(priceDelta, malzVolatilityInformationRiskFactors, shiftMalzSkews novaShiftParameters)), 
+  default->denominatedValueZero);
+[Treasury Pricing and Risk]FTimeBucketAndObject:novaDeltaDiff = shunt(priceGreekRiskFactorNodeCount, 
+  0->nil, 
+  1->differential(rowInstrumentAndTrades:priceDelta, novaDeltaDiffShifted), 
+  default->denominatedValueZero);

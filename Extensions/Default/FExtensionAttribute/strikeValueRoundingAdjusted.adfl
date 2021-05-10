@@ -1,0 +1,10 @@
+[Default]FExerciseEvent:strikeValueRoundingAdjusted = select(instrument:roundingIsValid, 
+  true->switch(instrument:doRoundingForStrikeValue, 
+    true->instrument:strikeValueDirtyOrClean [useDirtyStrike, quoteConversionWrapperDoRounding = true], 
+    false->instrument:strikeValueDirtyOrClean [useDirtyStrike, quoteConversionWrapperDoRounding = false]), 
+  false->collapse(strikeValueDirtyOrClean));
+[Default]FInstrument:strikeValueRoundingAdjusted = select(roundingIsValid, 
+  true->switch(doRoundingForStrikeValue, 
+    true->object:strikeValueDirtyOrClean [useDirtyStrike, quoteConversionWrapperDoRounding = true], 
+    false->object:strikeValueDirtyOrClean [useDirtyStrike, quoteConversionWrapperDoRounding = false]), 
+  false->collapse(strikeValueDirtyOrClean));

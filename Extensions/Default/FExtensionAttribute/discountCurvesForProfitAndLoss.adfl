@@ -1,0 +1,9 @@
+[Default]FCashFlowInstrument:discountCurvesForProfitAndLoss = legs :* "discountCurveForProfitAndLoss" [valuationBaseDateTimeInput];
+[Default]FCombInstrMap:discountCurvesForProfitAndLoss = instrument:discountCurvesForProfitAndLoss [valuationBaseDateTimeInput];
+[Default]FCombination:discountCurvesForProfitAndLoss = select(needsLegInformation, 
+  true->flattenAndRemoveNil(instrumentMapsWithLegInformation :* "discountCurvesForProfitAndLoss" [valuationBaseDateTimeInput]), 
+  false->nil);
+[Default]FDerivative:discountCurvesForProfitAndLoss = select(needsLegInformation, 
+  true->underlying:discountCurvesForProfitAndLoss, 
+  false->nil);
+[Default]FInstrument:discountCurvesForProfitAndLoss = discountCurves;

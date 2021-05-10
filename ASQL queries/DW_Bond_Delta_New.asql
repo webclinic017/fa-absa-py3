@@ -1,0 +1,70 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','DW_Bond_Delta_New') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'DW_Bond_Delta_New' and p.type = 'SQL Query' 
+
+/*
+Query   : DW_Bond_Delta_New
+Purpose : Add columns dirty and clean price.
+History : 2011/04/05 - Rishaan Ramnarain - created new asql
+CR	: 621681
+
+History : 2015/02/24 - David Teagle - Amended Deltap1, Delta_bps and Delta_Exposure column calculations
+History : 2015/05/12 - David Teagle - Corrected Deltap1, Delta_bps and Delta_Exposure column
+
+*/
+ 
+select
+    i.insid                                                 'Instrument',
+    nominal_amount(t)                                       'Nominal',
+    nominal_amount(t)/i.contr_size                          'Quantity',
+
+    ( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  - 0.01  )- 
+      Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  + 0.01  )   ) / (0.02)             'Deltap1',
+    (( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  - 0.01  )- 
+      Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  + 0.01  )   ) / (0.02)/10000)      'Delta_bps',  
+    nominal_amount(t) *  (( Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  - 0.01  )- 
+      Dirty_from_yield(i, date_add_banking_day(@2_Date{today},,i.spot_banking_days_offset),,, (mtm_price(i)  )  + 0.01  )   ) / (0.02)/10000)      'Delta_Exposure', 
+    mtm_price(i)    'YTM',
+    today                                                   'DATE',
+    i.exp_day                                               'Expiry_Day',
+    dirty_from_yield(i),
+    clean_from_yield(i)
+
+
+into TEMP
+
+from 
+
+    trade t,
+    instrument i
+
+where
+
+    match_filter(t, @1_Filter{ILBI Structures_Bond;tradefilter.fltid})
+    and i.instype in ('Bond','IndexLinkedBond')
+    and t.insaddr = i.insaddr
+    and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+
+select
+    t.Instrument,
+    sum(t.Nominal)              'Nominal',
+    sum(t.Quantity)             'Quantity',
+    t.Deltap1,
+    t.Delta_bps,
+    sum(t.Delta_Exposure)       'Delta Exposure',
+    t.YTM,
+    t.DATE,
+    t.Expiry_Day,
+    t.dirty_from_yield,
+    t.clean_from_yield
+
+
+from TEMP t
+
+group by 1
+order by 9
+
+

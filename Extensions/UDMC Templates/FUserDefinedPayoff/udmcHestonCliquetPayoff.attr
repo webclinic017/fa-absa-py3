@@ -1,0 +1,55 @@
+[UDMC Templates]FObject:udmcHestonCliquetPayoff
+
+
+
+#--------------------------------------------
+# PAYOFF EXPRESSION
+# Heston Cliquet Payoff
+#
+# INTERPRETATION
+# Valuation of a Cliquet using Heston local volatility.
+#
+# DEFINITION
+# cap: Relative cap value, 'Local Cap'  field in the Cliquet Exotics tab;
+# floor: Relative floor value, 'Local Floor' field in the Cliquet Exotics tab;
+# 'Cliquet date' exotic events should be specified.
+#--------------------------------------------
+
+# PARAMETERS
+param matrix(double) isCliquetDate;
+param double cap;
+param double floor;
+param double payoffAdjustment;
+param double globalFloor;
+param int isQuanto;
+param double fixFXRate;
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+double s = 1.0;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+# MAIN LOOP
+s = sum(min(cap, max(floor, S[1:length(S)]./S[0:length(S)-1]-1.0)));
+
+# CASHFLOW
+cashFlow(0, fx*max(globalFloor, s-payoffAdjustment));
+
+
+# ------------------------------------------
+# PEL IMPLEMENTATION
+#
+# isCliquetDate: Matrix of the same dimension as S, contains 0.0 or 1.0 dependent on whether the corresponding elements in S represents a 'Cliquet date' fixing;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of underlying prices. One row, the number of columns is equal to the number of observation dates;
+#
+# s: Product of the capped and floored returns;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0;
+# sum(matrix(double)) function gives the sum of all matrix values.
+#
+# ------------------------------------------
+
+...

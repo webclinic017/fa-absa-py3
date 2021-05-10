@@ -1,0 +1,155 @@
+/*------------------------------------------------------------------
+    DCRM_IRD_BASIS
+
+    This query calculates the basis interest rate risk associated with the a DCRM trade filter.
+    The result is used in the DCRM Hedge Feeds.
+    
+    Department and Desk : Credit Desk
+    Requester           : De Clercq Wentzel
+    Developer           : Nidheesh Sharma
+    Date                : 2012-06-04
+    CR Number:          : C241538
+------------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------
+	ASQL USAGE LOG 
+------------------------------------------------------------------*/
+select
+    ael_i(p,'ASQL_log','DCRM_IRD_BASIS') 'Name'
+into  
+    ASQL_LOG_TEMP
+from 
+    TextObject p 
+where 
+    p.name = 'DCRM_IRD_BASIS' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+	Macros
+------------------------------------------------------------------*/
+select
+    convert('date',@2_ValueDate{today},'%Y%m%d')                'ValueDate',
+    @1_Filter{DCRM_HEDGES;tradefilter.fltid}                    'TradeFilter'
+into
+	macros
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+/*------------------------------------------------------------------
+	FX Rates
+------------------------------------------------------------------*/
+select
+	cur.insid	                                                'Currency',
+	m.ValueDate = today ? used_price(cur, m.ValueDate,'ZAR') : 
+    mtm_price(cur, m.ValueDate,'ZAR')		                    'Rate'
+into
+	fxrates    
+from
+	instrument	cur,
+	macros		m
+where
+    cur.instype = 'Curr'
+
+
+/*------------------------------------------------------------------
+	Select all the discount curves used in the trade filter by portfolio by desk
+------------------------------------------------------------------*/
+select distinct
+    display_id(t,'prfnbr')                                      'Portfolio',
+    display_id(t,'acquirer_ptynbr')                             'Desk',
+    curr.insaddr                                                'InsCurr',
+    ael_s(i,'DCRM_IRD.getDiscountCurve',curr.insid)             'Curve'
+into
+    tempCurves
+from
+    trade t, 
+    instrument curr,
+    instrument i
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+/*------------------------------------------------------------------
+	Select all the underlying curves used in the trade filter by portfolio by desk
+------------------------------------------------------------------*/
+select distinct
+    display_id(t,'prfnbr')                                      'Portfolio',
+    display_id(t,'acquirer_ptynbr')                             'Desk',
+    curr.insaddr                                                'InsCurr',
+    ael_s(i,'DCRM_IRD.getUnderlyingCurve',curr.insid)           'Curve'
+into
+    tempCurves
+from
+    trade t, 
+    instrument curr,
+    instrument i
+where 
+    match_filter(t, @1_Filter{DCRM_HEDGES;tradefilter.fltid})
+and t.insaddr = i.insaddr
+and curr.instype = 'Curr'
+and currency_included(t, curr.insid) = 1
+
+
+select distinct
+    tc.InsCurr,
+    tc.Curve
+into
+    getCurves
+from
+    tempCurves tc,
+    yieldcurve yc
+where
+    tc.Curve ~= ''
+and yc.yield_curve_name = tc.Curve
+and yc.yield_curve_type = 'Attribute Spread'
+and yc.yield_curve_name like '___-BASIS'
+
+/*------------------------------------------------------------------
+	Calculate the shift in PV for the portfolio (Delta) when 
+    the basis instuments, of the used yieldcurves, are shifted.
+------------------------------------------------------------------*/
+select
+    m.ValueDate                                                     'ValueDate',
+    yc.yield_curve_name                                             'YieldCurveName', 
+    'JHB'                                                           'Location',
+    m.TradeFilter                                                   'Desk',
+    m.TradeFilter                                                   'Portfolio',
+    ins.insid                                                       'Currency',
+    /*uyc.yield_curve_name*/ 'BASIS'                                'Index',
+    ael_s(p,'DCRM_IRD.getCurveStrip',p.seqnbr)                      'Tenor',
+    to_string(ins.instype)                                          'CurveStrip',
+    ael_f(s,'DCRM_IRD.basis_delta',@1_Filter{DCRM_HEDGES;tradefilter.fltid},yc.yield_curve_name,0.0001) / fx.Rate 'Value',
+    0.00                                                            'GBP_Risk'
+from
+    yieldcurve      yc,
+    yieldcurve      uyc,
+    YCAttribute     attrib,
+    YCSpread        s,
+    YieldCurvePoint p,
+    Instrument      ins,
+    Instrument      cur,
+    getCurves       gc,
+    fxrates         fx,
+    macros          m
+where
+    yc.yield_curve_name = gc.Curve
+and gc.InsCurr = ins.insaddr
+
+and yc.underlying_yield_curve_seqnbr = uyc.seqnbr
+
+and attrib.curr = gc.InsCurr
+and yc.seqnbr = attrib.yield_curve_seqnbr
+and attrib.seqnbr = s.attribute_seqnbr
+
+and yc.seqnbr = p.yield_curve_seqnbr
+and s.point_seqnbr = p.seqnbr
+
+and fx.Currency = cur.insid
+and ins.curr = cur.insaddr

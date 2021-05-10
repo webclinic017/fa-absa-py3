@@ -1,0 +1,6 @@
+[Prime Services]FInstrumentAndTrades:dateRangeEquitySetFee = sumOf(children :* "dateRangeEquitySetFee" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FSingleInstrumentAndTrades:dateRangeEquitySetFee = sumOf(tradesInPosition :* "dateRangeEquitySetFee" [profitAndLossStartDate, profitAndLossEndDate]);
+[Prime Services]FTrade:dateRangeEquitySetFee = switch(isGeneralPortfolio, 
+  true->py("PS_TradeFees", context).ReturnFee([object], "SET", profitAndLossStartDate, profitAndLossEndDate), 
+  false->0);
+[Prime Services]FTradeRow:dateRangeEquitySetFee = trade :* "dateRangeEquitySetFee" [profitAndLossStartDate, profitAndLossEndDate];

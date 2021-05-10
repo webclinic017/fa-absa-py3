@@ -1,0 +1,23 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRTB_Task_Name_Selection') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRTB_Task_Name_Selection' and p.type = 'SQL Query' 
+
+/*This ASQL will be called form the Fornt Arena backend to
+select all of the relevant Tasks that should be executed
+based on a regualer expression.
+
+-- HISTORY --
+Date           CR               Requestor          Developer          Request
+----------------------------------------------------------------------------------------
+2020-11-12                      FRTB Project       Heinrich Cronje    https://absa.atlassian.net/browse/FDRTB-2080
+*/
+
+select
+    name
+from
+    Task 
+where 
+    name re_like @1_TaskNameExpression{FRTB_Main.+;}

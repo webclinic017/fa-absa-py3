@@ -1,0 +1,11 @@
+[Credit Pricing and Risk]FCashFlowInstrument:creditExposure = sumOf(legs :* "payLegFactor * creditExposure" [creditExposureReference := creditGroupingReference, creditExposureDate, creditExposureExpiryDate]);
+[Credit Pricing and Risk]FCombination:creditExposure = object.GroupWeight(creditGroupingReference, creditExposureDate);
+[Credit Pricing and Risk]FFuture:creditExposure = select(isCreditFuture, 
+  true->underlying :* "creditExposure" [creditGroupingReference, creditExposureDate, creditExposureExpiryDate], 
+  false->0);
+[Credit Pricing and Risk]FInstrument:creditExposure = 0;
+[Credit Pricing and Risk]FLeg:creditExposure = object.CreditExposure(creditExposureReference, creditExposureDate, creditExposureExpiryDate, instrumentUseConstituents);
+[Credit Pricing and Risk]FOption:creditExposure = underlying :* "creditExposure" [creditGroupingReference, creditExposureDate, creditExposureExpiryDate] * switch(object.IsPutOption, 
+  true->-1, 
+  false->1);
+[Credit Pricing and Risk]FPortfolioInstrumentAndTrades:creditExposure = nil;

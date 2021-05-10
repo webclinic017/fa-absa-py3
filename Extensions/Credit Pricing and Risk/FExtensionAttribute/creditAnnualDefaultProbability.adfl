@@ -1,0 +1,7 @@
+[Credit Pricing and Risk]FInstrumentAndTrades:creditAnnualDefaultProbability = select(creditCurveSingleRow == nil, 
+  true->nil, 
+  false->switch(creditYearsToMaturity > 0, 
+    true->creditDefaultProbability / creditYearsToMaturity, 
+    default->0));
+[Credit Pricing and Risk]FMultiInstrumentAndTrades:creditAnnualDefaultProbability = nil;
+[Credit Pricing and Risk]FPortfolioInstrumentAndTrades:creditAnnualDefaultProbability = nil;

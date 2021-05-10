@@ -1,0 +1,95 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','samr_eq_prices') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'samr_eq_prices' and p.type = 'SQL Query' 
+
+
+/*
+Date            Who             What
+2007-02-02      Heinrich Cronje Added instument CFD
+2007-02-09      Heinrich Cronje Added Business_Date
+*/
+
+/*With underlying instruments*/
+
+select
+    i.insid                                 'Instrument',
+    i.instype                               'Instype',    
+/*    mtm_price(i, @Date, 'ZAR', 0, 0)        'MTM',*/
+    u.insid                                 'Underlying',
+    u.instype                               'Underlying_Instype',
+    u.instype = 'Commodity' and used_price(u,,display_id(u,'curr')) = 0 ? ael_f(,'AS_MTM_Rates.Safex_MTM_Rates',u) 	: ((used_price(u,,display_id(u,'curr')) = 0) or (u.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) 	? used_price(u,,display_id(u,'curr'),,,'internal'): used_price(u,,display_id(u,'curr')))       'Underlying_MTM',
+    (add_info(u,'DividendYield') = '')? 0 : add_info(u,'DividendYield')  'DividendYield_Underlying',
+    @Date{}                                 'Business_Date'
+
+into
+    temp
+    
+from
+    Instrument i,
+    Instrument u
+    
+where
+    i.und_insaddr =* u.insaddr
+and i.instype in ('Future/Forward', 'Option', 'Stock', 'Warrant', 'EquityIndex','CFD')
+and u.instype in ('Stock', 'EquityIndex')
+and i.exp_day >= @Date{}
+
+
+
+
+
+/* without underlying instruments */
+select
+    i.insid                                 'Instrument',
+    i.instype                               'Instype',    
+/*    mtm_price(i, @Date, 'ZAR', 0, 0)        'MTM',*/
+    i.insid                                 'Underlying',
+    i.instype                               'Underlying_Instype',
+/*    i.instype = 'Commodity' and used_price(i,,'ZAR') = 0 ? ael_f(,'AS_MTM_Rates.Safex_MTM_Rates',i) 	: ((used_price(i,,'ZAR') = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) 	? used_price(i,,'ZAR',,,'internal'): used_price(i,,'ZAR'))        'Underlying_MTM',*/
+
+/*    i.instype = 'Commodity' and used_price(i,,'ZAR') = 0 ? ael_f(,'AS_MTM_Rates.Safex_MTM_Rates',i) 	
+            : i.instype = 'EquityIndex' ? i.quote_type in ('Per 100 Units') ? (((used_price(i,,'ZAR') = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) 	? used_price(i,,'ZAR',,,'internal'): used_price(i,,'ZAR')) / 100
+                : ((used_price(i,,'ZAR') = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,'ZAR',,,'internal'): used_price(i,,'ZAR'))
+                    : ((used_price(i,,'ZAR') = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,'ZAR',,,'internal'): used_price(i,,'ZAR'))        'Underlying_MTM',
+*/                    
+                    
+    i.instype = 'Commodity' and used_price(i,,display_id(i,'curr')) = 0 ? ael_f(,'AS_MTM_Rates.Safex_MTM_Rates',i) 	
+            : i.instype = 'EquityIndex' ? i.quote_type in ('Per 100 Units') ? ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET')) ? used_price(i,,display_id(i,'curr'),,,'internal') : used_price(i,,display_id(i,'curr'))) / 100
+                    : ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET','ZAR/XIY_Basket')) ? used_price(i,,display_id(i,'curr'),,,'internal') : used_price(i,,display_id(i,'curr')))
+                        : ((used_price(i,,display_id(i,'curr')) = 0) or (i.insid IN ('ZAR/OPTI', 'ZAR/OPTI_NEW', 'ZAR/PIC2', 'ZAR/PIC3', 'ZAR/PIC_BASKET', 'ZAR/CDBA', 'ZAR/CDZ_BASKET', 'ZAR/INVESTEC_BASKET','ZAR/XIY_Basket')) ? used_price(i,,display_id(i,'curr'),,,'internal'): used_price(i,,display_id(i,'curr')))        'Underlying_MTM',                    
+                    
+                    
+    (add_info(i,'DividendYield') = '')? 0 : add_info(i,'DividendYield')  'DividendYield_Underlying',
+    @Date{}                                 'Business_Date'
+into
+    temp
+ 
+from
+    Instrument i
+    
+where
+    i.instype in ('Stock', 'EquityIndex')
+ /*and i.exp_day >= @Date{}*/
+
+    
+
+
+
+
+
+/* main */
+select
+    t.Underlying,
+    t.Underlying_Instype,
+    t.Underlying_MTM,
+    t.DividendYield_Underlying,
+    t.Business_Date
+from
+    temp t
+    
+group by t.Underlying
+
+order by t.Underlying

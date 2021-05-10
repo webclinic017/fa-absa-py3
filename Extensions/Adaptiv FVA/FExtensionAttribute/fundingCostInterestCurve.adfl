@@ -1,0 +1,8 @@
+[Adaptiv FVA]FCreditBalance:fundingCostInterestCurve = py("AAFVAPluginSettings", context).getFundingCostInterestCurveIrInformation(currency.Name);
+[Adaptiv FVA]FCurrency:fundingCostInterestCurve = py("AAFVAPluginSettings", context).getFundingCostInterestCurveIrInformation(object.Name);
+[Adaptiv FVA]FInstrument:fundingCostInterestCurve = shunt(discountingUnit, 
+  nil->nil, 
+  default->discountingUnit:fundingCostInterestCurve);
+[Adaptiv FVA]FInstrumentAndTrades:fundingCostInterestCurve = instrument:fundingCostInterestCurve;
+[Adaptiv FVA]FLeg:fundingCostInterestCurve = discountingUnit:fundingCostInterestCurve;
+[Adaptiv FVA]FSymbol:fundingCostInterestCurve = py("AAFVAPluginSettings", context).getFundingCostInterestCurveIrInformation(object.Text);

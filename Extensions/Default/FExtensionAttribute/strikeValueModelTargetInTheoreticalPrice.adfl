@@ -1,0 +1,7 @@
+[Default]FInstrument:strikeValueModelTargetInTheoreticalPrice = select(isForwardStarting and isRelativeStrike, 
+  false->snoop01(theoreticalPrice, ["strikeValueModelTarget"]), 
+  true->nil);
+[Default]FInstrumentAndTrades:strikeValueModelTargetInTheoreticalPrice = select(instrument:isForwardStarting and instrument:isRelativeStrike, 
+  false->snoop01(theoreticalPrice, ["strikeValueModelTarget"], alwaysMatchedFilter, lotIndex), 
+  true->nil);
+[Default]FMultiInstrumentAndTrades:strikeValueModelTargetInTheoreticalPrice = nil;

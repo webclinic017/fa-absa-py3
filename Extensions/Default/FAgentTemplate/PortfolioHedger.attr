@@ -1,0 +1,462 @@
+[Default]FObject:PortfolioHedger
+
+Properties =
+  Abstract=No
+  CanBePaused=No
+  CanBeRestarted=No
+  CreatePermission=System
+  DialogPanel=SetupDialog
+  DisplayName=Portfolio Hedger
+  EditPermission=System
+  Granularity=10
+  InheritsFrom=FAgent
+  StartState=Start
+  StoreTraceLog=No
+  TraceLog=1000
+  TradingEnabled=Yes
+
+State AgentError =
+  Description=
+  InitialSubState=<none>
+  OnEntry=AgentError
+  OnExit=<none>
+  SuperState=<none>
+
+State AwaitTrade =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State BadMarket =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State ClearOrders =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Listen =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Reduce =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State SendOrder =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=<none>
+  SuperState=<none>
+
+State Start =
+  Description=
+  InitialSubState=<none>
+  OnEntry=<none>
+  OnExit=InitiateAgent
+  SuperState=<none>
+
+State Stop =
+  Description=
+  InitialSubState=<none>
+  OnEntry=CleanUp
+  OnExit=<none>
+  SuperState=<none>
+
+Transitions =
+  agentErrorFromAwaitTrade=AwaitTrade -> agentError / <none> -> AgentError
+  agentErrorFromBadMarket=BadMarket -> agentError / <none> -> AgentError
+  agentErrorFromClearOrders=ClearOrders -> agentError / <none> -> AgentError
+  agentErrorFromReduce=Reduce -> agentError / <none> -> AgentError
+  agentErrorFromSendOrder=SendOrder -> agentError / <none> -> AgentError
+  agentErrorFromStart=Start -> agentError / <none> -> AgentError
+  agentErrorListen=Listen -> agentError / <none> -> AgentError
+  askPriceBreachedTransition=Listen -> askPriceBreached / UpdateAsks -> Reduce
+  bidPriceBreachedTransition=Listen -> bidPriceBreached / UpdateBids -> Reduce
+  continueFromAgentError=AgentError -> continueFromAgentError / <none> -> Listen
+  crossingOrdersTransition=Listen -> crossingOrders / DeleteOrders -> ClearOrders
+  marketChangedTransition=Listen -> marketChanged / UpdateMarket -> ClearOrders
+  marketNotOk2=Listen -> lastMarketNotOk / <none> -> BadMarket
+  orderRejected=SendOrder -> orderRejected / <none> -> Listen
+  ordersClereadTransition=ClearOrders -> ordersCleared / <none> -> Listen
+  orderSizeBreachedTransition=Listen -> orderSizeBreached / ReportOrderSizeBreached -> Stop
+  ordersRemovedTransition=Reduce -> orderRemoved / <none> -> Listen
+  quantityBreachedTransition=Listen -> quantityBreached / ReduceHedge -> Reduce
+  sendAskOrderTransition=Listen -> sendAsk / CreateAndSendAskOrder -> SendOrder
+  sendBidOrderTransition=Listen -> sendBid / CreateAndSendBidOrder -> SendOrder
+  sentBidOrAskOrderTransition=SendOrder -> orderSent / <none> -> Listen
+  t01=Start -> marketOk / <none> -> Listen
+  t02=Start -> marketNotOk / <none> -> BadMarket
+  t03=BadMarket -> lastMarketOk / <none> -> Listen
+  tradeArrivedTransition=AwaitTrade -> tradeArrived / ProcessTrade -> Listen
+  tradeDetectedTransition=Listen -> tradeDetected / <none> -> AwaitTrade
+
+Panel Information =
+  DisplayName=Information
+  Orientation=Vertical
+  Variables=trading, movedQty, qtyShortfall, filledQtyOrders, currentPosition
+
+Panel SetupDialog =
+  DisplayName=
+  Orientation=Vertical
+  Panels=Information
+
+Conditions =
+  advancedSafetyRulesOk=noTradeDetected and marketHasNotChanged
+  agentError=hasErrors
+  alwaysFalse=false
+  alwaysTrue=true
+  askPriceBreached=lastMarketOk and upperDeltaBreached and (wp > 0.0) and (wp > (targetPrice + priceSlack + 0.001)) and (not activeAsks.IsEmpty) and advancedSafetyRulesOk
+  bidPriceBreached=lastMarketOk and lowerDeltaBreached and (wp > 0.0) and (wp < (targetPrice - priceSlack - 0.001)) and (not activeBids.IsEmpty) and advancedSafetyRulesOk
+  continueFromAgentError=not agentError
+  crossingOrders=lastMarketOk and ((upperDeltaBreached and (not activeBids.IsEmpty)) or (lowerDeltaBreached and (not activeAsks.IsEmpty))) and advancedSafetyRulesOk
+  lastMarketNotOk=not lastMarketOk
+  lastMarketOk=switch(lastTrading, \
+      nil->false, \
+      default->lastTrading.IsAvailable and lastTrading.Status.AutomaticTrade)
+  lowerDeltaBreached=deltaCurrent < deltaLimitLower
+  marketChanged=lastMarketOk and (market <> lastMarket)
+  marketHasNotChanged=not marketChanged
+  marketNotOk=not marketOk
+  marketOk=switch(tradingUsed, \
+      nil->false, \
+      default->tradingUsed.IsAvailable and tradingUsed.Status.AutomaticTrade)
+  noTradeDetected=not tradeDetected
+  orderRejected=not orderSent and not agentError and orderUpdateDone
+  orderRemoved=activeMarks.IsEmpty
+  ordersCleared=activeBids.IsEmpty and activeAsks.IsEmpty
+  orderSent=(lastOrder.IsOrderDone or lastOrder.IsOrderActive) and orderUpdateDone
+  orderSizeBreached=killAgentOrderSize < hedgeQuantity
+  orderUpdateDone=not lastOrder.UpdateInProgress
+  priceSlackBreached=(wp > 0.0) and ((lowerDeltaBreached and ((wp + 0.001) < (targetPrice - priceSlack))) or (upperDeltaBreached and ((wp - 0.001) > (targetPrice + priceSlack)))) and ((not activeAsks.IsEmpty) or (not activeBids.IsEmpty))
+  quantityBreached=lastMarketOk and not crossingOrders and (qtyShortfall < (-minSlice)) and advancedSafetyRulesOk
+  safeToSend=(qtyShortfall > minSlice) and noTradeDetected and priceFeedUsed.IsValidPrice(targetPrice) and smartOK
+  sendAsk=lastMarketOk and marketOk and upperDeltaBreached and (activeBids.IsEmpty) and safeToSend and advancedSafetyRulesOk
+  sendBid=lastMarketOk and marketOk and lowerDeltaBreached and (activeAsks.IsEmpty) and safeToSend and advancedSafetyRulesOk
+  smartOK=not (hedgeSMART and ((nil == hedgeTradingStrategy) or (nil == tradingUsed.ImTradingInterface)))
+  tradeArrived=tradeSource.Size > 0
+  tradeDetected=lastFilledQtyOrders < filledQtyOrders
+  upperDeltaBreached=deltaCurrent > deltaLimitUpper
+
+Actions =
+  AgentError=!AgentError
+  CleanUp=!CleanUp
+  CreateAndSendAskOrder=!CreateAndSendAskOrder
+  CreateAndSendBidOrder=!CreateAndSendBidOrder
+  CreateTradeSource=acm.Trading.CreateTradeTickerSource(nil, agentTrades, -1, false) => tradeSource
+  DeleteOrders=!DeleteOrders
+  ProcessTrade=!ProcessTrade
+  ReduceHedge=!ReduceHedge
+  ReportOrderSizeBreached=!ReportOrderSizeBreached
+  SetUp=!SetUp
+  UpdateAsks=!UpdateAsks
+  UpdateBids=!UpdateBids
+  UpdateMarket=!UpdateMarket
+
+ActionLists =
+  InitiateAgent=SetUp, CreateTradeSource
+
+Variable account =
+  Description=The account to add on portfolio hedge orders
+  DisplayName=Account
+  Domain=string
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerAccount
+
+Variable activeAsks =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable activeBids =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable activeMarks =
+  Domain=FFilteredSet
+  Type=Private
+  Value=
+
+Variable agentTrades =
+  Type=ReadOnly
+  Value=object.TradingSession.StoredTrades
+
+Variable askOrders =
+  Domain=FDependentArray
+  Type=Private
+  Value=
+
+Variable bid =
+  DisplayName=Bid
+  Domain=bool
+  Type=ReadOnly
+  Value=lowerDeltaBreached
+
+Variable bidOrders =
+  Domain=FDependentArray
+  Type=Private
+  Value=
+
+Variable consecutiveErrors =
+  DisplayName=consecutiveErrors
+  Domain=int
+  Type=Private
+  Value=0
+
+Variable currentPosition =
+  DisplayName=Current Position
+  Domain=double
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerPosition
+
+Variable deltaCurrent =
+  Description=The current delta used
+  DisplayName=Delta Current
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerDelta
+
+Variable deltaLimitLower =
+  Description=The agent is triggered if delta passes this limit
+  DisplayName=Lower Delta Limit
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerLowerDeltaLimit
+
+Variable deltaLimitUpper =
+  Description=The agent is triggered if delta passes this limit
+  DisplayName=Upper Delta Limit
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerUpperDeltaLimit
+
+Variable errorMessage =
+  DisplayName=errorMessage
+  Domain=string
+  Type=Private
+  Value=
+
+Variable filledQtyOrders =
+  DisplayName=Filled Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=filledQuantityFromOrders
+
+Variable hasErrors =
+  DisplayName=hasErrors
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable hedgeInstrumentContractSize =
+  DisplayName=Hedge Instrument Contract Size
+  Domain=double
+  Type=ReadOnly
+  Value=object.Trading.Instrument.ContractSize
+
+Variable hedgeQuantity =
+  Description=The current hedge quantity required to reach the midpoint between lower and upper delta limit
+  DisplayName=Hedge Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerHedgeQty / hedgeInstrumentContractSize
+
+Variable hedgeSMART =
+  DisplayName=SMART
+  Domain=bool
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerSMART
+
+Variable hedgeTradingStrategy =
+  DisplayName=Hedge Trading Strategy
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerTradingStrategy
+
+Variable killAgentOrderSize =
+  Description=Maximum order size of a single hedge order. If an hedge order exceeds this size, agent will be terminated
+  DisplayName=Kill Agent Order Size
+  Domain=double
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerKillAgentOrderSize
+
+Variable lastAgentTrades =
+  Description=The previous number of trades produced by portfolio hedger agent
+  DisplayName=LastAgentTrades
+  Domain=int
+  Type=Private
+  Value=0
+
+Variable lastFilledQtyOrders =
+  DisplayName=lastFilledQtyOrders
+  Domain=double
+  Type=Private
+  Value=0.0
+
+Variable lastMarket =
+  DisplayName=lastMarket
+  Domain=string
+  Type=Private
+  Value=
+
+Variable lastOrder =
+  DisplayName=LastOrder
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable lastTrading =
+  Domain=FTradingInterface
+  Type=Private
+  Value=
+
+Variable markedOrders =
+  Domain=FDependentArray
+  Type=Private
+  Value=
+
+Variable market =
+  DisplayName=Market
+  Domain=string
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerTrading.MarketPlace.Name
+
+Variable maxNbrFailedModifications =
+  DisplayName=maxNbrFailedModifications
+  Domain=int
+  Type=Private
+  Value=
+
+Variable minSlice =
+  Description=The minimum size of an individual hedge order
+  DisplayName=MinSlice
+  Domain=double
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerMinSlice
+
+Variable movedQty =
+  DisplayName=MovedQty
+  Domain=double
+  Type=ReadOnly
+  Value=activeQuantity
+
+Variable priceFeed =
+  DisplayName=Price Feed
+  Domain=FPriceFeed
+  Type=ReadOnly
+  Value=trading.PriceFeed
+
+Variable priceFeedUsed =
+  Domain=FPriceFeed
+  Type=ReadOnly
+  Value=tradingUsed.PriceFeed
+
+Variable priceOffset =
+  Description=The price offset used by the portfolio hedger
+  DisplayName=Hedge Quantity
+  Domain=double
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerPriceOffset
+
+Variable priceSlack =
+  Description=The price slack used by the portfolio hedger
+  DisplayName=Price Type Slack
+  Domain=double
+  Type=ReadOnly
+  Value=switch(priceType, \
+      "Join"->max(priceOffset, sourceObj:agentPortfolioHedgerPriceSlack), \
+      default->sourceObj:agentPortfolioHedgerPriceSlack)
+
+Variable priceSource =
+  DisplayName=Price Source
+  Type=ReadOnly
+  Value=switch(priceType, \
+      "Last"->priceFeed.LastPrice.Get, \
+      "Join"->switch(bid, \
+        true->priceFeed.BestBidPrice.Get, \
+        false->priceFeed.BestAskPrice.Get), \
+      "Match"->switch(bid, \
+        true->priceFeed.BestAskPrice.Get, \
+        false->priceFeed.BestBidPrice.Get))
+
+Variable priceType =
+  Description=The price type used by the portfolio hedger
+  DisplayName=Price Type
+  Domain=string
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerPriceType
+
+Variable qtyShortfall =
+  DisplayName=QtyShortfall
+  Domain=double
+  Type=ReadOnly
+  Value=hedgeQuantity - movedQty
+
+Variable reference =
+  Description=The reference to add on portfolio hedge orders
+  DisplayName=Reference
+  Domain=string
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerReference
+
+Variable referenceOrder =
+  DisplayName=referenceOrder
+  Domain=FOrderHandler
+  Type=Private
+  Value=
+
+Variable sourceObj =
+  DisplayName=Source Object
+  Domain=FMultiInstrumentAndTrades
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable tag =
+  Mandatory=Yes
+  Type=InputFixed
+  Value=
+
+Variable targetPrice =
+  DisplayName=targetPrice
+  Type=ReadOnly
+  Value=switch(bid, \
+      true->priceFeedUsed.RoundTickDown(double(priceSource) + priceOffset), \
+      false->priceFeedUsed.RoundTickUp(double(priceSource) - priceOffset))
+
+Variable tradeSource =
+  Type=Private
+  Value=
+
+Variable trading =
+  Description=agentPortfolioHedgerTrading
+  DisplayName=Order Book
+  Domain=FTradingInterface
+  Type=ReadOnly
+  Value=sourceObj:agentPortfolioHedgerTrading
+
+Variable tradingUsed =
+  DisplayName=Order Book Used
+  Domain=FTradingInterface
+  Type=Private
+  Value=
+
+Variable wp =
+  DisplayName=WP
+  Domain=double
+  Type=Private
+  Value=-1.0
+
+<end>

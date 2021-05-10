@@ -1,0 +1,6 @@
+[StructuredProductsDealPackage]FExoticEvent:spHistoricalTrfExpiryEvents = select(object.Date < valuationDate, 
+  true->object, 
+  default->select(object.Date == valuationDate, 
+    true->switch((object.EventValue <> -1) and (object.EventValue <> 0), 
+      true->object)));
+[StructuredProductsDealPackage]FInstrument:spHistoricalTrfExpiryEvents = flattenAndRemoveNil(spTrfExpiryEventsSorted :* "spHistoricalTrfExpiryEvents");

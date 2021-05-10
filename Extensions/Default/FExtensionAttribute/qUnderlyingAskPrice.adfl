@@ -1,0 +1,14 @@
+[Default]FCombination:qUnderlyingAskPrice = object.UnitValueToQuote(shunt(qUnderlyingPriceType, 
+  "Default"->theoreticalInstrumentValue, 
+  "SprAvg"->theoreticalSpotValueSpreadAverage, 
+  "Bid/Ask"->select(isUndPositive, 
+    true->theoreticalInstrumentValueAsk, 
+    false->theoreticalInstrumentValueBid), 
+  "Bid"->theoreticalInstrumentValueBid, 
+  "Ask"->theoreticalInstrumentValueAsk, 
+  "Last"->theoreticalSpotValueLast), valuationDate, valuationDate, true, nil, nil, quotation, 1.0, 0.0, , , roundingInformation);
+[Default]FQuoteController:qUnderlyingAskPrice = select(underlyingIsValuedFromLegs, 
+  true->underlying:qUnderlyingAskPrice [priceSource, qUnderlyingPriceType, isUndPositive], 
+  false->shunt(qUnderlyingPriceType.IsEqual("Default") and not qIsServerSideQuotingEnabled, 
+    true->underlyingPriceNodeInTheoreticalPrice, 
+    default->underlyingAskQuotingPrice));

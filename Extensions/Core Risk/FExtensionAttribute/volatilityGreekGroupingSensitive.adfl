@@ -1,0 +1,6 @@
+[Core Risk]FObject:volatilityGreekGroupingSensitive = 
+# This setting is either done from a normal column parameterization or the strike bucket column GUI
+nilObject:volatilityGreekGroupingSensitive [vegaStrikeBucketsInfoSetExternally];
+[Core Risk]FUndefinedObject:volatilityGreekGroupingSensitive = select(nil == vegaStrikeBucketsInfoSetExternally, 
+  true->false, 
+  false->bool(vegaStrikeBucketsInfoSetExternally.First.Parameter("groupingSensitive")));

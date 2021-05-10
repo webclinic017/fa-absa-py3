@@ -1,0 +1,114 @@
+/* Usage code for this ASQL */
+/* Trade Numbers 1131461,1131665,1560841,1560838 are Callable Swaps and Quanto Options.
+These tardes are conatined in this extact but not in the Daily Market Risks as they are not valued in RiskWatch
+*/
+select
+ael_i(p,'ASQL_log','FRONT_RECON_EXCL_BONDS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_RECON_EXCL_BONDS' and p.type = 'SQL Query' 
+select
+
+t.trdnbr					'TradeID',
+i.insid						'Insid',
+i.und_instype = 'None' ? 'None' :  und.insid  	'UndInsId',
+port.prfid					'Portfolio',
+acq.ptyid					'Desk',
+t.status = 'FO Confirmed' ? 'FO Confirmed' : t.status					'Status',
+u.userid					'Trader',
+cp.ptyid					'CP',
+i.instype = 'Bond' ? 'Bond' : i.instype 	'InsType',
+i.und_instype = 'Bond' ? 'Bond' : i.und_instype					'UndInstype',
+time_to_day(t.time)				'DealDate',
+/*i.exp_day = '0000-01-01' ? max(l.end_day) : avg(i.exp_day)			'MaturityDate',*/
+i.exp_day					'MaturityDate',
+t.value_day					'ValueDay',
+TODAY			 			'LatUpdated',
+ael_s(t,'InstrType.InstrumentType') 		'AelInstype',
+display_id(i,'product_chlnbr')			'Valgroup',
+event_date(i,'FirstPayday'),
+max(l.end_day)	'end_day',
+t.value_day,
+nominal_amount(t, today)			'Nominal'
+
+into
+	temp
+
+from
+
+trade t,
+instrument i,
+instrument und,
+party cp,
+party acq,
+portfolio port,
+user u,
+leg l
+
+where
+
+	i.insaddr = t.insaddr
+and	i.insaddr *= l.insaddr
+and	t.acquirer_ptynbr = acq.ptynbr
+and	t.counterparty_ptynbr = cp.ptynbr
+and	t.prfnbr = port.prfnbr
+and	i.und_insaddr *= und.insaddr
+and	t.trader_usrnbr *= u.usrnbr
+and	(i.exp_day > TODAY or i.exp_day = '0000-01-01')
+and	i.instype ~= 'Bond'
+and i.instype ~= 'Stock'
+and	add_info(t, 'AgriStatus') ~= 'Matured'
+and	match_filter(t, @Tradefilter{Treasury_Banking_and_Trading; tradefilter.fltid})
+and port.prfid not in ('4440798', '4440806', 'CFD', 'Equity Script Lending')
+and port.prfid not like 'Call%'
+and     i.insid not like '%SSP/SAFEX%'	
+and     i.insid not like '%SYP/SAFEX%'	
+and     i.insid not like '%WHP/SAFEX%'	
+and     i.insid not like '%WMS/SAFEX%'	
+and     i.insid not like '%YMS/SAFEX%'	
+and     i.insid not like '%GAS_OIL%'	/*These are BTB trades*/
+and     i.insid not like '%QuantoHedge_Test%'
+and     t.trdnbr not in (2602876)    /*This is a knock in swap which has an underlying as caps and floors*/
+and     t.trdnbr not in (2701023,2701025,2701037,2701038,2701036,2701039,2701045,2701051,2701056,2701075,2701074,2701070,2701069,2701067,2701065,2701063,2701061,2701344,2701282,2701279,2701275,2701256,2701224,2701214,2701186,2701175,2701648,2701625,2701556,2701528,2701495,2701487,2701455,2701444,2701349,2701150,2701126,2701054,2701050,2701044)
+/*energy combination trades - still to do individual trades-delete after complete*/
+
+
+
+group by t.trdnbr
+
+
+
+select
+t.TradeID,
+t.Insid,
+t.UndInsId,
+t.Portfolio,
+t.Desk,
+t.Status,
+t.Trader,
+t.CP,
+t.InsType,
+t.UndInstype,
+t.DealDate,
+t.MaturityDate = '0000-01-01' ? t.end_day : t.MaturityDate		'MaturityDate',
+t.ValueDay,
+t.LatUpdated,
+t.AelInstype,
+t.Valgroup,
+t.event_date,
+/*t.end_day	'end_day',
+t.value_day,*/
+t.Nominal,
+(t.value_day <= today and (t.MaturityDate = '0000-01-01' ? t.end_day : t.MaturityDate) >= today) ? 'S'
+	: t.value_day > today ? 'U' : ''				'Sett_Unsett'
+
+
+
+from
+	temp t
+
+where
+	t.MaturityDate = '0000-01-01' and t.end_day > today
+or	t.MaturityDate ~= '0000-01-01' and t.MaturityDate > today
+or	t.MaturityDate = '0000-01-01' and t.end_day = '0000-01-01'
+	

@@ -1,0 +1,66 @@
+/* update_method=0 */
+
+/*--------------------------------------------------------------------------
+	
+This query extracts all equity trades booked against 15a6 counterparties
+
+    Department and Desk : Equities Desk
+    Requester           : Ndivhuho Mashishimise
+    Developer           : Snowy Mabilu
+	
+HISTORY
+Date: 2020-11-09
+Author: Snowy Mabilu
+Jira : ARR-72 - Jibar exposure monitoring
+Date : 2021-03-18
+Author: Teboho Lepele
+Jira : ARR-110 - Optimize FINRA Blotter Query
+
+-----------------------------------------------------------------------------*/
+
+select
+    t.trdnbr 'Trade Number',
+    convert('date', time_to_day(t.creat_time), '%m/%d/%Y') 'Trade Date',
+    convert('time', t.execution_time, '%H:%M:%S') 'Execution Time',
+    convert('date', t.value_day, '%m/%d/%Y') 'Settlement Date',
+    ael_s(t,'Blotter_functions.get_original_counterparty') 'Counterparty',
+    t.quantity > 0 ? 'Buy' : 'Sell'    'Buy/Sell',
+    i.insid 'Instrument',
+    display_id(i,'issuer_ptynbr' ) 'Issuer',
+    i.isin 'ISIN',
+    round(t.price/100,8) 'Price',
+    t.quantity 'Quantity',
+    round(t.premium,2) 'Premium',
+    round(ael_f(t,'Blotter_functions.get_commission'),2) 'Commission',
+    round(ael_f(t,'Blotter_functions.consideration_amount'),2)  'Consideration',
+    display_id(t,'curr') 'Trade Currency',
+    round(ael_f(t,'Blotter_functions.get_usd_consideration'),2) 'USD Consideration'
+from 
+    Trade t, 
+    Instrument i,
+    Portfolio p,
+    AdditionalInfo addInfoTrade,
+    AdditionalInfoSpec addInfoSpecTrade
+where 
+    t.insaddr = i.insaddr
+and
+    p.prfnbr = t.prfnbr
+and
+    addInfoTrade.recaddr = t.trdnbr
+and
+    addInfoTrade.addinf_specnbr = addInfoSpecTrade.specnbr
+and 
+	ael_s(t,'Blotter_functions.is_valid_asus_trade') = 'True'
+and 
+    (t.creat_time = date_add_banking_day(today,'ZAR Johannesburg',-1))
+and 
+    i.instype in ('Stock','ETF')
+and 
+    t.status  in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and
+    (p.prfid LIKE '%STL%' or p.prfid = 'DMA')
+and	
+	addInfoSpecTrade.field_name LIKE '%XtpTradeType%'
+and	
+	(addInfoTrade.value like '%BLOCK%' or addInfoTrade.value = 'OBP_BROKER_NOTE') 
+	

@@ -1,0 +1,6 @@
+[Default]FInstrument:underlyingMaturityValue = select(underlyingIsGeneric, 
+  true->object.ActualUnderlyingMaturityPeriodInYears, 
+  default->select(underlyingMaturityDate > smallDate, 
+    true->dateDifference(underlyingMaturityDate, expiryDate) / 365.0, 
+    default->0.0));
+[Default]FVolatilityPoint:underlyingMaturityValue = object.ActualUnderlyingMaturityCoordinate;

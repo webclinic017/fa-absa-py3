@@ -1,0 +1,11 @@
+[_securities_lending_exts]FInstrumentAndTrades:inventoryPositionWithPortfolioParametrization = select(timeBucketsSetExternally, 
+  nil->timeBucketsSetExternallyNilVector, 
+  default->select(instrumentGroupingReference, 
+    nil->timeBucketsSetExternallyNilVector, 
+    default->select(fixedPhysicalPortfolio, 
+      nil->inventoryPositionOrPositionsWithPortfolioParametrization, 
+      default->select(fixedPhysicalPortfolio.Compound, 
+        true->sumOf((fixedPhysicalPortfolio.OwnerLinks) :* "collapse(inventoryPositionWithPortfolioParametrization)" [targetInstrumentAndTrades, timeBucketsSetExternally]), 
+        false->inventoryPositionOrPositionsWithPortfolioParametrization))));
+[_securities_lending_exts]FPortfolioInstrumentAndTrades:inventoryPositionWithPortfolioParametrization = timeBucketsSetExternallyNilVector;
+[_securities_lending_exts]FPortfolioLink:inventoryPositionWithPortfolioParametrization = targetInstrumentAndTrades:inventoryPositionWithPortfolioParametrization [fixedPhysicalPortfolio = (object.MemberPortfolio), timeBucketsSetExternally];

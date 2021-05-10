@@ -1,0 +1,40 @@
+select distinct
+
+
+t.trdnbr        'trade',
+i.insid     'ins',
+i.instype       'instype',
+t.value_day     'value-Day',
+t.time          'TradeTime',
+i.start_day     'InsStart',
+l.start_day     'LegStart', 
+i.exp_day       'Expiry',
+    mtm_value_fo(t,)    'MtMFO',
+    present_value(t)        'PV',
+    nominal_amount(t,l.start_day,) 'Position',
+nominal_amount(t)       'NomTrade',
+    theor_price(i)      'TheorPrice',
+    p.day       'Day',
+p.curr      'Curr',
+p.settle    'Settle',
+display_id(p,'ptynbr')  'Market',
+p.creat_time    'CreateTime',
+display_id(p,'creat_usrnbr')    'Creator'
+
+
+from
+trade t, instrument i, leg l, cashflow cf, price p
+
+where 
+
+i.instype='IndexLinkedSwap'
+and i.insaddr=t.insaddr
+and i.insaddr=l.insaddr
+and     cf.legnbr=l.legnbr
+/*and	    l.start_day>cf.start_day*/
+/*and l.start_day<t.value_day*/
+and t.status not in ('Confirmed Void','Simulated','Void')
+and p.insaddr=i.insaddr
+and p.day = '2009-11-20'
+and display_id(p,'ptynbr')='internal'
+and i.exp_day>'2009-11-01'

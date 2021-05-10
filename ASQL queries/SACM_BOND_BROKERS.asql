@@ -1,0 +1,30 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_BOND_BROKERS') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_BOND_BROKERS' and p.type = 'SQL Query' 
+select
+	display_id(t,'broker_ptynbr')		'Broker',
+	t.trdnbr,
+	nominal_amount(t),
+	i.instype = 'BuySellback'? u.insid : i.insid,
+	time_to_day(t.time)			'CaptureDate',
+	display_id(t,'counterparty_ptynbr')	'Counterparty'
+from
+	trade t,
+	instrument i,
+	instrument u,
+	Party p
+where
+	t.insaddr = i.insaddr
+and	t.broker_ptynbr = p.ptynbr
+and	i.instype in ('Bond','BuySellback')
+/*and	p.ptyid = @Broker{;Party.ptyid where type = 'Broker'}
+*/
+and	('All' IN (@Broker{All;Party.ptyid* where type = 'Broker'})
+or	p.ptyid IN (@Broker{All;Party.ptyid* where type = 'Broker'}))
+and	time_to_day(t.time) >= @From_Date{}
+and	time_to_day(t.time) <= @To_Date{}
+and	u.insaddr =* i.und_insaddr
+

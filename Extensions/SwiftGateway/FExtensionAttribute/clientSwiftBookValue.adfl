@@ -1,0 +1,3 @@
+[SwiftGateway]FSingleInstrumentAndTrades:clientSwiftBookValue = switch(((instrument.InsType == "Stock") or (instrument.InsType == "Bond")) and (sumOf(tradesInPosition :* "bookValueQuantity" [profitAndLossStartDate, profitAndLossEndDate]) <> 0), 
+  true->sumOf(tradesInPosition :* "bookValueCost" [profitAndLossStartDate, profitAndLossEndDate]) / sumOf(tradesInPosition :* "bookValueQuantity" [profitAndLossStartDate, profitAndLossEndDate]) * clientSwiftUnits, 
+  default->nil);

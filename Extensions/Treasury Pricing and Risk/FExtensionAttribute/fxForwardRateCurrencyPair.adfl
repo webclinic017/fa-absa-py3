@@ -1,0 +1,11 @@
+[Treasury Pricing and Risk]FInstrumentAndTrades:fxForwardRateCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->fxSpotRateCurrencyPair);
+[Treasury Pricing and Risk]FTimeBucketAndObject:fxForwardRateCurrencyPair = select(currencyPair, 
+  nil->nil, 
+  default->select(timeBucket, 
+    nil->fxSpotRateCurrencyPair, 
+    "Rest"->nil, 
+    default->select(timeBucketIsInceptionToEndBucket, 
+      true->fxSpotRateCurrencyPair, 
+      false->currency1 :* "fxForwardRate" [fxToCurrency := currency2, fxForwardDate := timeBucketDate])));

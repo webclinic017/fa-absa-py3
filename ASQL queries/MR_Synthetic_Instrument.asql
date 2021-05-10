@@ -1,0 +1,50 @@
+/*
+ -- HISTORY --
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel
+CR Number               :264536, 445783
+---------------------------------------------------------------------------------------------------------------
+Date           CR               Requestor          Developer          Change
+---------------------------------------------------------------------------------------------------------------
+2021-03-11     CHG0158547       Thando Mpalala     Andile Biyana      https://absa.atlassian.net/browse/FAFO-41 
+*/
+
+
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Synthetic_Instrument.OpenFile',@1_path{'f:\'},@2_FileName{'MR_Synthetic_Instrument.csv'},@3_PositionName{'MR_Synthetic_Instrument_Position.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Synthetic_Instrument.Write',@1_path,@2_FileName,@3_PositionName)	'BuildConfirmation'
+Into
+    Macro
+from Instrument i, Instrument u, CombinationLink cl
+where i.insaddr = cl.owner_insaddr
+and cl.member_insaddr = u.insaddr
+and i.instype in ('Combination')
+and (i.exp_day = 0 or i.exp_day > Today)
+and (u.exp_day = 0 or u.exp_day > Today)
+
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')

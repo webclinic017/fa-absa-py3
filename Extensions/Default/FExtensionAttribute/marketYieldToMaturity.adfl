@@ -1,0 +1,11 @@
+[Default]FInstrument:marketYieldToMaturity = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->nil, 
+    true->select(isYtmSimpleCalculation, 
+      true->object.YTMSimpleCalculation(marketPrice, valuationDate), 
+      default->imply(yieldInTheoreticalPrice, theoreticalInstrumentSpotPriceFromYieldForYTMSpread, marketPrice, ytmAccuracy, -0.5, 1.0, implyMaxIterations))), 
+  false->nil);
+[Default]FInstrumentAndTrades:marketYieldToMaturity = instrument :* "marketYieldToMaturity" [marketPrice];
+[Default]FMultiInstrumentAndTrades:marketYieldToMaturity = nil;
+[Default]FOrderBook:marketYieldToMaturity = instrument :* "marketYieldToMaturity" [marketPrice];
+[Default]FTradingInterface:marketYieldToMaturity = instrument :* "marketYieldToMaturity" [marketPrice];

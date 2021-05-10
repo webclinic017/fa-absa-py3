@@ -1,0 +1,6 @@
+[Core Pricing]FInstrument:deltaSurfaceVolatilityInformation = mappedVolatilityLink :* "deltaSurfaceVolatilityInformation" [priceSource];
+[Core Pricing]FMappingLink:deltaSurfaceVolatilityInformation = volatilityStructureHierarchy :* "deltaSurfaceVolatilityInformation" [priceSource];
+[Core Pricing]FVolatilityInformation:deltaSurfaceVolatilityInformation = volatilityStructureHierarchy :* "deltaSurfaceVolatilityInformation" [priceSource];
+[Core Pricing]FVolatilityStructureHierarchy:deltaSurfaceVolatilityInformation = select(constantVolatilityTermStructure, 
+  true->volatilityAdjustValuationDate(volatilityStructure :* "deltaSurfaceVolatilityStructureInformation" [component = underlyingVolatilityHierarchy, volatilityReference = object.VolatilityReference], parameterDateOffset), 
+  false->volatilityStructure :* "deltaSurfaceVolatilityStructureInformation" [component = underlyingVolatilityHierarchy, volatilityReference = object.VolatilityReference, priceSource]);

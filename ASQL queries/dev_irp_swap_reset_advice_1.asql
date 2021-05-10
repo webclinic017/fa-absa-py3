@@ -1,0 +1,336 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dev_irp_swap_reset_advice_1') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'dev_irp_swap_reset_advice_1' and p.type = 'SQL Query' 
+ 
+/* dev_irp_swap_reset_advice: last updated on Thu Jun 03 14:25:40 2004. Extracted by Stowaway on 2004-06-04.*/
+select
+
+display_id(i, 'curr') = 'XAU' ? 'Gold Lease Rate' : 'Interest Rate'	'SwapReset',t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(c,c.pay_day)	'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+projected_cf(c)*t.quantity	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*''	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+0.0				'float',
+t.your_ref			'YourRef'
+
+into tempcsh
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and i.instype = 'CurrSwap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	c.pay_day = @ResetDate{}
+/*and	l.fixed_rate~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+select
+
+display_id(i, 'curr') = 'XAU' ? 'Gold Lease Rate' : 'Interest Rate'	'SwapReset',
+t.optional_key			'DevNbr',
+display_id(i, 'curr')		'Curr',
+i.pay_offset_method		'Method',
+nominal_amount(c,c.pay_day)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+l.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+projected_cf(c)*t.quantity	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',*/
+rpl(t,c.start_day,c.end_day) > 0  ? 'Us' : 'You' 'usyou',
+r.value				'float',
+t.your_ref			'YourRef'
+
+
+
+into tempcsh
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+/*and	r.legnbr=*l.legnbr*/
+and i.instype = 'CurrSwap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and 	r.day = @ResetDate{}*/
+and 	c.pay_day = @ResetDate{}
+/*and 	r.value~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**********************************************************************************/
+
+
+
+select
+
+display_id(i, 'curr') = 'XAU' ? 'Gold Lease Rate' : 'Interest Rate'	'SwapReset',
+t.optional_key			'DevNbr',
+display_id(l, 'curr')	'Curr',
+l.pay_day_method		'Method',
+nominal_amount(c,c.pay_day)		'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*''	'usyou',*/
+projected_cf(c)*t.quantity > 0  ? 'Us' : 'You' 'usyou',
+0.0				'float',
+t.your_ref			'YourRef'
+
+
+
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and i.instype = 'CurrSwap'
+and	l.type='fixed'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+and 	c.pay_day = @ResetDate{}
+/*and	l.fixed_rate~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+union
+
+select
+
+display_id(i, 'curr') = 'XAU' ? 'Gold Lease Rate' : 'Interest Rate'	'SwapReset',
+t.optional_key			'DevNbr',
+display_id(l, 'curr')		'Curr',
+l.pay_day_method		'Method',
+nominal_amount(c,c.pay_day)	'Nominal',
+t.trdnbr			'Trdnbr',
+t.bo_trdnbr			'BOTrdnbr',
+time_to_day(t.time)		'Time',
+c.start_day			'Start',
+c.end_day			'End',
+p.fullname			'CP',
+nominal_amount(t) <0 ? p.fullname : 'ABSA BANK LIMITED' 'FixedPayer',
+nominal_amount(t) >0 ? p.fullname : 'ABSA BANK LIMITED' 'FloatPayer',
+p.attention			'Attention',
+p.address			'Address',
+p.address2			'Address2',
+p.zipcode			'Zipcode',
+p.city				'City',
+p.fax				'Fax',
+c.pay_day			'Pay_Dates',
+l.fixed_rate			'Rate',
+display_id(l, 'float_rate')	'Float_Rate',
+l.spread			'Spread',
+l.daycount_method		'Daycount',
+display_id(l, 'pay_calnbr')	'Business_Days',
+p.country			'CP_Country',
+t.status			'Status',
+abs(projected_cf(c)*t.quantity)	'cashflow',
+rpl(t,c.start_day,c.end_day)	'RPL',
+c.end_day-c.start_day		'days',
+/*(l.fixed_rate > r.value) ? 'yourselves' : 'ourselves'	'usyou',*/
+projected_cf(c)*t.quantity > 0  ? 'Us' : 'You' 'usyou',
+r.value				'float',
+t.your_ref			'YourRef'
+
+from
+
+instrument			i,
+trade				t,
+leg				l,
+cashflow			c,
+party				p,
+reset				r
+
+where
+
+	i.insaddr=t.insaddr
+/*and 	match_filter(t, @TradeFilter{;tradefilter.fltid})*/
+and	l.legnbr=c.legnbr
+and	l.insaddr=i.insaddr
+and	r.cfwnbr = c.cfwnbr
+/*and	r.legnbr=*l.legnbr*/
+and i.instype = 'CurrSwap'
+and	l.type='float'
+and	p.ptynbr=t.counterparty_ptynbr
+/*and	(t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr))*/
+/*and 	r.day = @ResetDate{}*/
+and 	c.pay_day = @ResetDate{}
+/*and 	r.value~=0*/
+and	(@Batch{} = 'Y' ? 'YES' : (t.trdnbr in (@Trdnbr) or t.bo_trdnbr in (@BOTrdnbr)))
+and	t.status not in ('Simulated','Terminated','Void')
+
+
+
+
+
+/*
+union
+
+
+select
+
+SwapReset,
+DevNbr,
+Curr,
+Method,
+Nominal,
+Trdnbr,
+BOTrdnbr,
+Time,
+Start,
+End,
+CP,
+FixedPayer,
+FloatPayer,
+Attention,
+Address,
+Address2,
+Zipcode,
+City,
+Fax,
+Pay_Dates,
+Rate,
+Float_Rate,
+Spread,
+Daycount,
+business_Days,
+CP_Country,
+Status,
+sum(cashflow) 'cashflow',
+RPL,
+days,
+/*sum(cashflow) < 0  ? 'Us' : 'You' 'usyou'*/ /*usyou,
+float,
+YourRef
+
+from tempcsh
+
+group by trdnbr */

@@ -1,0 +1,8 @@
+[Core Pricing]FInstrument:adsPriceUpdateTime = select(object.Prices.IsEmpty, 
+  true->nil, 
+  default->maxOf(adsPriceUpdateTimes :* "adsPriceUpdateTime"));
+[Core Pricing]FInstrumentAndTrades:adsPriceUpdateTime = instrument :* "adsPriceUpdateTime";
+[Core Pricing]FMultiInstrumentAndTrades:adsPriceUpdateTime = select(instrumentGroupingReference, 
+  nil->nil, 
+  default->instrumentGroupingReference :* "adsPriceUpdateTime");
+[Core Pricing]FPrice:adsPriceUpdateTime = object.UpdateTime;

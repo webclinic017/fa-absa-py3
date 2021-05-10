@@ -1,0 +1,10 @@
+[ABSA Derivatives 4.3]FOption:carryCost = 
+# UPGRADE 2016.5 (H)
+# Note: Changed defaultContingent to defaultContingentForCarryCost
+select(object.ValuationGrpChlItem.Name == "EQ_Option_Theo_Future", 
+  false->select(isCarryCostSensitive, 
+    true->select(baseValuationOnUnderlyingComponents, 
+      true->basketMoments["BasketCarryCost"], 
+      default->underlying :* "carryCost" [priceSource, carryStartDate, carryEndDate, calculationCurrency, defaultContingentForCarryCost, includeCallablePartInUnderlying, isCarryCostSensitive, expiryDate]), 
+    false->0.0), 
+  true->0.0);

@@ -1,0 +1,9 @@
+[ABSA Specific 4.3]FDerivative:agristonnage = profitAndLossPositionDisplay * contractSize * ael("Commodities", context).agrisConvFactor(agrisCommUnit, "Tonnes", agrisCommType);
+[ABSA Specific 4.3]FFuture:agristonnage = select(object.UnderlyingType, 
+  "Curr"->0.0, 
+  default->select(agrisCbotUnd, 
+    nil->profitAndLossPositionDisplay * contractSize * ael("Commodities", context).agrisConvFactor(agrisCommUnit, "Tonnes", agrisCommType), 
+    default->agrisCBOTPositionIRAdjustment * profitAndLossPositionDisplay * contractSize * ael("Commodities", context).agrisConvFactor(agrisCommUnit, "Tonnes", agrisCommType)));
+[ABSA Specific 4.3]FInstrument:agristonnage = 0.0;
+[ABSA Specific 4.3]FInstrumentAndTrades:agristonnage = instrument :* "agristonnage" [positionObject];
+[ABSA Specific 4.3]FMultiInstrumentAndTrades:agristonnage = sumOf((object.LiveInstruments) :* "agristonnage" [positionObject]);

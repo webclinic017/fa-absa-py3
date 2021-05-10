@@ -1,0 +1,16 @@
+[Default]FInstrumentAndTrades:daysToExpiryDisplay = select(instrument:hasValidExpiryDateTime, 
+  true->select(instrument:isMultiExercise, 
+    false->instrument:daysToExpiry, 
+    true->select(instrument:exerciseEventsExist, 
+      true->instrument :* "daysToExpiry" [exerciseEvents := lastExerciseEvent], 
+      false->nil)), 
+  false->nil);
+[Default]FMultiInstrumentAndTrades:daysToExpiryDisplay = nil;
+[Default]FOrderBook:daysToExpiryDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->instrument:daysToExpiry);
+[Default]FPriceAggregate:daysToExpiryDisplay = priceFeed:daysToExpiryDisplay;
+[Default]FPriceFeed:daysToExpiryDisplay = select(instrument:hasValidExpiryDateTime, 
+  false->nil, 
+  true->instrument:daysToExpiry);
+[Default]FVolatilityPoint:daysToExpiryDisplay = daysToExpiry;

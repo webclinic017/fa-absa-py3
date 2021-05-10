@@ -1,0 +1,11 @@
+[Default]FCurrency:simplisticFXSpotRate = fxRateInstrument :* "simplisticFXSpotRate" [allowMarkToMarketPrice, useMarkToMarketPriceToday, fxPriceFindingPriceType, priceSource];
+[Default]FFxRate:simplisticFXSpotRate = select(foreignEqualsDomestic, 
+  true->1, 
+  false->select(allowMarkToMarketPrice, 
+    true->shunt[fxPriceFindingPriceType, priceSource](useMarkToMarketPriceToday, 
+      0->simplisticFXRateValue, 
+      1->switch(isFinite(simplisticMtMFXSpotRateValue), 
+        true->simplisticMtMFXSpotRateValue, 
+        false->simplisticFXRateValue), 
+      2->simplisticMtMFXSpotRateValue), 
+    false->simplisticFXRateValue));

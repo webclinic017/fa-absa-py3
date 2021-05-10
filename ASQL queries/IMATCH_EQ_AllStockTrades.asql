@@ -1,0 +1,48 @@
+/* ***********************************
+ * INTELLIMATCH QUERY. DO NOT CHANGE *
+ * ***********************************
+/*
+Purpose                       :  Intellimatch Recon extract, PLEASE DO NOT UPDATE.
+Department and Desk           :  Intellimatch Recon
+Requester                     :  Andrew Tagg, Andrew Tagg, Anesh Polly
+Developer                     :  Anwar Banoo, Willie van der Bank, Willie van der Bank
+CR Number                     :  217694, 243469, 253953
+*/
+
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','EQ_AllStockTrades') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'EQ_AllStockTrades' and p.type = 'SQL Query' 
+ 
+/*List all stock trades done for a given day*/
+select
+        display_id(t,'prfnbr'),
+        t.trdnbr                 'Trade Number',           
+        i.insid                  'Inst',
+        t.quantity               'Qty',
+        t.price                  'Price',
+        convert('time',t.execution_time,'%d/%m/%Y')         'Execution Time',
+        convert('time',t.time,'%d/%m/%Y')                   'Trade Time',
+        convert('time',t.creat_time,'%d/%m/%Y')             'Create Time',
+        t.counterparty_ptynbr    'Counterparty',
+        t.optional_key           'JSE Ref',
+        convert('time',t.value_day,'%d/%m/%Y')              'Value Day',
+        i.spot_banking_days_offset 'Spot Offset',
+        add_info(t,'XtpJseRef')  'XtpJseRef',
+        convert('time',t.updat_time,'%d/%m/%Y')             'Update Time',
+        t.premium,
+        used_price(t,@Date{Yesterday})
+        
+from    instrument          i,
+        trade               t
+        
+where   
+        i.insaddr = t.insaddr
+and     i.instype = 'Stock'
+and     (time_to_day(t.creat_time) = @Date{Yesterday})
+and     match_filter(t,@Filter{;'IMATCH_EQ_AllTrds','EQ Arbitrage baskets ALL','EQ Equity Hybrid Products ALL','EQ Forward Structures all','EQ Index ALL','EQ LinTrading ALL','EQ Single Stocks ALL','EQ Structures ALL','EQ Warrants ALL'})
+
+group by 1,2,5

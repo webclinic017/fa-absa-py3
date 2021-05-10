@@ -1,0 +1,8 @@
+[Default]FBenchmarkCurve:historicalIrCurveInformation = historicalIrCurveInformationKey.IrCurveInformation(nil, nil);
+[Default]FCompositeCurve:historicalIrCurveInformation = compositeIrCurveInformation;
+[Default]FInstrumentSpread:historicalIrCurveInformation = select(object.IsSpreadOverYieldCurve, 
+  true->object.IrCurveInformationOverCurve(object.Instrument, (component:underlyingYieldCurveComponent) :* "historicalIrCurveInformation" [component := component:underlyingComponent, historicalCurveDate], historicalCurveDate), 
+  false->object.IrCurveInformationOverBenchmark(object.Instrument, benchmarkPriceDictionary, historicalCurveDate));
+[Default]FSeasonalityCurve:historicalIrCurveInformation = object.IrCurveInformation((component:underlyingYieldCurveComponent) :* "historicalIrCurveInformation" [component := component:underlyingComponent, historicalCurveDate], historicalCurveDate);
+[Default]FSpreadCurve:historicalIrCurveInformation = historicalIrCurveInformationKey.IrCurveInformation(nil, nil);
+[Default]FYCAttribute:historicalIrCurveInformation = object.IrCurveInformation((component:underlyingYieldCurveComponent) :* "historicalIrCurveInformation" [component := component:underlyingComponent, historicalCurveDate], historicalCurveDate);

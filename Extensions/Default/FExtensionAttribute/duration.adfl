@@ -1,0 +1,9 @@
+[Default]FCombInstrMap:duration = instrument :* "duration" [priceSource];
+[Default]FCombination:duration = sumOf(flattenAndRemoveNil(durationsWeighted)) / underlyingOrSelf.Factor;
+[Default]FInstrument:duration = select(ytmCalculationValid, 
+  true->shunt(implyValid, 
+    false->object:durationFromModifiedDuration [marketYieldToMaturity = theoreticalYieldToMaturity], 
+    true->durationFromModifiedDuration), 
+  false->nan);
+[Default]FInstrumentAndTrades:duration = instrument :* "duration" [priceSource];
+[Default]FMultiInstrumentAndTrades:duration = nan;

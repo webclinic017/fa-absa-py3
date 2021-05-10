@@ -1,0 +1,15 @@
+[Default]FObject:qDefTieringCategory = nilObject:qDefTieringCategory;
+[Default]FOrderBook:qDefTieringCategory = select(qDefTieringCategoryName, 
+  nil->nil, 
+  ""->nil, 
+  default->getObject("FTieringCategory", qDefTieringCategoryName));
+[Default]FParty:qDefTieringCategory = select(qDefTieringCategoryLink, 
+  nil->nil, 
+  default->qDefTieringCategoryLink:qDefTieringCategory);
+[Default]FQuoteController:qDefTieringCategory = select(qIsPrivate, 
+  true->select(qCounterparty, 
+    nil->nil, 
+    default->qCounterparty:qDefTieringCategory), 
+  default->nil);
+[Default]FTieringCategoryLink:qDefTieringCategory = object.TieringCategory;
+[Default]FUndefinedObject:qDefTieringCategory = nil;

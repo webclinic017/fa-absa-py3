@@ -1,0 +1,8 @@
+[Default]FCreditDefaultSwap:creditSkew = select(isCreditBasket and not isExpiredFullDay, 
+  false->nil, 
+  true->select(object.CreditBasketExoticType, 
+    "None"->object:creditImpliedFlatParCDSSpread [marketPrice = creditTheoreticalPriceCompositeCurve] - object:creditImpliedFlatParCDSSpread [marketPrice = creditTheoreticalPriceConstituentCurves], 
+    default->nil));
+[Default]FInstrument:creditSkew = nil;
+[Default]FInstrumentAndTrades:creditSkew = instrument:creditSkew;
+[Default]FMultiInstrumentAndTrades:creditSkew = nil;

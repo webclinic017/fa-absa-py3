@@ -1,0 +1,9 @@
+[Default]FInstrument:priceCurveGreekShiftFilter = priceCurveComponent:priceCurveGreekShiftFilter;
+[Default]FInstrumentAndTrades:priceCurveGreekShiftFilter = select(nil == priceCurveGreekShiftFilterSetExternally, 
+  true->select(instrumentGroupingReference, 
+    nil->select(commodityGroupingReferenceInstrument, 
+      nil->alwaysMatchedFilter, 
+      default->commodityGroupingReferenceInstrument:priceCurveGreekShiftFilter), 
+    default->instrumentGroupingReference:priceCurveGreekShiftFilter), 
+  false->priceCurveGreekShiftFilterSetExternally:priceCurveGreekShiftFilter);
+[Default]FYieldCurve:priceCurveGreekShiftFilter = simpleAndQuery("FEvaluator", ["Value.YieldCurve"], , [object]);

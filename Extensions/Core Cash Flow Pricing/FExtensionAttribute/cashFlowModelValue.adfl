@@ -1,0 +1,7 @@
+[Core Cash Flow Pricing]FCashFlowMoneyFlow:cashFlowModelValue = select(useValueFromModelCall, 
+  true->collapse(valueFromModelCall), 
+  false->select(cashFlowInformation, 
+    nil->nil, 
+    default->select(useCreditValuationForCashFlow, 
+      true->riskFreeDiscountCurve.DiscountValueOrZero(projectedCashFlow * cashFlowInformation.HazardFactor(creditCurve, riskFreeDiscountCurve, valuationDate, instrumentSpotDate), valuationDate, valuationDate), 
+      false->discountCurve.DiscountValueOrZero(projectedCashFlow, valuationDate, valuationDate))));

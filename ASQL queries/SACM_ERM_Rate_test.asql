@@ -1,0 +1,70 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SACM_ERM_Rate_test') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SACM_ERM_Rate_test' and p.type = 'SQL Query' 
+/*
+	Name:		SACM_ERM_Rate
+	Create by:	ABHJ106
+
+	Ammended by:	ABAW339
+			Excluded Terminated, Simulated and Voided Trades
+    Ammended by:    ABHC164
+            Right joined trade and instrument
+		
+*/
+
+
+select
+	distinct(i.insid)	'Insid',
+	t.trdnbr
+
+into
+	temp
+
+from 
+	instrument i,
+	trade t
+
+where
+	i.instype in ('Bond','IndexLinkedBond')
+and 	i.exp_day >= @Date{}
+and	t.insaddr =* i.insaddr
+and	t.status NOT IN ('Terminated', 'Void')
+/*'Simulated'*/
+
+group by i.insid
+
+
+select
+	i.insid			'StockCode',
+	p.settle		'Rate',
+	@Date{}			'DATE_LAST_UPDATED',
+	display_id(i,'curr')	'Currency',
+	i.exp_day		'Maturity_Date',
+	ael_s(i,'SACM_CASHFLOW_F_S.firstcf') 'FirstCouponDate',
+	ael_s(i,'SACM_CASHFLOW_F_S.secondcf') 'SecondCouponDate',
+	l.fixed_rate		'Coupon_Rate',
+	l.rolling_period.count	'Frequency',
+	l.rolling_period.unit	'Unit',
+	l.daycount_method	'Day_Count',
+	i.instype = 'Bond' ? 'Bond' : i.instype	'Instype'
+
+from 
+	instrument i,
+	price p,
+	party m,
+	leg l,
+	temp t
+
+where
+	i.instype in ('Bond','IndexLinkedBond')
+and 	i.exp_day >= @Date{}
+and 	i.insaddr = p.insaddr
+and 	p.day = @Date{TODAY}	
+and 	p.ptynbr = m.ptynbr
+and 	m.ptyid = 'internal'
+and	i.insaddr = l.insaddr
+and	i.insid = t.insid
+

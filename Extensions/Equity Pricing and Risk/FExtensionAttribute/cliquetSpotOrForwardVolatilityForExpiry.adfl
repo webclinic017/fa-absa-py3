@@ -1,0 +1,7 @@
+#grouping: risk factors/volatility value
+
+[Equity Pricing and Risk]FOption:cliquetSpotOrForwardVolatilityForExpiry = switch(adjustCliquetVolatilityForForwardStart, 
+  true->cliquetVolatilityForExpiry, 
+  false->select(useCompoAdjustmentForVolatility, 
+    true->cliquetSpotToExpiryVolatilityCompoAdjusted, 
+    false->cliquetSpotToExpiryVolatility));

@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FInstrumentAndTrades:sl_interest = sumOf(trades :* "sl_interest");
+[Securities Lending ABSA]FTrade:sl_interest = select(sl_instype, 
+  "Fixed Cash"->denominatedvalue(py("sl_functions", context).monthly_interest(object, firstDayOfMonth, profitAndLossEndDate), currency, , ), 
+  "Call Cash"->denominatedvalue(py("sl_functions", context).monthly_interest(object, firstDayOfMonth, profitAndLossEndDate), currency, , ), 
+  default->instrument:currencyZero);

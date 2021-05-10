@@ -1,0 +1,7 @@
+[Profit and Loss]FInstrument:marketValueForProfitAndLossAtClearDate = select(isValuedAtCost, 
+  false->select(isOpenPositionAtClearDate, 
+    true->select(object.IsSettledAt(plClearDate), 
+      true->positionValuesForProfitAndLossAtClearDateCalculation, 
+      false->marketValueForProfitAndLossAtClearDateCalculation), 
+    false->plInstrumentZero), 
+  true->-profitAndLossValuesAtClearDate.OpenValue + positionValuesForProfitAndLossAtClearDateCalculation);

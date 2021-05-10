@@ -1,0 +1,12 @@
+[PreAndPostTradeAnalysis]FGroupingOrder:postTradeBenchmarkPriceType = nil;
+[PreAndPostTradeAnalysis]FOrderProgram:postTradeBenchmarkPriceType = nil;
+[PreAndPostTradeAnalysis]FOwnOrder:postTradeBenchmarkPriceType = nil;
+[PreAndPostTradeAnalysis]FPrePostTradeAnalysis:postTradeBenchmarkPriceType = switch(object.BenchmarkPriceType <> "-", 
+  true->object.BenchmarkPriceType, 
+  default->switch(object.AlgoTradingInstruction == nil, 
+    true->object.BenchmarkPriceType, 
+    default->switch(object.AlgoTradingInstruction.TradingStrategy, 
+      "Arrival Price"->"Arrival Price", 
+      "Market On Close"->"Close Price", 
+      default->"VWAP")));
+[PreAndPostTradeAnalysis]FSalesOrder:postTradeBenchmarkPriceType = prePostTradeAnalysis:postTradeBenchmarkPriceType;

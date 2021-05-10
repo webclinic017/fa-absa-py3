@@ -1,0 +1,156 @@
+[Automated Trading]FObject:ExecutionAlgoVolumeParticipation
+
+Properties =
+  Abstract=No
+  CanBePaused=Yes
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DisplayName=Volume Participation
+  EditPermission=User
+  Granularity=10
+  InheritsFrom=ExecutionAlgo
+  StartState=Start
+  StoreTraceLog=Yes
+  TradingEnabled=Yes
+
+State AuctionOrderActive =
+  Description=
+  InitialSubState=<none>
+  OnEntry=UpdateAuctionSliceQuantity
+  OnExit=<none>
+  SuperState=<none>
+
+Transitions =
+  auctionEquilibriumChanged=AuctionOrderActive -> auctionEquilibriumChanged / EquilibriumChanged -> AuctionOrderActive
+  auctionOrderQtyNeedsUpdate=AuctionOrderActive -> auctionOrderQtyNeedsUpdate / UpdateAuctionOrder -> ModifyAuctionOrderActive
+  externalVolumeFromContr=ContinuousTrading -> externalVolumeEvent / HandleExternalDealVolume -> ContinuousTrading
+  externalVolumeInFishing=Fishing -> externalVolumeEvent / HandleExternalDealVolume -> ModifyFishingOrder
+  externalVolumeInMatching=Matching -> externalVolumeEvent / HandleExternalDealVolume -> ModifyMatchingOrder
+  reoptimizeInAuction=AuctionOrderActive -> reoptimizeInAuction / DeleteOrders -> DeleteActiveAuctionOrder
+  tAuctionOrderDeleted=AuctionOrderActive -> currentOrderDeleted / <none> -> Auction
+  tAuctionOrderFilled02=AuctionOrderActive -> currentOrderFilled / <none> -> Auction
+  tAuctionOrderQtyNeedsUpdate=AuctionOrderActive -> auctionOrderQtyNeedsUpdate / UpdateAuctionOrder -> ModifyAuctionOrderActive
+  tAuctionOrderSucceded=EnterAuctionOrder -> commandSuccess / ClearPendingCommand -> AuctionOrderActive
+  tModifyAuctionOrderNonFatalError=ModifyAuctionOrderError -> nonFatalError / ClearPendingCommand -> AuctionOrderActive
+  tModifyAuctionOrderWentOK=ModifyAuctionOrderActive -> commandSuccess / ClearPendingCommand -> AuctionOrderActive
+  tModifyAuctionPrice2=AuctionOrderActive -> auctionOrderPriceNeedsUpdate / UpdateAuctionPrice -> ModifyAuctionOrderActive
+  tNotOKToEnterAuctionOrder=AuctionOrderActive -> notOkToEnterAuctionOrder / <none> -> CheckAuctionStatus
+  tPlannedSliceDone02=AuctionWaitForTimer -> plannedSliceDoneForVolumeParticipation / <none> -> PhaseChangeImbalance
+  tSliceNotDoneButAuction02=OrderFilled -> sliceNotDoneAndAuction / <none> -> ContinuousTrading
+  tUnplannedAuctionPhaseCheck=PhaseChangeFillCheck -> unplannedAuctionPhaseCheck / NextSliceActions -> Execution
+  tUnPlannedAuctionSliceDone=AuctionWaitForTimer -> unplannedSliceDone / NextSliceActions -> Execution
+
+Panel TimeAndSizeBoxOne =
+  DisplayName=
+  Orientation=Vertical
+  Variables=startTime, manualSlices, estimatedSlices, participationRatio
+
+Panel TimeAndSizeBoxTwo =
+  DisplayName=
+  Orientation=Vertical
+  Variables=stopTime, estimatedSliceSize, comfortFillsInfo
+
+Conditions =
+  auctionOrderQtyNeedsUpdate=algoAuctionOrderNeedQtyUpdate and modifyAuctionOrderTimerExceeded and (not algoAuctionSliceIsPriceLimited) and okToModifyAuctionOrder
+  externalVolumeEvent=externalDealDetected == true
+  modifyAuctionOrderTimerExceeded=algoModifyAuctionOrderTimerExceeded
+  notTradedAccordingToPlan=alwaysFalse
+  plannedSliceDone=alwaysFalse
+  plannedSliceDoneForVolumeParticipation=currentAuctionIsPlanned and sliceDone and (not lastSlice) and balanceUpdateTimerExpired
+  sliceDone=slice.IsFinished or reoptimize
+  sliceNotDoneAndAuction=(not slice.IsFinished) and orderBookInAuctionPhase
+  tradedAccordingToPlan=regularAuction
+  unplannedAuctionPhaseCheck=(not regularAuction)
+
+Actions =
+  AdjustQuantityDueToExternalVolume=!AdjustQuantityDueToExternalVolume
+  GetUpdatedAuctionQuantity=!GetUpdatedAuctionQuantity
+  SetInitialAuctionSliceQuantity=!SetInitialAuctionSliceQuantity
+  UpdateAuctionSliceQuantity=!UpdateAuctionSliceQuantity
+  UpdateQuantity=!UpdateQuantity
+
+ActionLists =
+  ClearCmdAndUpdateSliceQty=ClearPendingCommand, UpdateAuctionSliceQuantity
+  HandleExternalDealVolume=AdjustQuantityDueToExternalVolume, UpdateQuantity
+  NextSliceActions=NextSlice, ClearCurrentOrder
+  OnAuctionWaitActions=SetInitialAuctionSliceQuantity, UpdateAuctionSliceQuantity, OnAuctionWaitForTimer
+  OnEnterAuctionActions=SetInitialAuctionSliceQuantity, OnEnterAuctionPhase
+
+Variable adjustQuantityInAuctions =
+  Description=If this is true, then will the quantity of the active order in auctions vary with the participation rate of the equilibrium quantity
+  DisplayName=Adjust Quantity In Auctions
+  Domain=bool
+  Type=ReadOnly
+  Value=true
+
+Variable allowDirtyVolumePattern =
+  Description=This variable is overridden from the base class. The algo is allowed to start even if no volume pattern is found in RAMSA, if the user enters manual slices (deselecting Auto Optimize)
+  DisplayName=Allow Dirty Volume Pattern
+  Domain=bool
+  Type=ReadOnly
+  Value=not autoOptimizeSlicesAndDuration
+
+Variable auctionQuantityIsLimited =
+  Description=Needed to stop algo from trying to update quantity if limited (by e.g Balance)
+  DisplayName=Auction Quantity Is Limited
+  Domain=bool
+  Type=Private
+  Value=false
+
+Variable createExecutionPlan =
+  Domain=FVolumeExecutionPlan
+  Type=ReadOnly
+  Value=acm.Trading.CreateAdaptiveExecutionPlan(participationRatio, baseOrder.PrePostTradeAnalysis, object)
+
+Variable limMarginLagTrader =
+  Description=The maximum lag allowed before the agent is terminated (defined as missed number of planned fills where 0 means that there is no maximum lag)
+  DisplayName=Margin Lag
+  Domain=double
+  Mandatory=No
+  Type=Input
+  Value=algoTrading.GetDefaultValueEx("AlgoLimitMarginLagParticipation", context)
+
+Variable limVolumeParticipation =
+  Description=The maximum volume participation allowed at any time.
+  DisplayName=Participation Limit (internal)
+  Domain=double
+  Type=ReadOnly
+  Value=switch(limVolumeParticipationCustomer > 0.0, \
+      true->limVolumeParticipationCustomer, \
+      default->switch(participationRatio > limVolumeParticipationTrader, \
+        true->participationRatio, \
+        default->limVolumeParticipationTrader))
+
+Variable modifyAuctionOrderDelayLength =
+  Description=The time the algo waits between consecutive updates of auction order.
+  Domain=double
+  Type=Private
+  Value=algoTrading.GetDefaultValueEx("algoModifyAuctionOrderDelay", context)
+
+Variable modifyAuctionOrderTimer =
+  DisplayName=modifyAuctionOrderTimer
+  Domain=FTimerEvent
+  Type=Private
+  Value=nil
+
+Variable participationRatio =
+  Description=The targeted participation ratio
+  DisplayName=Participation Ratio
+  Domain=double
+  Mandatory=Yes
+  Type=Input
+  Value=
+
+Variable reoptimizeReason =
+  Domain=string
+  Type=ReadOnly
+  Value=switch(algoParticipationChanged, \
+      true->"Participation instruction changed", \
+      default->"")
+
+Variable splitPhases =
+  Domain=bool
+  Type=ReadOnly
+  Value=false
+
+<end>

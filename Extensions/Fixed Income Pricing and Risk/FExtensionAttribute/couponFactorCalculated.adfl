@@ -1,0 +1,30 @@
+[Fixed Income Pricing and Risk]FCashFlowInstrument:couponFactorCalculated = sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]);
+[Fixed Income Pricing and Risk]FCurrencySwap:couponFactorCalculated = select(numberOfFloatOrCapFloorLegs, 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  2->select(floatPayLegOrNil, 
+    nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));
+[Fixed Income Pricing and Risk]FDeposit:couponFactorCalculated = select(firstFixedLeg, 
+  nil->sumOf(legs :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]));
+[Fixed Income Pricing and Risk]FFra:couponFactorCalculated = firstLeg :* "fraCouponFactor" [forwardValueDate, priceSource];
+[Fixed Income Pricing and Risk]FFreeDefinedCashFlow:couponFactorCalculated = select(numberOfFixedLegs, 
+  0->select(numberOfFloatOrCapFloorLegs, 
+    0->denominatedvalue(1.0, currency, , forwardValueDate), 
+    1->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->select(floatPayLegOrNil, 
+      nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+      default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource])), 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));
+[Fixed Income Pricing and Risk]FFrn:couponFactorCalculated = select(isGenericSpreadQuoted, 
+  true->sumOf(legs :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]));
+[Fixed Income Pricing and Risk]FFxSwap:couponFactorCalculated = inv(fxNearRate) * denominatedvalue(currency2DiscountCurve.Discount(nearDate, farDate), currency2, , nearDate);
+[Fixed Income Pricing and Risk]FSwap:couponFactorCalculated = select(numberOfFloatOrCapFloorLegs, 
+  1->sumOf(legs :* "couponFactor" [forwardValueRiskyDiscountDate, forwardValueDate, priceSource]), 
+  2->select(floatPayLegOrNil, 
+    nil->denominatedvalue(1.0, currency, , forwardValueDate), 
+    default->floatPayLegOrNil :* "couponFactorFloat" [forwardValueDate, priceSource]), 
+  default->denominatedvalue(1.0, currency, , forwardValueDate));

@@ -1,0 +1,9 @@
+[Default]FInstrument:ladderIsDiscreteEnum = nil;
+[Default]FInstrumentAndTrades:ladderIsDiscreteEnum = instrument:ladderIsDiscreteEnum;
+[Default]FMultiInstrumentAndTrades:ladderIsDiscreteEnum = nil;
+[Default]FOption:ladderIsDiscreteEnum = select(object.IsLadder, 
+  true->select(exotic.LadderDiscreteMonitoring, 
+    true->1, 
+    default->0), 
+  false->nil);
+[Default]FPriceAggregate:ladderIsDiscreteEnum = instrument:ladderIsDiscreteEnum;

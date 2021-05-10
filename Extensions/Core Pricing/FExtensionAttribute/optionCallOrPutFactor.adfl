@@ -1,0 +1,11 @@
+[Core Pricing]FCashFlowInstrument:optionCallOrPutFactor = select(isCallable, 
+  true->1.0, 
+  false->select(isPutable, 
+    true->-1.0, 
+    false->nil));
+[Core Pricing]FInstrument:optionCallOrPutFactor = nil;
+[Core Pricing]FInstrumentAndTrades:optionCallOrPutFactor = instrument:optionCallOrPutFactor;
+[Core Pricing]FMultiInstrumentAndTrades:optionCallOrPutFactor = nil;
+[Core Pricing]FOption:optionCallOrPutFactor = select(isCall, 
+  true->1.0, 
+  false->-1.0);

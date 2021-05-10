@@ -1,0 +1,57 @@
+[UDMCUtilMod]FObject:udmcCappedBasketPayoff
+#------------------------------------------
+# PAYOFF EXPRESSION
+# Capped Basket Option Payoff
+#
+# INTERPRETATION
+# Capped Basket is the option where the basket component performances are individually capped to a certain percent.
+# Call:         max(S_perf - K, 0)
+# Put:          max(K - S_perf, 0)
+#
+# DEFINITION
+# S_perf: Sum of the weighted component performance, where each performance is capped;
+# K: Relative strike value, 'Strike' field;
+# cap: Relative cap value, 'Barrier' field in the Barrier Exotics tab;
+# 'Price Fixing' exotic events should be specified per underlying.
+#------------------------------------------
+
+# PARAMETERS
+param matrix(double) w;
+param int isCall;
+param double K;
+param double cap;
+param int isQuanto;
+param double fixFXRate;
+
+
+# PROCESS
+process matrix(double) S;
+
+# LOCAL VARIABLES
+matrix(double) perfS = S;
+double callOrPut = 2.0 * isCall - 1.0;
+matrix(double) s = zeros(1,1);
+double k = K;
+double fx=isQuanto*(fixFXRate -1.0) + 1.0;
+
+# MAIN LOOP
+perfS = S[:,1] ./ S[:,0];
+s = w * min(perfS,cap); # a scalar product 
+
+# CASHFLOW
+cashFlow(0, max(0.0, fx * callOrPut * (s[0] - k)));
+
+#------------------------------------------
+# PEL IMPLEMENTATION
+#
+# w: One row, the number of columns is equal to the number of components. Contains the weight of each component;
+# fixFXRate: Fixed FX Rate of the underlying asset;
+#
+# S: Matrix of component prices. The number of rows is equal to the number of components, the number of columns is equal to the number of observation dates;
+#
+# s: The weighted performance, capped for each component. Matrix with one element which is calculated as a scalar product to optimize performance;
+# perfS: The component performance;
+# fx: FX Rate value if the type of the option is Quanto, otherwise 1.0.
+# ------------------------------------------
+
+...

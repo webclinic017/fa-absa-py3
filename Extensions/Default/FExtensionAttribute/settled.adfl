@@ -1,0 +1,11 @@
+#grouping: aef base/profit and loss
+
+[Default]FDeliverableLinkAndTrades:settled = nil;
+[Default]FInstrumentAndTrades:settled = shunt(profitAndLossPeriodType, 
+  "Inception to Present"->settledLive, 
+  "Inception to Historical"->settledEnd, 
+  "Historical to Present"->settledLive - settledStart, 
+  default->settledEnd - settledStart);
+[Default]FPriceAggregate:settled = switch(singleInstrumentAndTrades, 
+  nil->0.0, 
+  default->singleInstrumentAndTrades :* "settled");

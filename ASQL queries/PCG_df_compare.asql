@@ -1,0 +1,65 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','PCG_df_compare') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'PCG_df_compare' and p.type = 'SQL Query' 
+ 
+/*Generate sequence 0-9 */
+select
+	u1.usrnbr,
+	count(u2.usrnbr) -1  	'Nbr'
+into 
+	TMP
+from
+	user u1,
+	user u2
+where
+	u1.usrnbr < u2.usrnbr
+group by u1.usrnbr
+
+/* Generate sequence 1-1000 */
+select
+	100*t3.Nbr + 10*(t2.Nbr) + t1.Nbr + 1	'Nbr'
+into 
+	SCEN	
+from
+	TMP t1,
+	TMP t2,
+	TMP t3
+where
+	t1.Nbr < 10 
+and	t2.Nbr < 10
+and	t3.Nbr < 70
+
+
+/* Calculate result by scenario */
+select
+	date_add_banking_day(TODAY,,s.Nbr)					'Date',
+	yc_rate(yc,TODAY,date_add_banking_day(TODAY,,s.Nbr),,,'Discount',,'ZAR')	'DF_1',
+	yc_rate(yc2,TODAY,date_add_banking_day(TODAY,,s.Nbr),,,'Discount',,'ZAR')	'DF_2',
+	s.Nbr
+into 
+	temp
+from
+	SCEN s,
+	yieldcurve yc,
+	yieldcurve yc2
+where
+   	
+	yc.yield_curve_name = @YieldCurve{;yieldcurve.yield_curve_name}
+	and yc2.yield_curve_name = @YieldCurve2{;yieldcurve.yield_curve_name}
+and	s.Nbr <= @Nbr_7000_is_29years[3000]
+
+order by 1
+
+
+select
+    date,
+    @YieldCurve{;yieldcurve.yield_curve_name}           'yc1',
+    @YieldCurve2{;yieldcurve.yield_curve_name}          'yc2',	
+	df_1,
+	df_2,
+	df_1 - df_2		'diff'
+from temp
+order by 1

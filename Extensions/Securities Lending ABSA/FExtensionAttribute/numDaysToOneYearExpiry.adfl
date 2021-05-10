@@ -1,0 +1,4 @@
+[Securities Lending ABSA]FSingleInstrumentAndTrades:numDaysToOneYearExpiry = select(sl_instype, 
+  "SecurityLoan"->(object.Trades.AsArray.At(0)) :* "numDaysToOneYearExpiry", 
+  default->nil);
+[Securities Lending ABSA]FTrade:numDaysToOneYearExpiry = dateDifference(dateAddDelta(originalParentTrade:sl_startDate, 1, 0, 0), profitAndLossEndDate);

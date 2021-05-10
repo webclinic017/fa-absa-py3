@@ -1,0 +1,5 @@
+[Core Pricing]FInstrumentAndTrades:tradesInPositionForInstrumentPart = select(nil == singleTradePosition, 
+  true->select((nil == positionObject) or (nil == tradedInstrument), 
+    true->value(object.Trades), 
+    false->tradedInstrument:tradesInPosition [positionObject]), 
+  false->[singleTradePosition]);

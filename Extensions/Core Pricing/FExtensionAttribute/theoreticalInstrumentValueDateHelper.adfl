@@ -1,0 +1,5 @@
+[Core Pricing]FOption:theoreticalInstrumentValueDateHelper = select(payTypeForward, 
+  true->object.PriceDateToValueDate(valuationDate), 
+  false->select(discountModelValueToSpot, 
+    true->collapse(instrumentSpotDate), 
+    default->collapse(valuationStartSpotDate)));

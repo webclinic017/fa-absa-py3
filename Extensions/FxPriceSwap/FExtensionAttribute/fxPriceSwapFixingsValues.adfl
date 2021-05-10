@@ -1,0 +1,3 @@
+[FxPriceSwap]FInstrument:fxPriceSwapFixingsValues = shunt(fxPriceSwapUnderlyingCurrency == object.Instrument.Currency, 
+  true->fxPriceSwapFixingsDates :* "denominatedvalue(1, , \"No Fx\", object)", 
+  default->getFxPriceSwapFixingsValues(fxPriceSwapFixingsDates :* "select(asDate(object) >= dateToday, true->shunt[fxForwardDate](fxPriceSwapCurrPair:instrumentSpotDate == object, true->fxPriceSwapCurrPair:fxSpotRate, false->(fxPriceSwapCurrPair:fxPriceSwapDomesticCurrency).DiscountValue(fxPriceSwapCurrPair:fxSpotRate, object) * (fxPriceSwapCurrPair:fxPriceSwapForeignCurrency).Discount(fxPriceSwapCurrPair:instrumentSpotDate, object)), false->denominatedvalue(0, , , object))", object));

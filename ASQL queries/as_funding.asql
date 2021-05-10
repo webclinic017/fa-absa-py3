@@ -1,0 +1,806 @@
+/* Usage code for this ASQL */
+/* Anwar yc_rate for attribute spread curves replaced with ael call to absa_rate*/
+select
+ael_i(p,'ASQL_log','as_funding') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'as_funding' and p.type = 'SQL Query' 
+
+select
+    @1_StartDate{}				                        'sDay',
+	@2_EndDate{today}					                'today',
+	date_add_banking_day(@2_EndDate{today}, , -1)	    'yesterday',
+	@3_YE_Date{Year_End}					            'Year_End',
+	@4_ME_Date{Month_End}                               'Month_End',
+	days_between(@1_StartDate{}, @2_EndDate{}, 'Act/365') 'DinM'
+
+into
+	dates
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+
+
+/******************************************************* Money Market Acc Int ********************************************************************/
+/*******************************************************         BEGIN        ********************************************************************/
+
+
+/******************************************************** BILLS ********************************************************************/
+/* THE WHOLE CALCULATION OF ACCRUED INTEREST NEED TO BE REVISITED
+/* BILLS ON PORTFOLIO MONY 0681 INCLUDING NCD's*/
+
+
+/* Get all the instruments which need to have a value calculated EXCLUDING NCD's*/
+SELECT I.InsID,
+       'Yes'    'Calc_Int'
+into
+	TTCalc_Int0681
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	add_info(t,'MM_Instype') ~= 'NCD'
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(d.today,1,0,0))
+    and	t.value_day < to_date(date_add_delta(d.today,1,0,0))
+    and display_id(t,'prfnbr') = 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having sum(i.exp_day < to_date(date_add_delta(d.today,1,0,0)) ? 0.0 : t.quantity*i.contr_size) > 1.000000000
+
+
+/* Get all the instruments which need to have a value calculated ONLY NCD's*/
+SELECT I.InsID,
+       'Yes'    'Calc_Int'
+into
+	TTCalc_Int0681
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	add_info(t,'MM_Instype') = 'NCD'
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(d.today,1,0,0))
+    and	t.value_day < to_date(date_add_delta(d.today,1,0,0))
+    and display_id(t,'prfnbr') = 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having (sum(i.exp_day < to_date(date_add_delta(d.today,1,0,0)) ? 0.0 : (t.quantity*i.contr_size)) > 1.000000000  OR I.insID = 'ZAR/070110-070803/ABSA BANK LTD - B1')
+
+
+/* Do the selection for 0681 Bills */
+select 
+
+    t.trdnbr,
+    display_id(t,'acquirer_ptynbr')  	                                'Acquirer',
+    /*display_id(t,'prfnbr')			                                    'Portfolio',*/
+    t.prfnbr,
+    l.start_day,
+    t.value_day,
+    i.exp_day,
+    used_price(i,d.today,,,,'internal')									'used_price_today',
+    used_price(i,d.yesterday,,,,'internal')								'used_price_yesterday',
+    dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+    t.premium + (interest_accrued(i, ,t.value_day) * t.quantity)				'Clean_value_day',
+    nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+    dirty_from_yield(i,d.today,,,used_price(i,d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Dirty_tdy',
+    clean_from_yield(i,d.today,,,used_price(i,d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Clean_tdy',
+    dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Dirty_yesterday',
+    clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Clean_yesterday',
+    nominal_amount(t,t.value_day)						'Nominal',
+    nominal_amount(t,d.today)					        'CurrentNominal',
+    TTCalc_Int0681.Calc_Int = 'Yes' and	add_info(t,'MM_Instype') = 'NCD'
+        ? t.trdnbr = 891572
+            ? ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.today, d.today, 'IntON')
+            : to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (days_between(d.yesterday,d.today, 'Act/365') / 36500)
+        : TTCalc_Int0681.Calc_Int = 'Yes'
+            ? ((days_between(d.yesterday,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * t.price/100)
+            : 0.00 'AccInt_ON',
+    TTCalc_Int0681.Calc_Int = 'Yes' and	add_info(t,'MM_Instype') = 'NCD'
+        ? to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (days_between(d.Year_End,d.today, 'Act/365') / 36500)
+         : TTCalc_Int0681.Calc_Int = 'Yes'    
+            ? ((days_between(d.Year_End,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * t.price/100)
+                : 0.00 'AccInt_Year',
+    TTCalc_Int0681.Calc_Int = 'Yes' and	add_info(t,'MM_Instype') = 'NCD'
+        ? to_double(add_info(t,'MM_Original_Nominal')) * to_double(add_info(i,'NCD_Issue_Rate')) * (days_between(t.value_day,d.today, 'Act/365') / 36500)
+         : TTCalc_Int0681.Calc_Int = 'Yes'
+            ? ((days_between(t.value_day,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * t.price/100)
+                : 0.00 'AccInt_Incep',
+    projected_cf(cf) * t.quantity   					'Coupon',
+    days_between(t.value_day,d.today,'Act/365')			'AccIntDays',
+    (nominal_amount(t, t.value_day) + 
+    (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+    t.text1,
+    display_id(t, 'counterparty_ptynbr')                          		'Counterparty'	,
+    t.creat_time,
+    t.Status,
+    (i.exp_day - to_date(date_add_delta(d.today,2,0,0)))                  'RemainingTenor',	
+    0.00  'FDI_Accrued'	,
+    l.type,
+    l.legnbr,
+    ael_s(,'RollingPeriod.RP', l)			'Rolling',
+	l.type = 'Fixed' ? t.price
+		: display_id(l, 'float_rate')		'Price',
+    period_rate(cf)                         'cost',
+    cf.spread                               'spread',
+    cf.float_rate_factor,
+    ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, cf.start_day, 0)      'JibarClean',
+	l.type = 'Fixed' ? days_between(l.start_day,  i.exp_day, 'Act/365')
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 4, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, l.start_day, 4, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(i.exp_day, -1,0,0), 4, 'CurrentCF'))
+					/*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(d.today, -1, 0, 0), 4, 'CurrentCF'))
+                        /*other*/
+                        : to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, d.today, 4, 'CurrentCF'))	'Tenor',
+                        
+	/*trades alive before and after month 1*/
+	(l.start_day < d.sDay and i.exp_day > d.today) ?	-99 :
+		/*trades acquired during month 2*/
+		(l.start_day >= d.sDay and i.exp_day >= d.today) ? days_between(l.start_day, d.today, 'Act/365') :
+			/*trades acquired and matured during month 4*/
+			(l.start_day >= d.sDay and i.exp_day < d.today) ? days_between(l.start_day, i.exp_day, 'Act/365') : 
+				/*trades matured during month 3*/
+				(i.exp_day >= d.sDay and i.exp_day < d.today) ? days_between(d.sDay, i.exp_day, 'Act/365') : 0.0		'DaysinPeriod',
+				
+    display_id(t, 'prfnbr') = 'MONB 0681' ? t.premium 
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day <= d.today) ? nominal_amount(t, t.value_day)
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? nominal_amount(t, t.value_day)
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? nominal_amount(t, d.sDay)
+                    /*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? nominal_amount(t, date_add_delta(d.today, -1, 0, 0))
+                        /*other*/
+                        : nominal_amount(t, d.today)		'Amount',
+        ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, to_string(cf.start_day),0)  'prevReset'
+
+
+into
+	temp
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d,
+	TTCalc_Int0681
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and i.insid *= TTCalc_Int0681.insid
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(d.today,1,0,0))
+    and	t.value_day < to_date(date_add_delta(d.today,1,0,0))
+    and display_id(t,'prfnbr') = 'MONB 0681'
+
+
+
+/* BILLS ON ALL PORTFOLIOS EXCLUDING MONY 0681*/
+/* Get all the instruments which need to have a value calculated */
+SELECT I.InsID,
+       'Yes' 'Calc_Int'
+into
+	TTCalc_Int_Rest
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	i.instype = 'Bill'
+    and	t.value_day ~= i.exp_day
+    and	i.exp_day >= to_date(date_add_delta(d.today,1,0,0))
+    and	t.value_day < to_date(date_add_delta(d.today,1,0,0))
+    and display_id(t,'prfnbr') ~= 'MONB 0681'
+    and t.status NOT IN ('Void','Simulated')
+group by i.insid
+having sum(i.exp_day < to_date(date_add_delta(d.today,1,0,0)) ? 0.0 : i.contr_size) > 1.000000000
+
+
+/* Do the selection for all portfolios EXCLUDING 0681 Bills */
+select 
+
+    t.trdnbr,
+    display_id(t,'acquirer_ptynbr')  	'Acquirer',
+    /*display_id(t,'prfnbr')			                                    'Portfolio',*/
+    t.prfnbr,
+    l.start_day,
+    t.value_day,
+    i.exp_day,
+    used_price(i,d.today,,,,'internal')									'used_price_today',
+    used_price(i,d.yesterday,,,,'internal')								'used_price_yesterday',
+    dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+    t.premium + (interest_accrued(i, ,t.value_day) * t.quantity)				'Clean_value_day',
+    nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+    dirty_from_yield(i,d.today,,,used_price(i,d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Dirty_tdy',
+    clean_from_yield(i,d.today,,,used_price(i,d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Clean_tdy',
+    dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Dirty_yesterday',
+    clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Clean_yesterday',
+    nominal_amount(t,t.value_day)						'Nominal',
+    nominal_amount(t,d.today)					        'CurrentNominal',
+    TTCalc_Int_Rest.Calc_Int = 'Yes'
+        ? ((days_between(d.yesterday,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * ael_f(,'IssuedRate.ReturnRate_LastTrade',i)/100)
+         : 0.00 'AccInt_ON',
+    TTCalc_Int_Rest.Calc_Int = 'Yes'
+        ? ((days_between(d.Year_End,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * ael_f(,'IssuedRate.ReturnRate_LastTrade',i)/100)
+         : 0.00 'AccInt_Year',
+    TTCalc_Int_Rest.Calc_Int = 'Yes'
+        ? ((days_between(t.value_day,d.today, 'Act/365') / 365)* nominal_amount(t,t.value_day) * ael_f(,'IssuedRate.ReturnRate_LastTrade',i)/100)
+         : 0.00 'AccInt_Incep',
+    projected_cf(cf) * t.quantity					'Coupon',
+    days_between(t.value_day,d.today,'Act/365')			'AccIntDays',
+    (nominal_amount(t, t.value_day) + 
+    (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+    t.text1,
+    display_id(t, 'counterparty_ptynbr')			'Counterparty'	,
+    t.creat_time,
+    t.Status,
+    (i.exp_day - to_date(date_add_delta(d.today,2,0,0)))                  'RemainingTenor',	
+    0.00  'FDI_Accrued'	,
+    l.type,
+    l.legnbr,
+    ael_s(,'RollingPeriod.RP', l)			'Rolling',
+	l.type = 'Fixed' ? t.price
+		: display_id(l, 'float_rate')		'Price',
+    period_rate(cf)                         'cost',
+    cf.spread                               'spread',
+    cf.float_rate_factor,    
+    ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, cf.start_day, 0)      'JibarClean',
+	l.type = 'Fixed' ? days_between(l.start_day,  i.exp_day, 'Act/365')
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 4, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, l.start_day, 4, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(i.exp_day, -1,0,0), 4, 'CurrentCF'))
+					/*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(d.today, -1, 0, 0), 4, 'CurrentCF'))
+                        /*other*/
+                        : to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, d.today, 4, 'CurrentCF'))	'Tenor',
+
+	/*trades alive before and after month 1*/
+	(l.start_day < d.sDay and i.exp_day > d.today) ?	-99 :
+		/*trades acquired during month 2*/
+		(l.start_day >= d.sDay and i.exp_day >= d.today) ? days_between(l.start_day, d.today, 'Act/365') :
+			/*trades acquired and matured during month 4*/
+			(l.start_day >= d.sDay and i.exp_day < d.today) ? days_between(l.start_day, i.exp_day, 'Act/365') : 
+				/*trades matured during month 3*/
+				(i.exp_day >= d.sDay and i.exp_day < d.today) ? days_between(d.sDay, i.exp_day, 'Act/365') : 0.0		'DaysinPeriod',
+				
+    display_id(t, 'prfnbr') = 'MONB 0681' ? t.premium 
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day <= d.today) ? nominal_amount(t, t.value_day)
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? nominal_amount(t, t.value_day)
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? nominal_amount(t, d.sDay)
+                    /*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? nominal_amount(t, date_add_delta(d.today, -1, 0, 0))
+                        /*other*/
+                        : nominal_amount(t, d.today)		'Amount',
+        ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, to_string(cf.start_day),0)  'prevReset'
+
+into
+	temp
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d,
+	TTCalc_Int_Rest
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and i.insid *= TTCalc_Int_Rest.insid
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	t.value_day <= to_date(date_add_delta(d.today,1,0,0))
+    and	i.exp_day >= to_date(date_add_delta(d.today,1,0,0))
+    and	i.instype = 'Bill'
+    and add_info(t,'Funding Instype') ~= 'FDI'
+    and display_id(t,'prfnbr') ~= 'MONB 0681'
+
+
+/******************************************************* Money Market Acc Int ********************************************************************/
+/*******************************************************         END          ********************************************************************/
+
+
+/* FDI's */
+select 
+
+    t.trdnbr,
+    display_id(t,'acquirer_ptynbr')  	                                    'Acquirer',
+    /*display_id(t,'prfnbr')			                                    'Portfolio',*/
+    t.prfnbr,
+    l.start_day,
+    t.value_day,
+    i.exp_day,
+    used_price(i, d.today,,,,'internal')									'used_price_today',
+    used_price(i, d.yesterday,,,,'internal')								'used_price_yesterday',
+    dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+    t.premium + (interest_accrued(i, , t.value_day) * t.quantity)				'Clean_value_day',
+    nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+    dirty_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Dirty_tdy',
+    clean_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*nominal_amount(t,d.today)/100		'Clean_tdy',
+    dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Dirty_yesterday',
+    clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*nominal_amount(t,d.yesterday)/100	'Clean_yesterday',
+    nominal_amount(t)						'Nominal',
+    nominal_amount(t, d.today)					'CurrentNominal',
+    /*interest_accrued(i, d.yesterday, d.today) * t.quantity			'AccInt_ON',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.today, d.today, 'IntON')	'AccInt_ON',
+    /*interest_accrued(i, d.Year_End, d.today) * t.quantity				'AccInt_Year',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.Year_End, d.today, '')	'AccInt_Year',
+    /*interest_accrued(i, , d.today) * t.quantity					'AccInt_Incep',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+    projected_cf(cf) * t.quantity					'Coupon',
+    days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+    (nominal_amount(t, t.value_day) + 
+    (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+    t.text1,
+    display_id(t, 'counterparty_ptynbr')			'Counterparty'	,
+    t.creat_time,
+    t.Status,
+    (i.exp_day - to_date(d.today))                  'RemainingTenor',	
+    t.prfnbr = 1219 ? ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, 'FDI') : 0.00 'FDI_Accrued',
+    l.type,
+    l.legnbr,
+    ael_s(,'RollingPeriod.RP', l)			'Rolling',
+	l.type = 'Fixed' ? l.fixed_rate
+		: display_id(l, 'float_rate')		'Price',
+    period_rate(cf)                         'cost',
+    cf.spread                               'spread',
+    cf.float_rate_factor,    
+    l.type = 'Fixed' ? l.fixed_rate : ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, cf.start_day, 0)      'JibarClean',
+	l.type = 'Fixed' ? days_between(l.start_day,  i.exp_day, 'Act/365')
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 4, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, l.start_day, 4, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(i.exp_day, -1,0,0), 4, 'CurrentCF'))
+					/*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(d.today, -1, 0, 0), 4, 'CurrentCF'))
+                        /*other*/
+                        : to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, d.today, 4, 'CurrentCF'))	'Tenor',
+
+	/*trades alive before and after month 1*/
+	(l.start_day < d.sDay and i.exp_day > d.today) ?	-99 :
+		/*trades acquired during month 2*/
+		(l.start_day >= d.sDay and i.exp_day >= d.today) ? days_between(l.start_day, d.today, 'Act/365') :
+			/*trades acquired and matured during month 4*/
+			(l.start_day >= d.sDay and i.exp_day < d.today) ? days_between(l.start_day, i.exp_day, 'Act/365') : 
+				/*trades matured during month 3*/
+				(i.exp_day >= d.sDay and i.exp_day < d.today) ? days_between(d.sDay, i.exp_day, 'Act/365') : 0.0		'DaysinPeriod',
+				
+    display_id(t, 'prfnbr') = 'MONB 0681' ? t.premium 
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day <= d.today) ? nominal_amount(t, t.value_day)
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? nominal_amount(t, t.value_day)
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? nominal_amount(t, d.sDay)
+                    /*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? nominal_amount(t, date_add_delta(d.today, -1, 0, 0))
+                        /*other*/
+                        : nominal_amount(t, d.today)		'Amount',
+        ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, to_string(cf.start_day),0)  'prevReset'
+    
+
+into
+	temp
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and	cf.start_day <= d.today
+    and	cf.end_day > d.today
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	t.value_day <= d.today
+    and	i.exp_day >= d.today
+    and	i.instype ~= 'Bill'
+    and	cf.type ~= 'Fixed Amount'
+    and	l.type = 'Fixed'
+    and add_info(t,'Funding Instype') = 'FDI'
+
+    
+
+/*** OTHER ***/
+select 
+    
+    t.trdnbr,
+    display_id(t,'acquirer_ptynbr')  	'Acquirer',
+    /*display_id(t,'prfnbr')			                                    'Portfolio',*/
+    t.prfnbr,
+    l.start_day,
+    t.value_day,
+    i.exp_day,
+    used_price(i, d.today,,,,'internal')									'used_price_today',
+    used_price(i, d.yesterday,,,,'internal')								'used_price_yesterday',
+    dirty_from_yield(i,t.value_day,,,t.price)*-1*nominal_amount(t,t.value_day)/100		'Dirty_value_day',
+    t.premium + (interest_accrued(i, , t.value_day) * t.quantity)				'Clean_value_day',
+    nominal_amount(t,t.value_day) + (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))		'Prem_Disc_Value_day',
+    dirty_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*(nominal_amount(cf, d.today) * t.quantity)/100		'Dirty_tdy',
+    clean_from_yield(i,d.today,,,used_price(i, d.today,,,,'internal'))*-1*(nominal_amount(cf, d.today) * t.quantity)/100		'Clean_tdy',
+    dirty_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*(nominal_amount(cf, d.yesterday) * t.quantity)/100	'Dirty_yesterday',
+    clean_from_yield(i,d.yesterday,,,used_price(i, d.yesterday,,,,'internal'))*-1*(nominal_amount(cf, d.yesterday) * t.quantity)/100	'Clean_yesterday',
+    nominal_amount(t, t.value_day)			                			'Nominal',
+    (nominal_amount(cf, d.today) * t.quantity)						    'CurrentNominal',
+    /*interest_accrued(i, d.yesterday, d.today) * t.quantity			'AccInt_ON',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.today, d.today, 'IntON')	'AccInt_ON',
+    /*interest_accrued(i, d.Year_End, d.today) * t.quantity				'AccInt_Year',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  d.Year_End, d.today, '')	'AccInt_Year',
+    /*interest_accrued(i, , d.today) * t.quantity					'AccInt_Incep',*/
+    ael_f(t, 'SA_AccruedInterest.accrued_interest',  , d.today, '')			'AccInt_Incep',
+    projected_cf(cf) * t.quantity					'Coupon',
+    days_between(t.value_day, d.today, 'Act/365')			'AccIntDays',
+    (nominal_amount(t, t.value_day) + 
+    (t.premium + (interest_accrued(i, , t.value_day) * t.quantity))) / (days_between(t.value_day,i.exp_day,'Act/365'))	'Daily_Pull_to_Par',
+    /*l.legnbr,
+    cf.cfwnbr,
+    cf.start_day	'cf',
+    i.start_day	'i',
+    cf.start_day	'cfend',
+    i.exp_day	'iend'*/
+    t.text1,
+    display_id(t, 'counterparty_ptynbr')			'Counterparty'	,
+    t.creat_time,
+    t.Status,
+    (i.exp_day - to_date(d.today))                  'RemainingTenor',	
+    0.00  'FDI_Accrued',
+    l.type,
+    l.legnbr,
+    ael_s(,'RollingPeriod.RP', l)			'Rolling',
+    l.type = 'Fixed' ? l.fixed_rate
+        : display_id(l, 'float_rate')		'Price',
+    period_rate(cf)                         'cost',
+    cf.spread                               'spread',
+    cf.float_rate_factor,    
+    l.type = 'Fixed' ? l.fixed_rate : ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, cf.start_day, 0)      'JibarClean',
+	l.type = 'Fixed' ? days_between(l.start_day,  i.exp_day, 'Act/365')
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 4, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, l.start_day, 4, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(i.exp_day, -1,0,0), 4, 'CurrentCF'))
+					/*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(d.today, -1, 0, 0), 4, 'CurrentCF'))
+                        /*other*/
+                        : to_double(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, d.today, 4, 'CurrentCF'))	'Tenor',
+
+	/*trades alive before and after month 1*/
+	(l.start_day < d.sDay and i.exp_day > d.today) ?	-99 :
+		/*trades acquired during month 2*/
+		(l.start_day >= d.sDay and i.exp_day >= d.today) ? days_between(l.start_day, d.today, 'Act/365') :
+			/*trades acquired and matured during month 4*/
+			(l.start_day >= d.sDay and i.exp_day < d.today) ? days_between(l.start_day, i.exp_day, 'Act/365') : 
+				/*trades matured during month 3*/
+				(i.exp_day >= d.sDay and i.exp_day < d.today) ? days_between(d.sDay, i.exp_day, 'Act/365') : 0.0		'DaysinPeriod',
+				
+    display_id(t, 'prfnbr') = 'MONB 0681' ? t.premium 
+		/*trades acquired and matured during month 4*/
+		: (l.start_day >= d.sDay and i.exp_day <= d.today) ? nominal_amount(t, t.value_day)
+			/*trades acquired during month 2*/
+			: (l.start_day >= d.sDay and i.exp_day >= d.today) ? nominal_amount(t, t.value_day)
+				/*trades matured during month 3*/
+				: (i.exp_day >= d.sDay and i.exp_day < d.today) ? nominal_amount(t, d.sDay)
+                    /*trades expiring on first day of next month*/
+					: i.exp_day = d.today ? nominal_amount(t, date_add_delta(d.today, -1, 0, 0))
+                        /*other*/
+                        : nominal_amount(t, d.today)		'Amount',
+        ael_s(,'SAGEN_Resets.CurrentReset', l.legnbr, to_string(cf.start_day),0)  'prevReset'
+    
+
+into
+	temp
+
+from
+	instrument i,
+	trade t,
+	cashflow cf,
+	leg l,
+	dates d
+
+where
+	i.insaddr = t.insaddr
+    and	i.insaddr = l.insaddr
+    and	l.legnbr = cf.legnbr
+    and	cf.type ~= 'Fixed Amount'
+    and	cf.start_day <= d.today
+    and	cf.end_day > d.today
+    and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNos{})
+    and	t.value_day <= d.today
+    and	i.exp_day >= d.today
+    and	i.instype ~= 'Bill'
+    and add_info(t,'Funding Instype') ~= 'FDI'
+
+
+
+
+
+
+/*** FINAL ***/
+select
+
+t.trdnbr,
+i.insaddr,
+p.prfid                                'Portfolio',
+pp.prfid	                           'CostCentre',
+i.instype		'Instype',
+add_info(t, 'Funding Instype') ~= '' ? add_info(t, 'Funding Instype')
+					     : (add_info(t, 'MM_Instype') ~= '' ? add_info(t, 'MM_Instype')
+										: add_info(t, 'Instype'))	'MM_Instype',
+
+
+tt.nominal				    	'Original_Nominal',
+tt.CurrentNominal				'Current_Nominal',
+t.premium   					'Premium',
+tt.Amount,
+
+tt.start_day,
+tt.exp_day,
+tt.value_day,
+
+tt.Tenor,
+tt.DaysinPeriod = -99 ? tt.Tenor : tt.DaysinPeriod		'DaysinPeriod',
+d.DinM,
+
+
+/*trades alive before and after month*/
+(tt.start_day < d.sDay and i.exp_day >= d.today) ?	1 :
+    /*trades acquired during month*/
+    (tt.start_day >= d.sDay and i.exp_day >= d.today) ? 2 :
+        /*trades acquired and matured during month*/
+        (tt.start_day >= d.sDay and i.exp_day < d.today) ? 4 : 
+            /*trades matured during month*/
+            (tt.exp_day >= d.sDay and i.exp_day < d.today) ? 3 : 0.0	'Num',
+            
+tt.type,            
+            
+tt.Rolling = '1m' ? 1 : tt.Rolling = '1y' ? 0 : tt.Rolling = '3m' ? 3 
+    : tt.Rolling = '6m' ? 6 : 9			    'Int_Frequency',
+
+
+tt.Rolling = '1m' ? 12 : tt.Rolling = '1y' ? 1 : tt.Rolling = '3m' ? 4 
+    : tt.Rolling = '6m' ? 2 : tt.Rolling = '1w' ? 52 : tt.Rolling = '1d' ? 365 : 9	    'IntConvention',
+
+
+tt.Price,
+tt.AccInt_ON,
+
+l.type = 'Float' ? used_price(fl, tt.start_day) : 0.0       'Jibar1',
+l.legnbr,
+/*l.type = 'Float' ? used_price(fl, tt.start_day) :0.0        'Jibar2',*/
+/*l.type = 'Float' ? used_price(fl, tt.start_day) :0.0        'Jibar3',*/
+
+
+
+
+d.yesterday,
+d.today,
+
+tt.AccInt_Year,
+tt.AccInt_Incep,
+tt.Clean_value_day - tt.Clean_tdy		'Clean_P&L_Incep',
+tt.Clean_yesterday - tt.Clean_tdy		'Clean_P&L_Overnight',
+tt.Coupon,
+tt.AccIntDays,
+tt.text1,
+tt.Counterparty,
+tt.creat_time,
+tt.Status,
+tt.cost,
+tt.spread,
+tt.float_rate_factor,
+tt.JibarClean,
+/*'ZAR-MM-FundingSpr'       'ael_yc_name',*/
+ael_s(i,'getYCName')       'ael_yc_name',
+tt.prevReset,
+t.acquire_day
+
+
+into
+    Final
+    
+from
+    instrument i,
+    trade t,
+    temp tt,
+    dates d,
+    Leg l,
+    instrument fl,
+  	portfolio p,
+	portfolio pp,
+	portfolioLink pl
+
+where
+    i.insaddr = t.insaddr
+and t.trdnbr = tt.trdnbr
+and l.legnbr = tt.legnbr
+and l.float_rate *= fl.insaddr
+and tt.prfnbr = p.prfnbr
+and	p.prfnbr = pl.member_prfnbr
+and	pl.owner_prfnbr = pp.prfnbr
+
+    
+select
+    t.trdnbr,
+    t.portfolio,
+    t.CostCentre,
+    t.Counterparty,
+    t.Instype,
+    t.MM_Instype,
+    
+    t.Original_Nominal,
+    t.Current_Nominal,
+    t.Amount,
+
+    /*trades alive before and after month 1*/
+    t.Num = 1 ? t.amount 
+        /*trades acquired during month 2*/
+        : t.Num = 2 ? ((t.DaysinPeriod / t.DinM) * t.amount)
+            /*trades acquired and matured during month 4*/
+            : t.Num = 4 ? ((t.DaysinPeriod / t.DinM) * t.amount)
+                /*trades matured during month 3*/
+                : t.Num = 3 ? ((t.DaysinPeriod / t.DinM) * t.amount) : 0.0		'Average_Balance',
+    
+    t.Premium,
+    t.start_day                    'Original_StartDate',
+    t.exp_day                      'Original_MatDate',
+
+    t.Num,
+    
+	t.type = 'Fixed' ? t.start_day 
+		/*trades acquired and matured during month 4*/
+		: t.Num = 4 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 1, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: t.Num = 2 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.start_day, 1, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: t.Num = 3 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(t.exp_day, -1,0,0), 1, 'CurrentCF'))
+					/*other*/
+					: (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.today, 1, 'CurrentCF'))	'Interest_StartDate',
+
+
+
+	t.type = 'Fixed' ? t.exp_day
+		/*trades acquired and matured during month 4*/
+		: t.Num = 4 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.value_day, 2, 'CurrentCF'))
+			/*trades acquired during month 2*/
+			: t.Num = 2 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.start_day, 2, 'CurrentCF'))
+				/*trades matured during month 3*/
+				: t.Num = 3 ? (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, date_add_delta(t.exp_day, -1,0,0), 2, 'CurrentCF'))
+					/*other*/
+					: (ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.today, 2, 'CurrentCF'))	'Interest_MatDate',
+    
+    t.Tenor,
+    t.DaysinPeriod, 
+    t.DinM,
+    t.Int_Frequency,
+    t.Price,
+    t.AccInt_ON,
+    t.Jibar1,
+    t.legnbr,
+    t.today,
+    t.cost             'Cost',
+    t.spread           'Spread',
+    t.float_rate_factor,
+    t.Instype = 'FRN' and t.MM_Instype = 'NCF' ? to_double(t.JibarClean) * t.float_rate_factor : to_double(t.JibarClean)  'JibarClean',
+    t.Instype = 'FRN' and t.MM_Instype = 'NCF' 
+        ? to_double(ael_f(,'YieldConverter.yield_converter_rate', t.IntConvention, 'Yield', t.DaysinPeriod, t.Cost, 'NACM')) * t.float_rate_factor
+        : to_double(ael_f(,'YieldConverter.yield_converter_rate', t.IntConvention, 'Yield', t.DaysinPeriod, t.Cost, 'NACM'))      'EffectiveJibar',
+    t.type = 'Fixed' ? 
+        /*100 * yc_rate(yc,t.acquire_day,i.exp_day,'Annual Comp',i.daycount_method,'Spot Rate',,,,,t.acquire_day) :*/
+        100 * ael_f(yc,'ABSA_Rate.ABSA_yc_rate',yc.yield_curve_name, t.acquire_day, i.exp_day,'Annual Comp',i.daycount_method,'Spot Rate', display_id(i, 'curr') /*'ZAR'*/) :
+        t.prevReset = '0001-01-01' ? 
+            100 * yc_rate(yc,t.acquire_day,to_date(ael_s(,'SAGEN_Cashflows.GetCashflow_Ins', i, t.today, 2, 'CurrentCF')),'Annual Comp','Act/365','Spot Rate',,,,,t.acquire_day) :            
+            t.prevReset   'Market_rate',
+    t.ael_yc_name
+into
+    Final2
+    
+from
+    Final t,
+    Instrument i,
+    YieldCurve yc
+where
+    t.insaddr = i.insaddr
+    and yc.yield_curve_name = t.ael_yc_name
+    
+    
+select
+    t.trdnbr,
+    t.portfolio,
+    t.CostCentre,
+    t.Counterparty,
+    t.Instype,
+    t.MM_Instype,
+    l.type      'LegType',
+    t.Original_Nominal,
+    t.Current_Nominal,
+    t.Premium,
+    t.Original_StartDate,
+    t.Original_MatDate,
+    t.Amount,
+    t.Average_Balance,
+    /*t.Num,*/
+   
+	t.Interest_StartDate,
+    t.Interest_MatDate,
+    t.Tenor,
+    t.DaysinPeriod,
+    /*t.DinM,*/
+    
+    t.Int_Frequency,
+    
+    t.AccInt_ON,
+    /*t.Jibar1    'Jibar at Original Start',
+    l.type = 'Float' ? used_price(fl, t.Interest_StartDate) : 0.0       'Jibar at Interest Start',
+    l.type = 'Float' ? (used_price(fl, t.today) - t.AccInt_ON) : 0.0      'ON margin',*/
+    
+    t.Cost,
+    t.Spread,
+    t.JibarClean / 100                                          'JibarClean',
+    t.EffectiveJibar / 100                                      'EffectiveJibar',
+    t.Current_Nominal * t.JibarClean / 36500                    'CurrNom_JibarClean',
+    t.Current_Nominal * t.EffectiveJibar / 36500                'CurrNom_EffJibar',
+    (t.Current_Nominal * t.JibarClean / 36500) - (t.Current_Nominal * t.EffectiveJibar / 36500)  'CurrNom_P/L',
+    t.Market_rate      'Market_rate'
+
+from
+    Final2 t,
+    Leg l,
+    Instrument fl
+    
+where
+    l.legnbr = t.legnbr
+and l.float_rate *= fl.insaddr

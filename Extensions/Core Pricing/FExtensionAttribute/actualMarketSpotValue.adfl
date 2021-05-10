@@ -1,0 +1,11 @@
+[Core Pricing]FCombination:actualMarketSpotValue = select(splitCombinationPrice, 
+  true->sumOf((instrumentMaps) :* "marketLegComponentSpotValue" [priceSource, doSplitAll]) / combinationDivisionFactor, 
+  false->marketSpotUnitValue);
+[Core Pricing]FCurrency:actualMarketSpotValue = denominatedvalue(1.0, object, , instrumentSpotDate);
+[Core Pricing]FFxRate:actualMarketSpotValue = denominatedvalue(fxSpotRate, object.DomesticCurrency, nil, currencyPairSpotDate);
+[Core Pricing]FInstrument:actualMarketSpotValue = select(pricingCurrency == currency, 
+  true->select(isPerUnitQuoted, 
+    true->object.UnitQuoteToUnitValue(marketSpotPrice), 
+    false->marketSpotUnitValue), 
+  false->marketSpotUnitValue * fxMarketToInstrument);
+[Core Pricing]FPreciousMetalRate:actualMarketSpotValue = underlying :* "marketSpotUnitValue" [priceSource, adsPriceCurrency := pmCurrency];

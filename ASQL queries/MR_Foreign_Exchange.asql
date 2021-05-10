@@ -1,0 +1,77 @@
+/*
+'''
+Purpose                 :Market Risk feed files
+Department and Desk     :IT
+Requester:              :Natalie Austin
+Developer               :Douglas Finkel / Henk Nel
+CR Number               :264536
+'''
+*/
+Select
+    'Create File' 'Process', 
+    ael_s(,'MR_Foreign_Exchange.OpenFile',@1_path{'c:\'},@2_FileName{'MR_Foreign_Exchange.csv'},@3_PositionName{'MR_Foreign_Exchange_PositionName.csv'})	'BuildConfirmation'
+into
+    Macro
+from
+	serverdata s
+where
+	s.srdnbr > 0
+
+Select
+    'Write File' 'Process', 
+    ael_s(i,'MR_Foreign_Exchange.Write',@1_path{'c:\'},@2_FileName{'MR_Foreign_Exchange.csv'},@3_PositionName{'MR_Foreign_Exchange_PositionName.csv'})	'BuildConfirmation'
+Into
+    Macro
+From 
+	Instrument i
+
+where
+	/* Basic filtering conditions */
+    (i.exp_day = 0 or i.exp_day > Today)
+    and i.instype in ('Curr')   
+    and  ( i.insid like '___'  or  i.insid like '____')
+
+
+
+Select 
+    to_string(display_id(lr,'curr'),display_id(ll,'curr')) 'currpair',
+    ll.curr 'LockedLeg',
+    lr.curr 'ResetLeg'
+Into 
+    Currtemp
+From 
+    instrument i,
+    Leg ll,
+    Leg lr
+Where 
+    i.insaddr = ll.insaddr
+And i.insaddr = lr.insaddr
+And ll.is_locked = 'Yes'
+And lr.is_locked = 'No'
+And i.instype = 'CurrSwap'
+Group By 1
+
+
+Select 
+    'Write File' 'Process',
+    ael_s(,'MR_Foreign_Exchange.Write2',@1_path{'c:\'},@2_FileName{'MR_Foreign_Exchange.csv'},@3_PositionName{'MR_Foreign_Exchange_Position.csv'},currpair,LockedLeg,ResetLeg)	'BuildConfirmation'
+Into
+    macro
+From Currtemp
+
+
+Select
+    'Close File'    'Process', 
+    'Successful'	'BuildConfirmation'
+Into
+    Macro
+From
+	serverdata s
+Where
+	s.srdnbr > 0
+
+Select * From Macro
+Where Process In ('Create File','Close File')
+
+
+

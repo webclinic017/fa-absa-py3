@@ -1,0 +1,6 @@
+[Equity Market Making]FQuoteController:automaticHedgerOrderType = switch(qAutomaticHedgerSetting, 
+  nil->nil, 
+  default->qAutomaticHedgerSetting.OrderType);
+[Equity Market Making]FTradingInterface:automaticHedgerOrderType = var(select(automaticHedgerTradingInterface, 
+  nil->"Standard", 
+  default->object.GetDefaultValueEx("AutomaticHedgerOrderType", context)), "orderType");

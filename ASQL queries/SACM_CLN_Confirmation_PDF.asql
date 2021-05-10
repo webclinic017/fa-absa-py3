@@ -1,0 +1,16 @@
+/* 
+    Name      : SACM_CLN_Confirmation_PDF
+    Purpose   : Builds confirmations for CLN's in PDF 
+    Developer : Lukas Paluzga
+    Date      : 2012-12-05
+*/
+
+SELECT ael_i(p,'ASQL_log','SACM_CLN_Confirmation_PDF') 'Name'
+    INTO ASQL_LOG_TEMP
+    FROM TextObject p 
+    WHERE p.name = 'SACM_CLN_Confirmation_PDF' AND p.type = 'SQL Query'
+
+SELECT ael_s(,'SACM_CLN_Confirmation_PDF.ASQL')	 /* Opens AEL */
+	INTO temp
+	FROM serverdata s
+	WHERE s.srdnbr > 0 

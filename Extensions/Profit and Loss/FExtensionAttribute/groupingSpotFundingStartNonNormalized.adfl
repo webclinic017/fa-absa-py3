@@ -1,0 +1,5 @@
+[Profit and Loss]FInstrumentAndTrades:groupingSpotFundingStartNonNormalized = select(calculateGroupingSpotFunding, 
+  true->shunt(profitAndLossStartDateIsActivated, 
+    true->stripDateTimePart(discount(setDateTimePart(actualCashStartCalculation, profitAndLossStartDate), profitAndLossStartDiscountCurves, plSpotGroupingReference.SpotDate(profitAndLossStartDate))) - actualCashStartCalculation, 
+    false->plZero), 
+  false->plZero);

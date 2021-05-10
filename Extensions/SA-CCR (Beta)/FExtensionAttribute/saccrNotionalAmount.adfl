@@ -1,0 +1,6 @@
+[SA-CCR (Beta)]FInstrument:saccrNotionalAmount = select(saccrAssetClassDefined, 
+  true->saccrInstrumentComponents :* "saccrNotionalAmountAccountingCurr" [positionObject, riskPositionBase, tradesInPosition], 
+  false->nil);
+[SA-CCR (Beta)]FSingleInstrumentAndTrades:saccrNotionalAmount = select(isOpenPosition and saccrAssetClassDefined, 
+  true->round(openInstrument :* "saccrNotionalAmount" [positionObject, tradesInPosition], saccrDecimalsDefault), 
+  false->nil);

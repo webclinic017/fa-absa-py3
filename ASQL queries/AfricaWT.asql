@@ -1,0 +1,12 @@
+Select
+    t.trdnbr    'Trade_Number',
+    /*add_info(t,'Africa WT') 'Country',*/
+    ael_s(,'Africa_WT.AfricaWT',t.trdnbr,i.insaddr,add_info(t,'Africa WT'))    'Query_Result',
+    /*ael_s(,'Africa_WT.AfricaWT',t.trdnbr,i.insaddr,'MZM')    'Query_Result'*/
+    add_info(t,'Africa WT')
+From
+    trade t,
+    instrument i
+Where
+    match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and t.insaddr = i.insaddr

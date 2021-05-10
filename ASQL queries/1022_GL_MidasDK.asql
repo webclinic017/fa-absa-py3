@@ -1,0 +1,15 @@
+/* update_method=0 */
+select distinct
+    t.trdnbr
+from
+    trade t,
+    party p,
+    portfolio por
+where
+    t.counterparty_ptynbr = p.ptynbr
+and t.prfnbr = por.prfnbr
+and p.ptyid = 'MIDAS DUAL KEY'
+and por.prfid ~= 'JOB12'
+and t.status not in ('Simulated', 'Void')
+and ael_i(t, 'midasSettlement.is_midas_settled') = 0
+and not (match_portfolio(t, 'GRAVEYARD') or match_portfolio(t, 'MIDAS_GY'))

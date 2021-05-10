@@ -1,0 +1,42 @@
+/* update_method=0 */
+/*
+coded by Anil Parbhoo
+for Johan Barkhuizen of QRM  
+CHG0097546 deployed on 7 May 2020
+*/
+
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','fx_SPOT_rates') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'fx_SPOT_rates' and p.type = 'SQL Query' 
+
+select
+i.insid,
+c.insid 'curr',
+cp.name 'CurrencyPair',
+pa.ptyid 'market',
+lp.day,
+convert('double', lp.settle, 5) 'Settle',
+convert('double', Used_Price(i,Today , c.insid, 'Settle'), 5) 'Used_Price',
+lp.updat_time,
+display_id(lp, 'updat_usrnbr') 'updat_user'
+
+from 
+instrument i,
+instrument c, 
+party pa,
+lastprice lp,
+currencypair cp
+
+where
+i.instype = 'Curr'
+and i.insaddr = lp.insaddr
+and lp.ptynbr = pa.ptynbr
+and pa.ptyid = 'SPOT'
+and lp.curr = c.insaddr
+and i.insaddr = cp.curr1
+and c.insaddr = cp.curr2
+
+order by lp.updat_time desc

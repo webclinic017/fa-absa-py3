@@ -1,0 +1,495 @@
+/*Modified 2009-10-08 FA*/
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Macros
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT
+	to_date(@3_ReportDate{yesterday})																														'RepDay',
+	date_add_banking_day(@3_ReportDate{yesterday},@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}, -1)  											'PrevRepDay',
+    date_add_delta(to_date(@3_ReportDate{yesterday}),-90,0,0)       																						'cfday',
+	to_date(@4_MonthendDate{FIRSTDAYOFMONTH})=FIRSTDAYOFMONTH ? TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})-1 : TO_DATE(@4_MonthendDate{FIRSTDAYOFMONTH})		'ME',
+	to_date(@5_YearEndDate{2008-12-31;})																													'YE',
+	@6_HomeCurr{ZAR;instrument.insid WHERE instype = 'Curr'}																								'hcur',
+	@10_ShowDetails{Yes;'Yes','No'}																															'det'
+INTO
+	macros
+FROM
+	serverdata s
+WHERE
+	s.srdnbr > 0
+	
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Select Trades
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+select
+*
+into trades
+
+from
+trade nt
+
+where
+match_filter(nt, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+*/
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	FX Rates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT
+	hc.insid																																				'hcurr',
+	curr.insid																																				'curr',
+	m.RepDay=today ? used_price(hc, m.RepDay, curr.insid) : mtm_price(hc, m.RepDay, curr.insid)																'fxRepDay',
+	mtm_price(hc, m.PrevRepDay, curr.insid)																													'fxPrevRepDay',
+	mtm_price(hc, m.YE, curr.insid)																															'fxYE'
+INTO
+	fxrates
+FROM
+	instrument	hc,
+	instrument	curr,
+	macros		m
+WHERE
+	    hc.insid = m.hcur
+	AND curr.instype = 'Curr'
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Basic data FX Outrights, FX Swaps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT distinct
+    ft.trdnbr,
+	ft.connected_trdnbr,                              /*MK must be the Pay Trade Number*/
+	ft.premium                              'Amt1',                             /*MK*/
+	ft.premium  * (1/fx.fxrepday)           'HAmt1',
+	ft.quantity                             'Amt2',
+	ft.quantity * (1/fx.fxrepday)           'HAmt2',
+	near_curr.insid                         'Curr1',
+	far_curr.insid                          'Curr2',
+	ft.curr                                 'Curr1nbr',
+	ft.insaddr                              'Curr2nbr',
+	used_price(near_curr,m.RepDay,'ZAR')    'ccy1RepDay',
+	used_price(far_curr,m.RepDay,'ZAR')     'ccy2RepDay',
+	used_price(near_curr,m.RepDay,'USD')    'ccy1RepDayUSD',
+	used_price(far_curr,m.RepDay,'USD')     'ccy2RepDayUSD',
+	ft.premium                              'Amt1_Proj_Cf', 
+	ft.quantity                             'Amt2_Proj_Cf',
+    ft.value_day
+INTO 
+
+	tmpSellBuy	
+
+FROM
+    trade		ft,
+    /*trade		nt,*/
+	instrument	near_curr,
+    instrument	far_curr,      
+	macros		m,
+	fxrates		fx
+	
+WHERE
+        ft.curr     = near_curr.insaddr
+	and ft.insaddr  = far_curr.insaddr
+	and fx.curr     = near_curr.insid 
+    and match_filter(ft, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+    and ft.trade_process in (4096, 8192, 16384, 32768)
+
+  
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   CURRSWAP / FXSWAP Selecting base data into the 'result' temp table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT distinct
+
+	allTrades.connected_trdnbr,
+	allTrades.optional_key																																			'DevonRef',
+	i.insid,
+	display_id(allTrades, 'acquirer_ptynbr')																														'Desk',
+	display_id(allTrades, 'prfnbr')																																	'portfolio',
+	curr.insid																																				'curr',
+	fx.hcurr																																				'hcurr',
+    
+    
+	/*MK(l.payleg='Yes' ? -1 : 1) * (position(t,,,m.RepDay) * l.nominal_factor)																					'Position',*/
+	position(allTrades,,,m.RepDay)*allTrades.price	/*RW added allTrades.price*/											'Position',
+    used_price(i,m.RepDay,'ZAR')  																															'NLDccyRepDay',
+	/*nominal_amount(allTrades,m.Repday,curr.insid)*/0.0			 																										'Nominal',
+	allTrades.premium,
+	bs.value_day																																			'value_day',
+	m.RepDay																																				'RepDay',
+	allTrades.status = 'BO Confirmed' ? 'BO Confirmed' : allTrades.status																					'Status',
+	/*MK*/ 0.00													'mtm_und_RepDay',
+	
+	mtm_price(i, m.RepDay, curr.insid)																														'mtmpx_RepDay',
+	mtm_price(i, m.PrevRepDay, curr.insid)																													'mtmpx_PrevRepDay',
+	mtm_price(i, m.YE, curr.insid)																															'mtmpx_YE',
+
+	1/fx.fxRepDay																																			'fxRepDay',
+	1/fx.fxPrevRepDay																																		'fxPrevRepDay',
+	1/fx.fxYE																																				'fxYE',
+	
+	/*PL CALCS*/
+	mtm_value_fo(allTrades, m.RepDay, curr.insid, 3, 0, 0)																											'mtm_RepDate',
+	mtm_value_fo(allTrades, m.PrevRepDay, curr.insid, 3, 0, 0)																										'mtm_PrevRepDate',
+	mtm_value_fo(allTrades, m.YE, curr.insid, 3, 0, 0)																												'mtm_YE',
+	
+	accumulated_cash(allTrades, m.RepDay, curr.insid, 3, 0, , 0, 'None') 																							'cash_RepDate',
+	accumulated_cash(allTrades, m.PrevRepDay, curr.insid, 3, 0, , 0, 'None') 																						'cash_PrevRepDate',
+	accumulated_cash(allTrades, m.YE, curr.insid, 3, 0, , 0, 'None')																								'cash_YE',
+
+	display_id(allTrades,'counterparty_ptynbr')																														'Cpty',
+	allTrades.your_ref  																																			'CptyRef',
+	display_id(allTrades,'optkey1_chlnbr')																															'TradeArea',
+	add_info (allTrades,'MM_Instype')																																'MM_Product',
+
+	max(bs.amt1 < bs.amt2 ? bs.Curr2nbr : bs.Curr1nbr)        																								'PurchaseCurrNbr',
+	max(bs.amt1 < bs.amt2 ? bs.Curr1nbr : bs.Curr2nbr)   																								'SaleCurrNbr',
+	max(bs.amt1 < bs.amt2 ? bs.curr2 : bs.curr1)		            																							'PurchaseCurr',
+	max(bs.amt1 < bs.amt2 ? bs.curr1 : bs.curr2)            																							'SaleCurr',
+	max(bs.amt1 < bs.amt2 ? bs.amt2 : bs.amt1)            																								'PurchaseAmount',
+	max(bs.amt1 < bs.amt2 ? bs.amt1 : bs.amt2)		            																								'SaleAmount',
+
+    
+	max(bs.amt1 < bs.amt2 ? bs.HAmt2 : bs.HAmt1)		            																							'HPurchaseAmount',
+
+	max(bs.amt1 < bs.amt2 ? bs.HAmt1 : bs.HAmt2)		            																							'HSaleAmount',
+
+	max(bs.ccy1RepDay)                                                                                                                                          'ccy1RepDay',
+    max(bs.amt1 < bs.amt2 ? bs.ccy2RepDayUSD : bs.ccy1RepDayUSD)  																								'Purchase_USD',
+    max(bs.amt1 < bs.amt2 ? bs.ccy1RepDayUSD : bs.ccy2RepDayUSD)   																								'Sale_USD',
+    max(bs.amt1 < bs.amt2 ? bs.Amt2_proj_cf : bs.Amt1_proj_cf)     																								'Purchase_Projected_CF',
+    max(bs.amt1 < bs.amt2 ? bs.Amt1_proj_cf : bs.Amt2_proj_cf)    																								'Sale_Projected_CF',
+    max(bs.amt1 < bs.amt2 ? present_value(allTrades,,,,Curr2) : present_value(allTrades,,,,Curr1))               												'Purchase_PV',
+    max(bs.amt1 < bs.amt2 ? present_value(allTrades,,,,Curr1) : present_value(allTrades,,,,Curr2))                                                              'Sale_PV',
+    max(bs.amt2 >= 0 ? 'Buy' : 'Sell')	  /*RW - added for correcting BuySell*/                                                                                 'Buysell',
+    max(bs.value_day)   'AS_day'
+    
+INTO
+	result
+	
+FROM
+	trade		allTrades,
+	instrument	i,
+	/*MK instrument 	u,*/
+	instrument	curr,
+	/*MK leg		l,*/
+	macros		m,
+	fxrates		fx,
+	tmpSellBuy	bs
+WHERE
+	    match_filter(allTrades, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+	AND allTrades.insaddr = i.insaddr  /*MK Is this correct nope we don't need */
+	AND bs.trdnbr =* allTrades.trdnbr
+	/*MK AND l.insaddr =* i.insaddr*/
+	/*MK AND i.und_insaddr *= u.insaddr */
+	AND fx.curr = curr.insid
+	/*MK AND curr.insaddr = l.curr*/
+	/*MK*/ AND curr.insaddr = i.curr/*allTrades.curr*/
+	AND i.instype in ('Curr')
+	/*MK*/ /*AND allTrades.trade_process in (4096, 8192,16384, 32768)*/ /*16384*/
+GROUP BY allTrades.connected_trdnbr
+	
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Gets the nominal for the base currency - for NLD only
+	We have to add this in to currency if this still apllies ??
+	What was the reasoning behind this???
+
+    This has not been addres and will not work, however it will not intefer as ther is no join with this table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+select
+	t.trdnbr,
+	nominal_amount(l, today)																																'NLDNom',
+	used_price(c,m.RepDay,'ZAR')  																															'NLDccyRepDay'
+into
+	NLDNominal
+from
+	Trade t,
+	Instrument i,
+	Instrument c,
+	Leg l,
+	Party p,
+	Result r,
+	macros m
+where
+        r.trdnbr            = t.trdnbr
+    and	t.insaddr           = i.insaddr
+    and	l.insaddr           = i.insaddr
+    and	l.curr              = c.insaddr
+    and	l.is_locked         = 'Yes'
+    and	i.instype           = 'Curr' 
+    and t.acquirer_ptynbr   = p.ptynbr
+    and p.ptyid             = 'Non Linear Deriv'
+group by t.trdnbr
+*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Creating Final DATA table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT
+	nearTrade.connected_trdnbr,
+	r.DevonRef,
+	r.insid,
+	r.Desk,
+	r.portfolio	,
+	r.TradeArea	,
+	r.curr,
+	r.mm_product,
+	r.Cpty,
+	r.CptyRef,
+	r.AS_day        'exp_day',
+	r.status,
+	r.repday,
+	r.position 																																				'Position',
+	r.nominal																																				'Nominal',
+	/*n.NLDNom,
+	n.NLDccyRepDay,*/
+	r.premium																																				'Premium',
+	/*PLINCEP*/
+	/*sum(r.mtm_RepDate+r.Cash_Repdate)					'PLIncep1',*/
+	r.mtm_RepDate																																			'Val',
+	sum(r.cash_repdate)																																		'CashIncep',
+	/*PLYTD*/
+	/*sum((r.mtm_RepDate-r.mtm_YE) + (r.cash_RepDate-r.cash_YE))		'PLYTD1',*/
+	sum((r.mtm_RepDate-r.mtm_YE))																															'ChangeMTM_YTD',
+	sum((r.cash_RepDate-r.cash_YE))																															'ChangeCash_YTD',
+	hcurr,
+	sum(r.Premium)*r.fxRepDay																																'HPremium',
+    r.desk = 'Non Linear Deriv' ? nearTrade.quantity_is_derived='Yes' ? (nearTrade.premium * r.NLDccyRepDay  ) : (nearTrade.premium * nearTrade.price * r.NLDccyRepDay) : abs(nearTrade.premium*r.ccy1RepDay)   'Notional_amount',
+	/*PLIncep Home Curr*/
+	r.mtm_RepDate*r.fxRepDay+r.Cash_Repdate*r.fxRepDay																										'HPLIncep',
+	r.mtm_RepDate*r.fxRepDay																																'HVal',
+	r.cash_repdate*r.fxRepDay																																'HCashIncep',
+	
+	/*PLYTD Home Curr*/
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE) + (r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)																'HPLYTD1',
+	(r.mtm_RepDate*r.fxRepDay-r.mtm_YE*r.fxYE)																												'HChangeMTM_YTD',
+	(r.cash_RepDate*r.fxRepDay-r.cash_YE*r.fxYE)																											'HChangeCash_YTD',
+
+	/*PLON Home Curr*/
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay) + (r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))						'HPLON1',
+	sum((r.mtm_RepDate*r.fxRepDay-r.mtm_PrevRepDate*r.fxPrevRepDay)) 																						'HChangeMTM_ON',
+	sum((r.cash_RepDate*r.fxRepDay-r.cash_PrevRepDate*r.fxPrevRepDay))																						'HChangeCash_ON', 
+		
+	r.fxRepDay ,
+	r.fxPrevRepDay ,
+	r.fxYE ,		
+	r.mtmpx_RepDay,
+	r.mtmpx_PrevRepDay,
+	r.mtmpx_YE,
+	r.PurchaseCurrNbr,
+	r.PurchaseCurr,
+	/*r.PurchaseAmount,*/
+	r.Purchase_Projected_CF         																														'PurchaseAmount',
+	r.SaleCurrNbr,
+	r.SaleCurr,
+	/*r.SaleAmount,*/
+	r.Sale_Projected_CF             																														'SaleAmount',
+
+	/*dirty_from_yield(i,nearTrade.value_day,,,nearTrade.price)*-1*nominal_amount(nearTrade,nearTrade.value_day)/100*/0.0																			'Dirty_value_day',
+	/*clean_from_yield(i,nearTrade.value_day,,,nearTrade.price)*-1*nominal_amount(nearTrade,nearTrade.value_day)/100*/0.0																			'Clean_value_day',
+
+	/*dirty_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(nearTrade,m.RepDay)/100	*/0.0												'Dirty_tdy',
+	/*clean_from_yield(i,m.RepDay,,,used_price(i, m.RepDay,,,,'internal'))*-1*nominal_amount(nearTrade,m.RepDay)/100		*/0.0											'Clean_tdy',
+
+	/*dirty_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*nominal_amount(nearTrade,m.PrevRepDay)/100*/0.0										'Dirty_yesterday',
+	/*clean_from_yield(i,m.PrevRepDay,,,used_price(i, m.PrevRepDay,,,,'internal'))*-1*(nearTrade,m.PrevRepDay)/100	*/0.0									'Clean_yesterday',
+
+	interest_accrued(i, m.PrevRepDay, m.RepDay) * nearTrade.quantity																								'AccInt',
+	/*projected_cf(cf) * t.quantity	*/ 0.0																																'Coupon',
+
+    /*(nominal_amount(nearTrade,nearTrade.value_Day) + nearTrade.premium) / (days_between(nearTrade.value_day,i.exp_day,'Act/365'))*/0.0															'Daily_Pull_to_Par',
+	m.RepDay																																				'R1',
+	m.PrevRepDay																																			'R2',
+	i.exp_day < TODAY ? 0 : i.exp_day - to_date(TODAY)  	/* RW - Changed i.exp_day to r.exp_day*/													'RemainingTenure',
+	interest_accrued(i, i.start_day, m.RepDay) * nearTrade.quantity																									'CouponAccrued',
+	0.0																																						'CouponRate',
+	nearTrade.value_day > m.YE ? days_between(nearTrade.value_day, m.RepDay, 'Act/365')  : days_between(m.YE, m.RepDay, 'Act/365')											'AccIntDays',
+	'' 																																						'MM_Instype',
+
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+	r.ccy1RepDay,
+	i.strike_price																																			'Strike',
+	r.buysell																														'BuySell',
+	i.contr_size																																			'ContractSize',
+	r.mtm_und_RepDay,
+
+/*    r.Purchase_Projected_CF,*/
+    r.Purchase_Projected_CF * r.Purchase_USD    																											'Purchase_USDEq',
+    r.Purchase_PV,
+    r.Purchase_PV * r.Purchase_USD              																											'Purchase_PV_USDEq',
+    
+/*    r.Sale_Projected_CF,*/
+    r.Sale_Projected_CF * r.Sale_USD            																											'Sale_USDEq',
+    r.Sale_PV,
+    r.Sale_PV * r.Sale_USD                      																											'Sale_PV_USDEq',
+    /*delta_explicit(nearTrade)*/ 1 'Delta'  
+INTO
+	final
+FROM
+	result		r,
+	trade       nearTrade,
+	/*trade		t,*/
+	instrument	i,
+	macros		m
+	/*,NLDNominal	n*/
+WHERE
+    r.connected_trdnbr = nearTrade.connected_trdnbr
+AND nearTrade.trade_process IN (4096, 8192, 16384)
+AND	nearTrade.insaddr = i.insaddr
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Creating Final DATA table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+SELECT
+	nearTrade.trdnbr,
+	r.DevonRef 																																				'ExternalSystemRef',
+	'Details'																																				'Section',
+	ael_s(nearTrade,'ProductMappId.ProdId') 														'Insaddr',
+	ael_s(nearTrade,'ProductMappId.ProdInsId')													'Instrument_ID',
+	r.desk,
+	r.portfolio,
+	r.TradeArea,
+	r.cpty,
+	r.CptyRef,
+	r.curr,
+	'FxSwap'																												'Instrument_Type',
+	/*r.mm_product,*/
+	nearTrade.acquire_day																																			'Acquire_Date',	
+	nearTrade.creat_time																																			'Create_Date_Time',
+	nearTrade.creat_usrnbr																																			'Created_By',
+	display_id(nearTrade,'creat_usrnbr')																															'Created_By_ABno',
+	nearTrade.updat_usrnbr																																			'Updated_By',
+	display_id(nearTrade,'updat_usrnbr')																															'Updated_By_ABno',
+	nearTrade.curr	/*RW - Changed from i.curr to t.curr*/																																					'Currency',
+	display_id(nearTrade,'curr')	/*RW - Changed from i.curr to nearTrade.curr*/																																'Currency_Code',
+	i.exercise_type = 'American' ? 'American' : i.exercise_type																								'ExerciseType',
+	nearTrade.fee																																					'Fee',
+	nearTrade.guarantor_ptynbr																																		'Gaurantor',
+	display_id(nearTrade,'guarantor_ptynbr')																														'GaurantorID',
+	nearTrade.hedge_trdnbr																																			'Hedge_Trade_no',
+	i.extern_id1																																			'Instrument_Stock_Code',
+	nearTrade.bo_trdnbr																																				'Opening_BO_TradeNo',
+	'Excluded' 																																				'Option_Type',
+	nearTrade.price																																					'Price',
+	nearTrade.quantity																																				'Quantity',
+	i.ref_value																																				'Ref_Value',
+	nearTrade.time																																					'Trade_Date_and_Time',
+	nearTrade.trader_usrnbr																																			'Trader',
+	display_id(nearTrade,'trader_usrnbr')																															'TraderID',
+	display_id(i,'und_insaddr')																																'Underlying_Instrument',
+	i.und_instype = 'Curr' ? 'Curr' : i.und_instype															'Underlying_Instype',
+	nearTrade.value_day																																				'Value_date',
+	/* # ########################################################*/
+    r.exp_day           'Expiry_Date',
+	r.status																						        'status',
+	r.position
+                                                                                                                                                    'Position',
+                                                                                                                                                    
+	/*MK*//*r.instype = 'Curr' ? r.desk = 'Non Linear Deriv' ? r.NLDNom : r.nominal : */nearTrade.quantity																	'Nominal',
+	nearTrade.quantity *	r.fxRepDay																																				'ZARNominal',
+	r.premium																																				'Premium',
+	i.issuer_ptynbr																																			'IssuerPtynbr',
+	display_id(i,'issuer_ptynbr')																															'Issuer',
+
+	/*PLINCEP*/
+	/*sum(r.PLIncep1)	'PLIncep',*/
+	r.Val																																					'Val',
+	r.CashIncep																																				'CashIncep',
+	
+	/*sum(r.PLYTD1)	'PLYTD',*/
+	r.ChangeMTM_YTD 																																		'ChangeUnRealsd_YTD',
+	r.ChangeCash_YTD 																																		'ChangeCash_YTD',
+	r.hcurr,
+	r.HPremium																																				'HPremium',
+	/*PLIncep Home Curr*/
+	r.HPLIncep																																				'HPLIncep',
+	sum(r.HVal)																																				'HVal',
+	sum(r.HCashIncep)																																		'HCashIncep',
+	r.HPLYTD1 																																				'HPLYTD',
+	r.fxRepDay																																				'FXRepDay',
+	avg(r.fxYE)  																																			'FXYE',		
+	
+	m.RepDay,
+/*	m.ME,*/
+	m.YE,
+	r.PurchaseCurr,
+	r.PurchaseAmount,
+	r.SaleCurr,
+	r.SaleAmount,
+	0.0																																						'FV',
+	''																																						'MM_DEMAT_TRADE',
+	display_id(nearTrade,'broker_ptynbr')																															'BrokerID',
+	nearTrade.broker_ptynbr																																			'BrokerPtynbr',
+	nearTrade.prfnbr																																				'PortfolioNumber',
+	nearTrade.counterparty_ptynbr																																	'CptyNbr',
+	r.PurchaseCurrNbr,
+	r.SaleCurrNbr,
+	i.isin,
+	nearTrade.updat_time,
+	/*PLON*/
+	sum(r.HPLON1)  																																			'HPLON',
+	sum(r.HChangeMTM_ON) 																																	'HChangeUnRealsd_ON',
+	sum(r.HChangeCash_ON) 																																	'HChangeCash_ON',
+
+	r.Dirty_value_day,
+	r.Clean_value_day,
+	r.Dirty_tdy,
+	r.Clean_tdy,
+	r.Dirty_yesterday,
+	r.Clean_yesterday,
+
+	r.AccInt,
+	r.Coupon,
+	r.Daily_Pull_to_Par,
+	r.RemainingTenure,
+	r.CouponAccrued,
+	''																																						'PurchaseSaleMatch',
+	r.CouponRate,
+	r.AccIntDays,
+	r.MM_Instype,
+	'0000-01-01'																																			'NextCouponDate',
+	0.0																																						'CouponsToDate',
+	r.HPurchaseAmount,
+	r.HSaleAmount,
+	0.0																																						'Pull_to_Par_Balance',
+	0.0																																						'Accrued_Disc_Bal',
+	0.0																																						'CreditDefaultSpread',
+	
+	/*MK Query this the nominal is calculated differently for this desk */
+	r.notional_amount                                                                                                                                       'Notional_Amount',
+	
+	''																																						'InterestFrequency',
+	0.0																																						'NACMRate',	
+	''																																						'AgriStatus',
+	r.Strike,
+	nearTrade.quantity > 0 ? 'Buy':'Sell' 'BuySell',
+	r.ContractSize,
+	r.mtm_und_RepDay																																		'Underlying_Price',
+	0.00 																																					'ExchangePrice',
+	nearTrade.sales_credit  																																		'SalesCredit',
+	display_id(nearTrade,'sales_person_usrnbr') 																													'SalesPerson',
+	add_info(nearTrade,'Qualifier')  																																'Qualifier',
+	add_info(nearTrade,'ValueAddCredits') 																															'ValueAddCredits',
+    add_info(nearTrade,'Sales_Credit2') 																															'SalesCredit2',
+    add_info(nearTrade,'Sales_Credit3') 																															'SalesCredit3',
+    add_info(nearTrade,'Sales_Person2') 																															'SalesPerson2',
+    add_info(nearTrade,'Sales_Person3') 																															'SalesPerson3',
+    0.0                         																															'Clean_PL',
+    ''     																																					'CreditRef',
+    0 																																						'CreditRef_Issuer_Ptynbr',
+    ''  																																					'CreditRef_Issuer' ,
+    abs(r.Purchase_USDEq) 		> 1000000000000 ? 0.0 : r.Purchase_USDEq	      																			'Purchase_USDEq',
+    abs(r.Sale_USDEq) 			> 1000000000000 ? 0.0 : r.Sale_USDEq																						'Sale_USDEq',
+    abs(r.Purchase_PV) 			> 1000000000000 ? 0.0 : r.Purchase_PV     																					'Purchase_PV',
+    abs(r.Sale_PV) 				> 1000000000000 ? 0.0 : r.Sale_PV             																				'Sale_PV',
+    abs(r.Purchase_PV_USDEq) 	> 1000000000000 ? 0.0 : r.Purchase_PV_USDEq     																			'Purchase_PV_USDEq',
+    abs(r.Sale_PV_USDEq) 		> 1000000000000 ? 0.0 : r.Sale_PV_USDEq             																		'Sale_PV_USDEq',
+    r.Delta
+FROM
+	final r,
+	macros m,
+	trade nearTrade,
+	instrument i
+WHERE
+/*???*/ m.det IN ('Yes','YES','yes','Y','y')
+AND r.connected_trdnbr = nearTrade.connected_trdnbr
+AND nearTrade.trade_process IN (4096, 8192, 16384)
+AND	nearTrade.insaddr = i.insaddr
+/*group by r.trdnbr*/

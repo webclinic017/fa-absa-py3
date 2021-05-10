@@ -1,0 +1,66 @@
+[Default]FObject:Security To Be Delivered XD
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+isValueDayXWeekDaysFromToday = Compare.IsEqual(&'value_day', DateTime.AddWeekday($X));
+
+{
+}
+amountIsNegative = Compare.IsNegative(&'amount');
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32
+    }
+  ]
+  
+}
+toBeDeliveredInXWeekDays = If(And(@amountIsNegative(), And(&'unSettledSecurityExtAttr', @isValueDayXWeekDaysFromToday($X))), &'amount', 0.0);
+
+{
+  Parameters:
+  [
+    {
+      Name:X,
+      Type:Int32,
+      Input:FreeDefined,
+      DisplayInformation:
+      {
+         Label:'Number of weekdays',
+         Description:'Number of weekdays to add to today.'
+      }
+    }
+  ],
+  DisplayInformation:
+  {
+    Label:'To Be Delivered XD',
+    GroupLabel:'Security',
+    Description:'UnSettled security settlements, with negative amount, and value day equal to today + given number of weekdays.'
+  },
+  DisplayInformationBlueprint:
+  {
+    Label:'To Be Delivered {X.Label}D',
+    Description:'UnSettled security settlements, with negative amount, and value day equal to today + {X.Label} weekdays.'
+  },
+  Defaults:
+  {
+    SuggestedFormatter:
+    {
+      Formatter:'NumDefault'
+    }
+  }
+}
+main = Aggregate.Sum(If(Not(Compare.IsNegative($X)), @toBeDeliveredInXWeekDays($X), 0.0));
+
+
+...

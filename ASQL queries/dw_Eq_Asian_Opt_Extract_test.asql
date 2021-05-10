@@ -1,0 +1,73 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','dw_Eq_Asian_Opt_Extract_test') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'dw_Eq_Asian_Opt_Extract_test' and p.type = 'SQL Query' 
+ 
+
+
+
+/*** Non - Asian Options ***/
+select 
+	t.trdnbr				'TradeNumber',
+	display_id(t,'trader_usrnbr')		'Trader',
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	time_to_day(t.time)					'DealDate',
+	i.exp_day				'Expiry_Date',
+	display_id(t,'insaddr')			'Instrument',
+	i.instype = 'Ins_Option' ? 'Option' : i.instype 'InstrumentType',/*
+	i.exotic_type 'i_ExoticType1',
+	exo.barrier_option_type 'barrier_option_type',
+	exo.forward_start_type 'forward_start_type',
+	exo.digital_barrier_type 'digital_barrier_type',
+	exo.cliquet_option_type 'cliquet_option_type',
+	exo.ladder_discrete_monitoring 'ladder_discrete_monitoring',
+	exo.lookback_option_type 'lookback_option_type',
+	exo.rainbow_option_type 'rainbow_option_type',*/
+	display_id(i,'und_insaddr')		'Underlying',
+	i.und_instype = 'Stock' ? 'Stock' : i.und_instype	'UnderlyingType',
+	i.strike_price				'Strike_Price',
+	i.contr_size				'Contract_Size',
+	used_vol(t)				'Market_Volatility',
+	t.quantity < 0 ?'S':'B'			'Buy/Sell',
+	i.call_option = 'No' ? 'P':'C'		'Put/Call',
+	t.quantity < 0 ? -1 * t.quantity : t.quantity				'Number_of_Contracts',
+	@Date{TODAY}				'DATA_DATE',
+	t.text1					'Principal',
+	display_id(pr,'owner_prfnbr')	'Portfolio',
+	display_id(t,'prfnbr')		'SubPortFolio',	
+		
+    i.exercise_type                                         'Exercise_Type'
+
+	
+into
+	tempeq
+from 
+	instrument i,
+	instrument ii,
+	instrument iii,
+	trade t,
+	party p,
+	portfoliolink pr,
+	yieldcurve yc,
+	exotic exo,
+	portfolio port
+where 
+	t.insaddr = i.insaddr
+	and t.status in ('Simulated')
+	and i.und_insaddr *= ii.insaddr
+	and i.insaddr = exo.insaddr
+	and ii.und_insaddr *= iii.insaddr
+	and t.acquirer_ptynbr = p.ptynbr
+	and t.prfnbr = port.prfnbr
+	and yc.yield_curve_name = 'ZAR-SWAP'
+	and i.instype = 'Option'
+	and time_to_day(t.time) <= @Date
+	and i.exp_day > @Date
+	and t.prfnbr = pr.member_prfnbr
+	and (exo.average_method_type not in ('None')
+    /*or exo.average_strike_type in ('Average')*/)
+    
+
+select * from tempeq

@@ -1,0 +1,12 @@
+[Default]FInstrument:forwardStartInitialFixing = nil;
+[Default]FOption:forwardStartInitialFixing = select(isMultiUnderlyingValued, 
+  true->switch((count(multiUnderlyingInitialFixingsStored) == 0) or hasInvalidMultiUnderlyingInitialFixingToday, 
+    false->select(isQuanto, 
+      true->denominatedvalue(sumOf(double(multiUnderlyingInitialFixingsStored) .* double(basketFxAdjustedWeights)), strikeCurrency, , instrument.SpotDate(forwardStartDateTime)), 
+      default->denominatedvalue(sumOf(double(multiUnderlyingInitialFixingsStored) .* basketWeights .* double((underlyingInstrumentMaps :* "instrumentCurrency") :* "fxForwardRate" [fxForwardDate = forwardStartDate, fxToCurrency := strikeCurrency])), strikeCurrency, , instrument.SpotDate(forwardStartDateTime))), 
+    default->throwError("Initial fixings not set.")), 
+  default->switch(count(priceFixingEvents) > 0, 
+    false->throwError("Initial fixing not set."), 
+    true->switch(isFinite(priceFixingEvents[0]), 
+      false->throwError("Initial fixing not set."), 
+      true->priceFixingEvents[0])));

@@ -1,0 +1,9 @@
+[Default]FInstrumentAndTrades:cashAccruedIncome = nil;
+[Default]FLegAndTrades:cashAccruedIncome = nil;
+[Default]FMultiInstrumentAndTrades:cashAccruedIncome = select(calculateCash, 
+  true->shunt(profitAndLossPeriodType, 
+    "Inception to Present"->cashAccruedIncomeLive, 
+    "Inception to Historical"->cashAccruedIncomeEnd, 
+    "Historical to Present"->cashAccruedIncomeLive - cashAccruedIncomeStart, 
+    "Historical to Historical"->cashAccruedIncomeEnd - cashAccruedIncomeStart), 
+  default->plZero);

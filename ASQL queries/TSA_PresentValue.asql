@@ -1,0 +1,71 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','TSA_PresentValue') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'TSA_PresentValue' and p.type = 'SQL Query' 
+
+
+/*------------------------------------------------------------------
+ Macros
+------------------------------------------------------------------*/
+
+select
+    TODAY                                   'RepDate',
+    @1_Filter{;tradefilter.fltid}           'Tradefilter',
+    curr.insid                              'curr',
+    present_value(t,,,,curr.insid,1,,,'None')
+into
+    pv_temp
+from
+ trade  t,
+ instrument i,
+ instrument  u,
+ instrument curr
+where
+
+    match_filter(t, @1_Filter{;tradefilter.fltid})    
+AND t.insaddr = i.insaddr
+AND i.und_insaddr *= u.insaddr
+AND curr.instype = 'Curr'
+AND currency_included(t, curr.insid) = 1
+AND i.instype ~= 'Combination' 
+group by 3
+
+
+select
+    TODAY                                   'RepDate',
+    @1_Filter{;tradefilter.fltid}           'Tradefilter',
+    curr.insid                             'curr',
+    sum(present_value(cf,,,,curr.insid)*(t.quantity/i.index_factor)*cl.weight) 'present_value'
+into
+    pv_temp
+from
+ trade  t,
+ instrument i,
+ instrument u,
+ instrument curr,
+ cashflow cf,
+ CombinationLink cl,
+ leg l
+
+where
+    match_filter(t, @1_Filter{;tradefilter.fltid})    
+AND t.insaddr = i.insaddr
+AND cl.owner_insaddr = i.insaddr
+AND cl.member_insaddr = u.insaddr
+AND curr.insaddr = l.curr
+AND u.insaddr = l.insaddr
+AND cf.legnbr = l.legnbr
+AND i.instype = 'Combination'
+group by 3
+
+
+select 
+    RepDate,
+    Tradefilter,
+    curr,
+    sum(present_value) 'present_value'
+from 
+    pv_temp
+group by 3

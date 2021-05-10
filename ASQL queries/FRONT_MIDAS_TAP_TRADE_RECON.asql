@@ -1,0 +1,136 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','FRONT_MIDAS_TAP_TRADE_RECON') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'FRONT_MIDAS_TAP_TRADE_RECON' and p.type = 'SQL Query' 
+
+/*
+Description:     Tap to Front recon file for the Consolidated Forwards Risk Project.
+Frequency:       This will be a multiple intraday reconciliation to reconcile Midas Legacy to Front Arena full populations
+                 1. Multiplies files per day are required and should be named as follows:
+                    Front_Midas_Tap_Run1_yyyymmdd 
+                    Front_Midas_Tap_Run2_yyyymmdd
+                    Front_Midas_Tap_Run3_yyyymmdd 
+                    Front_Midas_Tap_Run4_yyyymmdd 
+                 2.	Extracted daily at the following intervals:
+                    Front_Midas_Tap_Run1_yyyymmdd – 04:00
+                    Front_Midas_Tap_Run2_yyyymmdd – 10:00
+                    Front_Midas_Tap_Run3_yyyymmdd – 14:00
+                    Front_Midas_Tap_Run4_yyyymmdd – 17:00
+                    
+                3.	File is automated and delivered to the following Server (FTP location): 
+                    UAT = Y:\Ldn\Apps\ImatchUAT\FTP\INTRANET\sysImatchFTPUAT\FrontArena
+
+
+Developer:          Kim Madeley
+CR Number:          
+                 
+*/
+
+
+/*  Select Trade Details - first leg of FXcash*/
+
+
+select
+
+t.trdnbr,
+add_info(t,'Source Ctpy Id')                                                                        'CNUM',
+ael_s(,'SAGEN_str_functions.split_string', t.optional_key, '_', 1)                                  'DLNo',
+add_info(t,'Source Ctpy Name')                                                                      'Name',
+ael_s(,'SAGEN_str_functions.split_string',t.optional_key, '_', 2)                                   'SHDLNO',
+display_id(t,'Curr')                                                                                'CCY',
+t.premium < 0 ? 'S' : 'P'                                                                           'PS',
+t.value_day                                                                                         'VALDAT',
+time_to_day(t.time)                                                                                 'DEALDAT',
+''                                                                                                  'DTYP',
+add_info(t,'Source Trade Type')                                                                     'DLST',
+t.premium                                                                                  'NAMT',
+t.price                                                                                   'EXRT',
+used_price(i,to_date(@3_ReportDate{yesterday}),display_id(i,'curr'))                     'RATE',
+add_info(t,'Source Trader')                                                                         'DLRCDE',
+ael_s(,'SAGEN_str_functions.split_string',display_id(t,'prfnbr'), '_', 1)                           'SHDESK',
+''                                                                                                  'Period'
+   
+
+into temp
+
+from
+
+    trade t, 
+    instrument i
+    
+where
+
+    i.insaddr = t.insaddr    
+and i.instype = 'Curr'
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day >= to_date(@3_ReportDate{today})
+
+/*and t.optional_key like '%394940%'*/
+
+
+/*  Select Trade Details - Second leg of FXcash*/
+
+select
+
+t.trdnbr,
+add_info(t,'Source Ctpy Id')                                            'CNUM',
+ael_s(,'SAGEN_str_functions.split_string', t.optional_key, '_', 1)      'DLNo',
+add_info(t,'Source Ctpy Name')                                          'Name',
+ael_s(,'SAGEN_str_functions.split_string',t.optional_key, '_', 2)       'SHDLNO',
+display_id(i,'Curr')                                                    'CCY',
+t.quantity < 0 ? 'S' : 'P'                                              'PS',
+t.value_day                                                             'VALDAT',
+time_to_day(t.time)                                                     'DEALDAT',
+''                                                                      'DTYP',
+add_info(t,'Source Trade Type')                                          'DLST',
+t.quantity                                                     'NAMT',
+t.price                                                                 'EXRT',
+used_price(i,to_date(@3_ReportDate{yesterday}),display_id(t,'curr'))                             'RATE',
+add_info(t,'Source Trader')                                             'DLRCDE',
+ael_s(,'SAGEN_str_functions.split_string',display_id(t,'prfnbr'), '_', 1)     'SHDESK',    
+''                                                                      'Period'
+
+
+into temp
+
+from
+
+    trade t, 
+    instrument i
+    
+where
+
+    i.insaddr = t.insaddr    
+and i.instype = 'Curr'
+and match_filter(t, @1_Filter{;tradefilter.fltid}, @2_TrdNbrs{})
+and t.value_day >= to_date(@3_ReportDate{today})
+
+/*and t.optional_key like '%394940%'*/
+
+select 
+
+trdnbr,
+CNUM,
+DLNo,
+Name,
+SHDLNO,
+CCY = 'MZM' ? 'MZN' : CCY    'CCY',
+PS,
+VALDAT,
+DEALDAT,
+DTYP,
+DLST,
+NAMT,
+EXRT,
+RATE,
+DLRCDE,
+SHDESK,
+Period
+
+from
+
+temp
+
+order by trdnbr

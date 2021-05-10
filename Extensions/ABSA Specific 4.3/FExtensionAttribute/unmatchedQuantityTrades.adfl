@@ -1,0 +1,5 @@
+[ABSA Specific 4.3]FInstrumentAndTrades:unmatchedQuantityTrades = removeNil(tradesInPosition :* "unmatchedQuantityTrades");
+[ABSA Specific 4.3]FTrade:unmatchedQuantityTrades = shunt(instrument :* "isZeroRiskPosition" [singleTradePosition = object, includeAllTrades = false], 
+  true->nil, 
+  default->object);
+[ABSA Specific 4.3]FTradeRow:unmatchedQuantityTrades = removeNil((object :* "tradeSetUsedInProfitandLoss" [calculateTradeEffectInPosition = true]) :* "unmatchedQuantityTrades");

@@ -1,0 +1,91 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAMM_Call_Deposits_Redemption') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAMM_Call_Deposits_Redemption' and p.type = 'SQL Query' 
+
+
+/* coded in March 2009 by Anil
+
+query extracts call deposits to match the current midbase reports used
+
+*/
+
+
+
+select
+Today 'Date',
+t.trdnbr'Trade_Number',
+t.quantity,
+t.status,
+display_id(t,'counterparty_ptynbr')'Counter_Party',
+i.insid'Instrument',
+add_info(t,'Funding Instype')'Call_Deposit',
+
+cf.type'Type',
+(-1 * projected_cf(cf)*t.quantity)'projected_cf',
+cf.pay_day,
+l.Fixed_rate,
+p.prfid'portfolio'
+
+into temp
+
+
+from
+trade t,
+instrument i,
+leg l,
+cashflow cf,
+portfolio p
+
+
+
+
+where
+
+i.insaddr=t.insaddr
+and i.instype = 'Deposit'
+and t.prfnbr=p.prfnbr
+and p.prfid in (@Portfolios{Call_2474,Call_7744;portfolio.prfid *})
+
+/*
+and p.prfid in ('Call_2474','Call_7744')
+*/
+
+and add_info(t,'Funding Instype') in ('Call Deposit NonDTI','Call Deposit DTI')
+and i.insaddr=l.insaddr
+and t.status in ('BO Confirmed','BO-BO Confirmed','FO Confirmed')
+and l.legnbr=cf.legnbr
+and cf.type='Redemption Amount'
+
+
+
+
+/*---------*/
+
+select
+tt.Date,
+tt.Trade_Number,
+tt.quantity,
+tt.status,
+tt.Counter_Party,
+tt.Instrument,
+tt.Call_Deposit,
+
+tt.Type,
+tt.projected_cf'Nominal',
+tt.pay_day,
+tt.Fixed_rate,
+tt.portfolio
+
+from temp tt
+
+where
+
+tt.projected_cf >= 0.01
+
+
+
+order by tt.Fixed_rate desc , tt.Counter_Party
+

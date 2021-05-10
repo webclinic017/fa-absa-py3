@@ -1,0 +1,192 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','TBC_SACM_ERM_Summary_PositionME') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'TBC_SACM_ERM_Summary_PositionME' and p.type = 'SQL Query' 
+
+select
+	i.insid	'insfifo',
+	sum(t.price * to_double(add_info(t,'FIFO_POS')))/sum(to_double(add_info(t,'FIFO_POS')))	'fifoyield',
+	display_id(t,'prfnbr')	'PortFifo',
+	sum(to_double(add_info(t,'FIFO_POS')))	'nom'
+into
+	fifo
+from
+	trade t,
+	instrument i
+where
+	to_double(add_info(t,'FIFO_POS')) ~= 0.0
+and 	t.insaddr = i.insaddr
+and	t.value_day <= @CurrentME{TODAY}
+and 	match_filter(t, @3_Filter{'CM_ERM';tradefilter.fltid}, @4_TrdNbrs{})
+
+group by i.insid,3
+select
+	convert('date', @PrevME{})				'Date',
+	t.trdnbr						'TradeNumber',
+	display_id(t,'prfnbr')					'Port',
+	i.insid							'Instrument',
+	(t.value_day > @PrevME or i.exp_day <= @PrevME) ? 0.0 : i.contr_size * t.quantity		'NominalAmount',
+	t.value_day > @PrevME ? 0.0 : t.price		'TradeYield',
+	t.value_day > @PrevME ? 0.0 : dirty_from_yield(i, @PrevME,,,t.price)
+	 * i.contr_size * t.quantity / 100.0 			'BookValue',
+	t.value_day > @PrevME ? 0.0 : clean_from_yield(i, @PrevME,,,mtm_price(i, @PrevME))
+	 * i.contr_size * t.quantity /100.0 			'CapitalValue',
+	t.value_day > @PrevME ? mtm_price(i, @PrevME) : mtm_price(i, @PrevME{})	'MarketYield',
+	t.value_day > @PrevME ? 0.0 : dirty_from_yield(i, @PrevME,,,mtm_price(i, @PrevME{}))
+	 * i.contr_size * t.quantity / 100.0 			'MarketValue',
+	t.value_day > @PrevME ? 0.0 :  interest_accrued(t, SMALLDATE, @PrevME{}) 	'AccruedInterest'
+into
+	PrevME
+from
+	instrument	i,
+	trade		t
+
+where
+	t.insaddr = i.insaddr
+and	t.value_day <= @CurrentME{}
+and 	match_filter(t, @3_Filter{CM_ERM;tradefilter.fltid}, @4_TrdNbrs{})
+
+
+select
+	convert('date', @CurrentME{TODAY})			'Date',
+	t.trdnbr						'TradeNumber',
+	display_id(t,'prfnbr')					'Port',
+	i.insid							'Instrument',
+	i.exp_day <= @CurrentME ? 0.0 : i.contr_size * t.quantity				'NominalAmount',
+	t.price							'TradeYield',
+	dirty_from_yield(i,@CurrentME,,,t.price)
+	 * i.contr_size * t.quantity / 100.0			'BookValue',
+	clean_from_yield(i, @CurrentME,,,mtm_price(i,@CurrentME))
+	 * i.contr_size * t.quantity /100.0			'CapitalValue',
+	mtm_price(i, @CurrentME{TODAY})			'MarketYield',
+	dirty_from_yield(i, @CurrentME,,,used_price(i, @CurrentME))
+	 * i.contr_size * t.quantity / 100.0			'MarketValue',
+	interest_accrued(t, SMALLDATE, @CurrentME)	'AccruedInterest'
+into
+	Current
+from
+	instrument	i,
+	trade		t
+
+	
+where
+	t.insaddr = i.insaddr
+and	t.value_day <= @CurrentME{TODAY}
+and 	match_filter(t,@3_Filter{CM_ERM;tradefilter.fltid}, @4_TrdNbrs{})
+
+
+select 
+	pm.Instrument,
+	pm.TradeNumber,
+	sum(pm.NominalAmount)					'PMNominalAmount',
+	sum(pm.TradeYield * pm.NominalAmount) 
+	 / sum(pm.NominalAmount) 				'WATradeYield',
+	pm.MarketYield 						'MarketYield'
+into 
+	PrevMEWA
+from
+	PrevME pm
+group by
+	pm.Instrument
+
+select 
+	curr.Instrument,
+	curr.TradeNumber,
+	sum(curr.NominalAmount)					'CNominalAmount',
+	sum(curr.TradeYield * curr.NominalAmount) 
+	 / sum(curr.NominalAmount) 				'WATradeYield',
+	curr.MarketYield 					'MarketYield'
+into
+	CurrentWA
+from
+	Current curr
+group by
+	curr.Instrument	
+
+/*
+select
+
+current.TradeNumber,
+prevme.TradeNumber
+
+from current, prevme
+
+where current.tradeNumber *= Prevme.tradenumber
+*/
+select
+	pm.Instrument,
+	pm.Date							'PrevME',
+	curr.Port,
+	curr.Date						'Curr',
+	sum(pm.NominalAmount)					'PrevNominalAmount',
+	sum(curr.NominalAmount)					'CurrNominalAmount',
+/*	avg(pmwa.WATradeYield)					'PrevWeightedAveTradeYield',*/
+	f.fifoyield,
+/*	avg(currwa.WATradeYield)				'CurrWeightedAveTradeYield',*/
+	pm.MarketYield						'MarketYield',
+	curr.MarketYield					'MarketYield',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.BookValue)					'PrevBookValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.MarketValue)					'PrevMarketValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.CapitalValue)					'PrevCapitalValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.MarketValue)-sum(pm.CapitalValue)					'PrevAccruedInterest',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.BookValue)					'CurrBookValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.MarketValue)					'CurrMarketValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.CapitalValue)					'CurrCapitalValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.MarketValue)- sum(curr.CapitalValue)				'CurrAccruedInterest'
+from
+	PrevME		pm,
+	PrevMEWA	pmwa, 
+	Current		curr,
+	CurrentWA	currwa,
+	fifo		f 
+where
+	pm.instrument = pmwa.instrument
+and	curr.instrument = currwa.instrument
+and	pm.tradenumber =* curr.tradenumber
+and	curr.instrument *= f.insfifo 
+and	curr.Port *= f.portfifo
+
+group by pm.Instrument,curr.Port
+
+order by pm.Instrument
+
+union
+
+select
+	pm.Instrument,
+	pm.Date							'PrevME',
+	'Grand Total',
+	curr.Date						'Curr',
+	sum(pm.NominalAmount)					'PrevNominalAmount',
+	sum(curr.NominalAmount)					'CurrNominalAmount',
+	/*avg(pmwa.WATradeYield)					'PrevWeightedAveTradeYield',*/
+	sum(f.fifoyield * f.nom)/sum(f.nom),
+/*	avg(currwa.WATradeYield)				'CurrWeightedAveTradeYield',*/
+	pm.MarketYield						'MarketYield',
+	curr.MarketYield					'MarketYield',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.BookValue)					'PrevBookValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.MarketValue)					'PrevMarketValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.CapitalValue)					'PrevCapitalValue',
+	sum(pm.NominalAmount)=0 ? 0.0 : sum(pm.MarketValue)-sum(pm.CapitalValue)					'PrevAccruedInterest',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.BookValue)					'CurrBookValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.MarketValue)					'CurrMarketValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.CapitalValue)					'CurrCapitalValue',
+	sum(curr.NominalAmount)=0 ? 0.0 : sum(curr.MarketValue)- sum(curr.CapitalValue)				'CurrAccruedInterest'
+from
+	PrevME		pm,
+	PrevMEWA	pmwa, 
+	Current		curr,
+	CurrentWA	currwa,
+	fifo		f 
+where
+	pm.instrument = pmwa.instrument
+and	curr.instrument = currwa.instrument
+and	pm.tradenumber =* curr.tradenumber
+and	curr.instrument *= f.insfifo 
+and	curr.Port *= f.portfifo
+
+group by 3
+
+order by pm.Instrument

@@ -1,0 +1,38 @@
+select
+    t.trdnbr    'TRD_Nbr',
+    to_date(t.creat_time)   'TRD_Create_Time'
+into temp
+from
+    trade t
+where
+        match_filter(t, @1_Filter{SAFI_SalesCredit_Temp_ABJR456;tradefilter.fltid}, @2_TrdNbrs{})
+    and add_info(t,'Sales_Person2') = 'ABJR456'
+    /*and to_date(t.creat_time) >= '2012-05-01'*/
+    
+select
+    t.trdnbr    'TRD_Nbr',
+    to_date(t.creat_time)   'TRD_Create_Time'
+into temp
+from
+    trade t
+where
+        match_filter(t, @3_Filter{SAFI_SalesCredit_Temp_ABDK263;tradefilter.fltid}, @4_TrdNbrs{})
+    and add_info(t,'Sales_Person2') = 'ABDK263'
+    /*and to_date(t.creat_time) >= '2012-05-01'*/
+
+select
+    t.TRD_Nbr,
+    t.TRD_Create_Time,
+    /*to_date(AI.updat_time)  'Add_Info_Update',*/
+    display_id(tt,'counterparty_ptynbr')
+from
+    temp t,
+    AdditionalInfoSpec AIS,
+    AdditionalInfo AI,
+    trade tt
+where
+        AI.recaddr = t.TRD_Nbr
+    and AI.addinf_specnbr = AIS.specnbr
+    and AIS.field_name = 'Sales_Person2'
+    and to_date(AI.updat_time) = to_date('today')
+    and tt.trdnbr = t.TRD_Nbr

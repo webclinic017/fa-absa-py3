@@ -1,0 +1,252 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+
+select 
+      ael_i(p,'ASQL_log','IRD_Provision_Resets_new') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'IRD_Provision_Resets_new' and p.type = 'SQL Query'
+
+
+select 
+
+    t.trdnbr,
+    i.insaddr,
+    l.legnbr,
+    und.insid   'index_ref',
+    years_between(@3_RepDate{TODAY}, maturity_date(und), @8_Daycount{Act/365;'Act/360','30E/360','Act/365'})    'index_maturity'
+    
+   
+
+into 
+    indexref
+
+from 
+    leg l,
+    instrument i,
+    instrument und,
+    trade t
+
+
+
+where 
+    match_filter(t, @1_Filter{Louw_trades;tradefilter.fltid}, @2_TrdNbrs{})
+    and l.insaddr = i.insaddr
+    and t.insaddr = i.insaddr
+    and l.float_rate = und.insaddr
+    and l.type = 'Float'
+
+
+select
+    'YES' ? t.trdnbr : ''                                            'TrdNbr',
+    
+    t.status                                                                'Status',
+    
+    display_id(t,'counterparty_ptynbr')                                     'Counterparty',
+    
+    i.insid                                                                   'Instrument',
+    
+    display_id(t,'acquirer_ptynbr')                                            'Aquirer',
+    
+    display_id(t,'prfnbr')                                                           'Portfolio',
+    
+    i.instype                                                               'InsType',
+    
+    display_id(l,'curr')                                                              'Curr',
+    
+    dirk_utils.get_fx_rate(display_id(l, 'curr'))                          'FX_Rate',
+    
+    r.day                                                                    'ResetDay',
+    
+    display_id(l, 'float_rate')                                                     'Float_Rate',
+    
+    to_string(l.rolling_period.count,' ',l.rolling_period.unit)                     'Rolling',
+    
+    i.instype = 'FRA' ? to_double(nominal_amount(cf) * t.quantity) : (to_double(projected_cf(cf)*t.quantity < 0 ? abs(nominal_amount(cf) * t.quantity)*(-1)  : abs(nominal_amount(cf) * t.quantity) ))                                'Total_Nominal',
+    
+    
+    
+    r.type                                                                   'ResetType',
+    
+    cf.type                                                                  'CFType',
+    
+    projected_cf(cf)*t.quantity < 0 ? 'Pay' : 'Receive'                              'Pay_or_Receive',
+    
+    
+    
+    yc_rate(yc, r.day, date_add_delta(r.day, 0 ,@5_Fwd_Rt_Maturity[3],0), 
+    
+    'Quarterly', @8_Daycount{Act/365;'Act/360','30E/360','Act/365'}
+    
+    ,'Forward Rate',,i.insid)*100                                                       'fwd_rt',
+    
+    @7_YieldCurve{;yieldcurve.yield_curve_name} = 'ZAR-SWAP'? IRD_SHORT_END_PROV_FINAL.mkt_rate_ZAR(r.day, to_date(@3_RepDate{TODAY}), IRD_SHORT_END_PROV_FINAL.get_next_mpczar(to_date(@3_RepDate{TODAY}))) 
+    : IRD_SHORT_END_PROV_FINAL.mkt_rate_USD(r.day, to_date(@3_RepDate{TODAY}), IRD_SHORT_END_PROV_FINAL.get_next_mpcusd(to_date(@3_RepDate{TODAY}))) 'mkt_rt',
+    
+   years_between(r.start_day, r.end_day, @8_Daycount{Act/365;'Act/360','30E/360','Act/365'})                  'reset_term' 
+
+into 
+    temp
+
+from 
+    trade t,    
+    instrument i,
+    instrument c, 
+    cashflow cf,    
+    leg l,    
+    reset r,    
+    yieldcurve   yc,
+    indexref t1
+
+
+where 
+
+match_filter(t, @1_Filter{Louw_trades;tradefilter.fltid}, @2_TrdNbrs{})
+
+and yc.yield_curve_name=@7_YieldCurve{ZAR-SWAP;yieldcurve.yield_curve_name}
+
+and t.insaddr = i.insaddr
+
+and i.insaddr  = l.insaddr
+
+and cf.legnbr = l.legnbr
+
+and cf.cfwnbr = r.cfwnbr
+
+and r.day >= to_date(@3_RepDate{TODAY})
+
+and r.day <= to_date(date_add_delta(@3_RepDate{TODAY},0,@4_Num_Months_to_adj{9},0))
+
+/*and r.day = '2009-01-07' */
+
+and r.type in ('Single','Compound')
+
+and l.type = 'Float'
+and c.insid = @9_Curr{ZAR;instrument.insid WHERE instype = 'Curr'}
+and l.curr = c.insaddr
+
+and t1.trdnbr = t.trdnbr
+and t1.legnbr = l.legnbr
+ 
+
+ 
+
+/* ================================================================================================*/
+
+ 
+
+select temp.*,
+            
+            to_double(reset_term < 0.20 ? (1.0 * Total_Nominal) : '0')  'Nominal_1m',
+
+            to_double(reset_term >= 0.20 ? reset_term < 0.45 ? (1.0 * Total_Nominal) : '0' : '0') 'Nominal_3m',
+            
+            to_double(reset_term >= 0.45 ? reset_term < 0.7 ? (1.0 * Total_Nominal) : '0' : '0') 'Nominal_6m',
+            
+            to_double(reset_term >= 0.7 ?  reset_term < 1 ? (1.0 * Total_Nominal) : '0' : '0') 'Nominal_9m',
+            
+            to_double(reset_term >= 1 ? (1.0 * Total_Nominal) : '0') 'Nominal_12m',
+            
+            
+
+            to_double(Total_Nominal) 'Total_Notional',
+            
+            IRD_short_end_prov.get_next_mpc(to_date(@3_RepDate{TODAY}))     'mpc',
+
+            (mkt_rt - fwd_rt) * 100                                                               'bp_adj',
+
+            to_double(reset_term < 0.20 ? reset_term * 96 : '0') 'adj01_1m',
+
+            to_double(reset_term >= 0.20 ? reset_term < 0.45 ? reset_term * 96 :  '0' :  '0') 'adj01_3m',
+            
+            to_double(reset_term >= 0.45 ? reset_term < 0.7 ? reset_term * 96 : '0' :  '0') 'adj01_6m',
+            
+            to_double(reset_term >= 0.7 ? reset_term < 1 ? reset_term * 96 : '0' : '0') 'adj01_9m',
+            
+            to_double(reset_term >= 1 ? reset_term * 96 : '0') 'adj01_12m',
+
+            to_double(reset_term * 96)                                                                        'adj01',
+
+            to_double(reset_term < 0.2 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0') 'totaladj_1m',
+
+            to_double(reset_term >= 0.2 ? reset_term < 0.45 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100   : '0' : '0') 'totaladj_3m',
+            
+            to_double(reset_term >= 0.45 ? reset_term < 0.7 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0' : '0') 'totaladj_6m',
+            
+            to_double(reset_term >= 0.7 ? reset_term < 1 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0' : '0') 'totaladj_9m',
+            
+            to_double(reset_term >= 1 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0') 'totaladj_12m',
+
+
+            to_double(Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 )                  'total_adj',
+            
+            to_double(reset_term < 0.2 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0') 'totaladj_1m_zar',
+
+            to_double(reset_term >= 0.2 ? reset_term < 0.45 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100   : '0' : '0') 'totaladj_3m_zar',
+            
+            to_double(reset_term >= 0.45 ? reset_term < 0.7 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0' : '0') 'totaladj_6m_zar',
+            
+            to_double(reset_term >= 0.7 ? reset_term < 1 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0' : '0') 'totaladj_9m_zar',
+            
+            to_double(reset_term >= 1 ? Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100  : '0') 'totaladj_12m_zar',
+
+
+            to_double(Total_Nominal / 1000000 * reset_term * 96 * (mkt_rt - fwd_rt) * 100 * FX_Rate)                  'total_adj_zar'
+
+into 
+
+            final
+
+from 
+
+            temp
+
+ 
+
+/* ================================================================================================*/
+
+
+select 
+
+            f.ResetDay,
+            sum(Nominal_1m)         'Notional 1m',
+            sum(Nominal_3m)         'Notional 3m',
+            sum(Nominal_6m)         'Notional 6m',
+            sum(Nominal_9m)         'Notional 9m',
+            sum(Nominal_12m)        'Notional 12m',
+            sum(Total_Notional)      'Notional Total',            
+            sum(adj01_1m)           'adj01 1m',
+            sum(adj01_3m)           'adj01 3m',
+            sum(adj01_6m)           'adj01 6m',
+            sum(adj01_9m)           'adj01 9m',
+            sum(adj01_12m)          'adj01 12m',
+            sum(adj01)             'adj01 total',            
+            avg(fwd_rt)             'Forward Rate',
+            avg(mkt_rt)             'Market Rate',
+            avg(bp_adj)             'Basis Point Diff',
+            sum(totaladj_1m)        'Provision 1m',
+            sum(totaladj_3m)        'Provision 3m',
+            sum(totaladj_6m)        'Provision 6m',
+            sum(totaladj_9m)        'Provision 9m',
+            sum(totaladj_12m)       'Provision 12m',
+            sum(total_adj)         'Provision Total',
+            sum(totaladj_1m_zar)        'Provision 1m ZAR',
+            sum(totaladj_3m_zar)        'Provision 3m ZAR',
+            sum(totaladj_6m_zar)        'Provision 6m ZAR',
+            sum(totaladj_9m_zar)        'Provision 9m ZAR',
+            sum(totaladj_12m_zar)       'Provision 12m ZAR',
+            sum(total_adj_zar)         'Provision Total ZAR'
+            
+            
+            
+
+from
+
+            final f
+
+/*where*/
+
+/*f.ResetDay = '2009-02-16'*/
+            
+group by f.ResetDay
+
+ 

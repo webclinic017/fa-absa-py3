@@ -1,0 +1,11 @@
+[Fixed Income Market Making]FInstrument:spreadBenchmarkChoices = select(isFutureOnNotional, 
+  true->object.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:spreadBenchmarkChoices);
+[Fixed Income Market Making]FOrderBook:spreadBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:spreadBenchmarkChoices);
+[Fixed Income Market Making]FQuoteController:spreadBenchmarkChoices = instrument:spreadBenchmarkChoices;
+[Fixed Income Market Making]FTradingInterface:spreadBenchmarkChoices = select(instrument:isFutureOnNotional, 
+  true->instrument.InstrumentParts.AsArray.SortByProperty("Name", true), 
+  false->nilObject:spreadBenchmarkChoices);
+[Fixed Income Market Making]FUndefinedObject:spreadBenchmarkChoices = getObject("FPhysInstrGroup", "BondBenchmarks").Instruments.AsArray.SortByProperty("Name", true);

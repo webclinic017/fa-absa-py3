@@ -1,0 +1,8 @@
+[ABSA Specific 4.3]FTrade:yield2 = select(instrument.InsType, 
+  "BuySellBack"->instrument.RefPrice, 
+  "Repo/Reverse"->(py("RepoYield2", context).get_repo_yield2(object)), 
+  default->nil);
+[ABSA Specific 4.3]FTradeRow:yield2 = select(instrument.InsType, 
+  "BuySellBack"->instrument.RefPrice, 
+  "Repo/Reverse"->(py("RepoYield2", context).get_repo_yield2(object)), 
+  default->nil);

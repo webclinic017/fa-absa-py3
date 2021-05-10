@@ -1,0 +1,46 @@
+/* ******************  ASQL USAGE LOG  ********************** */ 
+ select 
+      ael_i(p,'ASQL_log','MR_BondGreeks') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'MR_BondGreeks' and p.type = 'SQL Query' 
+ 
+  /* Bonds*/
+
+
+select
+
+    t.trdnbr    'TrdNbr',
+    i.insid     'InsId',
+    display_id(t,'prfnbr')      'Portfolio',
+    nominal_amount(t)           'Nominal',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0   )  )*(nominal_amount(t)/100)   'const',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0.01)  )*(nominal_amount(t)/100)   '1bpUp',
+    Dirty_from_yield(i, date_add_banking_day(today,,2),,, (mtm_price(i,date_add_banking_day(today,,-1))+0.02)  )*(nominal_amount(t)/100)   '2bpUp',
+    @Filter{;Tradefilter.fltid} 'filter'
+
+into temp
+
+from 
+    trade t,
+    instrument i
+
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond'
+and	match_filter(t,@Filter{;Tradefilter.fltid})
+
+
+
+select 
+    today                                               'RepDate',
+    t.filter                                            'filter',
+    t.InsId,
+    sum(t.1bpUp - t.const)                              'delta',
+    sum((t.2bpUp - t.1bpUp) - (t.1bpUp - t.const))      'gamma'
+
+from
+    temp t
+
+group by 3
+    

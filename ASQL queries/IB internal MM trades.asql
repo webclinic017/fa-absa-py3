@@ -1,0 +1,51 @@
+/* Usage code for this ASQL*/
+select
+ael_i(p,'ASQL_log','Albert_Funding_File') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'Albert_Funding_File' and p.type = 'SQL Query' 
+
+/*EDIT HISTORY
+
+Date    Who     	        What
+------------------------------------------------------------
+060809  Willie van der Bank	Created
+*/
+
+
+Select
+    to_date(@3_Date{Today;}) 'Date',
+    s.srdnbr
+into
+    Macro
+From
+    serverdata s
+
+Select
+    add_info(t, 'Mentis Project Num')   'Project',
+    t.trdnbr,
+    display_id(t,'prfnbr')              'Portfolio',
+    display_id(t,'counterparty_ptynbr') 'Counterparty',
+    t.price,
+    ael_f(,'SAIT_LandingArea_Functions.DailyAccrued',t,'ZAR')   'Daily_Interest',
+    t.value_day,
+    i.exp_day,
+    ael_f(,'SAIT_LandingArea_Functions.PLPos',t,m.Date,'ZAR')            'PLPos',
+    ael_f(,'SAIT_LandingArea_Functions.AccruedDiscBal',t,m.Date,'ZAR')   'Accrued_Discount_Balance'
+into final
+From
+    trade t,
+    instrument i,
+    macro m
+Where
+        match_filter(t, @1_Filter{Mentis Project Portfolios;tradefilter.fltid}, @2_TrdNos{})
+    and i.exp_day >= m.Date
+    and t.insaddr = i.insaddr
+
+Select
+    f.*,
+    f.PLPos + f.Accrued_Discount_Balance    'Total'
+From
+    Final f
+Where
+    f.PLPos ~= 0

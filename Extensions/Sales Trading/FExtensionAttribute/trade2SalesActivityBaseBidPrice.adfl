@@ -1,0 +1,5 @@
+[Sales Trading]FTradeRow:trade2SalesActivityBaseBidPrice = select(trade2SalesActivityIsASCOTTrade, 
+  true->trade2SalesActivityGetCBPriceFromASCOT, 
+  default->select(trade2SalesActivityHasCBTradeInDealPackage, 
+    true->trade2SalesActivityGetCBPriceFromDealPackage, 
+    default->trade2SalesActivityInstrumentMarketPrice));

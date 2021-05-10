@@ -1,0 +1,9 @@
+[Convertible Pricing And Risk]FCashFlowInstrument:pointsOverBondFloor = shunt(isFinite(marketPrice), 
+  true->stripDateTimePart(marketPriceToQuote) - stripDateTimePart(bondFloor), 
+  false->nil);
+[Convertible Pricing And Risk]FInstrument:pointsOverBondFloor = nil;
+[Convertible Pricing And Risk]FInstrumentAndTrades:pointsOverBondFloor = openInstrumentOrInstrument :* "pointsOverBondFloor" [priceSource, filterCurrency];
+[Convertible Pricing And Risk]FMultiInstrumentAndTrades:pointsOverBondFloor = nil;
+[Convertible Pricing And Risk]FOrderBook:pointsOverBondFloor = instrument :* "pointsOverBondFloor" [priceSource, quotation] * fxInstrumentToOrderBook;
+[Convertible Pricing And Risk]FPriceAggregate:pointsOverBondFloor = priceFeed:pointsOverBondFloor [priceSource];
+[Convertible Pricing And Risk]FPriceFeed:pointsOverBondFloor = instrument :* "pointsOverBondFloor" [priceSource, quotation] * fxInstrumentToPriceFeed;

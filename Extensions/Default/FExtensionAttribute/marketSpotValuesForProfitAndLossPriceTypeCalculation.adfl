@@ -1,0 +1,8 @@
+[Default]FCurrency:marketSpotValuesForProfitAndLossPriceTypeCalculation = collapse(marketSpotValueForProfitAndLoss);
+[Default]FFra:marketSpotValuesForProfitAndLossPriceTypeCalculation = denominatedValueOrBasket(select(useBidAskValuation, 
+  true->notANumberIsZero(bidAskCalculation(doubleSumOf(positionTradeQuantities), marketSpotValuesForProfitAndLossBidAskPrices, valuationSystemDate, accountingParameters)), 
+  false->collapse(marketSpotValueForProfitAndLoss)));
+[Default]FFxRate:marketSpotValuesForProfitAndLossPriceTypeCalculation = collapse(marketSpotValuesForProfitAndLoss);
+[Default]FInstrument:marketSpotValuesForProfitAndLossPriceTypeCalculation = denominatedValueOrBasket(select(useBidAskValuation, 
+  true->notANumberIsZero(bidAskCalculation(doubleSumOf(positionTradeQuantities), marketSpotValuesForProfitAndLossBidAskPrices, valuationSystemDate, accountingParameters)), 
+  false->collapse(marketSpotValueForProfitAndLoss)));

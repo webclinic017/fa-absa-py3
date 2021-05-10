@@ -1,0 +1,28 @@
+SELECT t.trdnbr
+FROM trade t,
+portfolio portf,
+instrument ins,
+party pty
+
+WHERE
+t.time >= '2016-01-01'
+AND t.insaddr = ins.insaddr
+AND t.status NOT IN ('Simulated', 'Terminated', 'Internal', 'Void')
+AND ins.instype IN ('Bond', 'FRN', 'IndexLinkedBond')
+
+AND t.prfnbr = portf.prfnbr
+
+AND 
+(
+    (
+        portf.prfid IN ('PB_RISK_FV_CLIENTBONDS', 'PB_RISK_FV_INTERMED_RIDGCAP')
+        AND t.counterparty_ptynbr =  pty.ptynbr
+        AND ael_i(pty,'pb_bond_risk_vs_cr.party_in_names', pty.ptyid) = 1
+    )
+OR 
+    (
+        t.counterparty_ptynbr = pty.ptynbr
+        AND pty.ptyid = 'ABSA BANK LTD'
+        AND ael_i(portf, 'SAGEN_IT_Functions.get_Port_Struct_from_Port', 'PB_CR_LIVE') = 1
+    )
+)

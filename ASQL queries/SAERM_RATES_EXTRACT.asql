@@ -1,0 +1,23 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','SAERM_RATES_EXTRACT') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'SAERM_RATES_EXTRACT' and p.type = 'SQL Query' 
+select
+	distinct(ri.insid)	'RateIndex',
+	max(time_to_day(t.time))		'LastTraded',
+	ri.creat_time		'Created',
+	ri.updat_time		'Updated',
+	TODAY			'BusinessDay'
+	
+from
+	leg l,
+	instrument i,
+	trade t,
+	instrument ri
+where
+	l.insaddr = i.insaddr
+and	l.float_rate = ri.insaddr
+and 	t.insaddr = i.insaddr
+group by 1

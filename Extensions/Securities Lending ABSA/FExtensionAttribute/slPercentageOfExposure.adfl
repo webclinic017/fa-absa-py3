@@ -1,0 +1,7 @@
+[Securities Lending ABSA]FInstrumentAndTrades:slPercentageOfExposure = shunt((slTotalExposure == 0) or (slTotalCollateralPerParty == []), 
+  true->0.0, 
+  false->(slTotalCollateralPerParty / slTotalExposure) * 100, 
+  default->nil);
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slPercentageOfExposure = select(groupingReference.IsKindOf("FParty"), 
+  true->sumOf(children :* "slPercentageOfExposure"), 
+  default->nil);

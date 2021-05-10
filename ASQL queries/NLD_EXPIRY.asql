@@ -1,0 +1,162 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','NLD_EXPIRY') 'Name' 
+ into  ASQL_LOG_TEMP 
+ from TextObject p 
+ where p.name = 'NLD_EXPIRY' and p.type = 'SQL Query' 
+ 
+
+
+
+/* options*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',	
+	i.exp_day	'Expiry',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier
+from
+	trade	t,
+	instrument	i,
+    exotic e
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Option'
+and	i.und_instype in ('Curr')
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+order by i.exp_day
+		
+	
+				
+
+	union	
+
+
+/* caps floors collar*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',	
+	i.exp_day	'Expiry',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier
+from
+	trade	t,
+	instrument	i,
+    exotic e
+where
+	i.insaddr = t.insaddr
+and	i.instype in  ('Cap','Floor')and display_id(t,'prfnbr') = 'NLDO'
+/*and	i.und_instype in ('Swap','Bond')*/
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+order by i.exp_day
+		
+				
+union					
+				
+/* BONDS*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',	
+	i.exp_day	'Expiry',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier
+from
+	trade	t,
+	instrument	i,
+    exotic e
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'Bond' and display_id(t,'prfnbr') = 'JOB8'
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+group by i.insid	
+order by i.exp_day
+
+union	
+
+/*FRA,SWAPS*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',	
+	i.exp_day	'Expiry',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier
+from
+	trade	t,
+	instrument	i,
+    exotic e
+where
+	i.insaddr = t.insaddr
+and	i.instype in  ('Swap','FRA')and display_id(t,'prfnbr') = 'NLDO'
+/*and	i.und_instype in ('Swap','Bond')*/
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+order by i.exp_day
+
+union	
+
+/*BuySellbacks*/
+select
+	t.trdnbr	'Trade Number',
+	i.insid		'Instrument',
+	i.instype   'Instype',
+	i.und_instype 'Und Instype',	
+	i.exp_day	'Expiry',
+	i.strike_price	'Strike',
+	display_id(t,'prfnbr')	'Portfolio',
+	t.status	'Status',
+	t.nominal_amount,
+	display_id(t,'counterparty_ptynbr')	'Counterparty',
+	i.barrier,
+    e.double_barrier
+from
+	trade	t,
+	instrument	i,
+    exotic e
+where
+	i.insaddr = t.insaddr
+and	i.instype = 'BuySellback'and display_id(t,'prfnbr') = 'JOB8'
+and	t.status not in ('Simulated','Void','Terminated')
+and	i.exp_day >= TODAY
+and t.nominal_amount ~= 0
+and e.insaddr =* i.insaddr
+order by i.exp_day
+

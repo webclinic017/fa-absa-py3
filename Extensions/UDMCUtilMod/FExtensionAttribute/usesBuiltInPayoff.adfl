@@ -1,0 +1,8 @@
+[UDMCUtilMod]FCashFlowInstrument:usesBuiltInPayoff = true;
+[UDMCUtilMod]FInstrument:usesBuiltInPayoff = select(hasUdmcDescription, 
+  false->true, 
+  true->select(udmcDescription.At("payoff"), 
+    default->false, 
+    nil->select(payoffType, 
+      "None"->false, 
+      default->true)));

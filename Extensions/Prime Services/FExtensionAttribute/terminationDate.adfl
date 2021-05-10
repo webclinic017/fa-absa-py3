@@ -1,0 +1,4 @@
+[Prime Services]FSingleInstrumentAndTrades:terminationDate = py("PaymentFees", context).ReturnSingleTerminationFeeDate(tradesInPosition :* "terminationDate");
+[Prime Services]FTrade:terminationDate = switch(isGeneralPortfolio, 
+  true->py("PaymentFees", context).ReturnTerminationFeeDate(object), 
+  false->0);

@@ -1,0 +1,36 @@
+[Default]FObject:ExecutionAlgoMarketOnClose
+
+Properties =
+  Abstract=No
+  CanBePaused=Yes
+  CanBeRestarted=Yes
+  CreatePermission=System
+  DisplayName=Market On Close
+  EditPermission=User
+  Granularity=10
+  InheritsFrom=ExecutionAlgo
+  StartState=Start
+  StoreTraceLog=Yes
+  TradingEnabled=Yes
+
+Transitions =
+
+Conditions =
+
+Actions =
+
+ActionLists =
+
+Variable createExecutionPlan =
+  Domain=FVolumeExecutionPlan
+  Type=ReadOnly
+  Value=acm.Trading.CreateNonLinearExecutionPlan(volumePattern, frontLoad, object)
+
+Variable refreshTradingSchedule =
+  Description=This is only true for the ExecutionAlgos that change the Start or Stop time during optimization. It will then recreate the tradingSchedule with the new times
+  DisplayName=Refresh Trading Schedule
+  Domain=bool
+  Type=Private
+  Value=true
+
+<end>

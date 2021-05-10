@@ -1,0 +1,9 @@
+[Default]FInstrument:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = nil;
+[Default]FInstrumentAndTrades:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = instrument :* "barrierDoubleRelativeDistanceSpotUpperBarrierPercent" [isSplitAllGrouped, priceSource];
+[Default]FMultiInstrumentAndTrades:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = nil;
+[Default]FOption:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = select(isDoubleBarrier, 
+  true->switch(barrierCrossedStatus, 
+    "None"->relativeDistanceSpotBarrierPercent(underlyingValueForBarrierMonitoringAdjusted, barrierNoRiskManagementUpperValueAdjusted, true), 
+    default->nil), 
+  false->nil);
+[Default]FPriceAggregate:barrierDoubleRelativeDistanceSpotUpperBarrierPercent = instrument :* "barrierDoubleRelativeDistanceSpotUpperBarrierPercent";

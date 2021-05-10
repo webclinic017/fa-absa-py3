@@ -1,0 +1,5 @@
+[Securities Lending ABSA]FInstrument:slSettledValue = select(slSettledTradesResult == [], 
+  true->0.0, 
+  default->sumOf(slSettledTradesResult :* "instrument:slDefaultMarketValue")).Number;
+[Securities Lending ABSA]FMultiInstrumentAndTrades:slSettledValue = sumOf(instruments :* "slSettledValue");
+[Securities Lending ABSA]FSingleInstrumentAndTrades:slSettledValue = instrument :* "slSettledValue";

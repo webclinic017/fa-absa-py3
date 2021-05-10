@@ -1,0 +1,85 @@
+/* Usage code for this ASQL */
+select
+ael_i(p,'ASQL_log','EQ_FuturesBasis') 'Name'
+into  ASQL_LOG_TEMP
+from TextObject p where 
+p.name = 'EQ_FuturesBasis' and p.type = 'SQL Query' 
+
+/*
+
+June 2009 - Anil - changed the insid of the futures
+
+*/
+
+ 
+Select distinct
+    i.insid                 'Index',
+    today                   'Start',
+    j.exp_day               'Expiry',
+    u.insid                 'Stock',
+    e.dividend              'Dividend',
+    convert('date',date_add_banking_day(e.ex_div_day,,-1))          'LDT',
+    convert('date',date_add_banking_day(e.pay_day,,-1))             'PayDate',
+    link.weight / i.index_factor * e.dividend                       'IndexPts'
+    
+into    
+    DivInfo
+    
+from
+    instrument  i,
+    instrument  u,
+    instrument  j,
+    combinationlink link,
+    dividendestimate    e,
+    dividendstream  s
+    
+where 
+    i.insaddr = j.und_insaddr
+and i.insaddr = link.owner_insaddr
+and link.member_insaddr = u.insaddr
+and e.stream_seqnbr = s.seqnbr
+and s.insaddr = u.insaddr
+and date_add_banking_day(e.ex_div_day,,-1) >= today
+and date_add_banking_day(e.ex_div_day,,-1) < j.exp_day
+and j.insid = @Base{ZAR/ALSI/SEP09;'ZAR/ALSI/SEP09','ZAR/DTOP/SEP09','ZAR/FNDI/SEP09','ZAR/RESI/SEP09'}
+
+
+
+
+select distinct
+    d.Index 'Stock',
+    sum(d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365)) 'DivPV',
+    sum((d.IndexPts / (1 + yc_rate(yc,d.start,d.PayDate,'Simple','Act/365','Spot Rate')*days_between(d.start,d.PayDate,'Act/365')/365))*(1 + yc_rate(yc,d.start,d.Expiry,'Simple','Act/365','Spot Rate')*days_between(d.start,d.Expiry,'Act/365')/365))    'DivFV'
+into
+    DivIndex
+from
+    DivInfo d,
+    yieldcurve  yc
+
+where 
+    yc.yield_curve_name ='ZAR-SWAP'
+
+group by d.Index
+
+
+
+
+select distinct
+    k.insid                         'Underlying',
+    i.insid                         'Future',
+    used_price(k)                   'UnderlyingSpot',
+    theor_price(i)                  'BaseFair',
+    theor_price(i)-used_price(k)    'Basis',
+    d.DivPV                         'PV',
+    d.DivFV                         'FV'
+
+from 
+    instrument  i,
+    instrument  k,
+    DivIndex    d
+
+where 
+    i.insid = @Base{ZAR/ALSI/SEP09;'ZAR/ALSI/SEP09','ZAR/DTOP/SEP09','ZAR/FNDI/SEP09','ZAR/RESI/SEP09'}
+and k.insid = d.Stock
+and k.insaddr = i.und_insaddr
+
